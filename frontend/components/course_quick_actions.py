@@ -881,11 +881,10 @@ def CourseQuickActions(course, context: str = "college", mode: str = "full", ref
             ).tooltip("Ouvrir PDF")
         else:
             ui.button(
-                icon="link",
-                on_click=lambda c=course: open_link_pdf_unified(c, context, refresh_fn, client),
-            ).props("outline size=sm round color=red").classes(
-                "text-red-400 border-red-200 shrink-0"
-            ).tooltip("Lier un PDF")
+                icon="picture_as_pdf",
+            ).props("flat size=sm round disable").classes(
+                "text-slate-300 shrink-0"
+            ).tooltip("PDF non trouvé automatiquement")
 
         # 2. Lectures : compteur + bouton +
         with ui.row().classes(

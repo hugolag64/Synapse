@@ -166,12 +166,9 @@ def CourseCard(
             else:
                 ui.button(
                     icon="picture_as_pdf",
-                    on_click=lambda c=course: open_link_pdf_unified(
-                        c, context, refresh_fn, client
-                    ),
-                ).props("flat round dense size=sm").classes(
-                    "text-slate-300 hover:bg-slate-100 shrink-0"
-                ).tooltip("Lier un PDF")
+                ).props("flat round dense size=sm disable").classes(
+                    "text-slate-300 shrink-0"
+                ).tooltip("PDF non trouvé automatiquement")
 
             # QCM
             if qcm_done:

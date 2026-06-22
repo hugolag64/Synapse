@@ -275,6 +275,39 @@ class DataStore:
                 logger.info("Data loaded from disk, skipping synchronous refresh.")
             self.loading_progress = 0.4
 
+            # PDF Phase A: apply SQLite-cached paths (fast, no disk scan)
+            try:
+                from backend.core.reviews import local_store as _ls
+                for c in self.cours:
+                    if not getattr(c, "url_pdf", None):
+                        cached = _ls.get_pdf_cache(c.id, "college")
+                        if cached and os.path.isfile(cached):
+                            c.url_pdf = f"file:///{cached.replace(os.sep, '/')}"
+                    if not getattr(c, "url_pdf_ue", None):
+                        cached_ue = _ls.get_pdf_cache(c.id, "ue")
+                        if cached_ue and os.path.isfile(cached_ue):
+                            c.url_pdf_ue = f"file:///{cached_ue.replace(os.sep, '/')}"
+            except Exception as _exc:
+                logger.warning(f"PDF Phase A échoué (non bloquant): {_exc}")
+
+            # PDF Phase B: background scan for courses not yet in cache
+            async def _pdf_scan_background():
+                try:
+                    from backend.core.files import file_service as _fs
+                    to_scan = [c for c in self.cours if not getattr(c, "url_pdf", None)]
+                    found = 0
+                    for c in to_scan:
+                        path = await _fs.auto_detect_pdf(c, "college")
+                        if path:
+                            c.url_pdf = f"file:///{path.replace(os.sep, '/')}"
+                            found += 1
+                    if to_scan:
+                        logger.info(f"PDF scan background: {found}/{len(to_scan)} cours enrichis")
+                except Exception as _exc:
+                    logger.warning(f"PDF Phase B échoué (non bloquant): {_exc}")
+
+            asyncio.create_task(_pdf_scan_background())
+
             # Migration one-shot done_review_ids JSON → SQLite
             self.run_sqlite_migration()
 

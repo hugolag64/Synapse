@@ -2316,18 +2316,16 @@ def cleanup_pdf_cache() -> int:
     Retourne :
         int : nombre d'entrées supprimées
     """
-    con = _conn()
-    rows = con.execute("SELECT course_id, context, pdf_path FROM pdf_local_cache").fetchall()
-    removed = 0
-    for row in rows:
-        if not os.path.isfile(row["pdf_path"]):
-            con.execute(
-                "DELETE FROM pdf_local_cache WHERE course_id = ? AND context = ?",
-                (row["course_id"], row["context"]),
-            )
-            removed += 1
-    if removed:
-        con.commit()
+    with _conn() as con:
+        rows = con.execute("SELECT course_id, context, pdf_path FROM pdf_local_cache").fetchall()
+        removed = 0
+        for row in rows:
+            if not os.path.isfile(row["pdf_path"]):
+                con.execute(
+                    "DELETE FROM pdf_local_cache WHERE course_id = ? AND context = ?",
+                    (row["course_id"], row["context"]),
+                )
+                removed += 1
     return removed
 
 

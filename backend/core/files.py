@@ -5,7 +5,6 @@ import re
 import difflib
 from typing import List
 from backend.config.settings import settings
-from backend.core.reviews import local_store
 from loguru import logger
 
 try:
@@ -218,6 +217,8 @@ class FileService:
             str  : chemin absolu du PDF détecté
             None : aucun PDF détecté avec confiance suffisante
         """
+        from backend.core.reviews import local_store  # lazy import — avoids potential circular at startup
+
         # ── 1. Guard : URL Notion déjà renseignée ────────────────────────────
         if context == "college":
             if getattr(course, "url_pdf", None):

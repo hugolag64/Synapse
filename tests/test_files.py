@@ -50,7 +50,7 @@ class TestGuardCollegeUrlPdf:
         """Une chaîne vide est falsy → doit passer le guard."""
         course = _make_course(url_pdf="")
         # On court-circuite après le guard en faisant échouer le cache SQLite
-        with patch("backend.core.files.local_store.get_pdf_cache", return_value=None), \
+        with patch("backend.core.reviews.local_store.get_pdf_cache", return_value=None), \
              patch("backend.core.files.settings") as mock_settings, \
              patch("os.path.exists", return_value=False):
             mock_settings.medicine_dir = ""
@@ -70,7 +70,7 @@ class TestSQLiteCacheHit:
         course = _make_course()
         cached_path = "/some/path/college.pdf"
 
-        with patch("backend.core.files.local_store.get_pdf_cache", return_value=cached_path), \
+        with patch("backend.core.reviews.local_store.get_pdf_cache", return_value=cached_path), \
              patch("os.path.isfile", return_value=True):
             result = _run(svc.auto_detect_pdf(course, context="college"))
 
@@ -81,7 +81,7 @@ class TestSQLiteCacheHit:
         course = _make_course()
         cached_path = "/stale/path/college.pdf"
 
-        with patch("backend.core.files.local_store.get_pdf_cache", return_value=cached_path), \
+        with patch("backend.core.reviews.local_store.get_pdf_cache", return_value=cached_path), \
              patch("os.path.isfile", return_value=False), \
              patch("backend.core.files.settings") as mock_settings, \
              patch("os.path.exists", return_value=False):
@@ -98,7 +98,7 @@ class TestSearchPathMissing:
     def test_returns_none_when_search_path_not_exists(self, svc):
         course = _make_course()
 
-        with patch("backend.core.files.local_store.get_pdf_cache", return_value=None), \
+        with patch("backend.core.reviews.local_store.get_pdf_cache", return_value=None), \
              patch("backend.core.files.settings") as mock_settings, \
              patch("os.path.exists", return_value=False), \
              patch("backend.core.obsidian.service.COLLEGE_MAPPING", {"Cardiovasculaire ❤️": "Cardiovasculaire"}):
@@ -110,7 +110,7 @@ class TestSearchPathMissing:
     def test_returns_none_when_medicine_dir_empty_for_ue(self, svc):
         course = _make_course()
 
-        with patch("backend.core.files.local_store.get_pdf_cache", return_value=None), \
+        with patch("backend.core.reviews.local_store.get_pdf_cache", return_value=None), \
              patch("backend.core.files.settings") as mock_settings, \
              patch("os.path.exists", return_value=False):
             mock_settings.fac_dir = ""
@@ -127,7 +127,7 @@ class TestScoreTooLow:
         course = _make_course()
         search_path = "/medicine/Colleges/Cardiovasculaire"
 
-        with patch("backend.core.files.local_store.get_pdf_cache", return_value=None), \
+        with patch("backend.core.reviews.local_store.get_pdf_cache", return_value=None), \
              patch("backend.core.files.settings") as mock_settings, \
              patch("os.path.exists", return_value=True), \
              patch("os.path.isfile", return_value=False), \
@@ -150,8 +150,8 @@ class TestSuccess:
         expected_pdf = "/medicine/Colleges/Cardio/232-insuffisance-cardiaque.pdf"
         search_path = "/medicine/Collèges/Cardiovasculaire"
 
-        with patch("backend.core.files.local_store.get_pdf_cache", return_value=None), \
-             patch("backend.core.files.local_store.set_pdf_cache") as mock_set, \
+        with patch("backend.core.reviews.local_store.get_pdf_cache", return_value=None), \
+             patch("backend.core.reviews.local_store.set_pdf_cache") as mock_set, \
              patch("backend.core.files.settings") as mock_settings, \
              patch("os.path.exists", return_value=True), \
              patch("os.path.isfile", return_value=False), \
@@ -169,8 +169,8 @@ class TestSuccess:
         course = _make_course(url_pdf_ue=None)
         expected_pdf = "/fac/UE1/cours-insuffisance.pdf"
 
-        with patch("backend.core.files.local_store.get_pdf_cache", return_value=None), \
-             patch("backend.core.files.local_store.set_pdf_cache") as mock_set, \
+        with patch("backend.core.reviews.local_store.get_pdf_cache", return_value=None), \
+             patch("backend.core.reviews.local_store.set_pdf_cache") as mock_set, \
              patch("backend.core.files.settings") as mock_settings, \
              patch("os.path.exists", return_value=True), \
              patch("os.path.isfile", return_value=False), \

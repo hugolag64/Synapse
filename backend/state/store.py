@@ -297,6 +297,7 @@ class DataStore:
             async def _pdf_scan_background():
                 try:
                     from backend.core.files import file_service as _fs
+                    # College context
                     to_scan = [c for c in self.cours if not getattr(c, "url_pdf", None)]
                     found = 0
                     for c in to_scan:
@@ -304,8 +305,16 @@ class DataStore:
                         if path:
                             c.url_pdf = f"file:///{path.replace(os.sep, '/')}"
                             found += 1
-                    if to_scan:
-                        logger.info(f"PDF scan background: {found}/{len(to_scan)} cours enrichis")
+                    # UE context
+                    to_scan_ue = [c for c in self.cours if not getattr(c, "url_pdf_ue", None)]
+                    found_ue = 0
+                    for c in to_scan_ue:
+                        path = await _fs.auto_detect_pdf(c, "ue")
+                        if path:
+                            c.url_pdf_ue = f"file:///{path.replace(os.sep, '/')}"
+                            found_ue += 1
+                    if to_scan or to_scan_ue:
+                        logger.info(f"PDF scan background: college {found}/{len(to_scan)}, ue {found_ue}/{len(to_scan_ue)} cours enrichis")
                 except Exception as _exc:
                     logger.warning(f"PDF Phase B échoué (non bloquant): {_exc}")
 

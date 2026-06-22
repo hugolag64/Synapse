@@ -21,7 +21,6 @@ from nicegui import ui
 from frontend.components.course_quick_actions import (
     quick_mark_course_action,
     open_quick_session_dialog,
-    open_link_pdf_unified,
     open_start_tracking_dialog,
     _open_quick_qcm_dialog,
     _open_obsidian_note_action,

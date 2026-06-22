@@ -26,6 +26,7 @@ from frontend.components.course_quick_actions import (
     _open_obsidian_note_action,
     _create_obsidian_note_action,
     _open_link_note_dialog,
+    open_pdf_wizard,
 )
 from backend.core.obsidian.service import obsidian_service
 from backend.config.settings import settings as _settings
@@ -165,9 +166,10 @@ def CourseCard(
             else:
                 ui.button(
                     icon="picture_as_pdf",
-                ).props("flat round dense size=sm disable").classes(
-                    "text-slate-300 shrink-0"
-                ).tooltip("PDF non trouvé automatiquement")
+                    on_click=lambda c=course: open_pdf_wizard(c, context, refresh_fn, client),
+                ).props("flat round dense size=sm").classes(
+                    "text-slate-300 hover:text-indigo-400 shrink-0"
+                ).tooltip("Chercher un PDF automatiquement")
 
             # QCM
             if qcm_done:

@@ -293,33 +293,6 @@ class DataStore:
             except Exception as _exc:
                 logger.warning(f"PDF Phase A échoué (non bloquant): {_exc}")
 
-            # PDF Phase B: background scan for courses not yet in cache
-            async def _pdf_scan_background():
-                try:
-                    from backend.core.files import file_service as _fs
-                    # College context
-                    to_scan = [c for c in self.cours if not getattr(c, "url_pdf", None)]
-                    found = 0
-                    for c in to_scan:
-                        path = await _fs.auto_detect_pdf(c, "college")
-                        if path:
-                            c.url_pdf = f"file:///{path.replace(os.sep, '/')}"
-                            found += 1
-                    # UE context
-                    to_scan_ue = [c for c in self.cours if not getattr(c, "url_pdf_ue", None)]
-                    found_ue = 0
-                    for c in to_scan_ue:
-                        path = await _fs.auto_detect_pdf(c, "ue")
-                        if path:
-                            c.url_pdf_ue = f"file:///{path.replace(os.sep, '/')}"
-                            found_ue += 1
-                    if to_scan or to_scan_ue:
-                        logger.info(f"PDF scan background: college {found}/{len(to_scan)}, ue {found_ue}/{len(to_scan_ue)} cours enrichis")
-                except Exception as _exc:
-                    logger.warning(f"PDF Phase B échoué (non bloquant): {_exc}")
-
-            asyncio.create_task(_pdf_scan_background())
-
             # Migration one-shot done_review_ids JSON → SQLite
             self.run_sqlite_migration()
 

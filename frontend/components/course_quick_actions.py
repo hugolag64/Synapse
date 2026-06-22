@@ -545,84 +545,233 @@ async def _link_note_to_course(course, note_path, refresh_fn) -> None:
 
 # ── COMPOSANT UNIFIÉ : CourseQuickActions (V4) ────────────────────────────────
 
-def open_link_pdf_unified(c, context: str, refresh_fn, client):
-    initial_val = c.title.strip() if c.title else ""
-    search_query = {'value': initial_val}
-    
+def open_pdf_wizard(c, context: str, refresh_fn, client) -> None:
+    """
+    Wizard PDF : scan automatique puis recherche manuelle en fallback.
+
+    1. Ouvre un dialog avec un spinner.
+    2. Lance auto_detect_pdf en tâche async.
+    3. Si trouvé → affiche le fichier + bouton "Lier".
+    4. Si non trouvé → affiche une recherche manuelle pré-remplie.
+    """
+    from backend.core.files import file_service as _fs
+    from backend.core.obsidian.service import COLLEGE_MAPPING
+
+    state = {"found_path": None}
+
+    # Répertoire de recherche pour la recherche manuelle
     if context == "college":
         base_dir = os.path.join(settings.medicine_dir, "Collèges")
-        search_path = base_dir
+        manual_search_path = base_dir
         if c.college:
-            college_name = c.college[0].strip()
-            specific_path = os.path.join(base_dir, college_name)
-            if os.path.exists(specific_path):
-                search_path = specific_path
+            folder = COLLEGE_MAPPING.get(c.college[0], c.college[0])
+            candidate = os.path.join(base_dir, folder)
+            if os.path.exists(candidate):
+                manual_search_path = candidate
     else:
-        search_path = settings.fac_dir or settings.medicine_dir
+        manual_search_path = settings.fac_dir or settings.medicine_dir
+    if not manual_search_path or not os.path.exists(manual_search_path):
+        manual_search_path = settings.medicine_dir or ""
 
-    if not os.path.exists(search_path):
-        search_path = settings.medicine_dir
+    with ui.dialog() as dlg, ui.card().classes(
+        "w-[520px] max-w-[92vw] rounded-2xl p-0 overflow-hidden"
+    ):
+        # Header
+        with ui.row().classes(
+            "items-center gap-3 px-5 py-4 "
+            "bg-indigo-50 dark:bg-indigo-900/20 "
+            "border-b border-indigo-100 dark:border-indigo-800"
+        ):
+            ui.icon("picture_as_pdf", color="indigo").classes("text-xl shrink-0")
+            with ui.column().classes("gap-0 flex-1"):
+                ui.label("Lier un PDF").classes(
+                    "font-bold text-sm text-indigo-800 dark:text-indigo-200"
+                )
+                ui.label(c.title or "").classes(
+                    "text-xs text-indigo-500 dark:text-indigo-400 truncate"
+                )
 
-    cache = getattr(file_service, 'pdf_caches', {})
-    cache_size = len(cache.get(search_path, []))
-    
-    with ui.dialog() as dialog, ui.card().classes('w-[600px] h-[600px]'):
-        ui.label(f"Lier un PDF à : {c.title} ({context.upper()})").classes('text-lg font-bold')
-        
-        if cache_size == 0:
-            ui.label(f"⚠️ Cache: 0 fichiers").classes('text-xs text-orange-500')
-            ui.label(f"Chemin: {search_path}").classes('text-xs text-slate-400')
-        else:
-            ui.label(f"✅ Index: {cache_size} fichiers").classes('text-xs text-green-500')
-            
-        results_container = ui.column().classes('w-full mt-2')
-        
-        def search_files(query_text=None):
-            results_container.clear()
-            query = str(query_text if query_text is not None else search_query['value'])
-            
-            if len(query) < 2:
-                with results_container:
-                     ui.label("Tapez au moins 2 caractères...").classes('text-slate-400 italic')
-                return
+        # Corps — zone reactive
+        body = ui.element("div").classes("px-5 py-4 w-full")
 
-            try:
-                if not os.path.exists(search_path):
-                     with results_container:
-                         ui.label(f"Dossier introuvable : {search_path}").classes('text-red-500')
-                     return
+        # Footer
+        with ui.row().classes(
+            "px-5 py-3 justify-end gap-2 "
+            "border-t border-slate-100 dark:border-slate-800"
+        ):
+            ui.button("Fermer", on_click=dlg.close).props("flat color=grey-8")
+            link_btn = (
+                ui.button("Lier ce PDF", icon="link")
+                .props("unelevated rounded color=green")
+                .classes("hidden")
+            )
 
-                files = file_service.find_pdf(query, search_path=search_path, item_number=c.item_number)
-                
-                with results_container:
+        # ── Helpers d'affichage ────────────────────────────────────────────────
+
+        def _show_scanning():
+            body.clear()
+            with body:
+                with ui.row().classes("items-center gap-3 py-4"):
+                    ui.spinner("dots", size="sm", color="indigo")
+                    ui.label("Scan automatique en cours…").classes(
+                        "text-sm text-slate-500 dark:text-slate-400"
+                    )
+
+        def _show_found(path: str):
+            body.clear()
+            with body:
+                filename = os.path.basename(path)
+                with ui.row().classes(
+                    "items-start gap-3 p-3 rounded-xl "
+                    "bg-green-50 dark:bg-green-900/20 "
+                    "border border-green-200 dark:border-green-800"
+                ):
+                    ui.icon("check_circle", color="green").classes("text-xl shrink-0 mt-0.5")
+                    with ui.column().classes("gap-0.5 min-w-0"):
+                        ui.label("PDF trouvé automatiquement").classes(
+                            "text-sm font-bold text-green-800 dark:text-green-300"
+                        )
+                        ui.label(filename).classes(
+                            "text-xs text-green-600 dark:text-green-400 break-all"
+                        )
+                        ui.label(path).classes("text-[10px] text-slate-400 break-all")
+
+        def _build_manual_search():
+            results_col = ui.column().classes("w-full gap-0.5 mt-1 max-h-[280px] overflow-y-auto")
+
+            def _run_search(query: str):
+                results_col.clear()
+                if not query or len(query) < 2:
+                    with results_col:
+                        ui.label("Tapez au moins 2 caractères…").classes(
+                            "text-xs text-slate-400 italic px-2 py-1"
+                        )
+                    return
+                if not manual_search_path:
+                    with results_col:
+                        ui.label("Dossier Collèges non configuré.").classes("text-xs text-red-500 px-2")
+                    return
+                files = _fs.find_pdf(
+                    query,
+                    search_path=manual_search_path,
+                    item_number=str(c.item_number) if c.item_number else None,
+                    limit=10,
+                )
+                with results_col:
                     if not files:
-                        ui.label("Aucune suggestion trouvée.").classes('text-slate-400 italic')
-                    
-                    for path in files:
-                         filename = os.path.basename(path)
-                         def link_file(filepath=path):
-                             dialog.close()
-                             uri = f"file:///{filepath.replace(os.sep, '/')}"
-                             prop_url = P.URL_PDF_COLLEGE if context == "college" else P.URL_PDF_UE
-                             async def run_update():
-                                 await update_course_action(c, {prop_url: {'url': uri}}, refresh_fn=refresh_fn, client=client)
-                             asyncio.create_task(run_update())
-                             
-                         with ui.item(on_click=link_file).classes('w-full cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded'):
-                             with ui.column().classes('gap-0'):
-                                 ui.label(filename).classes('font-bold text-slate-900 dark:text-slate-200')
-                                 ui.label(path).classes('text-xs text-slate-400 break-all')
-            except Exception as e:
-                with results_container:
-                    ui.label(f"Erreur : {e}").classes('text-red-500')
-        
-        search_input = ui.input('Rechercher...', on_change=lambda e: search_files(e.value)).bind_value(search_query, 'value').classes('w-full').props('autofocus clearable')
-        if initial_val:
-            search_files(query_text=initial_val)
-        
-        with ui.row().classes('w-full justify-end mt-auto'):
-             ui.button('Fermer', on_click=dialog.close).props('flat')
-    dialog.open()
+                        ui.label("Aucun résultat.").classes(
+                            "text-xs text-slate-400 italic px-2 py-1"
+                        )
+                        return
+                    for p in files:
+                        fname = os.path.basename(p)
+
+                        def _pick(picked=p):
+                            state["found_path"] = picked
+                            results_col.clear()
+                            with results_col:
+                                with ui.row().classes(
+                                    "items-center gap-2 p-2 rounded-lg "
+                                    "bg-green-50 dark:bg-green-900/20 "
+                                    "border border-green-200 dark:border-green-800"
+                                ):
+                                    ui.icon("check_circle", color="green").classes("shrink-0 text-base")
+                                    ui.label(os.path.basename(picked)).classes(
+                                        "text-sm font-medium text-green-800 dark:text-green-300 break-all"
+                                    )
+                            link_btn.classes(remove="hidden")
+
+                        with ui.item(on_click=_pick).classes(
+                            "w-full cursor-pointer rounded-lg "
+                            "hover:bg-slate-50 dark:hover:bg-slate-800/60 p-2"
+                        ):
+                            with ui.column().classes("gap-0"):
+                                ui.label(fname).classes(
+                                    "text-sm font-medium text-slate-800 dark:text-slate-100"
+                                )
+                                ui.label(p).classes("text-[10px] text-slate-400 break-all")
+
+            init_q = c.title or ""
+            ui.input(
+                placeholder="Rechercher…",
+                value=init_q,
+                on_change=lambda e: _run_search(e.value),
+            ).props("outlined dense clearable autofocus").classes("w-full")
+            _run_search(init_q)
+
+        def _show_not_found():
+            body.clear()
+            with body:
+                with ui.row().classes(
+                    "items-center gap-2 p-3 mb-3 rounded-xl "
+                    "bg-amber-50 dark:bg-amber-900/20 "
+                    "border border-amber-200 dark:border-amber-700"
+                ):
+                    ui.icon("search_off", color="amber-600").classes("text-lg shrink-0")
+                    ui.label("Aucun PDF détecté — recherche manuelle :").classes(
+                        "text-sm text-amber-800 dark:text-amber-300"
+                    )
+                _build_manual_search()
+
+        # ── Action de liaison ──────────────────────────────────────────────────
+
+        async def _link_pdf():
+            path = state.get("found_path")
+            if not path:
+                return
+            uri = f"file:///{path.replace(os.sep, '/')}"
+            attr = "url_pdf" if context == "college" else "url_pdf_ue"
+            prop = P.URL_PDF_COLLEGE if context == "college" else P.URL_PDF_UE
+            dlg.close()
+            await update_course_action(
+                c, {prop: {"url": uri}}, refresh_fn=refresh_fn, client=client
+            )
+            try:
+                ctx = client if client else ui.context.client
+                with ctx:
+                    setattr(c, attr, uri)
+                    ui.notify("PDF lié ✓", type="positive", icon="picture_as_pdf")
+                    if refresh_fn:
+                        refresh_fn()
+            except Exception:
+                pass
+
+        link_btn.on("click", lambda: asyncio.create_task(_link_pdf()))
+
+        # ── Scan automatique au chargement ─────────────────────────────────────
+
+        async def _do_scan():
+            try:
+                path = await _fs.auto_detect_pdf(c, context)
+                try:
+                    ctx = client if client else ui.context.client
+                    with ctx:
+                        if path:
+                            state["found_path"] = path
+                            _show_found(path)
+                            link_btn.classes(remove="hidden")
+                        else:
+                            _show_not_found()
+                except Exception:
+                    if path:
+                        state["found_path"] = path
+                        _show_found(path)
+                        link_btn.classes(remove="hidden")
+                    else:
+                        _show_not_found()
+            except Exception as exc:
+                body.clear()
+                with body:
+                    ui.label(f"Erreur scan : {exc}").classes("text-sm text-red-500")
+
+        _show_scanning()
+        asyncio.create_task(_do_scan())
+
+    dlg.open()
+
+
+# Alias rétro-compatible (utilisé dans les menus ⋯ existants)
+open_link_pdf_unified = open_pdf_wizard
 
 
 async def _sync_calendar_events(
@@ -882,9 +1031,10 @@ def CourseQuickActions(course, context: str = "college", mode: str = "full", ref
         else:
             ui.button(
                 icon="picture_as_pdf",
-            ).props("flat size=sm round disable").classes(
-                "text-slate-300 shrink-0"
-            ).tooltip("PDF non trouvé automatiquement")
+                on_click=lambda c=course: open_pdf_wizard(c, context, refresh_fn, client),
+            ).props("flat size=sm round").classes(
+                "text-slate-300 hover:text-indigo-400 shrink-0"
+            ).tooltip("Chercher un PDF automatiquement")
 
         # 2. Lectures : compteur + bouton +
         with ui.row().classes(

@@ -20,7 +20,6 @@ if TYPE_CHECKING:
 
 
 _ITEM_RE = re.compile(r"^(?:item\s*)?(\d{2,3})\s*[-–]", re.IGNORECASE)
-_ITEMS_SUBDIR_NAMES = ("items", "Items", "item", "Item")
 
 
 def _extract_item_number(filename: str) -> int | None:
@@ -93,16 +92,29 @@ async def auto_import_courses_from_pdf_folders(cours_existants: list[Cours]) -> 
             logger.debug(f"PDF import: dossier inconnu dans COLLEGE_MAPPING — {folder_name!r}")
             continue
 
-        # Cherche un sous-dossier "items" ou "item"
-        items_subdir: str | None = None
-        for candidate in _ITEMS_SUBDIR_NAMES:
-            p = os.path.join(folder_path, candidate)
-            if os.path.isdir(p):
-                items_subdir = p
-                break
-
-        if not items_subdir:
+        # Cherche tout sous-dossier dont le nom commence par "item" (insensible à la casse)
+        # Ex : "item", "items", "item 25-26-27", "items 2024"
+        # Si plusieurs correspondent, on prend le plus récemment modifié
+        try:
+            all_subdirs = os.listdir(folder_path)
+        except OSError:
             continue
+        item_subdirs = [
+            os.path.join(folder_path, d)
+            for d in all_subdirs
+            if d.lower().startswith("item") and os.path.isdir(os.path.join(folder_path, d))
+        ]
+
+        if not item_subdirs:
+            continue
+
+        # Si plusieurs dossiers item*, on prend le plus récemment modifié
+        items_subdir = max(item_subdirs, key=os.path.getmtime)
+        if len(item_subdirs) > 1:
+            logger.debug(
+                f"PDF import: {len(item_subdirs)} dossiers item* dans {folder_name!r} "
+                f"→ sélectionné : {os.path.basename(items_subdir)!r}"
+            )
 
         try:
             pdf_files = [f for f in os.listdir(items_subdir) if f.lower().endswith(".pdf")]

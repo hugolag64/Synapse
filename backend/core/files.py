@@ -5,6 +5,7 @@ import re
 import difflib
 from typing import List
 from backend.config.settings import settings
+from backend.core.reviews import local_store
 from loguru import logger
 
 try:
@@ -99,7 +100,7 @@ class FileService:
         except Exception as e:
             logger.error(f"Error during PDF walk in {target_dir}: {e}")
 
-    def find_pdf(self, query: str, limit: int = 20, search_path: str = None, item_number: str = None) -> List[str]:
+    def find_pdf(self, query: str, limit: int = 20, search_path: str = None, item_number: str = None, min_score: float = 0.0) -> List[str]:
         """Search for PDF files in the configured directory matching the query with fuzzy scoring."""
         
         target_dir = search_path if search_path else self.root_dir
@@ -186,7 +187,8 @@ class FileService:
                 pr = _fuzz.partial_ratio(query_norm, filename_norm)
                 score += (pr / 100.0) * 15.0
 
-            if score > 5.0:
+            effective_min = max(min_score, 5.0)
+            if score > effective_min:
                 scored_matches.append((score, file_path))
         
         # Sort: Score DESC, then Length ASC (shorter is usually better match), then Name ASC
@@ -194,5 +196,73 @@ class FileService:
         
         logger.info(f"Fuzzy search for '{query}' (Item: {item_number}) found {len(scored_matches)} matches in {target_dir}.")
         return [m[1] for m in scored_matches[:limit]]
+
+    async def auto_detect_pdf(self, course, context: str = "college") -> "str | None":
+        """
+        Détecte automatiquement le PDF local le plus probable pour un cours.
+
+        Logique :
+          1. Guard : si l'URL PDF Notion est déjà renseignée → None (rien à faire)
+          2. Cache SQLite : si un chemin valide est en cache → retourner directement
+          3. Construction du search_path selon le contexte
+          4. Peuplement du cache FileService si nécessaire
+          5. Recherche floue avec seuil de score ≥ 50
+          6. Persistence SQLite et retour du chemin trouvé
+
+        Paramètres :
+            course  : objet Cours Notion avec .id, .url_pdf, .url_pdf_ue,
+                      .college, .title, .item_number
+            context : 'college' (collège EDN) ou 'ue' (poly de fac)
+
+        Retourne :
+            str  : chemin absolu du PDF détecté
+            None : aucun PDF détecté avec confiance suffisante
+        """
+        # ── 1. Guard : URL Notion déjà renseignée ────────────────────────────
+        if context == "college":
+            if getattr(course, "url_pdf", None):
+                return None
+        else:
+            if getattr(course, "url_pdf_ue", None):
+                return None
+
+        # ── 2. Cache SQLite ──────────────────────────────────────────────────
+        cached = local_store.get_pdf_cache(course.id, context)
+        if cached is not None and os.path.isfile(cached):
+            return cached
+
+        # ── 3. Construction du search_path ───────────────────────────────────
+        if context == "college":
+            # Import lazy pour éviter les imports circulaires
+            from backend.core.obsidian.service import COLLEGE_MAPPING
+            college_name = course.college[0] if course.college else ""
+            college_folder = COLLEGE_MAPPING.get(college_name, college_name)
+            search_path = os.path.join(settings.medicine_dir, "Collèges", college_folder)
+        else:
+            search_path = settings.fac_dir or settings.medicine_dir
+
+        if not search_path or not os.path.exists(search_path):
+            return None
+
+        # ── 4. Peuplement du cache FileService ───────────────────────────────
+        if search_path not in self.pdf_caches:
+            await self.refresh_cache_async(search_path)
+
+        # ── 5. Recherche floue avec seuil de score ───────────────────────────
+        results = self.find_pdf(
+            course.title or "",
+            search_path=search_path,
+            item_number=str(course.item_number) if course.item_number else None,
+            limit=1,
+            min_score=50.0,
+        )
+
+        if not results:
+            return None
+
+        # ── 6. Persistence SQLite et retour ──────────────────────────────────
+        local_store.set_pdf_cache(course.id, context, results[0])
+        return results[0]
+
 
 file_service = FileService()

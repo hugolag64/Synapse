@@ -278,6 +278,9 @@ class DataStore:
             # PDF Phase A: apply SQLite-cached paths (fast, no disk scan)
             try:
                 from backend.core.reviews import local_store as _ls
+                removed = _ls.cleanup_pdf_cache()
+                if removed:
+                    logger.info(f"PDF cache: {removed} entrées périmées supprimées")
                 for c in self.cours:
                     if not getattr(c, "url_pdf", None):
                         cached = _ls.get_pdf_cache(c.id, "college")

@@ -346,3 +346,61 @@ class TestPdfCache:
                 "SELECT name FROM sqlite_master WHERE type='table' AND name='pdf_local_cache'"
             ).fetchall()
         assert len(tables) == 1, "La table pdf_local_cache doit exister"
+
+    def test_cleanup_pdf_cache_existing_files_kept(self):
+        """cleanup_pdf_cache doit garder les entrées dont le fichier existe."""
+        # Créer des fichiers temporaires
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pdf_path = Path(tmpdir) / "course.pdf"
+            pdf_path.write_text("fake pdf content")
+
+            ls.set_pdf_cache("c1", "college", str(pdf_path))
+
+            # Le fichier existe → ne doit pas être supprimé
+            removed = ls.cleanup_pdf_cache()
+            assert removed == 0
+            assert ls.get_pdf_cache("c1", "college") == str(pdf_path)
+
+    def test_cleanup_pdf_cache_missing_files_deleted(self):
+        """cleanup_pdf_cache doit supprimer les entrées dont le fichier n'existe pas."""
+        # Chemin inexistant
+        fake_path = "/nonexistent/path/to/missing.pdf"
+        ls.set_pdf_cache("c1", "college", fake_path)
+
+        # Le fichier n'existe pas → doit être supprimé
+        removed = ls.cleanup_pdf_cache()
+        assert removed == 1
+        assert ls.get_pdf_cache("c1", "college") is None
+
+    def test_cleanup_pdf_cache_empty_table_returns_zero(self):
+        """cleanup_pdf_cache retourne 0 si la table est vide."""
+        removed = ls.cleanup_pdf_cache()
+        assert removed == 0
+
+    def test_cleanup_pdf_cache_mixed_case(self):
+        """cleanup_pdf_cache doit garder les valides, supprimer les stale."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Créer un fichier existant
+            valid_path = Path(tmpdir) / "valid.pdf"
+            valid_path.write_text("valid pdf")
+
+            # Chemin inexistant
+            invalid_path = "/nonexistent/invalid.pdf"
+
+            # Entrées dans le cache
+            ls.set_pdf_cache("c1", "college", str(valid_path))
+            ls.set_pdf_cache("c2", "college", invalid_path)
+            ls.set_pdf_cache("c3", "ue", invalid_path)
+            ls.set_pdf_cache("c4", "college", str(valid_path))
+
+            # Cleanup
+            removed = ls.cleanup_pdf_cache()
+            assert removed == 2  # c2 et c3 supprimés
+
+            # Vérifier que c1 et c4 existent toujours
+            assert ls.get_pdf_cache("c1", "college") == str(valid_path)
+            assert ls.get_pdf_cache("c4", "college") == str(valid_path)
+
+            # Vérifier que c2 et c3 sont supprimés
+            assert ls.get_pdf_cache("c2", "college") is None
+            assert ls.get_pdf_cache("c3", "ue") is None

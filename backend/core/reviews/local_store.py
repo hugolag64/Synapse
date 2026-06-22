@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import sqlite3
 import datetime
+import os
 from pathlib import Path
 from typing import Optional
 from zoneinfo import ZoneInfo
@@ -2305,6 +2306,29 @@ def set_pdf_cache(course_id: str, context: str, pdf_path: str) -> None:
                 (course_id, context, pdf_path, detected_at)
             VALUES (?, ?, ?, ?)
         """, (course_id, context, pdf_path, detected_at))
+
+
+def cleanup_pdf_cache() -> int:
+    """
+    Supprime les entrées de pdf_local_cache dont le fichier n'existe plus sur disque.
+    Appelée au démarrage (Phase A) pour nettoyer les chemins stale.
+
+    Retourne :
+        int : nombre d'entrées supprimées
+    """
+    con = _conn()
+    rows = con.execute("SELECT course_id, context, pdf_path FROM pdf_local_cache").fetchall()
+    removed = 0
+    for row in rows:
+        if not os.path.isfile(row["pdf_path"]):
+            con.execute(
+                "DELETE FROM pdf_local_cache WHERE course_id = ? AND context = ?",
+                (row["course_id"], row["context"]),
+            )
+            removed += 1
+    if removed:
+        con.commit()
+    return removed
 
 
 # ── Auto-init à l'import ──────────────────────────────────────────────────────

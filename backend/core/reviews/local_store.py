@@ -156,6 +156,15 @@ def init_db() -> None:
 
         CREATE INDEX IF NOT EXISTS idx_wp_course  ON weak_points(course_id);
         CREATE INDEX IF NOT EXISTS idx_wp_status  ON weak_points(status);
+
+        -- ── Cache local des PDFs détectés ──────────────────────────────────
+        CREATE TABLE IF NOT EXISTS pdf_local_cache (
+            course_id   TEXT NOT NULL,
+            context     TEXT NOT NULL,
+            pdf_path    TEXT NOT NULL,
+            detected_at TEXT NOT NULL,
+            PRIMARY KEY (course_id, context)
+        );
         """)
     migrate_study_sessions_v2()
     _migrate_qcm_sessions_v2()
@@ -2253,6 +2262,49 @@ def get_item_stats(limit: int = 300) -> list[dict]:
         })
 
     return result
+
+
+# ── PDF Zéro-Friction : cache local ───────────────────────────────────────────
+
+def get_pdf_cache(course_id: str, context: str) -> Optional[str]:
+    """
+    Retourne le chemin du PDF mis en cache pour (course_id, context).
+    Si pas de cache, retourne None.
+
+    Paramètres :
+        course_id : identifiant du cours
+        context   : 'college' ou 'ue'
+
+    Retourne :
+        str : chemin absolu du PDF
+        None : pas d'entrée en cache
+    """
+    with _conn() as con:
+        row = con.execute(
+            "SELECT pdf_path FROM pdf_local_cache WHERE course_id = ? AND context = ?",
+            (course_id, context),
+        ).fetchone()
+    return row["pdf_path"] if row else None
+
+
+def set_pdf_cache(course_id: str, context: str, pdf_path: str) -> None:
+    """
+    Enregistre ou remplace le chemin du PDF pour (course_id, context).
+    Idempotent : appeler plusieurs fois avec la même clé (course_id, context)
+    ne crée qu'une seule ligne.
+
+    Paramètres :
+        course_id : identifiant du cours
+        context   : 'college' ou 'ue'
+        pdf_path  : chemin absolu du PDF
+    """
+    detected_at = datetime.date.today().isoformat()
+    with _conn() as con:
+        con.execute("""
+            INSERT OR REPLACE INTO pdf_local_cache
+                (course_id, context, pdf_path, detected_at)
+            VALUES (?, ?, ?, ?)
+        """, (course_id, context, pdf_path, detected_at))
 
 
 # ── Auto-init à l'import ──────────────────────────────────────────────────────

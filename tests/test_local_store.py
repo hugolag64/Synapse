@@ -15,8 +15,14 @@ def isolated_db(tmp_path, monkeypatch):
     import backend.core.reviews.local_store as ls
     test_db = tmp_path / "test.db"
     monkeypatch.setattr(ls, "DB_PATH", test_db)
+    # Reset la connexion module-level pour qu'elle utilise la nouvelle DB
+    monkeypatch.setattr(ls, "_DB", None)
     ls.init_db()
     yield
+    # Cleanup : fermer la connexion après le test
+    if ls._DB is not None:
+        ls._DB.close()
+    monkeypatch.setattr(ls, "_DB", None)
 
 
 import backend.core.reviews.local_store as ls
@@ -254,3 +260,89 @@ class TestGetAllHistory:
         h = ls.get_all_history()
         assert tid in h
         assert h[tid]["course_id"] == "c99"
+
+
+# ── Tests PDF cache ──────────────────────────────────────────────────────────
+
+class TestPdfCache:
+    def test_get_pdf_cache_empty_returns_none(self):
+        """get_pdf_cache retourne None quand pas d'entrée en cache."""
+        result = ls.get_pdf_cache("c1", "college")
+        assert result is None
+
+    def test_set_and_get_pdf_cache(self):
+        """set_pdf_cache suivi de get_pdf_cache retourne le chemin."""
+        pdf_path = "/path/to/course.pdf"
+        ls.set_pdf_cache("c1", "college", pdf_path)
+        result = ls.get_pdf_cache("c1", "college")
+        assert result == pdf_path
+
+    def test_pdf_cache_composite_key(self):
+        """PDF cache utilise (course_id, context) comme clé composite."""
+        path_college = "/path/college.pdf"
+        path_ue = "/path/ue.pdf"
+        ls.set_pdf_cache("c1", "college", path_college)
+        ls.set_pdf_cache("c1", "ue", path_ue)
+
+        assert ls.get_pdf_cache("c1", "college") == path_college
+        assert ls.get_pdf_cache("c1", "ue") == path_ue
+        assert ls.get_pdf_cache("c2", "college") is None
+
+    def test_set_pdf_cache_idempotent(self):
+        """set_pdf_cache peut être appelé plusieurs fois sans créer de doublons."""
+        path1 = "/path/v1.pdf"
+        path2 = "/path/v2.pdf"
+
+        ls.set_pdf_cache("c1", "college", path1)
+        with ls._conn() as con:
+            count1 = con.execute(
+                "SELECT COUNT(*) FROM pdf_local_cache WHERE course_id=? AND context=?",
+                ("c1", "college")
+            ).fetchone()[0]
+        assert count1 == 1
+
+        # Appel une deuxième fois → doit UPDATE, pas INSERT
+        ls.set_pdf_cache("c1", "college", path2)
+        with ls._conn() as con:
+            count2 = con.execute(
+                "SELECT COUNT(*) FROM pdf_local_cache WHERE course_id=? AND context=?",
+                ("c1", "college")
+            ).fetchone()[0]
+            row = con.execute(
+                "SELECT pdf_path FROM pdf_local_cache WHERE course_id=? AND context=?",
+                ("c1", "college")
+            ).fetchone()
+
+        assert count2 == 1, "Le nombre de lignes doit rester 1 (idempotent)"
+        assert row["pdf_path"] == path2, "Le chemin doit être mis à jour"
+
+    def test_pdf_cache_detected_at_is_today(self):
+        """detected_at doit être la date ISO d'aujourd'hui."""
+        today = datetime.date.today().isoformat()
+        ls.set_pdf_cache("c1", "college", "/path/pdf.pdf")
+
+        with ls._conn() as con:
+            row = con.execute(
+                "SELECT detected_at FROM pdf_local_cache WHERE course_id=? AND context=?",
+                ("c1", "college")
+            ).fetchone()
+
+        assert row["detected_at"] == today
+
+    def test_multiple_courses(self):
+        """Plusieurs cours peuvent avoir leurs propres entrées PDF en cache."""
+        ls.set_pdf_cache("c1", "college", "/path/c1.pdf")
+        ls.set_pdf_cache("c2", "college", "/path/c2.pdf")
+        ls.set_pdf_cache("c3", "college", "/path/c3.pdf")
+
+        assert ls.get_pdf_cache("c1", "college") == "/path/c1.pdf"
+        assert ls.get_pdf_cache("c2", "college") == "/path/c2.pdf"
+        assert ls.get_pdf_cache("c3", "college") == "/path/c3.pdf"
+
+    def test_table_exists_after_init(self):
+        """La table pdf_local_cache doit exister après init_db()."""
+        with ls._conn() as con:
+            tables = con.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='pdf_local_cache'"
+            ).fetchall()
+        assert len(tables) == 1, "La table pdf_local_cache doit exister"

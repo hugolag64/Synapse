@@ -401,6 +401,13 @@ class DataStore:
             self.loading_message = "Prêt !"
             self.is_preloaded = True
 
+            # Import auto des cours depuis les dossiers items/ sur disque (non bloquant)
+            try:
+                from backend.core.pdf_import import auto_import_courses_from_pdf_folders
+                asyncio.create_task(auto_import_courses_from_pdf_folders(list(self.cours)))
+            except Exception as _exc:
+                logger.warning(f"PDF import: task non lancée — {_exc}")
+
             logger.success("Global Preload Completed Successfully.")
 
         except asyncio.CancelledError:

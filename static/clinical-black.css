@@ -1,0 +1,274 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Clinical Black — Synapse Design System
+   Palette OLED optimisée fatigue nocturne (contraste WCAG AAA)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root[data-theme="clinical-black"],
+.clinical-black {
+  /* Backgrounds — noirs purs OLED */
+  --bg-base:        #000000;
+  --bg-surface:     #0A0A0A;
+  --bg-elevated:    #141414;
+  --bg-hover:       #1E1E1E;
+
+  /* Textes — contraste calibré */
+  --text-primary:   #E8E8E8;
+  --text-secondary: #A0A0A0;
+  --text-muted:     #5A5A5A;
+  --text-accent:    #FFFFFF;
+
+  /* Sémantique clinique */
+  --color-urgent:   #FF3B30;
+  --color-warning:  #FF9500;
+  --color-ok:       #30D158;
+  --color-info:     #0A84FF;
+  --color-trap:     #FF453A;
+
+  /* Révisions par type */
+  --color-j3:   #0A84FF;
+  --color-j7:   #5E5CE6;
+  --color-j14:  #BF5AF2;
+  --color-j30:  #9B59B6;
+  --color-red:  #FF3B30;
+  --color-orange: #FF9500;
+  --color-blue:   #0A84FF;
+  --color-indigo: #5E5CE6;
+  --color-violet: #BF5AF2;
+  --color-purple: #9B59B6;
+  --color-slate:  #A0A0A0;
+
+  /* Bordures */
+  --border:         #222222;
+  --border-active:  #444444;
+
+  /* Typographie — tailles médicales */
+  --font-item:  13px;
+  --font-title: 15px;
+  --font-badge: 11px;
+  --font-label: 12px;
+
+  /* Rayons — compact, pas rond */
+  --radius-card:  6px;
+  --radius-badge: 3px;
+}
+
+/* ── Composants review-card ──────────────────────────────────────────────── */
+
+.review-card {
+  background:   var(--bg-surface, #0A0A0A);
+  border:       1px solid var(--border, #222);
+  border-radius: var(--radius-card, 6px);
+  padding:      12px 14px;
+  transition:   border-color 0.15s ease, background 0.15s ease;
+}
+
+.review-card:hover {
+  border-color: var(--border-active, #444);
+  background:   var(--bg-elevated, #141414);
+}
+
+.review-card .card-header {
+  display:      flex;
+  align-items:  center;
+  gap:          8px;
+  flex-wrap:    wrap;
+  margin-bottom: 6px;
+}
+
+.review-card .card-title {
+  font-size:    var(--font-title, 15px);
+  font-weight:  600;
+  color:        var(--text-accent, #FFF);
+  flex:         1;
+  min-width:    0;
+}
+
+.review-card .card-meta {
+  display:      flex;
+  align-items:  center;
+  gap:          6px;
+  flex-wrap:    wrap;
+  margin-bottom: 8px;
+}
+
+.review-card .card-actions {
+  display:      flex;
+  align-items:  center;
+  gap:          6px;
+  padding-top:  8px;
+  border-top:   1px solid var(--border, #222);
+}
+
+.overdue-label {
+  font-size:    var(--font-badge, 11px);
+  font-weight:  700;
+  color:        var(--color-urgent, #FF3B30);
+  background:   rgba(255, 59, 48, 0.12);
+  padding:      2px 6px;
+  border-radius: var(--radius-badge, 3px);
+}
+
+/* ── Badges ITEM / J3 / J7 / J14 / J30 ─────────────────────────────────── */
+
+.badge-item {
+  font-size:    var(--font-item, 13px);
+  font-weight:  700;
+  font-family:  'JetBrains Mono', ui-monospace, monospace;
+  letter-spacing: 0.02em;
+  color:        var(--text-accent, #FFF);
+  background:   rgba(255,255,255,0.08);
+  border:       1px solid var(--border-active, #444);
+  padding:      2px 7px;
+  border-radius: var(--radius-badge, 3px);
+}
+
+/* ── Pièges EDN — sidebar ────────────────────────────────────────────────── */
+
+.trap-sidebar {
+  padding:      10px 12px;
+  gap:          8px;
+  height:       100%;
+  overflow-y:   auto;
+}
+
+.sidebar-header {
+  font-size:    var(--font-badge, 11px);
+  font-weight:  700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.sidebar-header.danger  { color: var(--color-trap,    #FF453A); }
+.sidebar-header.warning { color: var(--color-warning, #FF9500); }
+
+.trap-card {
+  background:   rgba(255, 69, 58, 0.07);
+  border-radius: var(--radius-card, 6px);
+  padding:      8px 10px;
+  border-left:  3px solid var(--color-trap, #FF453A);
+}
+
+.trap-text {
+  font-size:    var(--font-label, 12px);
+  color:        var(--text-primary, #E8E8E8);
+  line-height:  1.5;
+}
+
+.lacune-text {
+  font-size:    var(--font-label, 12px);
+  color:        var(--text-secondary, #A0A0A0);
+  line-height:  1.4;
+}
+
+/* ── Fiche Viewer ─────────────────────────────────────────────────────────── */
+
+.fiche-viewer {
+  width:        100%;
+  border:       1px solid var(--border, #222);
+  border-radius: var(--radius-card, 6px);
+  overflow:     hidden;
+  min-height:   520px;
+}
+
+.tabs-primary .q-tab {
+  font-size:    var(--font-badge, 11px);
+  font-weight:  700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ── Typographie médicale ─────────────────────────────────────────────────── */
+
+abbr.medical {
+  font-family:  'JetBrains Mono', ui-monospace, monospace;
+  font-size:    0.85em;
+  color:        var(--color-info, #0A84FF);
+  letter-spacing: 0.03em;
+  font-weight:  600;
+  border-bottom: 1px dotted var(--color-info, #0A84FF);
+  cursor:       help;
+  text-decoration: none;
+}
+
+.latin-term {
+  font-style:   italic;
+  color:        var(--text-secondary, #A0A0A0);
+}
+
+.critical-value {
+  font-weight:  700;
+  color:        var(--color-warning, #FF9500);
+  background:   rgba(255, 149, 0, 0.10);
+  padding:      0 3px;
+  border-radius: 2px;
+}
+
+/* ── Search bar ───────────────────────────────────────────────────────────── */
+
+.search-input .q-field__control {
+  background:   var(--bg-elevated, #141414) !important;
+  border:       1px solid var(--border, #222) !important;
+  border-radius: var(--radius-card, 6px) !important;
+}
+
+.search-result-card {
+  background:   var(--bg-surface, #0A0A0A);
+  border:       1px solid var(--border, #222);
+  border-radius: var(--radius-card, 6px);
+  padding:      8px 12px;
+  cursor:       pointer;
+  transition:   background 0.1s;
+}
+
+.search-result-card:hover {
+  background:   var(--bg-elevated, #141414);
+}
+
+.item-badge {
+  font-family:  'JetBrains Mono', ui-monospace, monospace;
+  font-size:    var(--font-badge, 11px);
+  font-weight:  700;
+}
+
+.score-badge {
+  font-size:    var(--font-badge, 11px);
+  color:        var(--text-muted, #5A5A5A);
+}
+
+/* ── Boutons action carte ─────────────────────────────────────────────────── */
+
+.btn-primary {
+  font-size:    var(--font-badge, 11px);
+  font-weight:  700;
+  letter-spacing: 0.04em;
+}
+
+.btn-ghost {
+  color:        var(--text-muted, #5A5A5A);
+  background:   transparent;
+  border:       none;
+}
+
+.btn-ghost:hover {
+  color:        var(--text-secondary, #A0A0A0);
+}
+
+/* ── Heatmap matrice de faiblesse ────────────────────────────────────────── */
+
+.weakness-bar {
+  height:       6px;
+  border-radius: 3px;
+  background:   var(--color-warning, #FF9500);
+  opacity:      0.8;
+}
+
+/* ── Load-more ────────────────────────────────────────────────────────────── */
+
+.load-more {
+  width:        100%;
+  margin-top:   8px;
+  font-size:    var(--font-label, 12px);
+  color:        var(--text-muted, #5A5A5A);
+  background:   var(--bg-elevated, #141414);
+  border:       1px solid var(--border, #222);
+}

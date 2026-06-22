@@ -1,0 +1,52 @@
+[project]
+name = "synapse"
+version = "0.1.0"
+description = "Application de suivi de révisions médicales (EDN/externat)"
+requires-python = ">=3.11"
+dependencies = [
+    "nicegui==3.8.0",
+    "notion-client==3.0.0",
+    "python-dotenv==1.2.2",
+    "pydantic==2.12.5",
+    "pydantic-settings==2.13.1",
+    "loguru==0.7.3",
+    "aiofiles==25.1.0",
+    "fuzzywuzzy==0.18.0",
+    "python-Levenshtein==0.27.3",
+    "google-api-python-client==2.192.0",
+    "google-auth==2.49.0",
+    "google-auth-oauthlib==1.3.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = [
+    ".venv",
+    ".venv_backup*",
+    "__pycache__",
+    "synapse_edn_test",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes (imports inutilisés, variables non utilisées…)
+    "I",    # isort (ordre des imports)
+    "UP",   # pyupgrade (syntaxe Python moderne)
+    "B",    # flake8-bugbear (bugs courants)
+    "SIM",  # flake8-simplify
+]
+ignore = [
+    "E501",  # line too long (géré par black/formatter)
+    "B008",  # do not perform function calls in default arguments (NiceGUI patterns)
+    "SIM108", # ternary operator (parfois moins lisible)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["backend", "frontend"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

@@ -1,0 +1,17 @@
+{
+  "name": "Synapse",
+  "short_name": "Synapse",
+  "description": "Application de révision médicale intelligente",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#6366f1",
+  "icons": [
+    {
+      "src": "/static/LogoSynapse.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

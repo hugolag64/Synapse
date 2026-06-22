@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment
+.env
+.venv
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Synapse Specific
+data/
+logs/
+cache/
+
+# Secrets & credentials (JAMAIS committer)
+credentials.json
+token.json
+
+# Cache runtime
+data_cache.json
+*.db
+
+# Dossiers de test temporaires
+synapse_edn_test/
+
+# Backup venv
+.venv_backup*/

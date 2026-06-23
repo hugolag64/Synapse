@@ -166,6 +166,18 @@ def init_db() -> None:
             detected_at TEXT NOT NULL,
             PRIMARY KEY (course_id, context)
         );
+
+        -- ── Suivi import PDF → Notion ─────────────────────────────────────
+        -- Mémorise quels (college, item_num) ont déjà été traités pour éviter
+        -- de refaire l'appel Notion à chaque démarrage.
+        CREATE TABLE IF NOT EXISTS pdf_item_scan (
+            college    TEXT    NOT NULL,
+            item_num   INTEGER NOT NULL,
+            pdf_name   TEXT,
+            status     TEXT    NOT NULL DEFAULT 'pending',
+            updated_at TEXT    NOT NULL,
+            PRIMARY KEY (college, item_num)
+        );
         """)
     migrate_study_sessions_v2()
     _migrate_qcm_sessions_v2()
@@ -2327,6 +2339,53 @@ def cleanup_pdf_cache() -> int:
                 )
                 removed += 1
     return removed
+
+
+# ── API publique — pdf_item_scan ─────────────────────────────────────────────
+
+def get_processed_pdf_items() -> set[tuple[str, int]]:
+    """Retourne les (college, item_num) dont le status est 'created' ou 'existing'."""
+    rows = _conn().execute(
+        "SELECT college, item_num FROM pdf_item_scan WHERE status IN ('created', 'existing')"
+    ).fetchall()
+    return {(r["college"], r["item_num"]) for r in rows}
+
+
+def upsert_pdf_scan(college: str, item_num: int, status: str, pdf_name: str | None = None) -> None:
+    """Insère ou met à jour un résultat de scan PDF."""
+    _conn().execute(
+        """
+        INSERT INTO pdf_item_scan (college, item_num, pdf_name, status, updated_at)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(college, item_num) DO UPDATE SET
+            pdf_name   = excluded.pdf_name,
+            status     = excluded.status,
+            updated_at = excluded.updated_at
+        """,
+        (college, item_num, pdf_name, status, _now()),
+    )
+    _conn().commit()
+
+
+def reset_pdf_scan() -> int:
+    """Supprime toutes les entrées pdf_item_scan (force rescan). Retourne le nb supprimé."""
+    cur = _conn().execute("DELETE FROM pdf_item_scan")
+    _conn().commit()
+    return cur.rowcount
+
+
+def get_pdf_scan_stats() -> dict:
+    """Retourne {'created': N, 'existing': N, 'failed': N, 'total': N}."""
+    rows = _conn().execute(
+        "SELECT status, COUNT(*) AS n FROM pdf_item_scan GROUP BY status"
+    ).fetchall()
+    stats: dict[str, int] = {"created": 0, "existing": 0, "failed": 0, "total": 0}
+    for r in rows:
+        s = r["status"]
+        if s in stats:
+            stats[s] = r["n"]
+        stats["total"] += r["n"]
+    return stats
 
 
 # ── Auto-init à l'import ──────────────────────────────────────────────────────

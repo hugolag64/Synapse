@@ -2368,25 +2368,25 @@ def get_processed_pdf_items() -> set[tuple[str, int]]:
 
 def upsert_pdf_scan(college: str, item_num: int, status: str, pdf_name: str | None = None) -> None:
     """Insère ou met à jour un résultat de scan PDF."""
-    _conn().execute(
-        """
-        INSERT INTO pdf_item_scan (college, item_num, pdf_name, status, updated_at)
-        VALUES (?, ?, ?, ?, ?)
-        ON CONFLICT(college, item_num) DO UPDATE SET
-            pdf_name   = excluded.pdf_name,
-            status     = excluded.status,
-            updated_at = excluded.updated_at
-        """,
-        (college, item_num, pdf_name, status, _now()),
-    )
-    _conn().commit()
+    with _conn() as con:
+        con.execute(
+            """
+            INSERT INTO pdf_item_scan (college, item_num, pdf_name, status, updated_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(college, item_num) DO UPDATE SET
+                pdf_name   = excluded.pdf_name,
+                status     = excluded.status,
+                updated_at = excluded.updated_at
+            """,
+            (college, item_num, pdf_name, status, _now()),
+        )
 
 
 def reset_pdf_scan() -> int:
     """Supprime toutes les entrées pdf_item_scan (force rescan). Retourne le nb supprimé."""
-    cur = _conn().execute("DELETE FROM pdf_item_scan")
-    _conn().commit()
-    return cur.rowcount
+    with _conn() as con:
+        cur = con.execute("DELETE FROM pdf_item_scan")
+        return cur.rowcount
 
 
 def get_pdf_scan_stats() -> dict:

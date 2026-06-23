@@ -15,6 +15,15 @@ def _fmt_date(d: datetime.date) -> str:
     return f"{_DAYS[d.weekday()]} {d.day} {_MONTHS[d.month - 1]} {d.year}"
 
 
+def _safe_item_number(n: str | None) -> float:
+    if not n:
+        return 999999.0
+    try:
+        return float(n.replace(',', '.'))
+    except ValueError:
+        return 999999.0
+
+
 async def _render_content(
     container: ui.column,
     date_obj: datetime.date,
@@ -70,7 +79,9 @@ def _render_routine_block(
                         checked = checks.get(name, False)
 
                         def _on_toggle(e, item_name=name):
-                            progress_state['routine'][1] += 1 if e.value else -1
+                            delta = 1 if e.value else -1
+                            total = progress_state['routine'][0]
+                            progress_state['routine'][1] = max(0, min(total, progress_state['routine'][1] + delta))
                             refresh_progress()
                             local_store.set_routine_check(date_str, item_name, e.value)
 
@@ -182,7 +193,9 @@ async def _render_ajout_block(
                 # ── Tâches dynamiques ─────────────────────────────────────────
                 for b_id, data in dynamic_tasks.items():
                     async def _toggle_dyn(e, bid=b_id):
-                        progress_state['ajout'][1] += 1 if e.value else -1
+                        delta = 1 if e.value else -1
+                        total = progress_state['ajout'][0]
+                        progress_state['ajout'][1] = max(0, min(total, progress_state['ajout'][1] + delta))
                         refresh_progress()
                         await notion_service.toggle_dynamic_task(bid, e.value)
 
@@ -263,7 +276,8 @@ def _render_course_item(
                     else:
                         await notion_service.add_course_to_daily_reviewed(task.id, course.title)
                 course.nb_lectures += 1
-                progress_state['ajout'][1] += 1
+                total = progress_state['ajout'][0]
+                progress_state['ajout'][1] = min(total, progress_state['ajout'][1] + 1)
                 refresh_progress()
                 ui.notify('Validé !', type='positive')
 
@@ -274,8 +288,7 @@ def _render_course_item(
 def _open_add_course_dialog(date_obj: datetime.date, task) -> None:
     college_courses = sorted(
         [c for c in data_store.cours if c.college],
-        key=lambda c: (float(c.item_number.replace(',', '.'))
-                       if c.item_number else 999999),
+        key=lambda c: _safe_item_number(c.item_number),
     )
     options = {
         c.id: (f"ITEM {c.item_number} — " if c.item_number else '') + c.title

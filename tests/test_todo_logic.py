@@ -29,6 +29,9 @@ class TestBuildCourseList:
     def test_empty_inputs(self, courses):
         assert _build_course_list([], [], courses) == []
 
+    def test_none_inputs(self, courses):
+        assert _build_course_list(None, None, courses) == []
+
     def test_gcal_event_matched(self, courses):
         events = [{'summary': 'Collège — Insuffisance cardiaque'}]
         result = _build_course_list(events, [], courses)

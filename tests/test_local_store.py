@@ -404,3 +404,34 @@ class TestPdfCache:
             # Vérifier que c2 et c3 sont supprimés
             assert ls.get_pdf_cache("c2", "college") is None
             assert ls.get_pdf_cache("c3", "ue") is None
+
+
+# ── Tests Routine ─────────────────────────────────────────────────────────────
+
+class TestRoutineChecks:
+    def test_get_routine_items_defaults(self):
+        items = ls.get_routine_items()
+        assert items == ['Révision', 'QCM', 'Sport', 'Musique', 'Anki']
+
+    def test_get_routine_checks_empty(self):
+        checks = ls.get_routine_checks('2026-06-23')
+        assert checks == {}
+
+    def test_set_and_get_check_true(self):
+        ls.set_routine_check('2026-06-23', 'Sport', True)
+        assert ls.get_routine_checks('2026-06-23')['Sport'] is True
+
+    def test_set_check_idempotent_update(self):
+        ls.set_routine_check('2026-06-23', 'Anki', True)
+        ls.set_routine_check('2026-06-23', 'Anki', False)
+        assert ls.get_routine_checks('2026-06-23')['Anki'] is False
+
+    def test_checks_isolated_by_date(self):
+        ls.set_routine_check('2026-06-23', 'Sport', True)
+        assert 'Sport' not in ls.get_routine_checks('2026-06-24')
+
+    def test_get_routine_items_excludes_inactive(self):
+        with ls._conn() as con:
+            con.execute("UPDATE routine_items SET active = 0 WHERE name = 'Anki'")
+        items = ls.get_routine_items()
+        assert 'Anki' not in items

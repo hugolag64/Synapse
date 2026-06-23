@@ -178,6 +178,20 @@ def init_db() -> None:
             updated_at TEXT    NOT NULL,
             PRIMARY KEY (college, item_num)
         );
+
+        -- ── Routine quotidienne locale ──────────────────────────────────────
+        CREATE TABLE IF NOT EXISTS routine_items (
+            name     TEXT    PRIMARY KEY,
+            position INTEGER NOT NULL DEFAULT 0,
+            active   INTEGER NOT NULL DEFAULT 1
+        );
+
+        CREATE TABLE IF NOT EXISTS routine_checks (
+            date      TEXT    NOT NULL,
+            item_name TEXT    NOT NULL,
+            checked   INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (date, item_name)
+        );
         """)
     migrate_study_sessions_v2()
     _migrate_qcm_sessions_v2()
@@ -187,6 +201,7 @@ def init_db() -> None:
     _migrate_review_history_sm2()
     _migrate_course_edges_table()
     _migrate_pending_gap_proposals()
+    _migrate_routine_tables()
     logger.info(f"SQLite initialisé : {DB_PATH}")
 
 
@@ -2386,6 +2401,48 @@ def get_pdf_scan_stats() -> dict:
             stats[s] = r["n"]
         stats["total"] += r["n"]
     return stats
+
+
+# ── Migration Routine tables ──────────────────────────────────────────────────
+
+def _migrate_routine_tables() -> None:
+    """Insère les items de routine par défaut si la table est vide."""
+    with _conn() as con:
+        count = con.execute("SELECT COUNT(*) FROM routine_items").fetchone()[0]
+        if count == 0:
+            con.executemany(
+                "INSERT OR IGNORE INTO routine_items (name, position) VALUES (?, ?)",
+                [('Révision', 0), ('QCM', 1), ('Sport', 2), ('Musique', 3), ('Anki', 4)],
+            )
+
+
+# ── API publique — Routine quotidienne ───────────────────────────────────────
+
+def get_routine_items() -> list[str]:
+    """Retourne les noms des items de routine actifs, triés par position."""
+    rows = _conn().execute(
+        "SELECT name FROM routine_items WHERE active = 1 ORDER BY position"
+    ).fetchall()
+    return [r["name"] for r in rows]
+
+
+def get_routine_checks(date_str: str) -> dict[str, bool]:
+    """Retourne {item_name: checked} pour une date ('YYYY-MM-DD')."""
+    rows = _conn().execute(
+        "SELECT item_name, checked FROM routine_checks WHERE date = ?",
+        (date_str,),
+    ).fetchall()
+    return {r["item_name"]: bool(r["checked"]) for r in rows}
+
+
+def set_routine_check(date_str: str, item_name: str, checked: bool) -> None:
+    """Upsert l'état coché d'un item de routine pour une date donnée."""
+    with _conn() as con:
+        con.execute(
+            "INSERT INTO routine_checks (date, item_name, checked) VALUES (?, ?, ?) "
+            "ON CONFLICT(date, item_name) DO UPDATE SET checked = excluded.checked",
+            (date_str, item_name, 1 if checked else 0),
+        )
 
 
 # ── Auto-init à l'import ──────────────────────────────────────────────────────

@@ -1,19 +1,19 @@
 """
 backend/core/lisa/scraper.py
 -----------------------------
-Récupère les Objectifs de Connaissance (OIC) depuis livret.uness.fr/lisa.
+Récupère les Objectifs Intermédiaires de Connaissance (OIC) depuis LiSA
+via l'API MediaWiki (allpages + revisions).
 
-Utilise html.parser (stdlib) — aucune dépendance externe.
+Chaque OIC est une page-redirect nommée "OIC-{item}-{NN}-{rang}" pointant
+vers la page dont le titre contient l'intitulé complet.
 requests est déjà dans le projet.
 """
 from __future__ import annotations
 
 import re
-from html.parser import HTMLParser
 
 from loguru import logger
 
-from backend.core.lisa.item_map import lisa_url as _lisa_url_from_map
 from backend.config.settings import settings as _settings
 
 try:
@@ -22,79 +22,48 @@ try:
 except ImportError:
     HAS_REQUESTS = False
 
+_LISA_BASE = "https://livret.uness.fr/lisa/2026"
+_LISA_API  = f"{_LISA_BASE}/api.php"
+
+_OIC_CODE_RE = re.compile(r"OIC-(\d+)-(\d+)-([AB])$")
+_REDIRECT_RE  = re.compile(r"#REDIRECT\s*\[\[(.+?)\s+(OIC-[^\]]+)\]\]", re.IGNORECASE)
+
 
 class LisaFetchError(Exception):
-    """Erreur réseau ou timeout lors du fetch LiSA."""
+    """Erreur réseau ou API lors du fetch LiSA."""
 
 
-# ── Parser HTML interne ───────────────────────────────────────────────────────
+# ── Parsing réponse API ───────────────────────────────────────────────────────
 
-class _TableParser(HTMLParser):
-    """Extrait toutes les lignes de tables HTML comme liste de listes de strings."""
-
-    def __init__(self) -> None:
-        super().__init__()
-        self._in_cell = False
-        self._cell_text = ""
-        self._current_row: list[str] = []
-        self.rows: list[list[str]] = []
-
-    def handle_starttag(self, tag: str, attrs: list) -> None:
-        if tag in ("td", "th"):
-            self._in_cell = True
-            self._cell_text = ""
-        elif tag == "tr":
-            self._current_row = []
-
-    def handle_endtag(self, tag: str) -> None:
-        if tag in ("td", "th"):
-            self._current_row.append(self._cell_text.strip())
-            self._in_cell = False
-        elif tag == "tr" and self._current_row:
-            self.rows.append(self._current_row)
-            self._current_row = []
-
-    def handle_data(self, data: str) -> None:
-        if self._in_cell:
-            self._cell_text += data
-
-
-# ── Extraction OIC ────────────────────────────────────────────────────────────
-
-_OIC_CODE_RE = re.compile(r"(OIC-\d+-\d+-[AB])\s*$")
-
-
-def _parse_oic_rows(rows: list[list[str]]) -> list[dict]:
+def _parse_oic_api_pages(pages: dict) -> list[dict]:
     """
-    Filtre les lignes de table dont la colonne Rang vaut "A" ou "B".
-    Attendu : [Intitulé, Rang, Rubrique, Ordre]
+    Convertit les pages MediaWiki (dict pageid→pdata) en liste d'OIC.
+    Chaque page est un redirect : #REDIRECT [[{intitulé} {OIC-code}]]
     """
     oics: list[dict] = []
-    for row in rows:
-        if len(row) < 4:
+    for pdata in pages.values():
+        title = pdata.get("title", "")
+        m_code = _OIC_CODE_RE.search(title)
+        if not m_code:
             continue
-        rang = row[1].strip()
-        if rang not in ("A", "B"):
-            continue
-        intitule_full = row[0].strip()
-        rubrique = row[2].strip()
-        try:
-            ordre = int(row[3].strip())
-        except ValueError:
-            ordre = 0
 
-        # Extraire le code OIC (ex: "OIC-223-01-A") et nettoyer le titre
-        m = _OIC_CODE_RE.search(intitule_full)
-        oic_code = m.group(1) if m else ""
-        intitule = _OIC_CODE_RE.sub("", intitule_full).strip()
+        oic_code = title                    # e.g. "OIC-223-01-A"
+        rang     = m_code.group(3)          # "A" or "B"
+        ordre    = int(m_code.group(2))     # 1, 2, …
+
+        content  = pdata.get("revisions", [{}])[0].get("*", "")
+        m_redir  = _REDIRECT_RE.search(content)
+        intitule = m_redir.group(1).strip() if m_redir else title
 
         oics.append({
-            "oic_code":  oic_code,
-            "intitule":  intitule,
-            "rang":      rang,
-            "rubrique":  rubrique,
-            "ordre":     ordre,
+            "oic_code": oic_code,
+            "intitule": intitule,
+            "rang":     rang,
+            "rubrique": "",
+            "ordre":    ordre,
         })
+
+    oics.sort(key=lambda x: x["ordre"])
     return oics
 
 
@@ -102,40 +71,53 @@ def _parse_oic_rows(rows: list[list[str]]) -> list[dict]:
 
 def scrape_oic(course_title: str, item_number: str = "") -> list[dict]:
     """
-    Scrappe les OIC d'un cours depuis LiSA.
+    Scrappe les OIC d'un cours depuis LiSA via l'API MediaWiki.
 
-    Retourne une liste de dicts (peut être vide si page introuvable ou sans table).
-    Lève LisaFetchError si erreur réseau/timeout.
+    Retourne une liste de dicts (peut être vide).
+    Lève LisaFetchError si erreur réseau ou API.
     """
     if not HAS_REQUESTS:
         raise LisaFetchError("requests non installé")
 
-    url = _lisa_url_from_map(item_number, course_title)
-    if not url:
-        logger.warning(f"LiSA scrape : aucun titre disponible pour item={item_number!r} title={course_title!r}")
+    if not item_number:
+        logger.warning(f"LiSA scrape : item_number manquant pour {course_title!r}")
+        return []
+
+    try:
+        item_int = int(item_number)
+    except (ValueError, TypeError):
+        logger.warning(f"LiSA scrape : item_number invalide {item_number!r}")
         return []
 
     headers = {"User-Agent": "Synapse/1.0"}
     if _settings.lisa_cookie:
         headers["Cookie"] = _settings.lisa_cookie
 
+    params = {
+        "action":     "query",
+        "generator":  "allpages",
+        "gapprefix":  f"OIC-{item_int}-",
+        "gaplimit":   "100",
+        "prop":       "revisions",
+        "rvprop":     "content",
+        "format":     "json",
+    }
+
     try:
-        resp = _requests.get(url, timeout=10, headers=headers)
+        resp = _requests.get(_LISA_API, params=params, timeout=15, headers=headers)
+        resp.raise_for_status()
     except Exception as exc:
         raise LisaFetchError(f"Erreur réseau LiSA : {exc}") from exc
 
-    if resp.status_code == 404:
-        logger.debug(f"LiSA 404 : {url}")
-        return []
-
     try:
-        resp.raise_for_status()
+        data = resp.json()
     except Exception as exc:
-        raise LisaFetchError(f"LiSA HTTP {resp.status_code} : {exc}") from exc
+        raise LisaFetchError(f"Réponse LiSA non-JSON : {exc}") from exc
 
-    parser = _TableParser()
-    parser.feed(resp.text)
+    if "error" in data:
+        raise LisaFetchError(f"API LiSA : {data['error'].get('info', data['error'])}")
 
-    oics = _parse_oic_rows(parser.rows)
+    pages = data.get("query", {}).get("pages", {})
+    oics  = _parse_oic_api_pages(pages)
     logger.info(f"LiSA scrape '{course_title}' → {len(oics)} OIC")
     return oics

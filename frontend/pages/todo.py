@@ -325,9 +325,52 @@ def _render_note_block(
     task,
     is_past: bool,
 ) -> None:
-    """Stub pour Task 5 — Bloc Note du jour."""
     container.clear()
-    # Will be implemented in Task 5
+    with container:
+        with ui.row().classes('w-full gap-4 items-start'):
+            ui.element('div').classes('w-1 rounded-full bg-amber-500 self-stretch min-h-[2rem]')
+            with ui.column().classes('flex-1 gap-2'):
+                ui.label('NOTE DU JOUR').classes(
+                    'text-xs font-bold uppercase tracking-widest text-slate-400 mb-1')
+
+                if is_past:
+                    ui.label('Journée passée — notes visibles dans Notion.').classes(
+                        'text-sm italic text-slate-400')
+                    return
+
+                note_ta = ui.textarea(
+                    placeholder='Comment s\'est passée la journée ?'
+                ).props('outlined rows=2 autogrow').classes('w-full text-sm')
+
+                save_row = ui.row().classes('w-full justify-end hidden')
+                with save_row:
+                    save_btn = ui.button('Enregistrer').props(
+                        'unelevated dense rounded').classes(
+                        'bg-amber-500 text-white text-sm')
+
+                def _on_input(e):
+                    if e.value.strip():
+                        save_row.classes(remove='hidden')
+                    else:
+                        save_row.classes(add='hidden')
+
+                note_ta.on('update:model-value', _on_input)
+
+                async def _save():
+                    val = note_ta.value.strip()
+                    if not val:
+                        return
+                    if not task:
+                        ui.notify('Pas de fiche pour ce jour', type='warning')
+                        return
+                    note_ta.value = ''
+                    save_row.classes(add='hidden')
+                    if await notion_service.add_daily_comment(task.id, val):
+                        ui.notify('Note enregistrée', type='positive')
+                    else:
+                        ui.notify('Erreur Notion', type='negative')
+
+                save_btn.on('click', lambda: asyncio.create_task(_save()))
 
 
 async def todo_page():

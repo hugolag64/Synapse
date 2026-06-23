@@ -435,3 +435,69 @@ class TestRoutineChecks:
             con.execute("UPDATE routine_items SET active = 0 WHERE name = 'Anki'")
         items = ls.get_routine_items()
         assert 'Anki' not in items
+
+
+# ── Tests LiSA OIC ────────────────────────────────────────────────────────────
+
+class TestLisaOic:
+    def test_get_returns_none_before_fetch(self):
+        result = ls.get_lisa_oic("course-abc")
+        assert result is None
+
+    def test_upsert_then_get_returns_list(self):
+        oics = [
+            {"oic_code": "OIC-223-01-A", "intitule": "Connaître le risque",
+             "rang": "A", "rubrique": "Définition", "ordre": 1},
+            {"oic_code": "OIC-223-03-B", "intitule": "Comprendre la physio",
+             "rang": "B", "rubrique": "Physiopathologie", "ordre": 3},
+        ]
+        ls.upsert_lisa_oic("course-abc", oics)
+        result = ls.get_lisa_oic("course-abc")
+        assert result is not None
+        assert len(result) == 2
+        codes = [r["oic_code"] for r in result]
+        assert "OIC-223-01-A" in codes
+        assert "OIC-223-03-B" in codes
+
+    def test_upsert_empty_list_marks_as_fetched(self):
+        ls.upsert_lisa_oic("course-xyz", [])
+        result = ls.get_lisa_oic("course-xyz")
+        assert result is not None   # fetched, juste vide
+        assert result == []
+
+    def test_upsert_preserves_mastered(self):
+        oics = [
+            {"oic_code": "OIC-223-01-A", "intitule": "Connaître le risque",
+             "rang": "A", "rubrique": "Définition", "ordre": 1},
+        ]
+        ls.upsert_lisa_oic("course-abc", oics)
+        rows = ls.get_lisa_oic("course-abc")
+        oic_id = rows[0]["id"]
+        ls.toggle_lisa_oic_mastery(oic_id)
+
+        # Re-upsert (simule un "Actualiser")
+        ls.upsert_lisa_oic("course-abc", oics)
+        rows2 = ls.get_lisa_oic("course-abc")
+        assert rows2[0]["mastered"] == 1   # conservé
+
+    def test_toggle_mastery(self):
+        oics = [{"oic_code": "OIC-1", "intitule": "Test",
+                 "rang": "A", "rubrique": "Def", "ordre": 1}]
+        ls.upsert_lisa_oic("course-abc", oics)
+        rows = ls.get_lisa_oic("course-abc")
+        oic_id = rows[0]["id"]
+
+        assert rows[0]["mastered"] == 0
+        result = ls.toggle_lisa_oic_mastery(oic_id)
+        assert result is True
+        rows2 = ls.get_lisa_oic("course-abc")
+        assert rows2[0]["mastered"] == 1
+
+        result2 = ls.toggle_lisa_oic_mastery(oic_id)
+        assert result2 is False
+        rows3 = ls.get_lisa_oic("course-abc")
+        assert rows3[0]["mastered"] == 0
+
+    def test_toggle_unknown_id_returns_false(self):
+        result = ls.toggle_lisa_oic_mastery(9999)
+        assert result is False

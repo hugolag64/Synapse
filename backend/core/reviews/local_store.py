@@ -192,6 +192,27 @@ def init_db() -> None:
             checked   INTEGER NOT NULL DEFAULT 0,
             PRIMARY KEY (date, item_name)
         );
+
+        -- ── Cache fetch LiSA ─────────────────────────────────────────────
+        -- Trace les cours dont les OIC ont déjà été scrapés (même si 0 OIC).
+        CREATE TABLE IF NOT EXISTS lisa_oic_cache (
+            course_id  TEXT PRIMARY KEY,
+            fetched_at TEXT NOT NULL
+        );
+
+        -- ── Objectifs de Connaissance LiSA ───────────────────────────────
+        CREATE TABLE IF NOT EXISTS lisa_oic (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            course_id  TEXT    NOT NULL,
+            oic_code   TEXT,
+            intitule   TEXT    NOT NULL,
+            rang       TEXT    NOT NULL,
+            rubrique   TEXT,
+            ordre      INTEGER,
+            mastered   INTEGER NOT NULL DEFAULT 0,
+            fetched_at TEXT    NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_lisa_oic_course ON lisa_oic(course_id);
         """)
     migrate_study_sessions_v2()
     _migrate_qcm_sessions_v2()
@@ -2443,6 +2464,90 @@ def set_routine_check(date_str: str, item_name: str, checked: bool) -> None:
             "ON CONFLICT(date, item_name) DO UPDATE SET checked = excluded.checked",
             (date_str, item_name, 1 if checked else 0),
         )
+
+
+# ── API LiSA OIC ──────────────────────────────────────────────────────────────
+
+def get_lisa_oic(course_id: str) -> list | None:
+    """
+    Retourne les OIC d'un cours depuis le cache SQLite.
+    - None  : jamais fetchés (afficher spinner + scraper)
+    - []    : fetchés mais aucun OIC trouvé sur LiSA
+    - [...]  : liste de sqlite3.Row
+    """
+    with _conn() as con:
+        cached = con.execute(
+            "SELECT 1 FROM lisa_oic_cache WHERE course_id = ?", (course_id,)
+        ).fetchone()
+        if cached is None:
+            return None
+        return con.execute(
+            "SELECT * FROM lisa_oic WHERE course_id = ? ORDER BY rang, ordre",
+            (course_id,),
+        ).fetchall()
+
+
+def upsert_lisa_oic(course_id: str, oics: list[dict]) -> None:
+    """
+    Remplace les OIC d'un cours dans SQLite.
+    Préserve mastered=1 pour les oic_code qui existent encore.
+    Marque le cours comme fetché même si oics=[].
+    """
+    today = datetime.date.today().isoformat()
+    with _conn() as con:
+        # Sauvegarder les mastered actuels
+        saved_mastered: dict[str, int] = {
+            row["oic_code"]: row["mastered"]
+            for row in con.execute(
+                "SELECT oic_code, mastered FROM lisa_oic WHERE course_id = ? AND oic_code IS NOT NULL",
+                (course_id,),
+            ).fetchall()
+        }
+        # Supprimer les anciennes lignes
+        con.execute("DELETE FROM lisa_oic WHERE course_id = ?", (course_id,))
+        # Insérer les nouvelles
+        for oic in oics:
+            code = oic.get("oic_code") or ""
+            mastered = saved_mastered.get(code, 0) if code else 0
+            con.execute(
+                """INSERT INTO lisa_oic
+                   (course_id, oic_code, intitule, rang, rubrique, ordre, mastered, fetched_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    course_id,
+                    code or None,
+                    oic.get("intitule", ""),
+                    oic.get("rang", "A"),
+                    oic.get("rubrique", ""),
+                    oic.get("ordre", 0),
+                    mastered,
+                    today,
+                ),
+            )
+        # Marquer comme fetché
+        con.execute(
+            "INSERT OR REPLACE INTO lisa_oic_cache (course_id, fetched_at) VALUES (?, ?)",
+            (course_id, today),
+        )
+
+
+def toggle_lisa_oic_mastery(oic_id: int) -> bool:
+    """
+    Bascule mastered 0↔1 pour un OIC.
+    Retourne le nouvel état (True = maîtrisé).
+    Retourne False si l'OIC est introuvable.
+    """
+    with _conn() as con:
+        row = con.execute(
+            "SELECT mastered FROM lisa_oic WHERE id = ?", (oic_id,)
+        ).fetchone()
+        if row is None:
+            return False
+        new_val = 0 if row["mastered"] else 1
+        con.execute(
+            "UPDATE lisa_oic SET mastered = ? WHERE id = ?", (new_val, oic_id)
+        )
+        return bool(new_val)
 
 
 # ── Auto-init à l'import ──────────────────────────────────────────────────────

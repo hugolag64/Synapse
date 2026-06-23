@@ -19,6 +19,7 @@ _NAV_ITEMS = [
     ('Lacunes',     '/lacunes'),
     ('Progression', '/stats'),
     ('Planning',    '/planning'),
+    ('To Do',       '/todo'),
     ('Externat',    '/externat'),
 ]
 
@@ -33,6 +34,7 @@ _TITLE_TO_NAV = {
     'Stats':            'Progression',
     'Statistiques':     'Progression',
     'Planning':         'Planning',
+    'Suivi Quotidien':  'To Do',
     'Externat':         'Externat',
     'Paramètres':       '',
     'Santé':            '',

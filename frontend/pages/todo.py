@@ -15,14 +15,79 @@ def _fmt_date(d: datetime.date) -> str:
     return f"{_DAYS[d.weekday()]} {d.day} {_MONTHS[d.month - 1]} {d.year}"
 
 
-async def _load_and_render_network_blocs(container, date_obj, progress_state, refresh_progress):
-    """Stub — will be implemented in Task 5."""
-    pass
+async def _render_content(
+    container: ui.column,
+    date_obj: datetime.date,
+    progress_state: dict,
+    refresh_progress,
+) -> None:
+    container.clear()
+    if container.is_deleted:
+        return
+    date_str = date_obj.isoformat()
+    is_past  = date_obj < datetime.date.today()
+
+    with container:
+        # Routine : SQLite, instantané
+        routine_col = ui.column().classes('w-full')
+        _render_routine_block(routine_col, date_str, progress_state, refresh_progress)
+
+        # Ajouté + Note : chargés en réseau (tâches 4 et 5)
+        ajout_col = ui.column().classes('w-full')
+        note_col  = ui.column().classes('w-full')
+
+        asyncio.create_task(
+            _load_and_render_network_blocs(
+                ajout_col, note_col, date_obj, is_past,
+                progress_state, refresh_progress,
+            )
+        )
 
 
-async def _render_content(container, date_obj, progress_state, refresh_progress):
-    """Stub — will be implemented in Tasks 3-4."""
-    pass
+def _render_routine_block(
+    container: ui.column,
+    date_str: str,
+    progress_state: dict,
+    refresh_progress,
+) -> None:
+    items  = local_store.get_routine_items()
+    checks = local_store.get_routine_checks(date_str)
+
+    progress_state['routine'] = [
+        len(items),
+        sum(1 for name in items if checks.get(name, False)),
+    ]
+
+    with container:
+        with ui.row().classes('w-full gap-4 items-start'):
+            ui.element('div').classes('w-1 rounded-full bg-sky-500 self-stretch min-h-[2rem]')
+            with ui.column().classes('flex-1 gap-2'):
+                ui.label('ROUTINE').classes(
+                    'text-xs font-bold uppercase tracking-widest text-slate-400 mb-1')
+                with ui.element('div').classes(
+                        'grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-1'):
+                    for name in items:
+                        checked = checks.get(name, False)
+
+                        def _on_toggle(e, item_name=name):
+                            progress_state['routine'][1] += 1 if e.value else -1
+                            refresh_progress()
+                            local_store.set_routine_check(date_str, item_name, e.value)
+
+                        ui.checkbox(name, value=checked, on_change=_on_toggle).props('dense').classes(
+                            'text-slate-700 dark:text-slate-200 transition-opacity duration-200')
+
+    refresh_progress()
+
+
+async def _load_and_render_network_blocs(
+    ajout_col, note_col, date_obj, is_past, progress_state, refresh_progress
+) -> None:
+    # Stub — implémenté en Task 4
+    with ajout_col:
+        ui.label('Chargement…').classes('text-sm text-slate-400 italic')
+    with note_col:
+        ui.label('').classes('')
 
 
 async def todo_page():

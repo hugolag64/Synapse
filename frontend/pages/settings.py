@@ -334,7 +334,133 @@ def settings_page():
                     'Cherche les notes Obsidian sans notion_id/synapse_id et les lie aux cours Synapse'
                 )
 
-    # --- 4. AGENDAS GOOGLE CALENDAR ---
+    # --- 4. LiSA / UNESS ---
+    with ui.expansion('LiSA / UNESS', icon='school').classes(
+        'w-full rounded-xl border border-teal-200 dark:border-teal-800 mb-4 shadow-sm'
+    ).props('header-class="font-bold text-lg text-teal-700 dark:text-teal-300"'):
+        with ui.column().classes('p-4 w-full gap-5'):
+
+            with ui.row().classes('items-start gap-2 p-3 bg-teal-50 dark:bg-teal-900/20 rounded-xl border border-teal-100 dark:border-teal-800'):
+                ui.icon('info_outline', color='teal').classes('text-lg shrink-0 mt-0.5')
+                with ui.column().classes('gap-1'):
+                    ui.label('LiSA (livret.uness.fr) nécessite une authentification universitaire pour accéder aux OIC.').classes('text-xs text-teal-700 dark:text-teal-300 font-medium')
+                    ui.label('Collez ici la valeur de votre cookie de session navigateur pour activer le scraping.').classes('text-xs text-slate-500')
+
+            with ui.expansion('Comment récupérer le cookie ?', icon='help_outline').classes('w-full rounded-lg border border-slate-200 dark:border-slate-700'):
+                with ui.column().classes('p-3 gap-1'):
+                    for _step in [
+                        '1. Ouvrez livret.uness.fr dans votre navigateur et connectez-vous via votre ENT.',
+                        '2. Ouvrez les DevTools (F12) → onglet Réseau (Network).',
+                        '3. Rechargez la page, cliquez sur une requête vers livret.uness.fr.',
+                        '4. Dans « En-têtes de requête » (Request Headers), trouvez la ligne Cookie.',
+                        '5. Copiez la valeur complète (commence généralement par _shibsession_).',
+                        '6. Collez-la dans le champ ci-dessous et cliquez Sauvegarder.',
+                    ]:
+                        ui.label(_step).classes('text-xs text-slate-600 dark:text-slate-400')
+                    ui.label('⚠️ Le cookie expire après quelques heures — à renouveler si les OIC n\'apparaissent plus.').classes('text-xs text-amber-600 italic mt-1')
+
+            lisa_cookie_input = ui.textarea(
+                label='Cookie de session LiSA',
+                value=_app_settings.lisa_cookie,
+                placeholder='_shibsession_xxx=yyy; PHPSESSID=zzz; …',
+            ).props('outlined').classes('w-full font-mono text-xs')
+            ui.label('Valeur brute de l\'en-tête Cookie — collez-la telle quelle depuis les DevTools.').classes('text-xs text-slate-400 -mt-2')
+
+            def _save_lisa_cookie():
+                val = (lisa_cookie_input.value or '').strip()
+                ok = _write_env_var('LISA_COOKIE', val)
+                if ok:
+                    _app_settings.lisa_cookie = val
+                    if val:
+                        ui.notify('Cookie LiSA sauvegardé ✓ — relancez un scraping OIC pour vérifier', type='positive', icon='school')
+                    else:
+                        ui.notify('Cookie LiSA effacé', type='info')
+                else:
+                    ui.notify('Erreur lors de l\'écriture du .env', type='negative')
+
+            ui.button(
+                'Sauvegarder',
+                icon='save',
+                on_click=_save_lisa_cookie,
+            ).props('unelevated color=teal size=sm rounded')
+
+    # --- 5. IMPORT PDF → NOTION ---
+    with ui.expansion('Import PDF → Notion', icon='picture_as_pdf').classes(
+        'w-full rounded-xl border border-emerald-200 dark:border-emerald-800 mb-4 shadow-sm'
+    ).props('header-class="font-bold text-lg text-emerald-700 dark:text-emerald-300"'):
+        with ui.column().classes('p-4 w-full gap-4'):
+
+            with ui.row().classes('items-start gap-2 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-100 dark:border-emerald-800'):
+                ui.icon('info_outline', color='green').classes('text-lg shrink-0 mt-0.5')
+                with ui.column().classes('gap-0.5'):
+                    ui.label(
+                        'Scanne les dossiers Collèges/{college}/items/ et crée dans Notion les cours '
+                        'dont le PDF est présent sur disque mais pas encore dans la base.'
+                    ).classes('text-xs text-emerald-700 dark:text-emerald-300')
+                    ui.label(
+                        'Le résultat est mémorisé en SQLite — seuls les nouveaux PDFs sont vérifiés à chaque lancement.'
+                    ).classes('text-xs text-slate-400')
+
+            # Statistiques du cache
+            stats_label = ui.label('…').classes('text-xs text-slate-500 italic')
+
+            def _refresh_pdf_stats():
+                s = local_store.get_pdf_scan_stats()
+                if s['total'] == 0:
+                    stats_label.set_text('Aucun scan effectué.')
+                else:
+                    stats_label.set_text(
+                        f"{s['total']} PDFs vus · {s['created']} créés · "
+                        f"{s['existing']} déjà présents · {s['failed']} erreurs"
+                    )
+
+            _refresh_pdf_stats()
+
+            pdf_scan_status = ui.label('').classes('text-sm font-medium min-h-[1.25rem]')
+
+            async def _run_pdf_scan(force: bool = False):
+                from backend.core.pdf_import import auto_import_courses_from_pdf_folders
+                pdf_scan_btn.disable()
+                pdf_force_btn.disable()
+                pdf_scan_status.set_text('Scan en cours…')
+                pdf_scan_status.classes('text-blue-600', remove='text-green-600 text-red-600 text-slate-400')
+                try:
+                    r = await auto_import_courses_from_pdf_folders(list(data_store.cours), force=force)
+                    if r['created'] > 0:
+                        pdf_scan_status.set_text(
+                            f"✅ {r['created']} cours créés · {r['existing_skipped']} déjà présents · {r['failed']} erreurs"
+                        )
+                        pdf_scan_status.classes('text-green-600', remove='text-blue-600 text-red-600 text-slate-400')
+                    elif r['failed'] > 0:
+                        pdf_scan_status.set_text(f"⚠️ 0 créés · {r['failed']} erreur(s) — voir les logs")
+                        pdf_scan_status.classes('text-red-600', remove='text-blue-600 text-green-600 text-slate-400')
+                    else:
+                        pdf_scan_status.set_text(f"Aucun cours manquant ({r['total_found']} PDFs scannés)")
+                        pdf_scan_status.classes('text-slate-400', remove='text-blue-600 text-green-600 text-red-600')
+                except Exception as exc:
+                    pdf_scan_status.set_text(f"Erreur : {exc}")
+                    pdf_scan_status.classes('text-red-600', remove='text-blue-600 text-green-600 text-slate-400')
+                finally:
+                    pdf_scan_btn.enable()
+                    pdf_force_btn.enable()
+                    _refresh_pdf_stats()
+
+            with ui.row().classes('gap-3 items-center flex-wrap'):
+                pdf_scan_btn = ui.button(
+                    'Scanner maintenant',
+                    icon='search',
+                    on_click=lambda: _run_pdf_scan(force=False),
+                ).props('unelevated color=green size=sm rounded')
+
+                pdf_force_btn = ui.button(
+                    'Forcer rescan complet',
+                    icon='refresh',
+                    on_click=lambda: _run_pdf_scan(force=True),
+                ).props('outline color=slate size=sm rounded').tooltip(
+                    'Efface le cache et revérifie tous les PDFs depuis le début'
+                )
+
+    # --- 5. AGENDAS GOOGLE CALENDAR ---
     with ui.expansion('Agendas Google Calendar', icon='event').classes('w-full rounded-xl border border-blue-200 dark:border-blue-800 mb-4 shadow-sm').props('header-class="font-bold text-lg text-blue-700 dark:text-blue-300"'):
         with ui.column().classes('p-4 w-full gap-4'):
             with ui.row().classes('items-start gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800'):
@@ -392,7 +518,7 @@ def settings_page():
 
                 ui.button('Sauvegarder', icon='save', on_click=_save_calendars).props('unelevated color=blue size=sm rounded')
 
-    # --- 5. DURÉES DES ACTIVITÉS (Planning) ---
+    # --- 6. DURÉES DES ACTIVITÉS (Planning) ---
     with ui.expansion('Durées des activités', icon='timer').classes('w-full rounded-xl border border-slate-200 dark:border-slate-800 mb-4 shadow-sm').props('header-class="font-bold text-lg text-slate-800 dark:text-slate-100"'):
         with ui.column().classes('p-4 w-full gap-4'):
             ui.label('Durées utilisées par le planning automatique (en minutes).').classes('text-sm text-slate-500 dark:text-slate-400')
@@ -437,7 +563,7 @@ def settings_page():
                 'unelevated color=indigo size=sm rounded'
             )
 
-    # --- 5. MAINTENANCE ---
+    # --- 7. MAINTENANCE ---
     with ui.expansion('Maintenance', icon='build').classes('w-full rounded-xl border border-slate-200 dark:border-slate-800 mb-8 shadow-sm').props('header-class="font-bold text-lg text-slate-800 dark:text-slate-100"'):
         with ui.column().classes('p-4 w-full gap-6'):
             ui.label("Zone de Maintenance").classes('font-bold text-red-700 dark:text-red-400')
@@ -481,7 +607,7 @@ def settings_page():
 
                 ui.button('Vider les données QCM', icon='quiz', on_click=_confirm_reset_qcm).props('outline color=red').tooltip('Supprime toutes les sessions QCM de la base locale')
 
-    # --- 6. BASE LOCALE / RÉVISIONS ---
+    # --- 8. BASE LOCALE / RÉVISIONS ---
     with ui.expansion('Base locale — Révisions', icon='storage').classes('w-full rounded-xl border border-slate-200 dark:border-slate-800 mb-4 shadow-sm').props('header-class="font-bold text-lg text-slate-800 dark:text-slate-100"'):
         with ui.column().classes('p-4 w-full gap-4'):
 

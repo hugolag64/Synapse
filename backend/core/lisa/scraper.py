@@ -14,6 +14,7 @@ from html.parser import HTMLParser
 from loguru import logger
 
 from backend.core.lisa.item_map import lisa_url as _lisa_url_from_map
+from backend.config.settings import settings as _settings
 
 try:
     import requests as _requests
@@ -114,8 +115,12 @@ def scrape_oic(course_title: str, item_number: str = "") -> list[dict]:
         logger.warning(f"LiSA scrape : aucun titre disponible pour item={item_number!r} title={course_title!r}")
         return []
 
+    headers = {"User-Agent": "Synapse/1.0"}
+    if _settings.lisa_cookie:
+        headers["Cookie"] = _settings.lisa_cookie
+
     try:
-        resp = _requests.get(url, timeout=10, headers={"User-Agent": "Synapse/1.0"})
+        resp = _requests.get(url, timeout=10, headers=headers)
     except Exception as exc:
         raise LisaFetchError(f"Erreur réseau LiSA : {exc}") from exc
 

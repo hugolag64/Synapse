@@ -78,6 +78,7 @@ class Settings(BaseSettings):
     obsidian_vault_name: str = Field("", alias='OBSIDIAN_VAULT_NAME')
     # IDs Google Calendar supplémentaires, séparés par des virgules
     google_calendar_ids: str = Field("", alias='GOOGLE_CALENDAR_IDS')
+    lisa_cookie: str = Field("", alias='LISA_COOKIE')
 
     model_config = SettingsConfigDict(env_file='.env', extra='ignore')
 

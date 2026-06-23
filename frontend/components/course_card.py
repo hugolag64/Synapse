@@ -28,6 +28,7 @@ from frontend.components.course_quick_actions import (
     _open_link_note_dialog,
     open_pdf_wizard,
 )
+from frontend.components.lisa_dialog import open_lisa_dialog
 from backend.core.obsidian.service import obsidian_service
 from backend.config.settings import settings as _settings
 
@@ -123,8 +124,10 @@ def CourseCard(
                     )
                 if is_urgent:
                     ui.badge("J30 !", color="red").classes(
-                        "text-[10px] font-bold px-1.5 py-0.5 shrink-0"
-                    )
+                        "text-[10px] font-bold px-1.5 py-0.5 shrink-0 cursor-pointer"
+                    ).on("click", lambda: open_start_tracking_dialog(
+                        course, context, refresh_fn, client, is_restart=True
+                    )).tooltip("J30 dépassé — cliquer pour redémarrer le suivi")
                 ui.element("div").classes("flex-1")
 
                 # Dot maîtrise — seule couleur au repos
@@ -261,6 +264,11 @@ def CourseCard(
                     ui.menu_item(
                         "Fiche LISA",
                         on_click=lambda url=_lisa_url: ui.navigate.to(url, new_tab=True),
+                    ).props("dense").classes("text-[13px]")
+
+                    ui.menu_item(
+                        "📋 Objectifs (OIC)",
+                        on_click=lambda c=course: open_lisa_dialog(c),
                     ).props("dense").classes("text-[13px]")
 
                     ui.menu_item(

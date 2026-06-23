@@ -10,17 +10,16 @@ from __future__ import annotations
 
 import re
 from html.parser import HTMLParser
-from urllib.parse import quote as _url_quote
 
 from loguru import logger
+
+from backend.core.lisa.item_map import lisa_url as _lisa_url_from_map
 
 try:
     import requests as _requests
     HAS_REQUESTS = True
 except ImportError:
     HAS_REQUESTS = False
-
-_LISA_BASE = "https://livret.uness.fr/lisa/2026"
 
 
 class LisaFetchError(Exception):
@@ -110,8 +109,10 @@ def scrape_oic(course_title: str, item_number: str = "") -> list[dict]:
     if not HAS_REQUESTS:
         raise LisaFetchError("requests non installé")
 
-    slug = _url_quote(course_title.replace(" ", "_"), safe="_-()")
-    url = f"{_LISA_BASE}/{slug}"
+    url = _lisa_url_from_map(item_number, course_title)
+    if not url:
+        logger.warning(f"LiSA scrape : aucun titre disponible pour item={item_number!r} title={course_title!r}")
+        return []
 
     try:
         resp = _requests.get(url, timeout=10, headers={"User-Agent": "Synapse/1.0"})

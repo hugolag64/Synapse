@@ -101,9 +101,8 @@ def CourseCard(
     _obs_exists     = obsidian_service.note_exists(course) if _obs_configured else False
 
     # URLs externes
-    from urllib.parse import quote as _url_quote
-    _lisa_slug  = _url_quote(course.title.replace(" ", "_"), safe="_-()")
-    _lisa_url   = f"https://livret.uness.fr/lisa/2026/{_lisa_slug}"
+    from backend.core.lisa.item_map import lisa_url as _lisa_url_from_map
+    _lisa_url   = _lisa_url_from_map(course.display_item_number, course.title)
     _notion_url = f"https://www.notion.so/{course.id.replace('-', '')}"
 
     # ── Card ──────────────────────────────────────────────────────────────────

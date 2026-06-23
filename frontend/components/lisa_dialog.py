@@ -122,12 +122,12 @@ def open_lisa_dialog(course) -> None:
                             rubrique    = oic["rubrique"] or ""
 
                             with ui.row().classes("items-start gap-2 py-1"):
-                                def _on_toggle(e, oid=oic_id):
-                                    ls.toggle_lisa_oic_mastery(oid)
-                                    updated = ls.get_lisa_oic(course_id) or []
+                                async def _on_toggle(e, oid=oic_id):
+                                    await asyncio.to_thread(ls.toggle_lisa_oic_mastery, oid)
+                                    updated = await asyncio.to_thread(ls.get_lisa_oic, course_id) or []
                                     _render_progress(updated)
 
-                                cb = ui.checkbox(
+                                ui.checkbox(
                                     value=is_mastered,
                                     on_change=_on_toggle,
                                 ).props("dense").classes("shrink-0 mt-0.5")

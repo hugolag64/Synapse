@@ -295,7 +295,10 @@ def WeakPointCard(wp, on_refresh=None):
                                 ).on_click(_set_sev)
 
                         ui.separator()
-                        def _on_delete(wid=wp_id):
+                        def _on_delete(wid=wp_id, obs=obs_path):
+                            if obs:
+                                from backend.core.obsidian.weak_points_sync import delete_obsidian_lacune_file
+                                delete_obsidian_lacune_file(obs)
                             local_store.delete_weak_point(wid)
                             ui.notify("Lacune supprimée", type="warning")
                             _refresh()

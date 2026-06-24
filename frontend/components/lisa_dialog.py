@@ -223,21 +223,33 @@ def open_lisa_dialog(course) -> None:
             fresh = (await asyncio.to_thread(ls.get_lisa_oic, course_id)) or []
             _render_oics(fresh)
         except LisaFetchError as exc:
+            err_str = str(exc)
+            is_auth = any(k in err_str.lower() for k in ("permission", "login", "read permission", "not logged"))
             content_area.clear()
             with content_area:
                 with ui.column().classes("items-center py-10 gap-3 w-full"):
-                    ui.icon("wifi_off").classes("text-4xl text-red-400")
-                    ui.label("LiSA inaccessible").classes(
-                        "text-sm font-semibold text-slate-700 dark:text-slate-300"
+                    ui.icon("lock" if is_auth else "wifi_off").classes(
+                        f"text-4xl {'text-amber-400' if is_auth else 'text-red-400'}"
                     )
-                    ui.label(str(exc)).classes(
-                        "text-xs text-slate-400 text-center px-6"
-                    )
-                    ui.button(
-                        "Réessayer",
-                        icon="refresh",
-                        on_click=lambda: asyncio.ensure_future(_load(True)),
-                    ).props("unelevated color=violet size=sm rounded")
+                    ui.label(
+                        "Cookie LiSA expiré" if is_auth else "LiSA inaccessible"
+                    ).classes("text-sm font-semibold text-slate-700 dark:text-slate-300")
+                    ui.label(
+                        "Ta session LiSA a expiré. Copie le cookie depuis DevTools et mets-le à jour dans Paramètres → LiSA."
+                        if is_auth else err_str
+                    ).classes("text-xs text-slate-400 text-center px-6")
+                    with ui.row().classes("gap-2"):
+                        if is_auth:
+                            ui.button(
+                                "Paramètres",
+                                icon="settings",
+                                on_click=lambda: ui.navigate.to("/settings"),
+                            ).props("unelevated color=amber size=sm rounded")
+                        ui.button(
+                            "Réessayer",
+                            icon="refresh",
+                            on_click=lambda: asyncio.ensure_future(_load(True)),
+                        ).props("unelevated color=violet size=sm rounded")
 
     async def _reload() -> None:
         await _load(force=True)

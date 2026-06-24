@@ -338,51 +338,86 @@ def settings_page():
     with ui.expansion('LiSA / UNESS', icon='school').classes(
         'w-full rounded-xl border border-teal-200 dark:border-teal-800 mb-4 shadow-sm'
     ).props('header-class="font-bold text-lg text-teal-700 dark:text-teal-300"'):
-        with ui.column().classes('p-4 w-full gap-5'):
+        with ui.column().classes('p-4 w-full gap-4'):
 
             with ui.row().classes('items-start gap-2 p-3 bg-teal-50 dark:bg-teal-900/20 rounded-xl border border-teal-100 dark:border-teal-800'):
-                ui.icon('info_outline', color='teal').classes('text-lg shrink-0 mt-0.5')
-                with ui.column().classes('gap-1'):
-                    ui.label('LiSA (livret.uness.fr) nécessite une authentification universitaire pour accéder aux OIC.').classes('text-xs text-teal-700 dark:text-teal-300 font-medium')
-                    ui.label('Collez ici la valeur de votre cookie de session navigateur pour activer le scraping.').classes('text-xs text-slate-500')
+                ui.icon('auto_awesome', color='teal').classes('text-lg shrink-0 mt-0.5')
+                with ui.column().classes('gap-0.5'):
+                    ui.label('Connexion automatique via CAS UNESS').classes('text-xs text-teal-700 dark:text-teal-300 font-semibold')
+                    ui.label('Entrez vos identifiants universitaires — Synapse se reconnecte automatiquement quand la session expire.').classes('text-xs text-slate-500')
 
-            with ui.expansion('Comment récupérer le cookie ?', icon='help_outline').classes('w-full rounded-lg border border-slate-200 dark:border-slate-700'):
-                with ui.column().classes('p-3 gap-1'):
-                    for _step in [
-                        '1. Ouvrez livret.uness.fr dans votre navigateur et connectez-vous via votre ENT.',
-                        '2. Ouvrez les DevTools (F12) → onglet Réseau (Network).',
-                        '3. Rechargez la page, cliquez sur une requête vers livret.uness.fr.',
-                        '4. Dans « En-têtes de requête » (Request Headers), trouvez la ligne Cookie.',
-                        '5. Copiez la valeur complète (commence généralement par _shibsession_).',
-                        '6. Collez-la dans le champ ci-dessous et cliquez Sauvegarder.',
-                    ]:
-                        ui.label(_step).classes('text-xs text-slate-600 dark:text-slate-400')
-                    ui.label('⚠️ Le cookie expire après quelques heures — à renouveler si les OIC n\'apparaissent plus.').classes('text-xs text-amber-600 italic mt-1')
+            lisa_user_input = ui.input(
+                label='Identifiant UNESS',
+                value=_app_settings.lisa_username,
+                placeholder='prenom.nom@univ.fr ou identifiant ENT',
+            ).props('outlined').classes('w-full')
 
-            lisa_cookie_input = ui.textarea(
-                label='Cookie de session LiSA',
-                value=_app_settings.lisa_cookie,
-                placeholder='_shibsession_xxx=yyy; PHPSESSID=zzz; …',
-            ).props('outlined').classes('w-full font-mono text-xs')
-            ui.label('Valeur brute de l\'en-tête Cookie — collez-la telle quelle depuis les DevTools.').classes('text-xs text-slate-400 -mt-2')
+            lisa_pass_input = ui.input(
+                label='Mot de passe UNESS',
+                value=_app_settings.lisa_password,
+                password=True,
+                password_toggle_button=True,
+            ).props('outlined').classes('w-full')
 
-            def _save_lisa_cookie():
-                val = (lisa_cookie_input.value or '').strip()
-                ok = _write_env_var('LISA_COOKIE', val)
-                if ok:
-                    _app_settings.lisa_cookie = val
-                    if val:
-                        ui.notify('Cookie LiSA sauvegardé ✓ — relancez un scraping OIC pour vérifier', type='positive', icon='school')
-                    else:
-                        ui.notify('Cookie LiSA effacé', type='info')
-                else:
-                    ui.notify('Erreur lors de l\'écriture du .env', type='negative')
+            lisa_status = ui.label('').classes('text-xs text-slate-400 -mt-1')
+            if _app_settings.lisa_cookie:
+                lisa_status.set_text('Session active (cookie présent)')
+                lisa_status.classes('text-emerald-600', remove='text-slate-400')
+
+            async def _connect_lisa():
+                from backend.core.lisa.auth import cas_login, LisaAuthError
+                username = (lisa_user_input.value or '').strip()
+                password = (lisa_pass_input.value or '').strip()
+                if not username or not password:
+                    ui.notify('Remplissez identifiant et mot de passe', type='warning')
+                    return
+                # Sauvegarder les credentials
+                _write_env_var('LISA_USERNAME', username)
+                _write_env_var('LISA_PASSWORD', password)
+                _app_settings.lisa_username = username
+                _app_settings.lisa_password = password
+                lisa_status.set_text('Connexion en cours…')
+                lisa_status.classes('text-slate-400', remove='text-emerald-600 text-red-500')
+                try:
+                    import asyncio
+                    cookie = await asyncio.to_thread(cas_login, username, password)
+                    _app_settings.lisa_cookie = cookie
+                    _write_env_var('LISA_COOKIE', cookie)
+                    lisa_status.set_text('Connecté ✓ — OIC disponibles')
+                    lisa_status.classes('text-emerald-600', remove='text-slate-400 text-red-500')
+                    ui.notify('Authentification LiSA réussie ✓', type='positive', icon='school')
+                except LisaAuthError as exc:
+                    lisa_status.set_text(f'Échec : {exc}')
+                    lisa_status.classes('text-red-500', remove='text-slate-400 text-emerald-600')
+                    ui.notify(str(exc), type='negative')
 
             ui.button(
-                'Sauvegarder',
-                icon='save',
-                on_click=_save_lisa_cookie,
+                'Se connecter',
+                icon='login',
+                on_click=_connect_lisa,
             ).props('unelevated color=teal size=sm rounded')
+
+            # Fallback : cookie manuel (avancé)
+            with ui.expansion('Cookie manuel (avancé)', icon='code').classes(
+                'w-full rounded-lg border border-slate-200 dark:border-slate-700'
+            ):
+                with ui.column().classes('p-3 gap-3'):
+                    ui.label('Si la connexion automatique échoue, collez ici le cookie depuis DevTools (F12 → Network → Cookie header).').classes('text-xs text-slate-500')
+                    lisa_cookie_input = ui.textarea(
+                        label='Cookie brut',
+                        value=_app_settings.lisa_cookie,
+                        placeholder='mwdb_session=xxx; mwdbUserName=yyy; …',
+                    ).props('outlined').classes('w-full font-mono text-xs')
+
+                    def _save_cookie_manual():
+                        val = (lisa_cookie_input.value or '').strip()
+                        if _write_env_var('LISA_COOKIE', val):
+                            _app_settings.lisa_cookie = val
+                            ui.notify('Cookie sauvegardé', type='positive' if val else 'info')
+                        else:
+                            ui.notify('Erreur écriture .env', type='negative')
+
+                    ui.button('Sauvegarder cookie', icon='save', on_click=_save_cookie_manual).props('outline color=teal size=sm rounded')
 
     # --- 5. IMPORT PDF → NOTION ---
     with ui.expansion('Import PDF → Notion', icon='picture_as_pdf').classes(

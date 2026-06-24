@@ -79,6 +79,8 @@ class Settings(BaseSettings):
     # IDs Google Calendar supplémentaires, séparés par des virgules
     google_calendar_ids: str = Field("", alias='GOOGLE_CALENDAR_IDS')
     lisa_cookie: str = Field("", alias='LISA_COOKIE')
+    lisa_username: str = Field("", alias='LISA_USERNAME')
+    lisa_password: str = Field("", alias='LISA_PASSWORD')
 
     model_config = SettingsConfigDict(env_file='.env', extra='ignore')
 

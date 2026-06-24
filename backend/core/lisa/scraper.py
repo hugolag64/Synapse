@@ -32,6 +32,9 @@ _REDIRECT_RE  = re.compile(r"#REDIRECT\s*\[\[(.+?)\s+(OIC-[^\]]+)\]\]", re.IGNOR
 class LisaFetchError(Exception):
     """Erreur réseau ou API lors du fetch LiSA."""
 
+class _PermissionError(Exception):
+    """Permission refusée par l'API MediaWiki (session expirée)."""
+
 
 # ── Parsing réponse API ───────────────────────────────────────────────────────
 
@@ -103,21 +106,41 @@ def scrape_oic(course_title: str, item_number: str = "") -> list[dict]:
         "format":     "json",
     }
 
-    try:
-        resp = _requests.get(_LISA_API, params=params, timeout=15, headers=headers)
-        resp.raise_for_status()
-    except Exception as exc:
-        raise LisaFetchError(f"Erreur réseau LiSA : {exc}") from exc
+    def _do_request(hdrs: dict) -> list[dict]:
+        try:
+            resp = _requests.get(_LISA_API, params=params, timeout=15, headers=hdrs)
+            resp.raise_for_status()
+        except Exception as exc:
+            raise LisaFetchError(f"Erreur réseau LiSA : {exc}") from exc
+        try:
+            data = resp.json()
+        except Exception as exc:
+            raise LisaFetchError(f"Réponse LiSA non-JSON : {exc}") from exc
+        if "error" in data:
+            info = data["error"].get("info", str(data["error"]))
+            # Erreur de permission → signaler pour re-auth
+            if "permission" in info.lower() or "read" in info.lower():
+                raise _PermissionError(info)
+            raise LisaFetchError(f"API LiSA : {info}")
+        pages = data.get("query", {}).get("pages", {})
+        return _parse_oic_api_pages(pages)
 
     try:
-        data = resp.json()
-    except Exception as exc:
-        raise LisaFetchError(f"Réponse LiSA non-JSON : {exc}") from exc
+        oics = _do_request(headers)
+    except _PermissionError:
+        # Session expirée → tenter un re-login automatique
+        from backend.core.lisa.auth import auto_login
+        new_cookie = auto_login()
+        if new_cookie:
+            new_headers = {**headers, "Cookie": new_cookie}
+            try:
+                oics = _do_request(new_headers)
+            except _PermissionError as exc:
+                raise LisaFetchError(f"API LiSA : {exc} (re-login échoué)") from exc
+        else:
+            raise LisaFetchError(
+                "Session LiSA expirée. Configure tes identifiants UNESS dans Paramètres → LiSA."
+            )
 
-    if "error" in data:
-        raise LisaFetchError(f"API LiSA : {data['error'].get('info', data['error'])}")
-
-    pages = data.get("query", {}).get("pages", {})
-    oics  = _parse_oic_api_pages(pages)
     logger.info(f"LiSA scrape '{course_title}' → {len(oics)} OIC")
     return oics

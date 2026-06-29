@@ -14,10 +14,13 @@ Appelé depuis le bouton "Importer IA" de la page QCM.
 """
 from __future__ import annotations
 
+import difflib
 import time
 from pathlib import Path
 from typing import Optional
 from loguru import logger
+
+from backend.core.qcm.items_mapping import item_title
 
 from backend.core.ai_qcm.parser import parse_file, ParseError, AIQCMFile
 from backend.core.reviews import local_store
@@ -45,13 +48,14 @@ def _find_course(item_number: str, course_title: str, courses: list) -> tuple[st
     if not courses:
         return "", course_title, item_number
 
-    # 1. Match par item_number
+    # 1. Match par item_number — collecte tous les matchs, choisit le plus canonique
     if item_number:
-        # Normalisation : "154.0" → "154", "007" → "7", "154" → "154"
         try:
             clean = str(int(float(item_number.strip())))
         except (ValueError, OverflowError):
             clean = item_number.strip().lstrip("0")
+
+        matches = []
         for c in courses:
             raw_c = str(getattr(c, "item_number", "") or "").strip()
             try:
@@ -59,7 +63,20 @@ def _find_course(item_number: str, course_title: str, courses: list) -> tuple[st
             except (ValueError, OverflowError):
                 c_item = raw_c.lstrip("0")
             if c_item and c_item == clean:
-                return c.id, c.title, str(getattr(c, "item_number", "") or "")
+                matches.append(c)
+
+        if matches:
+            if len(matches) == 1:
+                best = matches[0]
+            else:
+                canonical = item_title(clean)
+                def _score(c: object) -> float:
+                    t = (getattr(c, "title", "") or "").lower().strip()
+                    if not canonical:
+                        return float(len(t))
+                    return difflib.SequenceMatcher(None, t, canonical.lower().strip()).ratio()
+                best = max(matches, key=_score)
+            return best.id, best.title, str(getattr(best, "item_number", "") or "")
 
     # 2. Match par titre exact
     if course_title:

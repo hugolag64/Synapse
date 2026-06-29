@@ -1,7 +1,9 @@
 import asyncio
+import difflib
 from typing import List, Dict, Optional
 from backend.core.notion.models import Cours
 from backend.core.notion.service import notion_service
+from backend.core.qcm.items_mapping import item_title
 from loguru import logger
 
 import json
@@ -114,7 +116,52 @@ class DataStore:
         if resolved_count > 0:
             logger.info(f"Resolved {resolved_count} missing item numbers via items_map.")
 
-        
+    @staticmethod
+    def _deduplicate_cours(cours: list) -> list:
+        """
+        Déduplique par item_number : si plusieurs cours partagent le même numéro d'item,
+        garde celui dont le titre est le plus proche du titre EDN canonique.
+        Les cours sans item_number sont conservés sans modification.
+        """
+        def _norm_item(raw: str) -> str | None:
+            try:
+                return str(int(float(str(raw).strip())))
+            except (ValueError, TypeError):
+                return None
+
+        def _title_score(course_title: str, canonical: str) -> float:
+            if not canonical:
+                return float(len(course_title))  # fallback : titre le plus long
+            return difflib.SequenceMatcher(
+                None,
+                course_title.lower().strip(),
+                canonical.lower().strip(),
+            ).ratio()
+
+        groups: dict[str, list] = {}
+        no_item: list = []
+        for c in cours:
+            n = _norm_item(getattr(c, "item_number", "") or "")
+            if n is None:
+                no_item.append(c)
+            else:
+                groups.setdefault(n, []).append(c)
+
+        result: list = list(no_item)
+        for n, group in groups.items():
+            if len(group) == 1:
+                result.append(group[0])
+                continue
+            canonical = item_title(n)
+            best = max(group, key=lambda c: _title_score(getattr(c, "title", "") or "", canonical))
+            discarded = [getattr(c, "title", "?") for c in group if c is not best]
+            logger.info(
+                f"Doublon ITEM {n} : conservé '{best.title}', ignoré(s) : {discarded}"
+            )
+            result.append(best)
+
+        return result
+
     @classmethod
     def get_instance(cls):
         if cls._instance is None:
@@ -211,7 +258,7 @@ class DataStore:
                     logger.info("Cache obsolète (>12h), nettoyage forcé.")
                     return False
             
-            self.cours = [Cours(**c) for c in data.get("cours", [])]
+            self.cours = self._deduplicate_cours([Cours(**c) for c in data.get("cours", [])])
             self.colleges_order = data.get("colleges_order", [])
             logger.debug(f"Loaded colleges_order from {self.CACHE_FILE}: {self.colleges_order}")
             
@@ -446,7 +493,7 @@ class DataStore:
         )
         async with self._cours_lock:
             self.ues_map = new_ues
-            self.cours = new_cours
+            self.cours = self._deduplicate_cours(new_cours)
         self.is_loaded = True
         self.cours_last_synced = datetime.now()
         logger.success(f"DataStore loaded: {len(self.cours)} Cours")
@@ -463,7 +510,7 @@ class DataStore:
                 if old_c is not None:
                     new_c.obsidian_uri = new_c.obsidian_uri or old_c.obsidian_uri
                 existing_map[new_c.id] = new_c
-            self.cours = list(existing_map.values())
+            self.cours = self._deduplicate_cours(list(existing_map.values()))
         return len(updated)
 
     # ... getters ...

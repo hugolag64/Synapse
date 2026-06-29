@@ -258,7 +258,7 @@ class DataStore:
                     logger.info("Cache obsolète (>12h), nettoyage forcé.")
                     return False
             
-            self.cours = self._deduplicate_cours([Cours(**c) for c in data.get("cours", [])])
+            self.cours = [Cours(**c) for c in data.get("cours", [])]
             self.colleges_order = data.get("colleges_order", [])
             logger.debug(f"Loaded colleges_order from {self.CACHE_FILE}: {self.colleges_order}")
             
@@ -288,6 +288,7 @@ class DataStore:
 
             self.ues_map = data.get("ues_map", {})
             self._resolve_item_numbers()
+            self.cours = self._deduplicate_cours(self.cours)
             logger.success(f"Loaded from disk: {len(self.cours)} Cours, {len(self.items_map)} Items")
             return True
         except Exception as e:

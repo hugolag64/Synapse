@@ -91,3 +91,30 @@ class TestDeduplicateCours:
         assert "b" in ids
         assert "c" in ids
         assert "d" in ids
+
+    def test_dedup_after_item_number_resolution(self):
+        """
+        Simulates the load_from_disk path: courses arrive with item_number=""
+        but after _resolve_item_numbers() they get item_number="331".
+        _deduplicate_cours must be called AFTER resolution to catch these.
+        """
+        # Simulate two courses initially without item_number (resolved later via item_lie)
+        c1 = _make_cours("acr", "ACR", "")
+        c2 = _make_cours("full", "Arrêt cardio-circulatoire", "")
+
+        # Before resolution: both have item_number="" → dedup cannot merge them
+        result_before = DataStore._deduplicate_cours([c1, c2])
+        assert len(result_before) == 2  # no dedup possible without item_number
+
+        # Simulate _resolve_item_numbers() setting item_number on both
+        c1.item_number = "331"
+        c2.item_number = "331"
+
+        # After resolution: dedup should pick the canonical one
+        with patch(
+            "backend.state.store.item_title",
+            return_value="Arrêt cardio-circulatoire",
+        ):
+            result_after = DataStore._deduplicate_cours([c1, c2])
+        assert len(result_after) == 1
+        assert result_after[0].id == "full"

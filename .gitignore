@@ -33,3 +33,5 @@ synapse_edn_test/
 
 # Backup venv
 .venv_backup*/
+
+.superpowers/

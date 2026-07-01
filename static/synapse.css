@@ -1017,7 +1017,7 @@ body.body--dark .q-card.synapse-course-card:hover {
   box-shadow: 0 2px 12px rgba(0,0,0,0.3) !important;
 }
 
-/* Action bar — émerge du bas au hover */
+/* Action bar — toujours visible (plus de hover-reveal) */
 .synapse-action-bar {
   display: flex;
   align-items: center;
@@ -1025,16 +1025,7 @@ body.body--dark .q-card.synapse-course-card:hover {
   padding: 4px 8px;
   border-top: 1px solid #F1F5F9;
   background: #F8FAFC;
-  opacity: 0;
-  transform: translateY(6px);
-  transition: opacity 200ms ease-out, transform 200ms ease-out;
-  pointer-events: none;
   flex-shrink: 0;
-}
-.q-card.synapse-course-card:hover .synapse-action-bar {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
 }
 body.body--dark .synapse-action-bar {
   border-top-color: #1E2D3D;

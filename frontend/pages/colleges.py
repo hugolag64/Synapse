@@ -26,19 +26,19 @@ from backend.core.reviews.mastery import get_course_mastery, PROGRESSION_COLORS
 _FILL = {
     "solide":       "#059669",
     "correct":      "#3B82F6",
-    "fragile":      "#D97706",
+    "fragile":      "#B45309",
     "non_commence": "#CBD5E1",
 }
 _GHOST = {
     "solide":       "rgba(5,150,105,0.12)",
     "correct":      "rgba(59,130,246,0.12)",
-    "fragile":      "rgba(217,119,6,0.12)",
+    "fragile":      "rgba(180,83,9,0.12)",
     "non_commence": "rgba(203,213,225,0.20)",
 }
 _TINT = {
     "solide":       "rgba(5,150,105,0.05)",
     "correct":      "rgba(59,130,246,0.05)",
-    "fragile":      "rgba(217,119,6,0.05)",
+    "fragile":      "rgba(180,83,9,0.05)",
     "non_commence": "transparent",
 }
 _LABEL = {

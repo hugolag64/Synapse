@@ -287,8 +287,8 @@ def CourseCard(
             ui.button(
                 icon="flag",
                 on_click=lambda c=course: open_lisa_dialog(c),
-            ).props("flat round dense size=sm color=violet").classes(
-                "shrink-0"
+            ).props("flat round dense size=sm").classes(
+                "text-violet-600 dark:text-violet-400 shrink-0"
             ).tooltip("Objectifs OIC (LiSA)")
 
             # +1 lecture
@@ -304,8 +304,8 @@ def CourseCard(
                 ui.button(
                     icon="quiz",
                     on_click=_run("qcm"),
-                ).props("flat round dense size=sm color=violet").classes(
-                    "shrink-0"
+                ).props("flat round dense size=sm").classes(
+                    "text-violet-600 dark:text-violet-400 shrink-0"
                 ).tooltip("QCM fait — cliquer pour basculer")
             else:
                 ui.button(
@@ -322,6 +322,6 @@ def CourseCard(
                 "Séance",
                 icon="add_task",
                 on_click=lambda: open_quick_session_dialog(course, refresh_fn, client),
-            ).props("unelevated rounded dense size=sm color=violet").classes(
-                "shrink-0 text-white"
+            ).props("unelevated rounded dense size=sm").classes(
+                "shrink-0 bg-violet-600 hover:bg-violet-700 text-white"
             ).tooltip("Nouvelle séance de travail")

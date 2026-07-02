@@ -1,15 +1,16 @@
 """
-CourseCard v3.
+CourseCard v4.
 
-REST  : ITEM badge · titre · statut lecture · dot maîtrise
-HOVER : rail gauche coloré + barre d'actions (PDF · QCM · Obsidian · +1) · ⋯
+REST  : ITEM badge · titre · statut lecture · dot maîtrise · menu ⋯
+BAR   : rail gauche coloré + barre d'actions permanente
+        (Notion · OIC LiSA · +Lecture · QCM · [CTA] Séance)
 
-Menu ⋯ :
-  [CTA]  Nouvelle séance
+Menu ⋯ (dans le header, à côté du dot de maîtrise) :
+  PDF (ouvrir/chercher)
   ─────
   Suivi J3/J7/J14/J30
   ─────
-  Fiche LISA · Notion · EDN · Lier note Obsidian
+  Fiche LISA · Fiche EDN · Lier note Obsidian
   ─────
   COMPLÉTION  [Résumé ✓/○] [ChatGPT ✓/○] [Anki ✓/○]
 """
@@ -131,9 +132,15 @@ def CourseCard(
 
                 # Dot maîtrise + label court
                 _mastery_labels = {
-                    "green": "Solide", "blue": "Correct",
-                    "orange": "Fragile", "red": "Critique",
-                    "gray": "Non commencé", "slate": "Non commencé",
+                    "gray":   "À préparer",
+                    "blue":   "À lire",
+                    "teal":   "En construction",
+                    "cyan":   "À consolider",
+                    "indigo": "À entraîner",
+                    "orange": "Fragile",
+                    "red":    "Critique",
+                    "green":  "Maîtrisé",
+                    "slate":  "Non commencé",
                 }
                 _mastery_lbl = _mastery_labels.get(accent_color or "gray", "")
                 _tooltip_txt = f"Maîtrise : {_mastery_lbl}" if _mastery_lbl else "Maîtrise non évaluée"

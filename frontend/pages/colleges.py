@@ -9,7 +9,6 @@ Layout :
 from __future__ import annotations
 
 import asyncio
-import datetime
 
 from nicegui import ui
 
@@ -19,6 +18,7 @@ from frontend.components.sortable_list import SortableList
 from backend.state.store import data_store
 from backend.core.notion.service import notion_service
 from backend.core.reviews.mastery import get_course_mastery, PROGRESSION_COLORS
+from backend.core.reviews.service import review_service
 
 
 # ── Mastery color system ──────────────────────────────────────────────────────
@@ -78,12 +78,6 @@ def _compute_stats(name: str) -> dict:
         "pct":     pct,
         "level":   _college_level(pct),
     }
-
-
-def _is_urgent(c) -> bool:
-    if not c.rappel_done or not c.date_1ere_lecture:
-        return False
-    return (datetime.date.today() - c.date_1ere_lecture).days > 32
 
 
 # ── Page ──────────────────────────────────────────────────────────────────────
@@ -292,6 +286,11 @@ def colleges_page():
                 key=lambda x: x.created_time,
                 reverse=(_s["sort"] == "newest"),
             )
+
+            _urgent_ids = review_service.get_urgent_course_ids("college")
+
+            def _is_urgent(c) -> bool:
+                return c.id in _urgent_ids
 
             s_tab     = all_stats.get(tab, {})
             fill_tab  = _FILL.get(s_tab.get("level", "non_commence"), "#CBD5E1")

@@ -103,6 +103,101 @@ class TestReviewService(TestCase):
         self.assertTrue(prevu_tasks[0].has_pdf)
         self.assertEqual(prevu_tasks[0].agregation_fiche_edn, "http://edn.com")
 
+    def _mock_course_min(self, cid, date_1ere, nb_lectures=0):
+        """Mock minimal réutilisable pour les tests de get_urgent_course_ids."""
+        c = MagicMock(spec=Cours)
+        c.id = cid
+        c.title = f"Cours {cid}"
+        c.item_number = "100"
+        c.college = ["Test"]
+        c.date_1ere_lecture = date_1ere
+        c.nb_lectures = nb_lectures
+        c.rappel_done = True
+        c.url_pdf = "path"
+        c.agregation_fiche_edn = None
+        c.anki = False
+        c.qcm_done = False
+        c.course_status = "À lire"
+        c.lecture_j3_college = None
+        c.lecture_j7_college = None
+        c.lecture_j14_college = None
+        c.lecture_j30_college = None
+        c.url_pdf_ue = None
+        c.nb_lectures_ue = 0
+        c.date_1ere_lecture_ue = None
+        c.lecture_j3_ue = None
+        c.lecture_j7_ue = None
+        c.lecture_j14_ue = None
+        c.lecture_j30_ue = None
+        return c
+
+    @patch('backend.core.reviews.service.date')
+    @patch('backend.state.store.data_store')
+    def test_get_urgent_course_ids_excludes_completed_reviews(self, mock_data_store, mock_date):
+        """Un cours dont TOUTES les révisions en retard sont déjà 'done' ne doit pas être urgent."""
+        mock_date.today.return_value = self.today_mock
+        mock_date.side_effect = lambda *args, **kwargs: date(*args, **kwargs)
+        mock_date.fromisoformat = date.fromisoformat
+
+        course = self._mock_course_min("c1", date(2026, 4, 18))
+        mock_data_store.cours = [course]
+
+        # J3=04-21, J7=04-25, J14=05-02, J30=05-18 — toutes en retard par rapport
+        # au today_mock (2026-05-22), mais toutes marquées faites.
+        history = {
+            "c1_college_J3_2026-04-21":  {"status": "done", "postponed_to": None, "postponed_count": 0},
+            "c1_college_J7_2026-04-25":  {"status": "done", "postponed_to": None, "postponed_count": 0},
+            "c1_college_J14_2026-05-02": {"status": "done", "postponed_to": None, "postponed_count": 0},
+            "c1_college_J30_2026-05-18": {"status": "done", "postponed_to": None, "postponed_count": 0},
+        }
+
+        urgent_ids = self.service.get_urgent_course_ids("college", history=history)
+
+        self.assertNotIn("c1", urgent_ids)
+
+    @patch('backend.core.reviews.service.date')
+    @patch('backend.state.store.data_store')
+    def test_get_urgent_course_ids_includes_real_overdue(self, mock_data_store, mock_date):
+        """Un cours avec une révision réellement en retard et non traitée doit être urgent."""
+        mock_date.today.return_value = self.today_mock
+        mock_date.side_effect = lambda *args, **kwargs: date(*args, **kwargs)
+        mock_date.fromisoformat = date.fromisoformat
+
+        course = self._mock_course_min("c2", date(2026, 5, 10))
+        mock_data_store.cours = [course]
+
+        # J3=05-13 et J7=05-17 sont en retard par rapport à today_mock (2026-05-22)
+        # et n'ont aucune entrée d'historique -> statut par défaut 'todo'.
+        history: dict = {}
+
+        urgent_ids = self.service.get_urgent_course_ids("college", history=history)
+
+        self.assertIn("c2", urgent_ids)
+
+    @patch('backend.core.reviews.service.date')
+    @patch('backend.state.store.data_store')
+    def test_get_urgent_course_ids_respects_postponed_future(self, mock_data_store, mock_date):
+        """Une révision reportée à une date future ne doit pas compter comme urgente."""
+        mock_date.today.return_value = self.today_mock
+        mock_date.side_effect = lambda *args, **kwargs: date(*args, **kwargs)
+        mock_date.fromisoformat = date.fromisoformat
+
+        course = self._mock_course_min("c3", date(2026, 4, 1))
+        mock_data_store.cours = [course]
+
+        # J3=04-04 reporté au 2026-05-25 (futur par rapport à today_mock 2026-05-22).
+        # J7/J14/J30 marquées faites pour isoler le cas testé.
+        history = {
+            "c3_college_J3_2026-04-04":  {"status": "postponed", "postponed_to": "2026-05-25", "postponed_count": 1},
+            "c3_college_J7_2026-04-08":  {"status": "done", "postponed_to": None, "postponed_count": 0},
+            "c3_college_J14_2026-04-15": {"status": "done", "postponed_to": None, "postponed_count": 0},
+            "c3_college_J30_2026-05-01": {"status": "done", "postponed_to": None, "postponed_count": 0},
+        }
+
+        urgent_ids = self.service.get_urgent_course_ids("college", history=history)
+
+        self.assertNotIn("c3", urgent_ids)
+
 
 if __name__ == '__main__':
     import unittest

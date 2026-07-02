@@ -287,6 +287,19 @@ class ReviewService:
         today = date.today()
         return [t for t in all_tasks if t.due_date < today]
 
+    def get_urgent_course_ids(
+        self,
+        context: ReviewContext = "college",
+        history: Optional[dict] = None,
+    ) -> set[str]:
+        """
+        Retourne les course_id ayant au moins une révision J3/J7/J14/J30
+        en retard et non traitée (ni done, ni reportée dans le futur, ni ignorée).
+        """
+        history = history if history is not None else get_all_history()
+        tasks = self.generate_reviews(context, history=history)
+        return {t.course_id for t in self.get_urgent_tasks(tasks)}
+
     def get_today_tasks(self, all_tasks: List[ReviewTask]) -> List[ReviewTask]:
         """Tâches prévues exactement aujourd'hui."""
         today = date.today()

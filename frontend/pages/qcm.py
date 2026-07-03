@@ -16,6 +16,7 @@ from nicegui import ui
 from loguru import logger
 
 from frontend.theme import frame
+from frontend.components.sparkline import sparkline_svg
 from backend.core.reviews import local_store
 from backend.core.qcm.service import (
     parse_score, score_bg_classes, score_label,
@@ -27,13 +28,13 @@ from backend.state.store import data_store
 
 
 # Sprint 1 — couleurs par type d'erreur (cohérent avec la palette Synapse)
-ERROR_TYPE_COLORS: dict[str, str] = {
-    "connaissance":  "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
-    "raisonnement":  "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
-    "inattention":   "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-    "stratégie EDN": "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300",
+ERROR_TYPE_HEX: dict[str, str] = {
+    "connaissance":  "#ef4444",
+    "raisonnement":  "#f97316",
+    "inattention":   "#f59e0b",
+    "stratégie EDN": "#8b5cf6",
 }
-_ET_FALLBACK = "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+_ET_HEX_FALLBACK = "#94a3b8"
 
 
 class CollegeWrapper:
@@ -110,162 +111,115 @@ def _render_kpi(container, rows: list, groups: list) -> None:
         if g["last_score"] is not None and g["last_score"] < QCM_PASS_THRESHOLD
     )
 
-    CARD = (
-        "rounded-2xl border border-slate-100 dark:border-slate-800 "
-        "bg-white dark:bg-slate-900 shadow-sm p-5 flex flex-col gap-1.5"
-    )
+    # rows/scores sont triés du plus récent au plus ancien → on inverse pour la sparkline
+    spark_scores = list(reversed(scores[:12]))
 
-    def _kpi(icon_name, label, value_txt, value_color, sub_txt):
-        with ui.element("div").classes(CARD):
-            with ui.row().classes("items-center gap-2"):
-                ui.icon(icon_name, size="sm").classes("text-slate-300")
-                ui.label(label).classes("text-xs text-slate-400 font-medium")
-            ui.label(value_txt).classes(
-                f"text-3xl font-extrabold tabular-nums leading-none {value_color}"
-            )
-            ui.label(sub_txt).classes("text-xs text-slate-400")
+    def _kpi(icon_name, label, value_txt, value_color, accent_hex, sub_txt, extra=None):
+        with ui.element("div").classes("synapse-kpi-card w-full").style(f"--card-accent:{accent_hex}"):
+            if extra:
+                extra()
+            with ui.column().classes("gap-1 min-w-0 flex-1"):
+                with ui.row().classes("items-center gap-2"):
+                    ui.icon(icon_name, size="xs").classes("text-slate-300")
+                    ui.label(label).classes("text-xs text-slate-400 font-medium")
+                ui.label(value_txt).classes(
+                    f"text-3xl font-extrabold tabular-nums leading-none {value_color}"
+                )
+                ui.label(sub_txt).classes("text-xs text-slate-400")
 
     with container:
-        # Moyenne
+        # Moyenne (+ sparkline des 12 dernières sessions)
         avg_color = (
             "text-green-600 dark:text-green-400" if avg and avg >= QCM_PASS_THRESHOLD
             else "text-red-500 dark:text-red-400" if avg
             else "text-slate-400"
         )
+        accent_avg = "#22c55e" if (avg is not None and avg >= QCM_PASS_THRESHOLD) else (
+            "#ef4444" if avg is not None else "#CBD5E1"
+        )
+
+        def _spark_extra(_vals=spark_scores, _col=accent_avg):
+            if len(_vals) >= 2:
+                ui.html(sparkline_svg(_vals, _col), sanitize=False).classes("synapse-spark")
+
         _kpi("percent", "Moyenne QCM",
              f"{avg}%" if avg is not None else "—",
-             avg_color,
-             f"{total} session{'s' if total != 1 else ''} enregistrée{'s' if total != 1 else ''}")
+             avg_color, accent_avg,
+             f"{total} session{'s' if total != 1 else ''} enregistrée{'s' if total != 1 else ''}",
+             extra=_spark_extra if len(spark_scores) >= 2 else None)
 
-        # Taux réussite
+        # Taux réussite (+ anneau de progression)
         pr_color = (
             "text-green-600 dark:text-green-400" if pass_rate and pass_rate >= 70
             else "text-red-500 dark:text-red-400" if pass_rate is not None
             else "text-slate-400"
         )
+        accent_pr = "#22c55e" if (pass_rate is not None and pass_rate >= 70) else (
+            "#ef4444" if pass_rate is not None else "#CBD5E1"
+        )
+
+        def _ring_extra(_pct=pass_rate or 0, _col=accent_pr):
+            with ui.element("div").classes("synapse-ring").style(
+                f"--ring-pct:{_pct};--ring-color:{_col}"
+            ):
+                ui.label(f"{_pct}%").classes("synapse-ring-label").style(f"color:{_col}")
+
         _kpi("thumb_up", "Taux de réussite",
              f"{pass_rate}%" if pass_rate is not None else "—",
-             pr_color,
-             f"{passed} / {len(scores)} au-dessus de 70%")
+             pr_color, accent_pr,
+             f"{passed} / {len(scores)} au-dessus de 70%",
+             extra=_ring_extra if pass_rate is not None else None)
 
         # À retravailler
         rev_color = (
             "text-red-500 dark:text-red-400" if to_review > 0
             else "text-green-500 dark:text-green-400"
         )
+        accent_rev = "#ef4444" if to_review > 0 else "#22c55e"
+
+        def _icon_extra(_col=accent_rev, _warn=to_review > 0):
+            with ui.element("div").classes(
+                "flex items-center justify-center rounded-full w-11 h-11 shrink-0"
+            ).style(f"background:{_col}1A"):
+                ui.icon("warning_amber" if _warn else "check_circle", size="sm").style(
+                    f"color:{_col}"
+                )
+
         _kpi("warning_amber", "Cours à retravailler",
              str(to_review) if rows else "—",
-             rev_color,
-             "dernier score < 70%" if to_review > 0 else "Tout est bon ✓")
+             rev_color, accent_rev,
+             "dernier score < 70%" if to_review > 0 else "Tout est bon ✓",
+             extra=_icon_extra)
 
 
-# ── Graphique évolution ───────────────────────────────────────────────────────
+# ── Résumé bandeau hero ───────────────────────────────────────────────────────
 
-def _render_evolution_chart(container, rows: list) -> None:
+def _render_hero_summary(container, rows: list) -> None:
+    container.clear()
+    total = len(rows)
+    last_date = rows[0]["session_date"] if rows else None
+    with container:
+        if total:
+            with ui.row().classes("items-center gap-1"):
+                ui.icon("event_repeat", size="xs").classes("text-slate-300")
+                ui.label(f"{total} session{'s' if total != 1 else ''}").classes("font-medium")
+        if last_date:
+            try:
+                d = datetime.date.fromisoformat(last_date)
+                ui.label(f"· dernière le {d.day:02d}/{d.month:02d}/{d.year}")
+            except Exception:
+                pass
+
+
+# ── Carte combo : évolution des scores + distribution des erreurs ────────────
+
+def _render_combo_card(container, rows: list) -> None:
+    """Une seule carte à 2 zones : graphique d'évolution (gauche) + répartition
+    des types d'erreur (droite), plutôt que 2 boîtes empilées identiques."""
     container.clear()
 
     scored = [r for r in rows if r["score_percent"] is not None][:25]
     scored = list(reversed(scored))  # ordre chronologique
-    if len(scored) < 2:
-        return
-
-    def _fmt_date(s: str) -> str:
-        try:
-            d = datetime.date.fromisoformat(s)
-            return f"{d.day:02d}/{d.month:02d}"
-        except Exception:
-            return s[:5] if s else "?"
-
-    dates = [_fmt_date(r["session_date"] or "") for r in scored]
-    data_points = [
-        {
-            "value": r["score_percent"],
-            "itemStyle": {
-                "color": (
-                    "#22c55e" if r["score_percent"] >= QCM_PASS_THRESHOLD
-                    else "#f97316" if r["score_percent"] >= WARN_THRESHOLD
-                    else "#ef4444"
-                )
-            },
-        }
-        for r in scored
-    ]
-
-    with container:
-        with ui.element("div").classes(
-            "w-full rounded-2xl border border-slate-100 dark:border-slate-800 "
-            "bg-white dark:bg-slate-900 shadow-sm p-4"
-        ):
-            with ui.row().classes("items-center gap-2 mb-3"):
-                ui.icon("show_chart", size="sm").classes("text-indigo-400")
-                ui.label("Évolution des scores").classes(
-                    "text-xs font-bold uppercase tracking-widest text-slate-400 flex-1"
-                )
-                with ui.row().classes("gap-3 text-[11px] text-slate-400"):
-                    for col, lbl in [("#22c55e","≥70%"),("#f97316","60-70%"),("#ef4444","<60%")]:
-                        with ui.row().classes("items-center gap-1"):
-                            ui.element("div").classes("w-2 h-2 rounded-full").style(
-                                f"background:{col}"
-                            )
-                            ui.label(lbl)
-
-            ui.echart({
-                "animation": False,
-                "tooltip": {"trigger": "axis", "formatter": "{b} : {c}%"},
-                "grid": {
-                    "left": "3%", "right": "4%",
-                    "top": "8%", "bottom": "5%",
-                    "containLabel": True,
-                },
-                "xAxis": {
-                    "type": "category",
-                    "data": dates,
-                    "axisLabel": {"fontSize": 10, "color": "#94a3b8"},
-                    "axisLine": {"lineStyle": {"color": "#e2e8f0"}},
-                    "axisTick": {"show": False},
-                },
-                "yAxis": {
-                    "type": "value",
-                    "min": 0, "max": 100,
-                    "axisLabel": {"formatter": "{value}%", "fontSize": 10, "color": "#94a3b8"},
-                    "splitLine": {"lineStyle": {"color": "#f1f5f9", "type": "dashed"}},
-                },
-                "series": [{
-                    "type": "line",
-                    "data": data_points,
-                    "smooth": 0.3,
-                    "lineStyle": {"color": "#6366f1", "width": 2},
-                    "symbol": "circle",
-                    "symbolSize": 8,
-                    "areaStyle": {
-                        "color": {
-                            "type": "linear", "x": 0, "y": 0, "x2": 0, "y2": 1,
-                            "colorStops": [
-                                {"offset": 0, "color": "rgba(99,102,241,0.12)"},
-                                {"offset": 1, "color": "rgba(99,102,241,0)"},
-                            ],
-                        }
-                    },
-                    "markLine": {
-                        "symbol": "none",
-                        "lineStyle": {"color": "#ef4444", "type": "dashed", "width": 1.5},
-                        "label": {
-                            "formatter": "70%",
-                            "position": "insideEndTop",
-                            "fontSize": 10,
-                            "color": "#ef4444",
-                        },
-                        "data": [{"yAxis": QCM_PASS_THRESHOLD}],
-                    },
-                }],
-            }).classes("w-full h-44")
-
-
-# ── Sprint 1 : Distribution des types d'erreur ────────────────────────────────
-
-def _render_error_distribution(container, rows: list) -> None:
-    """Carte récapitulative des types d'erreur sur les sessions filtrées."""
-    container.clear()
 
     counts: dict[str, int] = {}
     annotated = 0
@@ -279,35 +233,146 @@ def _render_error_distribution(container, rows: list) -> None:
             for et in et_list:
                 counts[et] = counts.get(et, 0) + 1
 
-    if not counts:
-        return  # Aucune donnée (EDN Pro) → carte invisible
+    if len(scored) < 2 and not counts:
+        return  # rien d'exploitable à afficher pour ces filtres
 
-    total = sum(counts.values())
+    def _fmt_date(s: str) -> str:
+        try:
+            d = datetime.date.fromisoformat(s)
+            return f"{d.day:02d}/{d.month:02d}"
+        except Exception:
+            return s[:5] if s else "?"
+
     with container:
-        with ui.element("div").classes(
-            "w-full rounded-2xl border border-slate-100 dark:border-slate-800 "
-            "bg-white dark:bg-slate-900 shadow-sm px-4 py-3"
-        ):
-            with ui.row().classes("items-center gap-3 flex-wrap"):
-                with ui.row().classes("items-center gap-1.5 shrink-0"):
+        with ui.element("div").classes("qcm-combo-card w-full"):
+
+            # ── Zone gauche : évolution des scores ───────────────────────
+            with ui.element("div").classes("qcm-combo-chart"):
+                with ui.row().classes("items-center gap-2 mb-3"):
+                    ui.icon("show_chart", size="sm").classes("text-primary")
+                    ui.label("Évolution des scores").classes(
+                        "text-xs font-bold uppercase tracking-widest text-slate-400 flex-1"
+                    )
+                    if len(scored) >= 2:
+                        with ui.row().classes("gap-3 text-[11px] text-slate-400"):
+                            for col, lbl in [("#22c55e","≥70%"),("#f97316","60-70%"),("#ef4444","<60%")]:
+                                with ui.row().classes("items-center gap-1"):
+                                    ui.element("div").classes("w-2 h-2 rounded-full").style(
+                                        f"background:{col}"
+                                    )
+                                    ui.label(lbl)
+
+                if len(scored) >= 2:
+                    dates = [_fmt_date(r["session_date"] or "") for r in scored]
+                    data_points = [
+                        {
+                            "value": r["score_percent"],
+                            "itemStyle": {
+                                "color": (
+                                    "#22c55e" if r["score_percent"] >= QCM_PASS_THRESHOLD
+                                    else "#f97316" if r["score_percent"] >= WARN_THRESHOLD
+                                    else "#ef4444"
+                                )
+                            },
+                        }
+                        for r in scored
+                    ]
+                    ui.echart({
+                        "animation": False,
+                        "tooltip": {"trigger": "axis", "formatter": "{b} : {c}%"},
+                        "grid": {
+                            "left": "3%", "right": "4%",
+                            "top": "8%", "bottom": "5%",
+                            "containLabel": True,
+                        },
+                        "xAxis": {
+                            "type": "category",
+                            "data": dates,
+                            "axisLabel": {"fontSize": 10, "color": "#94a3b8"},
+                            "axisLine": {"lineStyle": {"color": "#e2e8f0"}},
+                            "axisTick": {"show": False},
+                        },
+                        "yAxis": {
+                            "type": "value",
+                            "min": 0, "max": 100,
+                            "axisLabel": {"formatter": "{value}%", "fontSize": 10, "color": "#94a3b8"},
+                            "splitLine": {"lineStyle": {"color": "#f1f5f9", "type": "dashed"}},
+                        },
+                        "series": [{
+                            "type": "line",
+                            "data": data_points,
+                            "smooth": 0.3,
+                            "lineStyle": {"color": "#2563eb", "width": 2},
+                            "symbol": "circle",
+                            "symbolSize": 8,
+                            "areaStyle": {
+                                "color": {
+                                    "type": "linear", "x": 0, "y": 0, "x2": 0, "y2": 1,
+                                    "colorStops": [
+                                        {"offset": 0, "color": "rgba(37,99,235,0.12)"},
+                                        {"offset": 1, "color": "rgba(37,99,235,0)"},
+                                    ],
+                                }
+                            },
+                            "markLine": {
+                                "symbol": "none",
+                                "lineStyle": {"color": "#ef4444", "type": "dashed", "width": 1.5},
+                                "label": {
+                                    "formatter": "70%",
+                                    "position": "insideEndTop",
+                                    "fontSize": 10,
+                                    "color": "#ef4444",
+                                },
+                                "data": [{"yAxis": QCM_PASS_THRESHOLD}],
+                            },
+                        }],
+                    }).classes("w-full h-44")
+                else:
+                    with ui.column().classes("w-full items-center py-10 gap-2 text-slate-300"):
+                        ui.icon("show_chart", size="lg").classes("opacity-30")
+                        ui.label("Pas assez de sessions pour un graphique.").classes("text-xs")
+
+            # ── Zone droite : répartition des types d'erreur ─────────────
+            with ui.element("div").classes("qcm-combo-errors"):
+                with ui.row().classes("items-center gap-1.5"):
                     ui.icon("analytics", size="xs").classes("text-slate-300")
                     ui.label("Types d'erreur").classes(
                         "text-xs font-bold uppercase tracking-widest text-slate-400"
                     )
-                for _et, _cnt in sorted(counts.items(), key=lambda x: -x[1]):
-                    _pct = round(_cnt / total * 100)
-                    _col = ERROR_TYPE_COLORS.get(_et, _ET_FALLBACK)
-                    with ui.element("div").classes(
-                        f"flex items-center gap-1.5 px-2.5 py-1 rounded-full {_col}"
-                    ).tooltip(f"{_cnt} occurrence{'s' if _cnt > 1 else ''}"):
-                        ui.label(_et).classes("text-[11px] font-semibold")
-                        ui.label(f"· {_pct}%").classes(
-                            "text-[11px] font-bold tabular-nums opacity-80"
-                        )
-                ui.element("div").classes("flex-1")
-                ui.label(f"{annotated}/{len(rows)} sess. analysées").classes(
-                    "text-[10px] text-slate-300 shrink-0"
-                )
+                if counts:
+                    total = sum(counts.values())
+                    for _et, _cnt in sorted(counts.items(), key=lambda x: -x[1]):
+                        _pct = round(_cnt / total * 100)
+                        _hex = ERROR_TYPE_HEX.get(_et, _ET_HEX_FALLBACK)
+                        with ui.column().classes("gap-1 w-full").tooltip(
+                            f"{_cnt} occurrence{'s' if _cnt > 1 else ''}"
+                        ):
+                            with ui.row().classes("items-center gap-1.5 w-full"):
+                                ui.element("div").classes(
+                                    "w-1.5 h-1.5 rounded-full shrink-0"
+                                ).style(f"background:{_hex}")
+                                ui.label(_et).classes(
+                                    "text-[11px] font-medium text-slate-600 dark:text-slate-300 "
+                                    "flex-1 truncate"
+                                )
+                                ui.label(f"{_pct}%").classes(
+                                    "text-[11px] font-bold tabular-nums text-slate-400 shrink-0"
+                                )
+                            with ui.element("div").classes(
+                                "w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden"
+                            ):
+                                ui.element("div").classes("h-full rounded-full").style(
+                                    f"width:{_pct}%;background:{_hex}"
+                                )
+                    ui.label(f"{annotated}/{len(rows)} sess. analysées").classes(
+                        "text-[10px] text-slate-300 mt-1"
+                    )
+                else:
+                    with ui.column().classes(
+                        "w-full items-center py-6 gap-2 text-slate-300 flex-1 justify-center"
+                    ):
+                        ui.icon("analytics", size="md").classes("opacity-30")
+                        ui.label("Pas de données d'erreur.").classes("text-xs text-center")
 
 
 # ── Sprint 3 : Stats par item EDN groupées par collège ───────────────────────
@@ -323,6 +388,14 @@ _ITEM_COL_HEADERS = [
     ("",         True,  None, None),
     ("",         True,  None, None),
 ]
+
+# Colonnes triables — clic sur l'en-tête pour trier chaque groupe collège
+_SORT_KEYS = {
+    "MOY.":     lambda s: (s["avg_score"] is None, s["avg_score"] if s["avg_score"] is not None else 0),
+    "SESSIONS": lambda s: s["session_count"],
+    "RÉUSSITE": lambda s: (s["pass_pct"] is None, s["pass_pct"] if s["pass_pct"] is not None else 0),
+    "TEND.":    lambda s: {"↑": 2, "→": 1, "↓": 0}.get(s["trend"], -1),
+}
 
 
 def _build_item_college_map() -> dict[str, str]:
@@ -404,6 +477,7 @@ def _compute_item_stats_from_rows(rows: list) -> list[dict]:
                 trend, trend_color = "→", "text-slate-400"
 
         db = db_stats.get(itn, {})
+        total_c = pass_count + fail_count
         result.append({
             "item_number":          itn,
             "course_title":         d["course_title"],
@@ -411,6 +485,7 @@ def _compute_item_stats_from_rows(rows: list) -> list[dict]:
             "avg_score":            avg,
             "pass_count":           pass_count,
             "fail_count":           fail_count,
+            "pass_pct":             round(pass_count / total_c * 100) if total_c else None,
             "last_date":            dated[0][0] if dated else "",
             "trend":                trend,
             "trend_color":          trend_color or "text-slate-400",
@@ -446,13 +521,12 @@ def _open_item_wizard(item_number: str, course_title: str, course_id: str, refre
 
 
 def _render_item_stat_cells(s: dict, row_idx: int = 0, is_last: bool = False, refresh_fn=None) -> None:
-    """Rend 8 cellules directes dans le grid parent (alignement garanti)."""
+    """Rend 8 cellules directes dans le grid parent (alignement garanti).
+    Enveloppées dans un wrapper `display:contents` (zebra + hover pleine largeur
+    sans casser l'alignement en colonnes du grid parent)."""
     avg      = s["avg_score"]
     avg_cls  = score_bg_classes(avg)
-    pass_c   = s["pass_count"]
-    fail_c   = s["fail_count"]
-    total_c  = pass_c + fail_c
-    pass_pct = round(pass_c / total_c * 100) if total_c else None
+    pass_pct = s["pass_pct"]
 
     pct_col = (
         "text-green-600 dark:text-green-400" if pass_pct is not None and pass_pct >= 70
@@ -491,97 +565,103 @@ def _render_item_stat_cells(s: dict, row_idx: int = 0, is_last: bool = False, re
 
     sep  = "border-b border-slate-100 dark:border-slate-700/50" if not is_last else ""
     base = f"flex items-center {sep} py-2.5"
+    row_cls = "qcm-item-row" + (" qcm-item-row-odd" if row_idx % 2 == 1 else "")
 
-    # Cellule 1 : ITEM
-    with ui.element("div").classes(base):
-        if s.get("item_number"):
-            ui.label(f"ITEM {s['item_number']}").classes(
-                "text-[11px] font-bold text-indigo-600 dark:text-indigo-400 tabular-nums "
-                "cursor-pointer hover:underline whitespace-nowrap"
-            ).on("click", lambda itn=s["item_number"]: ui.navigate.to(f"/lacunes?item={itn}"))
-        else:
-            ui.label("Matière").classes(
-                "text-[11px] font-semibold text-violet-500 dark:text-violet-400 whitespace-nowrap"
-            ).tooltip("Session matière entière (sans item spécifique)")
+    with ui.element("div").classes(row_cls).style("display:contents"):
 
-    # Cellule 2 : COURS — clic → wizard sessions ratées
-    with ui.element("div").classes(f"{base} min-w-0 overflow-hidden"):
-        if s.get("item_number"):
-            def _on_course_click(
-                _itn=s["item_number"], _title=s["course_title"], _cid=s.get("course_id", "")
+        # Cellule 1 : ITEM
+        with ui.element("div").classes(base):
+            if s.get("item_number"):
+                ui.label(f"ITEM {s['item_number']}").classes(
+                    "text-[11px] font-bold text-blue-600 dark:text-blue-400 tabular-nums "
+                    "cursor-pointer hover:underline whitespace-nowrap"
+                ).on("click", lambda itn=s["item_number"]: ui.navigate.to(f"/lacunes?item={itn}"))
+            else:
+                ui.label("Matière").classes(
+                    "text-[11px] font-semibold text-violet-500 dark:text-violet-400 whitespace-nowrap"
+                ).tooltip("Session matière entière (sans item spécifique)")
+
+        # Cellule 2 : COURS — clic → wizard sessions ratées
+        with ui.element("div").classes(f"{base} min-w-0 overflow-hidden"):
+            if s.get("item_number"):
+                def _on_course_click(
+                    _itn=s["item_number"], _title=s["course_title"], _cid=s.get("course_id", "")
+                ):
+                    _open_item_wizard(_itn, _title, _cid, refresh_fn)
+                ui.label(s["course_title"]).classes(
+                    "text-xs font-medium text-slate-700 dark:text-slate-200 truncate w-full "
+                    "cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                ).tooltip(f"{s['course_title']} — cliquer pour documenter les sessions ratées").on(
+                    "click", _on_course_click
+                )
+            else:
+                ui.label(s["course_title"]).classes(
+                    "text-xs font-medium text-violet-600 dark:text-violet-400 truncate w-full italic"
+                ).tooltip("Session matière entière")
+
+        # Cellule 3 : MOY.
+        with ui.element("div").classes(f"{base} justify-center"):
+            with ui.element("div").classes(
+                f"px-2 py-0.5 rounded-lg {avg_cls} text-xs font-extrabold tabular-nums"
             ):
-                _open_item_wizard(_itn, _title, _cid, refresh_fn)
-            ui.label(s["course_title"]).classes(
-                "text-xs font-medium text-slate-700 dark:text-slate-200 truncate w-full "
-                "cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-            ).tooltip(f"{s['course_title']} — cliquer pour documenter les sessions ratées").on(
-                "click", _on_course_click
-            )
-        else:
-            ui.label(s["course_title"]).classes(
-                "text-xs font-medium text-violet-600 dark:text-violet-400 truncate w-full italic"
-            ).tooltip("Session matière entière")
+                ui.label(f"{avg}%" if avg is not None else "—")
 
-    # Cellule 3 : MOY.
-    with ui.element("div").classes(f"{base} justify-center"):
-        with ui.element("div").classes(
-            f"px-2 py-0.5 rounded-lg {avg_cls} text-xs font-extrabold tabular-nums"
-        ):
-            ui.label(f"{avg}%" if avg is not None else "—")
+        # Cellule 4 : SESSIONS
+        with ui.element("div").classes(f"{base} justify-center"):
+            ui.label(str(s["session_count"])).classes("text-xs text-slate-500 tabular-nums")
 
-    # Cellule 4 : SESSIONS
-    with ui.element("div").classes(f"{base} justify-center"):
-        ui.label(str(s["session_count"])).classes("text-xs text-slate-500 tabular-nums")
+        # Cellule 5 : RÉUSSITE
+        with ui.element("div").classes(f"{base} justify-center"):
+            if pass_pct is not None:
+                ui.label(f"{pass_pct}%").classes(f"text-[11px] font-bold {pct_col} tabular-nums")
+            else:
+                ui.label("—").classes("text-xs text-slate-300")
 
-    # Cellule 5 : RÉUSSITE
-    with ui.element("div").classes(f"{base} justify-center"):
-        if pass_pct is not None:
-            ui.label(f"{pass_pct}%").classes(f"text-[11px] font-bold {pct_col} tabular-nums")
-        else:
-            ui.label("—").classes("text-xs text-slate-300")
+        # Cellule 6 : TEND.
+        with ui.element("div").classes(f"{base} justify-center"):
+            if s["trend"]:
+                ui.label(s["trend"]).classes(f"text-sm font-bold {s['trend_color']}")
+            else:
+                ui.label("—").classes("text-xs text-slate-300")
 
-    # Cellule 6 : TEND.
-    with ui.element("div").classes(f"{base} justify-center"):
-        if s["trend"]:
-            ui.label(s["trend"]).classes(f"text-sm font-bold {s['trend_color']}")
-        else:
-            ui.label("—").classes("text-xs text-slate-300")
+        # Cellule 7 : icône lacune
+        with ui.element("div").classes(f"{base} justify-center"):
+            if s["has_recurring_gap"]:
+                ui.icon("repeat", size="xs").classes("text-orange-500").tooltip(
+                    "Lacune récurrente détectée"
+                )
+            elif s["has_pending_proposal"]:
+                ui.icon("pending", size="xs").classes("text-amber-400").tooltip(
+                    "Proposition de lacune en attente"
+                )
 
-    # Cellule 7 : icône lacune
-    with ui.element("div").classes(f"{base} justify-center"):
-        if s["has_recurring_gap"]:
-            ui.icon("repeat", size="xs").classes("text-orange-500").tooltip(
-                "Lacune récurrente détectée"
-            )
-        elif s["has_pending_proposal"]:
-            ui.icon("pending", size="xs").classes("text-amber-400").tooltip(
-                "Proposition de lacune en attente"
-            )
-
-    # Cellule 8 : supprimer
-    with ui.element("div").classes(f"{base} justify-center"):
-        if s.get("item_number"):
-            ui.button(
-                icon="delete_outline",
-                on_click=lambda itn=s["item_number"]: _confirm_delete(itn),
-            ).props("flat round dense size=xs color=grey-5").classes(
-                "opacity-40 hover:opacity-100 transition-opacity"
-            )
-        else:
-            # Entrée college-level : suppression par course_title
-            def _del_college(ct=s["course_title"]):
-                local_store.delete_qcm_sessions_for_college(ct)
-                if refresh_fn:
-                    refresh_fn()
-            ui.button(
-                icon="delete_outline",
-                on_click=_del_college,
-            ).props("flat round dense size=xs color=grey-5").classes(
-                "opacity-40 hover:opacity-100 transition-opacity"
-            )
+        # Cellule 8 : supprimer
+        with ui.element("div").classes(f"{base} justify-center"):
+            if s.get("item_number"):
+                ui.button(
+                    icon="delete_outline",
+                    on_click=lambda itn=s["item_number"]: _confirm_delete(itn),
+                ).props("flat round dense size=xs color=grey-5").classes(
+                    "opacity-40 hover:opacity-100 transition-opacity"
+                )
+            else:
+                # Entrée college-level : suppression par course_title
+                def _del_college(ct=s["course_title"]):
+                    local_store.delete_qcm_sessions_for_college(ct)
+                    if refresh_fn:
+                        refresh_fn()
+                ui.button(
+                    icon="delete_outline",
+                    on_click=_del_college,
+                ).props("flat round dense size=xs color=grey-5").classes(
+                    "opacity-40 hover:opacity-100 transition-opacity"
+                )
 
 
-def _render_college_group(college_name: str, items: list[dict], expanded: bool = False, refresh_fn=None) -> None:
+def _render_college_group(
+    college_name: str, items: list[dict], expanded: bool = False, refresh_fn=None,
+    sort_state: dict | None = None, on_sort=None,
+) -> None:
     """Groupe dépliable par collège avec en-tête récapitulatif et table d'items."""
     all_pass  = sum(s["pass_count"] for s in items)
     all_total = sum(s["pass_count"] + s["fail_count"] for s in items)
@@ -629,17 +709,29 @@ def _render_college_group(college_name: str, items: list[dict], expanded: bool =
             # Cellules d'en-tête
             for lbl, centered, tip_title, tip_body in _ITEM_COL_HEADERS:
                 align = "justify-center" if centered else ""
-                with ui.element("div").classes(
+                sortable  = lbl in _SORT_KEYS and on_sort is not None
+                is_active = sortable and sort_state is not None and sort_state.get("col") == lbl
+                hdr_cls = (
                     f"flex items-center {align} py-2 "
                     "bg-slate-50 dark:bg-slate-800/60 "
                     "border-t border-b border-slate-100 dark:border-slate-800"
-                ):
+                    + (" qcm-sort-header" if sortable else "")
+                )
+                hdr = ui.element("div").classes(hdr_cls)
+                if sortable:
+                    hdr.on("click", lambda c=lbl: on_sort(c))
+                with hdr:
                     if lbl:
                         cursor = " cursor-help" if tip_title else ""
-                        lbl_el = ui.label(lbl).classes(
-                            "text-[11px] font-bold uppercase tracking-wider "
-                            f"text-slate-400 whitespace-nowrap{cursor}"
+                        arrow = ""
+                        if is_active:
+                            arrow = " ▲" if sort_state.get("asc") else " ▼"
+                        txt_cls = (
+                            "text-[11px] font-bold uppercase tracking-wider whitespace-nowrap"
+                            + (" text-blue-600 dark:text-blue-400" if is_active else " text-slate-400")
+                            + cursor
                         )
+                        lbl_el = ui.label(lbl + arrow).classes(txt_cls)
                         if tip_title:
                             lbl_el.tooltip(f"{tip_title} — {tip_body}")
 
@@ -695,6 +787,13 @@ def _render_item_stats(container, rows: list, refresh_fn=None) -> None:
             return result
 
         all_groups = _group(stats)
+        sort_state = {"col": "MOY.", "asc": True}
+
+        def _apply_sort(items: list[dict]) -> list[dict]:
+            key_fn = _SORT_KEYS.get(sort_state["col"])
+            if not key_fn:
+                return items
+            return sorted(items, key=key_fn, reverse=not sort_state["asc"])
 
         with ui.element("div").classes("w-full flex flex-col gap-3"):
             with ui.row().classes("items-center gap-3"):
@@ -722,13 +821,27 @@ def _render_item_stats(container, rows: list, refresh_fn=None) -> None:
                             ]
                             if not matched:
                                 continue
-                            _render_college_group(college_name, matched, expanded=True, refresh_fn=refresh_fn)
+                            _render_college_group(
+                                college_name, _apply_sort(matched), expanded=True,
+                                refresh_fn=refresh_fn, sort_state=sort_state, on_sort=_set_sort,
+                            )
                         else:
-                            _render_college_group(college_name, college_stats, expanded=False, refresh_fn=refresh_fn)
+                            _render_college_group(
+                                college_name, _apply_sort(college_stats), expanded=False,
+                                refresh_fn=refresh_fn, sort_state=sort_state, on_sort=_set_sort,
+                            )
                         any_shown = True
                     if not any_shown:
                         with ui.element("div").classes("px-4 py-8 text-center"):
                             ui.label("Aucun résultat.").classes("text-sm text-slate-400")
+
+            def _set_sort(col: str) -> None:
+                if sort_state["col"] == col:
+                    sort_state["asc"] = not sort_state["asc"]
+                else:
+                    sort_state["col"] = col
+                    sort_state["asc"] = True
+                _render_groups(stats_search.value or "")
 
             _render_groups()
             stats_search.on_value_change(lambda e: _render_groups(e.value or ""))
@@ -741,21 +854,24 @@ def qcm_page():
         try:
             with ui.column().classes("w-full gap-5 max-w-5xl mx-auto"):
 
-                # ── Header ────────────────────────────────────────────────────
-                with ui.row().classes("w-full items-end justify-between flex-wrap gap-3"):
-                    with ui.column().classes("gap-0"):
+                # ── Header (bandeau hero) ────────────────────────────────────
+                with ui.element("div").classes("synapse-hero w-full"):
+                    with ui.column().classes("gap-0.5"):
                         ui.label("QCM").classes(
                             "text-2xl font-extrabold text-slate-900 dark:text-slate-50 tracking-tight"
                         )
-                        ui.label("Analytique · Évolution · Cours à retravailler").classes(
-                            "text-sm text-slate-400 mt-0.5"
+                        ui.label("Analyse de tes sessions QCM et erreurs fréquentes").classes(
+                            "text-sm text-slate-500 dark:text-slate-400 mt-0.5"
                         )
-                    with ui.row().classes("gap-2 shrink-0"):
+                    with ui.row().classes("items-center gap-4 shrink-0"):
+                        hero_summary = ui.row().classes(
+                            "items-center gap-3 text-xs text-slate-500 dark:text-slate-400"
+                        )
                         ui.button(
                             "+ Ajouter",
                             icon="add",
                             on_click=lambda: _open_add_dialog(_rebuild),
-                        ).props("unelevated color=indigo rounded").classes(
+                        ).props("unelevated color=primary rounded").classes(
                             "font-semibold shrink-0"
                         )
 
@@ -768,11 +884,8 @@ def qcm_page():
                     "grid grid-cols-1 md:grid-cols-3 gap-4 w-full"
                 )
 
-                # ── Distribution types d'erreur (Sprint 1) ────────────────────
-                dist_container = ui.element("div").classes("w-full")
-
-                # ── Graphique évolution ───────────────────────────────────────
-                chart_container = ui.element("div").classes("w-full")
+                # ── Évolution des scores + distribution des erreurs (combo) ───
+                combo_container = ui.element("div").classes("w-full")
 
                 # ── Stats par item groupées par collège ────────────────────────
                 item_stats_container = ui.element("div").classes("w-full")
@@ -796,49 +909,53 @@ def qcm_page():
 
                     groups = _compute_groups(rows)
 
+                    _render_hero_summary(hero_summary, rows)
                     _render_kpi(kpi_container, rows, groups)
-                    _render_error_distribution(dist_container, rows)
-                    _render_evolution_chart(chart_container, rows)
+                    _render_combo_card(combo_container, rows)
                     _render_item_stats(item_stats_container, rows, refresh_fn=_rebuild)
 
                 def _rebuild_filter_row():
                     filter_row.clear()
                     with filter_row:
                         # Période
-                        ui.label("Période :").classes("text-[11px] text-slate-400 font-medium")
-                        for lbl, dv in [("Tout", 0), ("30j", 30), ("7j", 7)]:
-                            active = _filter["days"] == dv
-                            def _set_days(d=dv):
-                                _filter["days"] = d
-                                _rebuild_filter_row()
-                                _rebuild()
-                            ui.button(lbl, on_click=_set_days).props(
-                                f"{'unelevated color=slate' if active else 'outline color=grey'}"
-                                " dense rounded size=xs"
-                            )
+                        ui.label("Période").classes(
+                            "text-[11px] text-slate-400 font-semibold uppercase tracking-wide"
+                        )
+                        with ui.element("div").classes("qcm-filter-group"):
+                            for lbl, dv in [("Tout", 0), ("30j", 30), ("7j", 7)]:
+                                active = _filter["days"] == dv
+                                def _set_days(d=dv):
+                                    _filter["days"] = d
+                                    _rebuild_filter_row()
+                                    _rebuild()
+                                with ui.element("div").classes(
+                                    "qcm-filter-chip" + (" active" if active else "")
+                                ).on("click", _set_days):
+                                    ui.label(lbl)
 
                         ui.element("div").classes(
                             "w-px h-4 bg-slate-200 dark:bg-slate-700 self-center mx-1"
                         )
 
                         # Plateforme
-                        ui.label("Plateforme :").classes(
-                            "text-[11px] text-slate-400 font-medium"
+                        ui.label("Plateforme").classes(
+                            "text-[11px] text-slate-400 font-semibold uppercase tracking-wide"
                         )
-                        for lbl, pv in [
-                            ("Tous", None), ("EDNpro", "EDNpro"),
-                            ("Hypocampus", "Hypocampus"),
-                            ("ChatGPT", "ChatGPT"), ("Gemini", "Gemini"),
-                        ]:
-                            active = _filter["platform"] == pv
-                            def _set_plat(p=pv):
-                                _filter["platform"] = p
-                                _rebuild_filter_row()
-                                _rebuild()
-                            ui.button(lbl, on_click=_set_plat).props(
-                                f"{'unelevated' if active else 'outline'} color=indigo"
-                                " dense rounded size=xs"
-                            )
+                        with ui.element("div").classes("qcm-filter-group"):
+                            for lbl, pv in [
+                                ("Tous", None), ("EDNpro", "EDNpro"),
+                                ("Hypocampus", "Hypocampus"),
+                                ("ChatGPT", "ChatGPT"), ("Gemini", "Gemini"),
+                            ]:
+                                active = _filter["platform"] == pv
+                                def _set_plat(p=pv):
+                                    _filter["platform"] = p
+                                    _rebuild_filter_row()
+                                    _rebuild()
+                                with ui.element("div").classes(
+                                    "qcm-filter-chip" + (" active" if active else "")
+                                ).on("click", _set_plat):
+                                    ui.label(lbl)
 
                         ui.element("div").classes(
                             "w-px h-4 bg-slate-200 dark:bg-slate-700 self-center mx-1"
@@ -850,14 +967,13 @@ def qcm_page():
                             _filter["failed_only"] = not _filter["failed_only"]
                             _rebuild_filter_row()
                             _rebuild()
-                        ui.button(
-                            "Ratés seulement",
-                            icon="warning",
-                            on_click=_toggle_failed,
-                        ).props(
-                            f"{'unelevated' if active else 'outline'} color=red "
-                            "dense rounded size=xs"
-                        )
+                        with ui.element("div").classes("qcm-filter-group"):
+                            with ui.element("div").classes(
+                                "qcm-filter-chip danger" + (" active" if active else "")
+                            ).on("click", _toggle_failed):
+                                with ui.row().classes("items-center gap-1"):
+                                    ui.icon("warning", size="xs")
+                                    ui.label("Ratés seulement")
 
                 _rebuild_filter_row()
                 _rebuild()
@@ -950,8 +1066,8 @@ def _open_add_dialog(refresh_fn):
                                     ui.button(f"📚 {col_name}", on_click=_pick_c).props(
                                         "flat no-caps align=left"
                                     ).classes(
-                                        "w-full text-left text-sm font-semibold text-indigo-600 "
-                                        "dark:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 "
+                                        "w-full text-left text-sm font-semibold text-blue-600 "
+                                        "dark:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 "
                                         "rounded-lg px-3 py-1"
                                     )
                             if matched_courses:
@@ -1013,7 +1129,7 @@ def _open_add_dialog(refresh_fn):
                             plat_container.clear()
                             with plat_container:
                                 for p in local_store.QCM_PLATFORMS:
-                                    col = PLATFORM_COLORS.get(p, "indigo")
+                                    col = PLATFORM_COLORS.get(p, "primary")
                                     active = p == state.platform
                                     def _click_p(pv=p):
                                         state.platform = pv
@@ -1040,7 +1156,7 @@ def _open_add_dialog(refresh_fn):
                                         _rebuild_type()
                                         _rebuild_course_section()
                                     ui.button(t, on_click=_click_t).props(
-                                        f"{'unelevated' if active else 'outline'} rounded size=sm color=indigo"
+                                        f"{'unelevated' if active else 'outline'} rounded size=sm color=primary"
                                     )
                         _rebuild_type()
 
@@ -1063,7 +1179,7 @@ def _open_add_dialog(refresh_fn):
                         if state.course_title:
                             txt = (f"ITEM {state.item_number} — " if state.item_number else "") + state.course_title
                             ui.label(txt).classes(
-                                "text-xs font-semibold text-indigo-600 dark:text-indigo-400 flex-1"
+                                "text-xs font-semibold text-blue-600 dark:text-blue-400 flex-1"
                             ).style("overflow:hidden;text-overflow:ellipsis;white-space:nowrap")
                             def _clear():
                                 state.course_id = state.course_title = state.item_number = state.college = ""
@@ -1099,7 +1215,7 @@ def _open_add_dialog(refresh_fn):
                         ui.button(
                             "Choisir un cours…", icon="search",
                             on_click=lambda: _open_course_picker(_on_select),
-                        ).props("outline dense rounded size=sm color=indigo").classes("text-xs")
+                        ).props("outline dense rounded size=sm color=primary").classes("text-xs")
 
                         # Chips collège rapides (si aucun cours sélectionné)
                         if not state.course_title:
@@ -1137,10 +1253,10 @@ def _open_add_dialog(refresh_fn):
                                     txt = (f"ITEM {c['item_number']} — " if c.get("item_number") else "") + c["title"]
                                     with ui.row().classes(
                                         "items-center gap-2 px-3 py-1.5 rounded-lg w-full "
-                                        "bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800"
+                                        "bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800"
                                     ):
                                         ui.label(txt).classes(
-                                            "text-xs font-medium text-indigo-700 dark:text-indigo-300 flex-1"
+                                            "text-xs font-medium text-blue-700 dark:text-blue-300 flex-1"
                                         ).style("overflow:hidden;text-overflow:ellipsis;white-space:nowrap")
                                         def _rm(idx=i):
                                             state.courses.pop(idx)
@@ -1162,7 +1278,7 @@ def _open_add_dialog(refresh_fn):
                     ui.button(
                         "+ Ajouter cours", icon="add",
                         on_click=lambda: _open_course_picker(_add_course),
-                    ).props("outline dense rounded size=sm color=indigo").classes("self-start text-xs mt-0.5")
+                    ).props("outline dense rounded size=sm color=primary").classes("self-start text-xs mt-0.5")
 
                 _rebuild_course_section()
 
@@ -1340,7 +1456,7 @@ def _open_add_dialog(refresh_fn):
                         refresh_fn()
 
                 ui.button("Enregistrer ✓", on_click=_submit).props(
-                    "unelevated color=indigo rounded"
+                    "unelevated color=primary rounded"
                 ).classes("px-5 font-semibold")
 
     dialog.open()
@@ -1643,23 +1759,23 @@ def _open_session_wizard(sessions: list, refresh_fn) -> None:
                 with step_area:
                     # ── Header / progression ──────────────────────────────────
                     with ui.element("div").classes(
-                        "px-5 py-3.5 bg-indigo-50 dark:bg-indigo-900/20 "
-                        "border-b border-indigo-100 dark:border-indigo-800"
+                        "px-5 py-3.5 bg-blue-50 dark:bg-blue-900/20 "
+                        "border-b border-blue-100 dark:border-blue-800"
                     ):
                         with ui.row().classes("items-center justify-between"):
                             with ui.row().classes("items-center gap-2"):
                                 ui.icon("quiz", size="sm").classes(
-                                    "text-indigo-500 shrink-0"
+                                    "text-blue-500 shrink-0"
                                 )
                                 ui.label(
                                     f"Session {idx + 1} / {n} — Documenter la lacune"
                                 ).classes(
-                                    "font-bold text-indigo-800 dark:text-indigo-200 text-sm"
+                                    "font-bold text-blue-800 dark:text-blue-200 text-sm"
                                 )
                             with ui.row().classes("gap-1 items-center"):
                                 for i in range(min(n, 8)):
                                     color = (
-                                        "bg-indigo-500"
+                                        "bg-blue-500"
                                         if i == idx
                                         else "bg-green-400"
                                         if i < idx
@@ -1682,7 +1798,7 @@ def _open_session_wizard(sessions: list, refresh_fn) -> None:
                             with ui.column().classes("gap-0.5 flex-1"):
                                 if item:
                                     ui.label(f"Item {item}").classes(
-                                        "text-[11px] text-indigo-500 font-semibold "
+                                        "text-[11px] text-blue-500 font-semibold "
                                         "uppercase tracking-wide"
                                     )
                                 ui.label(title or "—").classes(
@@ -1718,7 +1834,7 @@ def _open_session_wizard(sessions: list, refresh_fn) -> None:
                                         _render()
                                     ui.button(lbl, icon=ico, on_click=_sel_et).props(
                                         f"{'unelevated' if is_sel else 'outline'} "
-                                        f"color={'indigo' if is_sel else 'grey-7'} "
+                                        f"color={'primary' if is_sel else 'grey-7'} "
                                         "rounded dense"
                                     ).classes("text-xs")
 
@@ -1795,7 +1911,7 @@ def _open_session_wizard(sessions: list, refresh_fn) -> None:
                                     next_lbl,
                                     icon="arrow_forward" if not is_last else "check",
                                     on_click=lambda: _advance(create=False),
-                                ).props("unelevated color=indigo rounded dense").classes(
+                                ).props("unelevated color=primary rounded dense").classes(
                                     "text-sm font-semibold"
                                 )
 

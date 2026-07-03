@@ -790,6 +790,12 @@ def stats_page() -> None:
         mastery_container = ui.element("div").classes("w-full mb-4")
         _render_mastery_distribution(mastery_container, snapshots)
 
+        def _refresh_overview():
+            nonlocal snapshots
+            snapshots = _get_all_mastery_snapshots()
+            _render_kpi_row(kpi_container, _compute_kpis(state.days, snapshots))
+            _render_mastery_distribution(mastery_container, snapshots)
+
         with ui.tabs().classes("w-full mb-4").props("dense") as tabs:
             tab_activite = ui.tab("Activité",   icon="feed")
             tab_fragiles = ui.tab("À retravailler", icon="warning_amber")
@@ -825,7 +831,7 @@ def stats_page() -> None:
                 def set_period(d: int):
                     state.days = d
                     _rebuild_period_row()
-                    _render_kpi_row(kpi_container, _compute_kpis(state.days, snapshots))
+                    _refresh_overview()
                     render()
 
                 def _rebuild_period_row():
@@ -857,6 +863,7 @@ def stats_page() -> None:
                                 ui.label("Aucun cours fragile — beau travail !").classes(
                                     "text-sm text-slate-400 text-center"
                                 )
+                    _refresh_overview()
 
                 ui.timer(0.05, render_fragiles, once=True)
 

@@ -21,6 +21,7 @@ from backend.core.reviews.mastery import get_course_mastery
 from backend.state.store import data_store
 from frontend.theme import frame
 from frontend.components.course_quick_actions import open_quick_session_dialog
+from frontend.components.sparkline import sparkline_svg
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -60,6 +61,152 @@ def _day_label(d: datetime.date) -> str:
     if d == today - datetime.timedelta(days=1):
         return "Hier"
     return d.strftime("%d %b")
+
+
+def _get_all_mastery_snapshots() -> list[tuple]:
+    """Snapshot de maîtrise pour tous les cours (y compris non commencés).
+    Contrairement à _get_fragile_courses, ne filtre rien : sert de base
+    commune au score moyen (KPI) et à la répartition par niveau."""
+    if not data_store.cours:
+        return []
+    try:
+        sessions_map = local_store.get_sessions_by_course()
+        postpone_map = local_store.get_postpone_counts()
+    except Exception as exc:
+        logger.warning(f"mastery snapshots load: {exc}")
+        return []
+
+    results = []
+    for course in data_store.cours:
+        try:
+            sessions = sessions_map.get(course.id, [])
+            snap = get_course_mastery(
+                course, context="college", sessions=sessions,
+                total_postpone=postpone_map.get(course.id, 0),
+            )
+        except Exception:
+            continue
+        results.append((snap, course))
+    return results
+
+
+def _compute_kpis(days: int, snapshots: list) -> dict:
+    stats = local_store.get_weekly_study_stats(days=days)
+
+    sessions = local_store.get_recent_study_sessions(limit=200)
+    if days > 0:
+        cutoff = (datetime.date.today() - datetime.timedelta(days=days)).isoformat()
+        sessions = [s for s in sessions if (_get(s, "session_date") or "") >= cutoff]
+
+    daily_minutes: dict[str, int] = defaultdict(int)
+    daily_counts: dict[str, int] = defaultdict(int)
+    for s in sessions:
+        d = _get(s, "session_date")
+        if not d:
+            continue
+        daily_minutes[d] += _get(s, "duration_minutes", 0) or 0
+        daily_counts[d] += 1
+
+    days_sorted = sorted(daily_minutes.keys())
+    minutes_series = [daily_minutes[d] for d in days_sorted]
+    sessions_series = [daily_counts[d] for d in days_sorted]
+
+    scores = [snap.score for snap, _ in snapshots if snap.score is not None]
+    avg_score = round(sum(scores) / len(scores)) if scores else None
+
+    return {
+        "total_minutes": stats["total_minutes"],
+        "session_count": stats["session_count"],
+        "minutes_series": minutes_series,
+        "sessions_series": sessions_series,
+        "avg_score": avg_score,
+        "tracked_count": len(scores),
+        "streak": local_store.get_streak_days(),
+    }
+
+
+def _render_kpi_row(container, kpis: dict) -> None:
+    container.clear()
+
+    def _kpi(icon_name, label, value_txt, accent_hex, sub_txt, extra=None):
+        with ui.element("div").classes("synapse-kpi-card w-full").style(
+            f"--card-accent:{accent_hex}"
+        ):
+            if extra:
+                extra()
+            with ui.column().classes("gap-1 min-w-0 flex-1"):
+                with ui.row().classes("items-center gap-2"):
+                    ui.icon(icon_name, size="xs").classes("text-slate-300")
+                    ui.label(label).classes("text-xs text-slate-400 font-medium")
+                ui.label(value_txt).classes(
+                    "text-3xl font-extrabold tabular-nums leading-none text-slate-800 dark:text-slate-100"
+                )
+                ui.label(sub_txt).classes("text-xs text-slate-400")
+
+    with container:
+        # Temps d'étude
+        def _time_spark(_vals=kpis["minutes_series"]):
+            if len(_vals) >= 2:
+                ui.html(
+                    sparkline_svg(_vals, "#2563EB"), sanitize=False
+                ).classes("synapse-spark")
+
+        _kpi(
+            "schedule", "Temps d'étude", _fmt_minutes(kpis["total_minutes"]),
+            "#2563EB", f"{kpis['session_count']} séance(s)",
+            extra=_time_spark if len(kpis["minutes_series"]) >= 2 else None,
+        )
+
+        # Séances
+        def _sess_spark(_vals=kpis["sessions_series"]):
+            if len(_vals) >= 2:
+                ui.html(
+                    sparkline_svg(_vals, "#2563EB"), sanitize=False
+                ).classes("synapse-spark")
+
+        _kpi(
+            "event_repeat", "Séances", str(kpis["session_count"]),
+            "#2563EB", "sur la période",
+            extra=_sess_spark if len(kpis["sessions_series"]) >= 2 else None,
+        )
+
+        # Score de maîtrise moyen (ring)
+        avg = kpis["avg_score"]
+        ring_col = (
+            "#22c55e" if avg is not None and avg >= 80
+            else "#3B82F6" if avg is not None and avg >= 60
+            else "#f97316" if avg is not None and avg >= 40
+            else "#ef4444" if avg is not None
+            else "#CBD5E1"
+        )
+
+        def _ring_extra(_pct=avg or 0, _col=ring_col):
+            with ui.element("div").classes("synapse-ring").style(
+                f"--ring-pct:{_pct};--ring-color:{_col}"
+            ):
+                ui.label(f"{_pct}%").classes("synapse-ring-label").style(f"color:{_col}")
+
+        _kpi(
+            "insights", "Score de maîtrise", f"{avg}%" if avg is not None else "—",
+            ring_col, f"{kpis['tracked_count']} cours suivis",
+            extra=_ring_extra if avg is not None else None,
+        )
+
+        # Série en cours (streak)
+        streak = kpis["streak"]
+        streak_col = "#f97316" if streak >= 3 else "#94A3B8"
+
+        def _streak_extra(_col=streak_col):
+            with ui.element("div").classes(
+                "flex items-center justify-center rounded-full w-11 h-11 shrink-0"
+            ).style(f"background:{_col}1A"):
+                ui.icon("local_fire_department", size="sm").style(f"color:{_col}")
+
+        _kpi(
+            "local_fire_department", "Série en cours", f"{streak}j",
+            streak_col, "jours consécutifs",
+            extra=_streak_extra,
+        )
 
 
 def _get_fragile_courses(limit: int = 15) -> list[tuple]:
@@ -627,19 +774,25 @@ def stats_page() -> None:
     with frame("Ma Progression"):
         state = SimpleNamespace(days=7)
 
-        with ui.row().classes("items-end justify-between w-full mb-2 flex-wrap gap-3"):
-            with ui.column().classes("gap-0"):
+        with ui.element("div").classes("synapse-hero w-full mb-4"):
+            with ui.column().classes("gap-0.5"):
                 ui.label("Ma Progression").classes(
-                    "text-2xl font-bold text-slate-900 dark:text-slate-100"
+                    "text-2xl font-extrabold text-slate-900 dark:text-slate-50 tracking-tight"
                 )
-                ui.label("Activité · Cours fragiles · Bilan semaine").classes(
-                    "text-sm text-slate-400 mt-0.5"
+                ui.label("Historique d'apprentissage · tendances · objectifs").classes(
+                    "text-sm text-slate-500 dark:text-slate-400 mt-0.5"
                 )
+
+        snapshots = _get_all_mastery_snapshots()
+        kpi_container = ui.element("div").classes(
+            "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full mb-4"
+        )
+        _render_kpi_row(kpi_container, _compute_kpis(state.days, snapshots))
 
         with ui.tabs().classes("w-full mb-4").props("dense") as tabs:
             tab_activite = ui.tab("Activité",   icon="feed")
-            tab_fragiles = ui.tab("Fragiles",   icon="warning_amber")
-            tab_semaine  = ui.tab("Semaine",    icon="calendar_today")
+            tab_fragiles = ui.tab("À retravailler", icon="warning_amber")
+            tab_semaine  = ui.tab("Objectifs",      icon="calendar_today")
 
         with ui.tab_panels(tabs, value=tab_activite).classes("w-full"):
 
@@ -676,6 +829,7 @@ def stats_page() -> None:
                 def set_period(d: int):
                     state.days = d
                     _rebuild_period_row()
+                    _render_kpi_row(kpi_container, _compute_kpis(state.days, snapshots))
                     render()
 
                 def _rebuild_period_row():

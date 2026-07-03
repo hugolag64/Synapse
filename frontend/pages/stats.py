@@ -803,7 +803,6 @@ def stats_page() -> None:
                 def render():
                     days = state.days
                     try:
-                        stats    = local_store.get_weekly_study_stats(days=days)
                         sessions = list(local_store.get_recent_study_sessions(limit=60))
                         wps      = list(local_store.get_unresolved_weak_points(limit=60))
                     except Exception as exc:

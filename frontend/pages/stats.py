@@ -17,9 +17,10 @@ from loguru import logger
 from nicegui import ui
 
 from backend.core.reviews import local_store
-from backend.core.reviews.mastery import get_course_mastery
+from backend.core.reviews.mastery import get_course_mastery, PROGRESSION_COLORS
 from backend.state.store import data_store
 from frontend.theme import frame
+from frontend.components.course_card import _ACCENT_HEX
 from frontend.components.course_quick_actions import open_quick_session_dialog
 from frontend.components.sparkline import sparkline_svg
 
@@ -88,6 +89,63 @@ def _get_all_mastery_snapshots() -> list[tuple]:
             continue
         results.append((snap, course))
     return results
+
+
+_LEVEL_HEX: dict[str, str] = {
+    level: _ACCENT_HEX.get(color, "#94A3B8")
+    for level, color in PROGRESSION_COLORS.items()
+}
+_LEVEL_ORDER = [
+    "à préparer", "à lire", "en construction", "à consolider",
+    "à entraîner", "fragile", "critique", "maîtrisé",
+]
+
+
+def _render_mastery_distribution(container, snapshots: list) -> None:
+    container.clear()
+    if not snapshots:
+        return
+
+    counts: dict[str, int] = defaultdict(int)
+    for snap, _ in snapshots:
+        counts[snap.level] += 1
+    total = sum(counts.values())
+    if not total:
+        return
+
+    with container:
+        with ui.element("div").classes("synapse-panel w-full p-4"):
+            ui.label("Répartition de la maîtrise").classes(
+                "text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3"
+            )
+            with ui.element("div").classes(
+                "flex w-full rounded-full overflow-hidden gap-px"
+            ).style("height:10px"):
+                for level in _LEVEL_ORDER:
+                    cnt = counts.get(level, 0)
+                    if not cnt:
+                        continue
+                    pct = max(cnt / total * 100, 2)
+                    color = _LEVEL_HEX.get(level, "#94A3B8")
+                    ui.element("div").style(
+                        f"width:{pct}%;background:{color};flex-shrink:0"
+                    ).tooltip(f"{cnt} cours · {level.capitalize()}")
+
+            with ui.row().classes("flex-wrap gap-x-4 gap-y-1.5 mt-3"):
+                for level in _LEVEL_ORDER:
+                    cnt = counts.get(level, 0)
+                    if not cnt:
+                        continue
+                    color = _LEVEL_HEX.get(level, "#94A3B8")
+                    with ui.row().classes("items-center gap-1.5 cursor-pointer").on(
+                        "click", lambda: ui.navigate.to("/colleges")
+                    ):
+                        ui.element("div").classes("w-2 h-2 rounded-full shrink-0").style(
+                            f"background:{color}"
+                        )
+                        ui.label(f"{level.capitalize()} ({cnt})").classes(
+                            "text-[11px] text-slate-500 dark:text-slate-400"
+                        )
 
 
 def _compute_kpis(days: int, snapshots: list) -> dict:
@@ -788,6 +846,9 @@ def stats_page() -> None:
             "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full mb-4"
         )
         _render_kpi_row(kpi_container, _compute_kpis(state.days, snapshots))
+
+        mastery_container = ui.element("div").classes("w-full mb-4")
+        _render_mastery_distribution(mastery_container, snapshots)
 
         with ui.tabs().classes("w-full mb-4").props("dense") as tabs:
             tab_activite = ui.tab("Activité",   icon="feed")

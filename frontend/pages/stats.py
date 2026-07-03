@@ -333,9 +333,9 @@ def _render_fragile_banner(fragile: list, render_fn) -> None:
     border_col = "red" if is_crit else "orange"
 
     with ui.element("div").classes(
-        f"w-full rounded-2xl border border-{border_col}-200 dark:border-{border_col}-800 "
+        f"w-full border border-{border_col}-200 dark:border-{border_col}-800 "
         f"bg-{border_col}-50 dark:bg-{border_col}-900/10 p-4"
-    ):
+    ).style("border-radius: var(--s-r-xl)"):
         # Titre du bandeau
         with ui.row().classes("items-center gap-2 mb-3"):
             ui.icon(
@@ -375,9 +375,9 @@ def _render_fragile_card(snap, course, render_fn, client) -> None:
     qcm_done    = getattr(course, "qcm_done", False)
 
     with ui.element("div").classes(
-        f"flex-shrink-0 w-44 rounded-xl border {border_cls} "
-        "bg-white dark:bg-slate-900 shadow-sm p-3 flex flex-col gap-2"
-    ):
+        f"flex-shrink-0 w-44 border {border_cls} "
+        "bg-white dark:bg-slate-900 p-3 flex flex-col gap-2"
+    ).style("border-radius: var(--s-r-lg); box-shadow: var(--s-shadow-sm)"):
         # Niveau + score
         with ui.row().classes("items-center gap-1"):
             ui.label(snap.level.capitalize()).classes(

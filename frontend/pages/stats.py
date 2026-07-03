@@ -425,68 +425,6 @@ def _render_fragile_card(snap, course, render_fn, client) -> None:
         )
 
 
-# ── Section 2 : Stats accordion ───────────────────────────────────────────────
-
-def _render_stats_accordion(stats: dict) -> None:
-    total_min   = stats.get("total_minutes", 0)
-    session_cnt = stats.get("session_count", 0)
-    avg_conf    = stats.get("average_confidence")
-    weak_cnt    = stats.get("weak_count", 0)
-    act_counts  = stats.get("activity_counts", {})
-
-    TILE = (
-        "text-center p-3 rounded-xl "
-        "bg-slate-50 dark:bg-slate-800/50 flex flex-col gap-0.5"
-    )
-    VAL = "text-xl font-bold text-slate-800 dark:text-slate-100"
-    LBL = "text-[11px] text-slate-400"
-
-    with ui.expansion("Statistiques de la période", value=False).classes(
-        "w-full rounded-2xl border border-slate-100 dark:border-slate-800 "
-        "bg-white dark:bg-slate-900 shadow-sm"
-    ).props(
-        'header-class="px-5 py-3 text-sm font-semibold text-slate-500 dark:text-slate-400"'
-    ):
-        with ui.column().classes("px-5 pb-5 gap-4 w-full"):
-
-            with ui.element("div").classes(
-                "grid grid-cols-2 md:grid-cols-4 gap-3 w-full"
-            ):
-                for val, lbl in [
-                    (_fmt_minutes(total_min), "Temps de travail"),
-                    (str(session_cnt),        "Séances"),
-                    (
-                        f"{avg_conf:.1f} / 5" if avg_conf is not None else "—",
-                        "Confiance moy.",
-                    ),
-                    (str(weak_cnt), "Pièges notés"),
-                ]:
-                    with ui.element("div").classes(TILE):
-                        ui.label(val).classes(VAL)
-                        ui.label(lbl).classes(LBL)
-
-            if act_counts:
-                total = sum(act_counts.values())
-                if total:
-                    ui.label("Répartition").classes(
-                        "text-[11px] font-bold uppercase tracking-widest text-slate-400"
-                    )
-                    with ui.column().classes("gap-1.5 w-full"):
-                        for act, cnt in sorted(act_counts.items(), key=lambda x: -x[1]):
-                            pct = cnt / total
-                            _, col = _ACT.get(act.lower(), ("", "grey"))
-                            with ui.row().classes("items-center gap-2 w-full"):
-                                ui.label(act.capitalize()).classes(
-                                    "text-xs text-slate-500 dark:text-slate-400 w-20 shrink-0"
-                                )
-                                ui.linear_progress(value=pct).props(
-                                    f"color={col} size=6px"
-                                ).classes("flex-1")
-                                ui.label(f"{pct:.0%}").classes(
-                                    "text-[11px] text-slate-400 w-8 text-right shrink-0"
-                                )
-
-
 # ── Section 3 : Timeline d'activité ──────────────────────────────────────────
 
 def _render_timeline(sessions: list, weak_points: list, render_fn) -> None:
@@ -877,11 +815,7 @@ def stats_page() -> None:
 
                     content.clear()
                     with content:
-                        _render_stats_accordion(stats)
-                        with ui.element("div").classes(
-                            "w-full rounded-2xl border border-slate-100 dark:border-slate-800 "
-                            "bg-white dark:bg-slate-900 shadow-sm p-5"
-                        ):
+                        with ui.element("div").classes("synapse-panel w-full p-5"):
                             ui.label("Activité").classes(
                                 "text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-1"
                             )

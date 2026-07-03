@@ -679,9 +679,9 @@ def _render_semaine_tab() -> None:
             # Badge progression
             if offset == 0 and not stats["session_count"]:
                 with ui.element("div").classes(
-                    "w-full p-4 rounded-2xl border border-blue-100 dark:border-blue-800 "
+                    "w-full p-4 border border-blue-100 dark:border-blue-800 "
                     "bg-blue-50 dark:bg-blue-900/10 flex items-center gap-3"
-                ):
+                ).style("border-radius: var(--s-r-2xl)"):
                     ui.icon("lightbulb", color="blue").classes("text-xl shrink-0")
                     ui.label("Aucune séance cette semaine. Valide une révision dans le Dashboard !").classes(
                         "text-sm text-blue-700 dark:text-blue-300"
@@ -695,9 +695,9 @@ def _render_semaine_tab() -> None:
                     f"{achieved}/4 objectifs atteints — {stats['unique_days']} jour(s) travaillé(s). Continue !"
                 )
                 with ui.element("div").classes(
-                    f"w-full p-4 rounded-2xl border border-{_col}-100 dark:border-{_col}-800 "
+                    f"w-full p-4 border border-{_col}-100 dark:border-{_col}-800 "
                     f"bg-{_col}-50 dark:bg-{_col}-900/10 flex items-center gap-4"
-                ):
+                ).style("border-radius: var(--s-r-2xl)"):
                     ui.icon(_ico, color=_col).classes("text-3xl shrink-0")
                     with ui.column().classes("gap-0.5 flex-1"):
                         ui.label(_txt).classes(f"text-sm font-semibold text-{_col}-800 dark:text-{_col}-200")
@@ -723,7 +723,9 @@ def _render_semaine_tab() -> None:
                         ui.label(f"Objectif : {goal_val}").classes(_GOAL)
 
             # Barres de progression
-            with ui.card().classes("w-full p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800"):
+            with ui.card().classes("w-full p-4 border border-slate-100 dark:border-slate-800").style(
+                "border-radius: var(--s-r-2xl); box-shadow: var(--s-shadow-sm)"
+            ):
                 ui.label("Progression des objectifs").classes(
                     "text-xs font-bold uppercase tracking-widest text-slate-400 mb-3"
                 )

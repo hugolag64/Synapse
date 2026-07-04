@@ -22,7 +22,7 @@ def courses():
 
 
 # Import after fixture to avoid NiceGUI import errors at module level
-from frontend.pages.todo import _build_course_list
+from frontend.pages.todo import _build_course_list, _compute_ajoute_progress
 
 
 class TestBuildCourseList:
@@ -67,3 +67,28 @@ class TestBuildCourseList:
         assert len(result) == 2
         assert result[0]['type'] == 'gcal'
         assert result[1]['type'] == 'notion_manual'
+
+
+class TestComputeAjouteProgress:
+    def test_empty(self):
+        assert _compute_ajoute_progress([], [], {}) == (0, 0)
+
+    def test_all_courses_reviewed(self, courses):
+        items = [{'course': courses[0]}, {'course': courses[1]}]
+        reviewed = [courses[0].title, courses[1].title]
+        assert _compute_ajoute_progress(items, reviewed, {}) == (2, 2)
+
+    def test_partial_courses(self, courses):
+        items = [{'course': courses[0]}, {'course': courses[1]}]
+        reviewed = [courses[0].title]
+        assert _compute_ajoute_progress(items, reviewed, {}) == (2, 1)
+
+    def test_dynamic_tasks_only(self):
+        dynamic = {'b1': {'text': 'x', 'checked': True}, 'b2': {'text': 'y', 'checked': False}}
+        assert _compute_ajoute_progress([], [], dynamic) == (2, 1)
+
+    def test_mixed_courses_and_dynamic(self, courses):
+        items = [{'course': courses[0]}]
+        reviewed = [courses[0].title]
+        dynamic = {'b1': {'text': 'x', 'checked': False}}
+        assert _compute_ajoute_progress(items, reviewed, dynamic) == (2, 1)

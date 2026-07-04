@@ -305,38 +305,12 @@ async def _render_ajout_block(
                 ui.label('AJOUTÉ').classes(
                     'text-xs font-bold uppercase tracking-widest text-slate-400 mb-1')
 
-                # ── Cours ─────────────────────────────────────────────────────
-                for item in course_items:
-                    _render_course_item(
-                        item['course'], item['course'].title in reviewed_titles,
-                        item['type'], task, cache, date_str, on_update,
-                    )
-
-                # ── Tâches dynamiques ─────────────────────────────────────────
-                for b_id, data in dynamic_tasks.items():
-                    async def _toggle_dyn(e, bid=b_id):
-                        delta = 1 if e.value else -1
-                        summary.ajoute_done = max(
-                            0, min(summary.ajoute_total, summary.ajoute_done + delta))
-                        on_update()
-                        await notion_service.toggle_dynamic_task(bid, e.value)
-
-                    ui.checkbox(data['text'], value=data['checked'],
-                                on_change=_toggle_dyn).props('dense').classes(
-                        'text-slate-700 dark:text-slate-200')
-
-                if not course_items and not dynamic_tasks:
-                    ui.label('Rien de planifié pour ce jour.').classes(
-                        'text-sm text-slate-400 italic')
-
-                # ── Contrôles d'ajout ─────────────────────────────────────────
-                with ui.row().classes(
-                        'items-center gap-2 mt-2 pt-2 '
-                        'border-t border-slate-100 dark:border-slate-800'):
-                    ui.button('+ Cours',
+                # ── Contrôles d'ajout — en haut, avant la liste ────────────────
+                with ui.row().classes('items-center gap-2 pb-2'):
+                    ui.button('+ Cours', icon='add',
                               on_click=lambda: _open_add_course_dialog(date_obj, task)).props(
-                        'flat dense').classes(
-                        'text-violet-600 dark:text-violet-400 text-sm font-medium')
+                        'unelevated dense rounded').classes(
+                        'bg-violet-600 text-white text-sm font-medium')
 
                     new_task_input = ui.input(placeholder='+ Tâche libre…').props(
                         'borderless dense').classes('flex-1 text-sm text-slate-600 dark:text-slate-300')
@@ -360,6 +334,37 @@ async def _render_ajout_block(
                     ui.button(icon='send',
                               on_click=lambda: asyncio.create_task(_add_task_free())).props(
                         'flat round dense').classes('text-violet-500')
+
+                # ── Cours ─────────────────────────────────────────────────────
+                for item in course_items:
+                    _render_course_item(
+                        item['course'], item['course'].title in reviewed_titles,
+                        item['type'], task, cache, date_str, on_update,
+                    )
+
+                # ── Tâches dynamiques ─────────────────────────────────────────
+                for b_id, data in dynamic_tasks.items():
+                    async def _toggle_dyn(e, bid=b_id):
+                        delta = 1 if e.value else -1
+                        summary.ajoute_done = max(
+                            0, min(summary.ajoute_total, summary.ajoute_done + delta))
+                        on_update()
+                        await notion_service.toggle_dynamic_task(bid, e.value)
+
+                    ui.checkbox(data['text'], value=data['checked'],
+                                on_change=_toggle_dyn).props('dense').classes(
+                        'text-slate-700 dark:text-slate-200')
+
+                # ── État vide ─────────────────────────────────────────────────
+                if not course_items and not dynamic_tasks:
+                    with ui.column().classes('w-full items-center gap-1 py-4'):
+                        ui.icon('event_available', size='md').classes('text-slate-300 dark:text-slate-600')
+                        ui.label('Rien de planifié pour ce jour').classes(
+                            'text-sm text-slate-400 italic')
+                        ui.button('+ Ajouter un cours',
+                                  on_click=lambda: _open_add_course_dialog(date_obj, task)).props(
+                            'flat dense').classes(
+                            'text-violet-600 dark:text-violet-400 text-sm font-medium mt-1')
 
 
 def _render_course_item(

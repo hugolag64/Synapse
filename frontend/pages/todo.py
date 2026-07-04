@@ -144,25 +144,22 @@ def _render_routine_block(
     summary = cache[date_str]
 
     with container:
-        with ui.row().classes('w-full gap-4 items-start'):
-            ui.element('div').classes('w-1 rounded-full bg-sky-500 self-stretch min-h-[2rem]')
-            with ui.column().classes('flex-1 gap-2'):
-                ui.label('ROUTINE').classes(
-                    'text-xs font-bold uppercase tracking-widest text-slate-400 mb-1')
-                with ui.element('div').classes(
-                        'grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2'):
-                    for name in items:
-                        checked = checks.get(name, False)
+        with ui.element('div').classes('synapse-panel w-full p-4'):
+            ui.label('ROUTINE').classes('synapse-section-label mb-2')
+            with ui.element('div').classes(
+                    'grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2'):
+                for name in items:
+                    checked = checks.get(name, False)
 
-                        def _on_toggle(e, item_name=name):
-                            delta = 1 if e.value else -1
-                            summary.routine_done = max(
-                                0, min(summary.routine_total, summary.routine_done + delta))
-                            on_update()
-                            local_store.set_routine_check(date_str, item_name, e.value)
+                    def _on_toggle(e, item_name=name):
+                        delta = 1 if e.value else -1
+                        summary.routine_done = max(
+                            0, min(summary.routine_total, summary.routine_done + delta))
+                        on_update()
+                        local_store.set_routine_check(date_str, item_name, e.value)
 
-                        ui.checkbox(name, value=checked, on_change=_on_toggle).props('dense').classes(
-                            'text-slate-700 dark:text-slate-200 transition-opacity duration-200')
+                    ui.checkbox(name, value=checked, on_change=_on_toggle).props('dense').classes(
+                        'text-slate-700 dark:text-slate-200 transition-opacity duration-200')
 
     on_update()
 
@@ -187,15 +184,11 @@ def _build_course_list(events, manual_titles, all_courses) -> list[dict]:
 def _render_skeleton_bloc(container: ui.column, marker_css: str, title: str) -> None:
     container.clear()
     with container:
-        with ui.row().classes('w-full gap-4 items-start'):
-            ui.element('div').classes(
-                f'w-1 rounded-full {marker_css} self-stretch min-h-[2rem] opacity-30')
-            with ui.column().classes('flex-1 gap-2'):
-                ui.label(title).classes(
-                    'text-xs font-bold uppercase tracking-widest text-slate-400 mb-1')
-                for w in ['w-3/4', 'w-1/2', 'w-2/3']:
-                    ui.element('div').classes(
-                        f'h-5 rounded-md animate-pulse bg-slate-200 dark:bg-slate-700 {w}')
+        with ui.element('div').classes('synapse-panel w-full p-4'):
+            ui.label(title).classes('synapse-section-label mb-2')
+            for w in ['w-3/4', 'w-1/2', 'w-2/3']:
+                ui.element('div').classes(
+                    f'h-5 rounded-md animate-pulse bg-slate-200 dark:bg-slate-700 {w}')
 
 
 async def _get_day_summary(date_obj: datetime.date, cache: dict) -> "_DaySummary":
@@ -299,72 +292,69 @@ async def _render_ajout_block(
 
     container.clear()
     with container:
-        with ui.row().classes('w-full gap-4 items-start').props('id=todo-ajoute-panel'):
-            ui.element('div').classes('w-1 rounded-full bg-violet-500 self-stretch min-h-[2rem]')
-            with ui.column().classes('flex-1 gap-2'):
-                ui.label('AJOUTÉ').classes(
-                    'text-xs font-bold uppercase tracking-widest text-slate-400 mb-1')
+        with ui.element('div').classes('synapse-panel w-full p-4').props('id=todo-ajoute-panel'):
+            ui.label('AJOUTÉ').classes('synapse-section-label mb-2')
 
-                # ── Contrôles d'ajout — en haut, avant la liste ────────────────
-                with ui.row().classes('items-center gap-2 pb-2'):
-                    ui.button('+ Cours', icon='add',
+            # ── Contrôles d'ajout — en haut, avant la liste ────────────────
+            with ui.row().classes('items-center gap-2 pb-2'):
+                ui.button('+ Cours', icon='add',
+                          on_click=lambda: _open_add_course_dialog(date_obj, task)).props(
+                    'unelevated dense rounded').classes(
+                    'bg-violet-600 text-white text-sm font-medium')
+
+                new_task_input = ui.input(placeholder='+ Tâche libre…').props(
+                    'borderless dense').classes('flex-1 text-sm text-slate-600 dark:text-slate-300')
+
+                async def _add_task_free():
+                    val = new_task_input.value.strip()
+                    if not val or not task:
+                        return
+                    new_task_input.value = ''
+                    if await notion_service.add_dynamic_task(task.id, val):
+                        ui.notify('Tâche ajoutée', type='positive')
+                        updated = await notion_service.get_daily_task_by_date(date_obj)
+                        if updated and not container.is_deleted:
+                            await _render_ajout_block(
+                                container, date_obj, updated, course_items,
+                                reviewed_titles, cache, on_update,
+                            )
+
+                new_task_input.on('keydown.enter',
+                                  lambda: asyncio.create_task(_add_task_free()))
+                ui.button(icon='send',
+                          on_click=lambda: asyncio.create_task(_add_task_free())).props(
+                    'flat round dense').classes('text-violet-500')
+
+            # ── Cours ─────────────────────────────────────────────────────
+            for item in course_items:
+                _render_course_item(
+                    item['course'], item['course'].title in reviewed_titles,
+                    item['type'], task, cache, date_str, on_update,
+                )
+
+            # ── Tâches dynamiques ─────────────────────────────────────────
+            for b_id, data in dynamic_tasks.items():
+                async def _toggle_dyn(e, bid=b_id):
+                    delta = 1 if e.value else -1
+                    summary.ajoute_done = max(
+                        0, min(summary.ajoute_total, summary.ajoute_done + delta))
+                    on_update()
+                    await notion_service.toggle_dynamic_task(bid, e.value)
+
+                ui.checkbox(data['text'], value=data['checked'],
+                            on_change=_toggle_dyn).props('dense').classes(
+                    'text-slate-700 dark:text-slate-200')
+
+            # ── État vide ─────────────────────────────────────────────────
+            if not course_items and not dynamic_tasks:
+                with ui.column().classes('w-full items-center gap-1 py-4'):
+                    ui.icon('event_available', size='md').classes('text-slate-300 dark:text-slate-600')
+                    ui.label('Rien de planifié pour ce jour').classes(
+                        'text-sm text-slate-400 italic')
+                    ui.button('+ Ajouter un cours',
                               on_click=lambda: _open_add_course_dialog(date_obj, task)).props(
-                        'unelevated dense rounded').classes(
-                        'bg-violet-600 text-white text-sm font-medium')
-
-                    new_task_input = ui.input(placeholder='+ Tâche libre…').props(
-                        'borderless dense').classes('flex-1 text-sm text-slate-600 dark:text-slate-300')
-
-                    async def _add_task_free():
-                        val = new_task_input.value.strip()
-                        if not val or not task:
-                            return
-                        new_task_input.value = ''
-                        if await notion_service.add_dynamic_task(task.id, val):
-                            ui.notify('Tâche ajoutée', type='positive')
-                            updated = await notion_service.get_daily_task_by_date(date_obj)
-                            if updated and not container.is_deleted:
-                                await _render_ajout_block(
-                                    container, date_obj, updated, course_items,
-                                    reviewed_titles, cache, on_update,
-                                )
-
-                    new_task_input.on('keydown.enter',
-                                      lambda: asyncio.create_task(_add_task_free()))
-                    ui.button(icon='send',
-                              on_click=lambda: asyncio.create_task(_add_task_free())).props(
-                        'flat round dense').classes('text-violet-500')
-
-                # ── Cours ─────────────────────────────────────────────────────
-                for item in course_items:
-                    _render_course_item(
-                        item['course'], item['course'].title in reviewed_titles,
-                        item['type'], task, cache, date_str, on_update,
-                    )
-
-                # ── Tâches dynamiques ─────────────────────────────────────────
-                for b_id, data in dynamic_tasks.items():
-                    async def _toggle_dyn(e, bid=b_id):
-                        delta = 1 if e.value else -1
-                        summary.ajoute_done = max(
-                            0, min(summary.ajoute_total, summary.ajoute_done + delta))
-                        on_update()
-                        await notion_service.toggle_dynamic_task(bid, e.value)
-
-                    ui.checkbox(data['text'], value=data['checked'],
-                                on_change=_toggle_dyn).props('dense').classes(
-                        'text-slate-700 dark:text-slate-200')
-
-                # ── État vide ─────────────────────────────────────────────────
-                if not course_items and not dynamic_tasks:
-                    with ui.column().classes('w-full items-center gap-1 py-4'):
-                        ui.icon('event_available', size='md').classes('text-slate-300 dark:text-slate-600')
-                        ui.label('Rien de planifié pour ce jour').classes(
-                            'text-sm text-slate-400 italic')
-                        ui.button('+ Ajouter un cours',
-                                  on_click=lambda: _open_add_course_dialog(date_obj, task)).props(
-                            'flat dense').classes(
-                            'text-violet-600 dark:text-violet-400 text-sm font-medium mt-1')
+                        'flat dense').classes(
+                        'text-violet-600 dark:text-violet-400 text-sm font-medium mt-1')
 
 
 def _render_course_item(
@@ -484,50 +474,47 @@ def _render_note_block(
 ) -> None:
     container.clear()
     with container:
-        with ui.row().classes('w-full gap-4 items-start'):
-            ui.element('div').classes('w-1 rounded-full bg-amber-500 self-stretch min-h-[2rem]')
-            with ui.column().classes('flex-1 gap-2'):
-                ui.label('NOTE DU JOUR').classes(
-                    'text-xs font-bold uppercase tracking-widest text-slate-400 mb-1')
+        with ui.element('div').classes('synapse-panel w-full p-4'):
+            ui.label('NOTE DU JOUR').classes('synapse-section-label mb-2')
 
-                if is_past:
-                    ui.label('Journée passée — notes visibles dans Notion.').classes(
-                        'text-sm italic text-slate-400')
-                    return
+            if is_past:
+                ui.label('Journée passée — notes visibles dans Notion.').classes(
+                    'text-sm italic text-slate-400')
+                return
 
-                note_ta = ui.textarea(
-                    placeholder='Comment s\'est passée la journée ?'
-                ).props('outlined rows=2 autogrow').classes('w-full text-sm')
+            note_ta = ui.textarea(
+                placeholder='Comment s\'est passée la journée ?'
+            ).props('outlined rows=2 autogrow').classes('w-full text-sm')
 
-                save_row = ui.row().classes('w-full justify-end hidden')
-                with save_row:
-                    save_btn = ui.button('Enregistrer').props(
-                        'unelevated dense rounded').classes(
-                        'bg-amber-500 text-white text-sm')
+            save_row = ui.row().classes('w-full justify-end hidden')
+            with save_row:
+                save_btn = ui.button('Enregistrer').props(
+                    'unelevated dense rounded').classes(
+                    'bg-amber-500 text-white text-sm')
 
-                def _on_input(e):
-                    if e.value.strip():
-                        save_row.classes(remove='hidden')
-                    else:
-                        save_row.classes(add='hidden')
-
-                note_ta.on('update:model-value', _on_input)
-
-                async def _save():
-                    val = note_ta.value.strip()
-                    if not val:
-                        return
-                    if not task:
-                        ui.notify('Pas de fiche pour ce jour', type='warning')
-                        return
-                    note_ta.value = ''
+            def _on_input(e):
+                if e.value.strip():
+                    save_row.classes(remove='hidden')
+                else:
                     save_row.classes(add='hidden')
-                    if await notion_service.add_daily_comment(task.id, val):
-                        ui.notify('Note enregistrée', type='positive')
-                    else:
-                        ui.notify('Erreur Notion', type='negative')
 
-                save_btn.on('click', lambda: asyncio.create_task(_save()))
+            note_ta.on('update:model-value', _on_input)
+
+            async def _save():
+                val = note_ta.value.strip()
+                if not val:
+                    return
+                if not task:
+                    ui.notify('Pas de fiche pour ce jour', type='warning')
+                    return
+                note_ta.value = ''
+                save_row.classes(add='hidden')
+                if await notion_service.add_daily_comment(task.id, val):
+                    ui.notify('Note enregistrée', type='positive')
+                else:
+                    ui.notify('Erreur Notion', type='negative')
+
+            save_btn.on('click', lambda: asyncio.create_task(_save()))
 
 
 def _render_week_strip(

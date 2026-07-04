@@ -198,6 +198,21 @@ def colleges_page():
 
                     _sync_btn.on_click(_sync)
 
+            # ── Légende maîtrise ──────────────────────────────────────────────
+            with ui.row().classes("items-center gap-4 mb-4 flex-wrap"):
+                ui.label("Couverture :").classes("text-[11px] text-slate-400 dark:text-slate-500 font-medium shrink-0")
+                for _lvl_key, _lvl_color, _lvl_name in [
+                    ("solide",       "#059669", "Solide"),
+                    ("correct",      "#3B82F6", "Correct"),
+                    ("fragile",      "#D97706", "Fragile"),
+                    ("non_commence", "#CBD5E1", "Non commencé"),
+                ]:
+                    with ui.row().classes("items-center gap-1 shrink-0"):
+                        ui.element("div").style(
+                            f"width:8px;height:8px;border-radius:50%;background:{_lvl_color};flex-shrink:0;"
+                        )
+                        ui.label(_lvl_name).classes("text-[11px] text-slate-500 dark:text-slate-400")
+
             # ── Grille des collèges ───────────────────────────────────────────
 
             def _select(name: str):

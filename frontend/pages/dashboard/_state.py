@@ -35,6 +35,8 @@ class DashboardState:
     # ── Refs colonnes révision ────────────────────────────────────────────────
     urgent_count_lbl: Any = None
     today_count_lbl: Any = None
+    retard_header: Any = None
+    today_header: Any = None
 
     # ── Callback _rebuild_all (injecté par __init__.py) ───────────────────────
     rebuild_all: Any = None   # callable() → None

@@ -14,8 +14,13 @@ from backend.core.lisa.scraper import scrape_oic, LisaFetchError
 from frontend.components.oic_eval_dialog import open_oic_eval_dialog
 
 
-def open_lisa_dialog(course) -> None:
-    """Ouvre la dialog OIC pour un cours. Scrappe LiSA si pas encore en cache."""
+def open_lisa_dialog(course, refresh_fn=None) -> None:
+    """Ouvre la dialog OIC pour un cours. Scrappe LiSA si pas encore en cache.
+
+    refresh_fn, si fourni, est appelé à la fermeture de la dialog pour que la
+    carte du cours (couleur du drapeau, compteurs) reflète immédiatement les
+    données fraîchement récupérées/togglées — sans avoir à relancer l'app.
+    """
     course_id    = course.id
     course_title = course.title or ""
     item_number  = str(getattr(course, "display_item_number", "") or "")
@@ -98,7 +103,7 @@ def open_lisa_dialog(course) -> None:
                     ui.label(label).classes(
                         f"text-[10px] font-bold uppercase tracking-wider {label_cls} w-12 shrink-0"
                     )
-                    ui.html(_seg_html(m, t, seg_color))
+                    ui.html(_seg_html(m, t, seg_color), sanitize=False)
                     done_cls = "text-emerald-600 font-semibold" if m == t else "text-slate-500"
                     ui.label(f"{m}/{t}").classes(f"text-[11px] tabular-nums {done_cls}")
 
@@ -254,8 +259,15 @@ def open_lisa_dialog(course) -> None:
             fresh = (await asyncio.to_thread(ls.get_lisa_oic, course_id)) or []
             _render_oics(fresh)
         except LisaFetchError as exc:
+            from backend.config.settings import settings as _settings
             err_str = str(exc)
-            is_auth = any(k in err_str.lower() for k in ("permission", "login", "read permission", "not logged"))
+            is_auth = any(k in err_str.lower() for k in (
+                "permission", "login", "read permission", "not logged", "session"
+            ))
+            has_credentials = bool(
+                getattr(_settings, "lisa_username", "") and
+                getattr(_settings, "lisa_password", "")
+            )
             content_area.clear()
             with content_area:
                 with ui.column().classes("items-center py-10 gap-3 w-full"):
@@ -263,12 +275,20 @@ def open_lisa_dialog(course) -> None:
                         f"text-4xl {'text-amber-400' if is_auth else 'text-red-400'}"
                     )
                     ui.label(
-                        "Cookie LiSA expiré" if is_auth else "LiSA inaccessible"
+                        "Session LiSA expirée" if is_auth else "LiSA inaccessible"
                     ).classes("text-sm font-semibold text-slate-700 dark:text-slate-300")
-                    ui.label(
-                        "Ta session LiSA a expiré. Copie le cookie depuis DevTools et mets-le à jour dans Paramètres → LiSA."
-                        if is_auth else err_str
-                    ).classes("text-xs text-slate-400 text-center px-6")
+
+                    if is_auth and has_credentials:
+                        detail = "Reconnexion automatique en cours… Clique sur Réessayer."
+                    elif is_auth and not has_credentials:
+                        detail = (
+                            "Configure tes identifiants UNESS dans Paramètres → LiSA "
+                            "pour une reconnexion automatique."
+                        )
+                    else:
+                        detail = err_str
+
+                    ui.label(detail).classes("text-xs text-slate-400 text-center px-6")
                     with ui.row().classes("gap-2"):
                         if is_auth:
                             ui.button(
@@ -284,6 +304,9 @@ def open_lisa_dialog(course) -> None:
 
     async def _reload() -> None:
         await _load(force=True)
+
+    if refresh_fn:
+        dialog.on("hide", lambda: refresh_fn())
 
     ui.timer(0.05, lambda: asyncio.ensure_future(_load()), once=True)
     dialog.open()

@@ -918,8 +918,8 @@ def add_weak_point(
         cur = con.execute("""
             INSERT INTO weak_points
                 (course_id, course_title, item_number, category, detail,
-                 severity, source_session_id, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                 severity, status, source_session_id, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?)
         """, (course_id, course_title, item_number, category, detail,
                severity, source_session_id, now))
         return cur.lastrowid
@@ -1004,6 +1004,8 @@ def _migrate_weak_points_v2() -> None:
                 con.execute(sql)
         # Normaliser 'resolved' → 'résolue'
         con.execute("UPDATE weak_points SET status='résolue' WHERE status='resolved'")
+        # Corriger les lacunes sans statut (bug add_weak_point pre-fix)
+        con.execute("UPDATE weak_points SET status='active' WHERE status IS NULL OR status=''")
 
 
 def _migrate_weak_points_from_sessions() -> None:

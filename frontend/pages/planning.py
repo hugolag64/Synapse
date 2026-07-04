@@ -546,21 +546,30 @@ async def planning_page():
         # ── Infos contextuelles (avant génération) ─────────────────────────────
         if not plan_state["day"] and not plan_state["week"]:
             with ui.card().classes(
-                "w-full p-4 bg-indigo-50 dark:bg-indigo-900/10 "
+                "w-full p-5 bg-indigo-50 dark:bg-indigo-900/10 "
                 "border border-indigo-100 dark:border-indigo-800 rounded-2xl"
             ):
-                with ui.row().classes("items-start gap-3"):
-                    ui.icon("info_outline", color="indigo").classes("text-xl shrink-0 mt-0.5")
-                    with ui.column().classes("gap-1"):
+                with ui.row().classes("items-start gap-4"):
+                    ui.icon("event_note", color="indigo").classes("text-2xl shrink-0 mt-0.5")
+                    with ui.column().classes("gap-2"):
+                        ui.label("Planifie ta session d'étude").classes(
+                            "text-sm font-bold text-indigo-800 dark:text-indigo-200"
+                        )
                         ui.label(
-                            f"{len(urgent_tasks)} tâche(s) urgente(s) · "
-                            f"{len(today_tasks)} prévue(s) aujourd'hui · "
-                            f"{len(active_lacunes)} lacune(s) active(s)"
-                        ).classes("text-sm font-semibold text-indigo-800 dark:text-indigo-200")
-                        ui.label(
-                            "Cliquez sur « Planifier » pour générer votre planning optimisé. "
-                            "Les durées sont configurables dans Paramètres."
-                        ).classes("text-xs text-indigo-600 dark:text-indigo-400")
+                            "Génère un planning personnalisé pour aujourd'hui ou la semaine, "
+                            "basé sur tes urgences, tes cours planifiés et tes lacunes actives."
+                        ).classes("text-xs text-indigo-600 dark:text-indigo-400 leading-relaxed")
+                        with ui.row().classes("items-center gap-4 mt-1 flex-wrap"):
+                            for _ico, _txt, _col in [
+                                ("priority_high", f"{len(urgent_tasks)} urgente(s)", "red"),
+                                ("today",         f"{len(today_tasks)} prévue(s) aujourd'hui", "indigo"),
+                                ("psychology",    f"{len(active_lacunes)} lacune(s) active(s)", "amber"),
+                            ]:
+                                with ui.row().classes("items-center gap-1 shrink-0"):
+                                    ui.icon(_ico, size="xs").classes(f"text-{_col}-500")
+                                    ui.label(_txt).classes(
+                                        f"text-xs font-medium text-{_col}-700 dark:text-{_col}-400"
+                                    )
 
         # Conteneur du plan (rempli après génération)
         with plan_container:

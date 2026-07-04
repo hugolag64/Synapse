@@ -92,7 +92,14 @@ def scrape_oic(course_title: str, item_number: str = "") -> list[dict]:
         logger.warning(f"LiSA scrape : item_number invalide {item_number!r}")
         return []
 
-    headers = {"User-Agent": "Synapse/1.0"}
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0.0.0 Safari/537.36"
+        ),
+        "Referer": "https://livret.uness.fr/lisa/2026/index.php",
+    }
     if _settings.lisa_cookie:
         headers["Cookie"] = _settings.lisa_cookie
 
@@ -117,9 +124,10 @@ def scrape_oic(course_title: str, item_number: str = "") -> list[dict]:
         except Exception as exc:
             raise LisaFetchError(f"Réponse LiSA non-JSON : {exc}") from exc
         if "error" in data:
-            info = data["error"].get("info", str(data["error"]))
-            # Erreur de permission → signaler pour re-auth
-            if "permission" in info.lower() or "read" in info.lower():
+            err  = data["error"]
+            info = err.get("info", str(err))
+            code = err.get("code", "")
+            if code in ("readapidenied", "permissiondenied") or "permission" in info.lower():
                 raise _PermissionError(info)
             raise LisaFetchError(f"API LiSA : {info}")
         pages = data.get("query", {}).get("pages", {})
@@ -139,7 +147,7 @@ def scrape_oic(course_title: str, item_number: str = "") -> list[dict]:
                 raise LisaFetchError(f"API LiSA : {exc} (re-login échoué)") from exc
         else:
             raise LisaFetchError(
-                "Session LiSA expirée. Configure tes identifiants UNESS dans Paramètres → LiSA."
+                "login_required: Session LiSA expirée. Configure tes identifiants UNESS dans Paramètres → LiSA."
             )
 
     logger.info(f"LiSA scrape '{course_title}' → {len(oics)} OIC")

@@ -89,7 +89,7 @@ Score > **50** pour la détection automatique (vs > 5 pour la recherche manuelle
 
 ## 3. Étapes d'implémentation
 
-### Étape 1 — Table SQLite `pdf_local_cache`
+### Task 1: Table SQLite `pdf_local_cache`
 
 **Ce qu'on fait :**  
 Ajouter la création de la table `pdf_local_cache` dans `local_store.py`, dans la fonction d'initialisation SQLite existante. Ajouter deux fonctions : `get_pdf_cache(course_id, context)` → `str | None` et `set_pdf_cache(course_id, context, pdf_path)`.
@@ -105,7 +105,7 @@ Démarrer l'app, vérifier avec un client SQLite que la table `pdf_local_cache` 
 
 ---
 
-### Étape 2 — Méthode `auto_detect_pdf()` dans `FileService`
+### Task 2: Méthode `auto_detect_pdf()` dans `FileService`
 
 **Ce qu'on fait :**  
 Ajouter une méthode `async auto_detect_pdf(course, context="college") -> str | None` à `FileService` dans `backend/core/files.py`.
@@ -133,7 +133,7 @@ Appeler `await file_service.auto_detect_pdf(un_cours)` retourne un chemin PDF si
 
 ---
 
-### Étape 3 — Intégration dans `preload_all_views()`
+### Task 3: Intégration dans `preload_all_views()`
 
 **Ce qu'on fait :**  
 Dans `backend/state/store.py`, après le step 1 du preload (chargement des cours), appeler `auto_detect_pdf` pour chaque cours en background, puis set `course.url_pdf` si un chemin est trouvé.
@@ -157,7 +157,7 @@ Lancer l'app, ouvrir la page Collèges, vérifier que les icônes PDF sont verte
 
 ---
 
-### Étape 4 — UX : suppression du dialog "Lier PDF" pour la détection
+### Task 4: UX — suppression du dialog "Lier PDF"
 
 **Ce qu'on fait :**  
 Dans `frontend/components/course_card.py`, modifier le bloc `else` (quand `has_pdf` est False) du bouton PDF :
@@ -185,7 +185,7 @@ Naviguer sur la page Collèges, vérifier visuellement les deux états (vert/gri
 
 ---
 
-### Étape 5 — Nettoyage du cache périmé (bonus, optionnel)
+### Task 5: Nettoyage du cache périmé (optionnel)
 
 **Ce qu'on fait :**  
 Dans `local_store.py`, ajouter une fonction `cleanup_pdf_cache()` qui supprime les entrées dont le fichier n'existe plus sur disque. Appeler cette fonction une fois par démarrage (dans la Phase A du preload, après avoir appliqué les chemins depuis SQLite).

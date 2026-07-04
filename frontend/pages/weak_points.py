@@ -1,15 +1,12 @@
 """
-weak_points.py — Synapse — Page Lacunes (Phase D + Phase H)
-------------------------------------------------------------
-Affiche et gère les lacunes (points faibles) :
-  🔴 Très critiques  (sévérité ≥ 4, actives)
-  🟡 À revoir        (status = 'à revoir')
-  🟠 Actives         (sévérité < 4, actives)
-  ↺  Récurrentes     (status = 'récurrente')
-  🔗 Non reliées     (Obsidian sans cours Synapse)
-  ✓  Résolues récemment (collapsed)
-
-Phase H : bouton "Synchroniser Obsidian" en haut de page.
+weak_points.py — Synapse — Page Lacunes
+----------------------------------------
+Kanban 4 colonnes avec drag & drop (Sortable.js) :
+  🔴 Très critiques  (active, severity ≥ 4)
+  🟡 À revoir
+  🔵 Actives         (active, severity < 4)
+  🟠 Récurrentes
+  ✓  Résolues récemment (accordion collapsé en bas)
 """
 
 from nicegui import ui
@@ -22,16 +19,52 @@ from backend.config.settings import settings
 from frontend.components.weak_point_card import WeakPointCard, _get
 
 
-# ── Catégories et options ──────────────────────────────────────────────────────
+# ── Options ────────────────────────────────────────────────────────────────────
 
 _CATEGORIES = {None: "— Aucune"} | {c: c for c in local_store.WEAK_POINT_CATEGORIES}
 _SOURCE_OPTS = {"manuel": "Manuel", "qcm": "QCM", "séance": "Séance", "note": "Note"}
+
+# JS Sortable.js init — injecté après render du kanban
+_SORTABLE_JS = """
+(function initLacuneKanban() {
+  function _init() {
+    if (typeof Sortable === 'undefined') {
+      setTimeout(_init, 150);
+      return;
+    }
+    document.querySelectorAll('.lacune-col-body').forEach(col => {
+      if (col._sortable) { col._sortable.destroy(); }
+      col._sortable = new Sortable(col, {
+        group: 'lacunes',
+        animation: 200,
+        ghostClass: 'lacune-ghost',
+        dragClass: 'lacune-dragging',
+        onEnd: function(evt) {
+          var id = evt.item.dataset.id;
+          var status = evt.to.dataset.status;
+          if (!id || !status) return;
+          fetch('/api/lacune/move', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({id: parseInt(id), status: status})
+          });
+          [evt.from, evt.to].forEach(function(col) {
+            var badge = col.closest('.lacune-col') &&
+                        col.closest('.lacune-col').querySelector('.lacune-col-count');
+            if (badge) badge.textContent = col.querySelectorAll('.lacune-card').length;
+          });
+        }
+      });
+    });
+  }
+  _init();
+})();
+"""
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 def _is_unlinked_obsidian(w) -> bool:
-    """Lacune venant d'Obsidian mais sans cours Synapse associé."""
     try:
         return bool(w["obsidian_path"]) and not (w["course_id"] or "").strip()
     except (IndexError, KeyError):
@@ -43,46 +76,51 @@ def _is_unlinked_obsidian(w) -> bool:
 def weak_points_page(item_filter: str | None = None):
     _state = {"item": item_filter}
 
+    # Sortable.js via CDN (chargé une seule fois grâce à shared=True)
+    ui.add_head_html(
+        '<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>',
+        shared=True,
+    )
+
     with frame("Lacunes"):
         logger.info("ENTERING WEAK POINTS PAGE")
         try:
-            with ui.column().classes("w-full gap-6 max-w-5xl mx-auto"):
+            with ui.column().classes("w-full gap-5 max-w-full"):
 
                 # ── Header ────────────────────────────────────────────────────
-                with ui.row().classes("w-full items-center justify-between flex-wrap gap-3"):
+                with ui.row().classes("items-center justify-between flex-wrap gap-3 max-w-5xl"):
                     ui.label("Lacunes").classes(
                         "text-3xl font-extrabold text-slate-900 dark:text-slate-50 tracking-tight"
                     )
                     with ui.row().classes("items-center gap-2"):
-                        # ── Bouton sync Obsidian ───────────────────────────────
                         vault_ok = bool(settings.obsidian_vault_path)
                         sync_btn = ui.button(
                             "Synchroniser Obsidian",
                             icon="sync",
                         ).props(
-                            f"unelevated color={'indigo' if vault_ok else 'grey'} rounded"
+                            f"unelevated color={'primary' if vault_ok else 'grey'} rounded"
                         ).classes("text-sm font-semibold")
                         if not vault_ok:
                             sync_btn.tooltip("Configurez OBSIDIAN_VAULT_PATH dans les paramètres")
 
                         ui.button(
-                            "+ Ajouter une lacune",
+                            "+ Ajouter",
                             icon="add",
                             on_click=lambda: open_add_dialog(_rebuild),
-                        ).props("unelevated color=indigo rounded").classes("text-sm font-semibold")
+                        ).props("unelevated color=primary rounded").classes("text-sm font-semibold")
 
-                # ── Résultat de sync (masqué par défaut) ──────────────────────
-                sync_result_row = ui.row().classes("items-center gap-2 w-full")
+                # ── Résultat de sync ──────────────────────────────────────────
+                sync_result_row = ui.row().classes("items-center gap-2")
                 with sync_result_row:
                     sync_icon  = ui.icon("info", size="xs").classes("text-slate-400")
                     sync_label = ui.label("").classes("text-sm text-slate-500")
                 sync_result_row.set_visibility(False)
 
-                # ── Bandeau filtre item (visible uniquement si filtrage actif) ─
-                filter_banner = ui.element("div").classes("w-full")
+                # ── Bandeau filtre ────────────────────────────────────────────
+                filter_banner = ui.element("div").classes("w-full max-w-5xl")
 
-                # ── Conteneur principal (rebuildable) ─────────────────────────
-                main_col = ui.column().classes("w-full gap-6")
+                # ── Conteneur rebuildable ─────────────────────────────────────
+                main_col = ui.column().classes("w-full gap-5")
 
                 def _clear_filter():
                     _state["item"] = None
@@ -94,11 +132,14 @@ def weak_points_page(item_filter: str | None = None):
                         with filter_banner:
                             _render_item_filter_banner(_state["item"], _clear_filter)
                     main_col.clear()
-                    _render_all(main_col, _rebuild, item_filter=_state["item"])
+                    with main_col:
+                        _render_all(main_col, _rebuild, item_filter=_state["item"])
+                    # Réinitialiser Sortable après rebuild du DOM
+                    ui.run_javascript(_SORTABLE_JS)
 
                 _rebuild()
 
-                # ── Handler sync async ─────────────────────────────────────────
+                # ── Handler sync Obsidian ─────────────────────────────────────
                 async def _run_obsidian_sync():
                     if not vault_ok:
                         ui.notify(
@@ -117,22 +158,15 @@ def weak_points_page(item_filter: str | None = None):
                         from backend.core.obsidian.weak_points_sync import weak_points_sync_service
                         result = await asyncio.to_thread(weak_points_sync_service.sync)
 
-                        # Affichage résultat
                         sync_icon.props("name=check_circle color=positive")
                         sync_label.set_text(result.summary())
                         sync_label.classes(
                             remove="text-red-500 text-slate-500",
                             add="text-green-600 dark:text-green-400",
                         )
-
-                        if result.unmatched:
-                            logger.warning(
-                                f"Lacunes Obsidian non reliées : {result.unmatched}"
-                            )
                         if result.errors:
                             for err in result.errors:
                                 logger.error(f"Sync lacune: {err}")
-
                         _rebuild()
 
                     except Exception as exc:
@@ -150,43 +184,37 @@ def weak_points_page(item_filter: str | None = None):
             ui.label(f"Erreur : {e}").classes("text-red-500 font-bold")
 
 
-# ── Render sections ───────────────────────────────────────────────────────────
+# ── Render ────────────────────────────────────────────────────────────────────
 
 def _render_item_filter_banner(item_number: str, clear_fn) -> None:
     with ui.row().classes(
-        "w-full items-center gap-3 px-4 py-2.5 rounded-xl "
-        "bg-indigo-50 dark:bg-indigo-900/20 "
-        "border border-indigo-200 dark:border-indigo-800"
+        "items-center gap-3 px-4 py-2.5 rounded-xl "
+        "bg-blue-50 dark:bg-blue-900/20 "
+        "border border-blue-200 dark:border-blue-800"
     ):
-        ui.icon("filter_alt", size="xs").classes("text-indigo-500 shrink-0")
+        ui.icon("filter_alt", size="xs").classes("text-blue-500 shrink-0")
         ui.label(f"Filtré sur l'item {item_number}").classes(
-            "text-sm font-semibold text-indigo-800 dark:text-indigo-200 flex-1"
+            "text-sm font-semibold text-blue-800 dark:text-blue-200 flex-1"
         )
         ui.button(
-            "Voir toutes les lacunes",
+            "Voir toutes",
             icon="close",
             on_click=clear_fn,
-        ).props("flat dense size=xs color=indigo").classes("text-xs font-semibold shrink-0")
+        ).props("flat dense size=xs color=primary").classes("text-xs font-semibold shrink-0")
 
 
 def _render_all(container, refresh_fn, item_filter: str | None = None):
-    """Charge et affiche toutes les sections."""
-    # Sprint 2 : expire les vieilles propositions avant d'afficher
     local_store.expire_old_gap_proposals()
     pending_proposals = local_store.get_pending_proposals()
-
     all_wps = local_store.get_all_weak_points_table(limit=300)
 
-    # Filtre par item si demandé (depuis la page QCM)
     if item_filter:
         all_wps = [
             w for w in all_wps
             if str(w["item_number"] or "").strip() == str(item_filter).strip()
         ]
-        # Les propositions ne sont pas filtrées par item dans ce contexte
         pending_proposals = []
 
-    # Séparer les non-reliées Obsidian des lacunes normales
     unlinked_obs = [w for w in all_wps if _is_unlinked_obsidian(w)]
     regular_wps  = [w for w in all_wps if not _is_unlinked_obsidian(w)]
 
@@ -198,99 +226,147 @@ def _render_all(container, refresh_fn, item_filter: str | None = None):
 
     total_open = len(critical) + len(to_review) + len(active) + len(recurring) + len(unlinked_obs)
 
-    with container:
+    # Propositions
+    if pending_proposals:
+        _render_proposals_section(pending_proposals, refresh_fn)
 
-        # ── Résumé rapide ──────────────────────────────────────────────────
-        with ui.row().classes("items-center gap-3 flex-wrap"):
-            if pending_proposals:
-                _stat_pill(
-                    f"{len(pending_proposals)} à valider",
-                    "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400",
+    # Empty state global
+    if not total_open:
+        with ui.column().classes("w-full items-center py-16 gap-3"):
+            if item_filter:
+                ui.icon("search_off", size="xl").classes("text-slate-300 dark:text-slate-600")
+                ui.label(f"Aucune lacune pour l'item {item_filter}.").classes(
+                    "text-base font-semibold text-slate-500"
                 )
-            _stat_pill(f"{len(critical)} critiques",      "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400")
-            _stat_pill(f"{len(to_review)} à revoir",      "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400")
-            _stat_pill(f"{len(active)} actives",          "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400")
-            _stat_pill(f"{len(recurring)} récurrentes",   "bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400")
-            if unlinked_obs:
-                _stat_pill(f"{len(unlinked_obs)} non reliées", "bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400")
-            _stat_pill(f"{len(resolved)} résolues",       "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400")
+            else:
+                ui.icon("emoji_events", size="xl").classes("text-slate-300 dark:text-slate-600")
+                ui.label("Aucune lacune active. Bon travail !").classes(
+                    "text-base font-semibold text-slate-500"
+                )
+    else:
+        # ── Kanban board ──────────────────────────────────────────────────────
+        _render_kanban(critical, to_review, active, recurring, unlinked_obs, refresh_fn)
 
-        # ── Propositions récurrentes (Sprint 2) ────────────────────────────
-        if pending_proposals:
-            _render_proposals_section(pending_proposals, refresh_fn)
+    # ── Résolues (accordéon collapsé) ────────────────────────────────────────
+    if resolved:
+        _render_resolved_section(resolved, refresh_fn)
 
-        # ── Sections ──────────────────────────────────────────────────────
-        if critical:
-            _render_section(
-                "🔴 Très critiques", critical, refresh_fn,
-                border="border-red-200 dark:border-red-800",
-                bg="bg-red-50/30 dark:bg-red-900/5",
+
+# ── Kanban ────────────────────────────────────────────────────────────────────
+
+_COL_DEFS = [
+    # (data-status, label, icon, icon_color, dot_color)
+    ("critical",   "Très critiques", "error",               "text-red-500",    "bg-red-500"),
+    ("à revoir",   "À revoir",       "schedule",            "text-amber-500",  "bg-amber-400"),
+    ("active",     "Actives",        "radio_button_checked","text-blue-500",   "bg-blue-500"),
+    ("récurrente", "Récurrentes",    "refresh",             "text-orange-500", "bg-orange-500"),
+]
+
+
+_BOARD_STYLE = (
+    "display:flex; gap:14px; overflow-x:auto; align-items:flex-start; "
+    "padding-bottom:16px; width:100%; min-width:0;"
+)
+_COL_STYLE = (
+    "flex:0 0 280px; min-width:0; display:flex; flex-direction:column; "
+    "background:#F8FAFC; border:1px solid #E2E8F0; border-radius:14px; overflow:hidden;"
+)
+_COL_HDR_STYLE = (
+    "display:flex; align-items:center; gap:8px; padding:12px 14px 10px; "
+    "border-bottom:1px solid #E2E8F0; background:#FFFFFF; flex-shrink:0;"
+)
+_COL_BADGE_STYLE = (
+    "font-size:11px; font-weight:700; padding:2px 8px; border-radius:99px; "
+    "background:#E2E8F0; color:#64748B; white-space:nowrap; flex-shrink:0;"
+)
+_COL_BODY_STYLE = (
+    "display:flex; flex-direction:column; gap:8px; padding:10px; min-height:100px;"
+)
+_COL_EMPTY_STYLE = (
+    "display:flex; align-items:center; justify-content:center; "
+    "min-height:64px; font-size:12px; color:#CBD5E1; font-style:italic; "
+    "border:1.5px dashed #E2E8F0; border-radius:8px; margin:4px 0;"
+)
+
+
+def _render_kanban(critical, to_review, active, recurring, unlinked, refresh_fn):
+    with ui.element("div").style(_BOARD_STYLE):
+        for (status_key, label, icon_name, icon_cls, _dot), items in zip(
+            _COL_DEFS, [critical, to_review, active, recurring]
+        ):
+            _render_kanban_col(status_key, label, icon_name, icon_cls, items, refresh_fn)
+        if unlinked:
+            _render_kanban_col(
+                "active", "Non reliées", "link_off", "text-purple-500",
+                unlinked, refresh_fn, subtitle="Obsidian sans cours",
             )
 
-        if to_review:
-            _render_section(
-                "🟡 À revoir", to_review, refresh_fn,
-                border="border-amber-200 dark:border-amber-800",
-                bg="bg-amber-50/30 dark:bg-amber-900/5",
-            )
 
-        if active:
-            _render_section(
-                "🟠 Actives", active, refresh_fn,
-                border="border-slate-200 dark:border-slate-700",
-                bg="bg-slate-50/30 dark:bg-slate-800/20",
-            )
-
-        if recurring:
-            _render_section(
-                "↺ Récurrentes", recurring, refresh_fn,
-                border="border-orange-200 dark:border-orange-800",
-                bg="bg-orange-50/20 dark:bg-orange-900/5",
-            )
-
-        # ── Non reliées Obsidian ───────────────────────────────────────────
-        if unlinked_obs:
-            _render_section(
-                "🔗 Non reliées à un cours", unlinked_obs, refresh_fn,
-                border="border-purple-200 dark:border-purple-800",
-                bg="bg-purple-50/20 dark:bg-purple-900/5",
-                subtitle="Lacunes Obsidian importées sans correspondance de cours Synapse.",
-            )
-
-        if not total_open:
-            with ui.column().classes("w-full items-center py-16 gap-3 text-slate-400"):
-                if item_filter:
-                    ui.icon("search_off", size="xl").classes("opacity-50")
-                    ui.label(f"Aucune lacune pour l'item {item_filter}.").classes(
-                        "text-lg font-semibold text-slate-500"
+def _render_kanban_col(
+    status_key: str,
+    label: str,
+    icon_name: str,
+    icon_cls: str,
+    items: list,
+    refresh_fn,
+    subtitle: str = "",
+):
+    with ui.element("div").style(_COL_STYLE).classes("lacune-col"):
+        # Header
+        with ui.element("div").style(_COL_HDR_STYLE):
+            ui.icon(icon_name, size="xs").classes(f"shrink-0 {icon_cls}")
+            with ui.element("div").style("flex:1; min-width:0; overflow:hidden;"):
+                ui.label(label).style(
+                    "font-size:13px; font-weight:600; color:#334155; "
+                    "white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"
+                )
+                if subtitle:
+                    ui.label(subtitle).style(
+                        "font-size:10px; color:#94A3B8; white-space:nowrap; "
+                        "overflow:hidden; text-overflow:ellipsis;"
                     )
-                    ui.label("Cet item n'a pas encore de lacune enregistrée.").classes(
-                        "text-sm text-slate-400"
-                    )
-                else:
-                    ui.icon("emoji_events", size="xl").classes("opacity-50")
-                    ui.label("Aucune lacune active. Bon travail !").classes(
-                        "text-lg font-semibold text-slate-500"
-                    )
+            with ui.element("span").style(_COL_BADGE_STYLE).classes("lacune-col-count"):
+                ui.label(str(len(items))).style("line-height:1;")
 
-        # ── Résolues récemment (collapsé par défaut) ─────────────────────
-        if resolved:
-            _render_section(
-                "✓ Résolues récemment", resolved, refresh_fn,
-                border="border-green-200 dark:border-green-800",
-                bg="bg-green-50/20 dark:bg-green-900/5",
-                collapsed=True,
-            )
+        # Body — data-status pour Sortable.js
+        with ui.element("div").style(_COL_BODY_STYLE).classes("lacune-col-body").props(
+            f'data-status="{status_key}"'
+        ):
+            if not items:
+                with ui.element("div").style(_COL_EMPTY_STYLE):
+                    ui.label("Aucune lacune")
+            else:
+                for wp in items:
+                    WeakPointCard(wp, on_refresh=refresh_fn)
 
 
-def _stat_pill(text: str, classes: str):
-    with ui.element("div").classes(
-        f"flex items-center px-3 py-1.5 rounded-full text-sm font-semibold {classes}"
-    ):
-        ui.label(text)
+# ── Résolues ──────────────────────────────────────────────────────────────────
+
+def _render_resolved_section(items: list, refresh_fn):
+    with ui.expansion(value=False).classes(
+        "w-full rounded-2xl border border-slate-100 dark:border-slate-800 "
+        "bg-white dark:bg-slate-900 shadow-sm"
+    ) as exp:
+        with exp.add_slot("header"):
+            with ui.row().classes("items-center gap-3 px-4 py-3 w-full"):
+                ui.icon("check_circle", size="xs").classes("shrink-0 text-emerald-500")
+                ui.label("Résolues récemment").classes(
+                    "font-semibold text-slate-800 dark:text-slate-100 text-sm flex-1"
+                )
+                with ui.element("span").classes(
+                    "text-xs font-bold px-2 py-0.5 rounded-full "
+                    "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                ):
+                    ui.label(str(len(items)))
+
+        with ui.element("div").classes(
+            "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 px-4 pb-4 pt-2"
+        ):
+            for wp in items:
+                WeakPointCard(wp, on_refresh=refresh_fn)
 
 
-# ── Sprint 2 — Propositions de lacunes récurrentes ───────────────────────────
+# ── Propositions de lacunes récurrentes ──────────────────────────────────────
 
 _ET_COLORS_WP: dict[str, str] = {
     "connaissance":  "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
@@ -302,12 +378,12 @@ _ET_FALLBACK_WP = "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate
 
 
 def _render_proposal_card(p, refresh_fn) -> None:
-    pid         = p["id"]
-    item_number = p["item_number"]
-    error_type  = p["error_type"]
+    pid          = p["id"]
+    item_number  = p["item_number"]
+    error_type   = p["error_type"]
     course_title = p["course_title"] or ""
-    count       = p["occurrence_count"]
-    et_cls      = _ET_COLORS_WP.get(error_type, _ET_FALLBACK_WP)
+    count        = p["occurrence_count"]
+    et_cls       = _ET_COLORS_WP.get(error_type, _ET_FALLBACK_WP)
 
     with ui.element("div").classes(
         "flex items-start gap-3 p-3.5 rounded-xl "
@@ -318,7 +394,7 @@ def _render_proposal_card(p, refresh_fn) -> None:
             with ui.row().classes("items-center gap-2 flex-wrap"):
                 if item_number:
                     ui.label(f"ITEM {item_number}").classes(
-                        "text-[11px] font-bold text-indigo-600 dark:text-indigo-400"
+                        "text-[11px] font-bold text-blue-600 dark:text-blue-400"
                     )
                 ui.label(error_type).classes(
                     f"text-[11px] font-bold px-2 py-0.5 rounded-full {et_cls}"
@@ -339,11 +415,8 @@ def _render_proposal_card(p, refresh_fn) -> None:
 
             def _accept(p_id=pid):
                 try:
-                    wp_id = local_store.accept_gap_proposal(p_id)
-                    ui.notify(
-                        f"Lacune récurrente créée ✓",
-                        type="positive", icon="repeat",
-                    )
+                    local_store.accept_gap_proposal(p_id)
+                    ui.notify("Lacune récurrente créée", type="positive", icon="repeat")
                     refresh_fn()
                 except Exception as _exc:
                     ui.notify(f"Erreur : {_exc}", type="negative")
@@ -352,10 +425,8 @@ def _render_proposal_card(p, refresh_fn) -> None:
                 "flat dense rounded size=xs color=grey-7"
             ).classes("text-[11px]")
             ui.button(
-                "Créer la lacune", icon="add", on_click=_accept,
-            ).props(
-                "unelevated dense rounded size=xs color=amber"
-            ).classes("text-[11px] font-semibold")
+                "Créer", icon="add", on_click=_accept,
+            ).props("unelevated dense rounded size=xs color=amber").classes("text-[11px] font-semibold")
 
 
 def _render_proposals_section(proposals: list, refresh_fn) -> None:
@@ -374,50 +445,16 @@ def _render_proposals_section(proposals: list, refresh_fn) -> None:
 
         with ui.element("div").classes("px-4 pb-4 flex flex-col gap-3"):
             ui.label(
-                "Ces types d'erreur sont réapparus plusieurs fois sur le même item EDN. "
-                "Crée une lacune pour le signaler ou ignore pour le supprimer."
+                "Ces types d'erreur sont réapparus plusieurs fois sur le même item. "
+                "Crée une lacune ou ignore."
             ).classes("text-xs text-slate-500 dark:text-slate-400 italic mt-1 mb-1")
             for p in proposals:
                 _render_proposal_card(p, refresh_fn)
 
 
-def _render_section(
-    title: str,
-    items: list,
-    refresh_fn,
-    border: str = "",
-    bg: str = "",
-    collapsed: bool = False,
-    subtitle: str = "",
-):
-    """Affiche une section de lacunes (expansion + grille de cartes)."""
-    with ui.expansion(
-        value=not collapsed,
-    ).classes(
-        f"w-full rounded-2xl shadow-sm border {border} {bg}"
-    ) as exp:
-        with exp.add_slot("header"):
-            with ui.row().classes("items-center gap-2 px-4 py-3 w-full"):
-                ui.label(title).classes(
-                    "font-bold text-slate-800 dark:text-slate-100 text-base flex-1"
-                )
-                ui.badge(str(len(items)), color="slate").classes("text-xs")
-
-        if subtitle:
-            with ui.element("div").classes("px-4 pt-1 pb-0"):
-                ui.label(subtitle).classes("text-xs text-slate-400 italic")
-
-        with ui.element("div").classes(
-            "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 px-4 pb-4"
-        ):
-            for wp in items:
-                WeakPointCard(wp, on_refresh=refresh_fn)
-
-
 # ── Dialog : Ajouter une lacune ───────────────────────────────────────────────
 
 def open_add_dialog(refresh_fn):
-    """Ouvre le formulaire d'ajout de lacune."""
     from types import SimpleNamespace
 
     state = SimpleNamespace(
@@ -432,9 +469,9 @@ def open_add_dialog(refresh_fn):
 
     with ui.dialog().props("persistent") as dialog:
         with ui.card().classes(
-            "w-[540px] max-w-[92vw] rounded-3xl p-0 overflow-hidden "
+            "w-[520px] max-w-[92vw] rounded-3xl p-0 overflow-hidden "
             "bg-white dark:bg-slate-900 shadow-2xl"
-        ).style("max-height:90vh;display:flex;flex-direction:column"):
+        ).style("display:flex;flex-direction:column;"):
 
             # Header
             with ui.element("div").classes(
@@ -449,16 +486,13 @@ def open_add_dialog(refresh_fn):
                     )
 
             # Body
-            with ui.element("div").classes(
-                "px-6 py-5 flex flex-col gap-4 flex-1 overflow-y-auto"
-            ):
-
+            with ui.element("div").classes("px-6 py-5 flex flex-col gap-3"):
                 def _section_lbl(text):
                     ui.label(text).classes(
                         "text-[11px] font-bold tracking-widest text-slate-400 uppercase"
                     )
 
-                # ── Cours ─────────────────────────────────────────────────
+                # Cours
                 _section_lbl("Cours associé")
                 course_display = ui.label("Aucun cours sélectionné").classes(
                     "text-xs text-slate-400 italic"
@@ -467,7 +501,9 @@ def open_add_dialog(refresh_fn):
                 def _open_course_picker():
                     with ui.dialog() as picker_dlg:
                         with ui.card().classes("w-[480px] max-w-[90vw] rounded-2xl p-4 gap-3"):
-                            ui.label("Sélectionner un cours").classes("font-bold text-slate-800 dark:text-slate-100")
+                            ui.label("Sélectionner un cours").classes(
+                                "font-bold text-slate-800 dark:text-slate-100"
+                            )
                             result_col = ui.column().classes("w-full gap-1")
 
                             def _do_search(q: str):
@@ -510,11 +546,11 @@ def open_add_dialog(refresh_fn):
 
                     picker_dlg.open()
 
-                ui.button("Choisir un cours…", icon="search", on_click=_open_course_picker).props(
-                    "outline dense rounded color=indigo"
-                ).classes("text-xs self-start")
+                ui.button(
+                    "Choisir un cours…", icon="search", on_click=_open_course_picker
+                ).props("outline dense rounded color=primary").classes("text-xs self-start")
 
-                # ── Catégorie ─────────────────────────────────────────────
+                # Catégorie
                 _section_lbl("Catégorie")
                 ui.select(
                     options=_CATEGORIES,
@@ -524,15 +560,15 @@ def open_add_dialog(refresh_fn):
                     lambda e: setattr(state, "category", e.value)
                 )
 
-                # ── Détail ────────────────────────────────────────────────
+                # Détail
                 _section_lbl("Description de la lacune")
                 ui.textarea(
-                    placeholder="Ex : oubli antibioprophylaxie post-splénectomie, piège du syndrome de Li-Fraumeni…",
+                    placeholder="Ex : oubli antibioprophylaxie post-splénectomie…",
                 ).classes("w-full").props("outlined dense autogrow").on_value_change(
                     lambda e: setattr(state, "detail", e.value or "")
                 )
 
-                # ── Sévérité ──────────────────────────────────────────────
+                # Sévérité
                 _section_lbl("Sévérité (1 = mineur · 5 = critique)")
                 sev_btns: dict[int, ui.button] = {}
                 with ui.row().classes("gap-2"):
@@ -555,14 +591,14 @@ def open_add_dialog(refresh_fn):
 
                         b.on_click(_set_sev)
 
-                # ── Source ────────────────────────────────────────────────
+                # Source
                 _section_lbl("Source")
                 src_btns: dict[str, ui.button] = {}
                 with ui.row().classes("gap-2 flex-wrap"):
                     for src_id, src_lbl in _SOURCE_OPTS.items():
                         b = ui.button(src_lbl).props(
                             f"{'unelevated' if src_id == state.source_type else 'outline'} "
-                            "rounded size=sm color=indigo"
+                            "rounded size=sm color=primary"
                         )
                         src_btns[src_id] = b
 
@@ -570,9 +606,9 @@ def open_add_dialog(refresh_fn):
                             state.source_type = s
                             for si, sb in src_btns.items():
                                 if si == s:
-                                    sb.props("unelevated rounded size=sm color=indigo")
+                                    sb.props("unelevated rounded size=sm color=primary")
                                 else:
-                                    sb.props("outline rounded size=sm color=indigo")
+                                    sb.props("outline rounded size=sm color=primary")
 
                         b.on_click(_set_src)
 
@@ -587,7 +623,7 @@ def open_add_dialog(refresh_fn):
                 def _submit():
                     detail = state.detail.strip()
                     if not detail:
-                        ui.notify("La description est obligatoire.", type="warning", icon="warning")
+                        ui.notify("La description est obligatoire.", type="warning")
                         return
 
                     wp_id = local_store.add_weak_point_full(
@@ -600,7 +636,6 @@ def open_add_dialog(refresh_fn):
                         source_type=state.source_type,
                     )
 
-                    # Créer la note Obsidian si le vault est configuré
                     if settings.obsidian_vault_path:
                         try:
                             from backend.core.obsidian.weak_points_sync import create_obsidian_lacune_note
@@ -622,15 +657,14 @@ def open_add_dialog(refresh_fn):
                             if ok:
                                 local_store.update_weak_point_obsidian(wp_id, obs_path, obs_uri)
                         except Exception as _exc:
-                            from loguru import logger
-                            logger.warning(f"Création note Obsidian lacune échouée (non bloquant): {_exc}")
+                            logger.warning(f"Création note Obsidian échouée (non bloquant): {_exc}")
 
                     dialog.close()
-                    ui.notify("Lacune ajoutée ✓", type="positive")
+                    ui.notify("Lacune ajoutée", type="positive")
                     refresh_fn()
 
                 ui.button(
-                    "Ajouter ✓", on_click=_submit
-                ).props("unelevated color=indigo rounded").classes("px-5 font-semibold")
+                    "Ajouter", on_click=_submit
+                ).props("unelevated color=primary rounded").classes("px-5 font-semibold")
 
     dialog.open()

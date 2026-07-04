@@ -5,7 +5,6 @@ from loguru import logger
 import sys
 import asyncio
 import os
-
 # ── Loguru : rotation quotidienne, 30 jours de rétention, compression ─────────
 logger.remove()
 logger.add(sys.stderr, level="INFO", colorize=True,
@@ -19,6 +18,7 @@ logger.add(
     level="DEBUG",
     format="{time:YYYY-MM-DD HH:mm:ss} | {level:<8} | {name}:{line} | {message}",
 )
+
 
 from frontend.pages.semestres import semestres_page
 from frontend.pages.colleges import colleges_page
@@ -36,7 +36,7 @@ from backend.state.store import data_store
 
 # Load environment variables
 load_dotenv()
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 def _resolve_pdf_path(raw: str) -> str | None:
     """Normalise un chemin PDF et vérifie qu'il est sûr (extension + répertoire autorisé)."""
@@ -59,6 +59,17 @@ def _resolve_pdf_path(raw: str) -> str | None:
         return None
 
     return real if os.path.isfile(real) else None
+
+
+@app.post('/api/lacune/move')
+async def lacune_move(request: Request):
+    """Drag & drop kanban — met à jour le statut d'une lacune."""
+    from backend.core.reviews import local_store as _ls
+    data = await request.json()
+    wp_id  = int(data['id'])
+    status = data['status']
+    _ls.update_weak_point_status(wp_id, status)
+    return JSONResponse({'ok': True})
 
 
 @app.get('/pdf/{course_id}')
@@ -84,25 +95,97 @@ async def serve_pdf(course_id: str):
 async def main_page():
     # 1. Check if DataStore is ready
     if not data_store.is_preloaded:
-        # --- SPLASH SCREEN (White Background, Large Logo) ---
-        with ui.column().classes('w-full h-screen items-center justify-center bg-white text-slate-900') as splash_container:
-            ui.image('/static/LogoSynapse.png').style('width: 280px; max-width: 80vw; object-fit: contain;').classes('mb-8')
+        ui.add_head_html("""
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;600&display=swap" rel="stylesheet">
+<style>
+body { overflow: hidden; }
+.sn-splash {
+  position: fixed; inset: 0;
+  background: #0A0B0F;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.sn-rings {
+  position: relative;
+  width: 220px; height: 220px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 28px;
+}
+.sn-ring {
+  position: absolute; border-radius: 50%;
+  border: 1px solid rgba(99, 102, 241, 0.55);
+  opacity: 0;
+  animation: sn-pulse 2.8s ease-out infinite;
+}
+.sn-ring:nth-child(1) { width: 90px; height: 90px; animation-delay: 0s; }
+.sn-ring:nth-child(2) { width: 140px; height: 140px; animation-delay: 0.7s; }
+.sn-ring:nth-child(3) { width: 190px; height: 190px; animation-delay: 1.4s; }
+@keyframes sn-pulse {
+  0%   { opacity: 0.7; transform: scale(0.65); }
+  100% { opacity: 0;   transform: scale(1); }
+}
+.sn-logo-img {
+  position: relative; z-index: 2;
+  width: 68px; height: 68px; object-fit: contain;
+  filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.55));
+}
+.sn-wordmark {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 21px; font-weight: 600;
+  letter-spacing: 0.24em; color: #F8FAFC;
+  text-transform: uppercase; margin: 0;
+}
+.sn-hairline {
+  width: 28px; height: 1px; background: #4F46E5;
+  margin: 14px 0; opacity: 0.65;
+}
+.sn-status {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 12px; font-weight: 300;
+  color: #818CF8; letter-spacing: 0.06em;
+  margin-bottom: 20px; min-height: 18px;
+}
+.sn-track {
+  width: 176px; height: 2px;
+  background: #1E1B4B; border-radius: 1px; overflow: hidden;
+}
+.sn-fill {
+  height: 100%; border-radius: 1px;
+  background: linear-gradient(90deg, #4F46E5, #818CF8);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.7);
+  transition: width 0.4s ease;
+  width: 0%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sn-ring { animation: none; opacity: 0.15; }
+  .sn-fill { transition: none; }
+}
+</style>
+""")
+        with ui.element('div').classes('sn-splash'):
+            with ui.element('div').classes('sn-rings'):
+                ui.element('div').classes('sn-ring')
+                ui.element('div').classes('sn-ring')
+                ui.element('div').classes('sn-ring')
+                ui.html('<img src="/static/LogoSynapse.png" class="sn-logo-img" alt="Synapse" />', sanitize=False)
+            ui.html('<p class="sn-wordmark">SYNAPSE</p><div class="sn-hairline"></div>', sanitize=False)
+            status_el = ui.html('<span class="sn-status">Initialisation…</span>', sanitize=False)
+            progress_el = ui.html('<div class="sn-track"><div class="sn-fill" style="width:0%"></div></div>', sanitize=False)
 
-            progress = ui.linear_progress(value=0.0).classes('w-64 h-1.5 rounded-full').style('color: #4338CA')
-            status_label = ui.label('Initialisation…').classes('text-slate-400 text-sm mt-2 font-medium')
+        async def check_loading():
+            pct = int(data_store.loading_progress * 100)
+            status_el.set_content(f'<span class="sn-status">{data_store.loading_message}</span>')
+            progress_el.set_content(f'<div class="sn-track"><div class="sn-fill" style="width:{pct}%"></div></div>')
+            if data_store.is_preloaded:
+                splash_timer.deactivate()
+                ui.navigate.to('/')
 
-            async def check_loading():
-                progress.set_value(data_store.loading_progress)
-                status_label.set_text(data_store.loading_message)
-                if data_store.is_preloaded:
-                    splash_timer.deactivate()
-                    ui.navigate.to('/')
+        if not data_store.is_preloaded and not data_store._preloading:
+            asyncio.create_task(data_store.preload_all_views())
 
-            if not data_store.is_preloaded and not data_store._preloading:
-                asyncio.create_task(data_store.preload_all_views())
-
-            # 0.5 s = 2 Hz : assez réactif pour le feedback, sans saturer le WebSocket
-            splash_timer = ui.timer(0.5, check_loading)
+        # 0.5 s = 2 Hz : assez réactif pour le feedback, sans saturer le WebSocket
+        splash_timer = ui.timer(0.5, check_loading)
             
     else:
         # --- DIRECT ACCESS ---

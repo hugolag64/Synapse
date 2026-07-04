@@ -140,7 +140,7 @@ def show_bilan_session(state: DashboardState, done_today: int) -> None:
 
 # ── Lacune inline ─────────────────────────────────────────────────────────────
 
-def open_lacune_inline_dialog(task: ReviewTask) -> None:
+def open_lacune_inline_dialog(task: ReviewTask, on_save=None) -> None:
     """Mini-modale pour créer une lacune liée au cours."""
     with ui.dialog() as dlg:
         with ui.card().classes(
@@ -173,7 +173,7 @@ def open_lacune_inline_dialog(task: ReviewTask) -> None:
             ):
                 ui.button("Annuler", on_click=dlg.close).props("flat color=grey-8")
 
-                def _save_lacune(_dlg=dlg, _task=task):
+                def _save_lacune(_dlg=dlg, _task=task, _on_save=on_save):
                     detail = inp_detail.value.strip()
                     if not detail:
                         ui.notify("Décris la lacune avant de sauvegarder", type="warning")
@@ -189,6 +189,8 @@ def open_lacune_inline_dialog(task: ReviewTask) -> None:
                     )
                     _dlg.close()
                     ui.notify("Lacune notée ✓", type="positive")
+                    if _on_save:
+                        _on_save()
 
                 ui.button("Ajouter", on_click=_save_lacune).props(
                     "unelevated color=amber rounded"

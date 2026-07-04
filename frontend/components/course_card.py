@@ -31,6 +31,7 @@ from frontend.components.course_quick_actions import (
 )
 from frontend.components.lisa_dialog import open_lisa_dialog
 from backend.core.obsidian.service import obsidian_service
+from backend.core.reviews import local_store as _ls
 from backend.config.settings import settings as _settings
 
 
@@ -114,8 +115,8 @@ def CourseCard(
         # ── Corps ─────────────────────────────────────────────────────────────
         with ui.element("div").classes("px-3.5 pt-3.5 pb-3 flex flex-col gap-2 flex-1"):
 
-            # Header : ITEM · [spacer] · dot · statut lecture · menu ⋯
-            with ui.row().classes("items-center gap-1.5 w-full"):
+            # Ligne 1 (jamais de wrap) : ITEM · [badge retard] · [spacer] · menu ⋯
+            with ui.row().classes("items-center gap-1.5 w-full flex-nowrap"):
                 if item_lbl:
                     ui.label(item_lbl).classes(
                         "synapse-item-mono px-1.5 py-0.5 rounded "
@@ -128,44 +129,10 @@ def CourseCard(
                     ).on("click", lambda: open_start_tracking_dialog(
                         course, context, refresh_fn, client, is_restart=True
                     )).tooltip("Révision J30 dépassée — cliquer pour redémarrer le suivi espacé")
-                ui.element("div").classes("flex-1")
-
-                # Dot maîtrise + label court
-                _mastery_labels = {
-                    "gray":   "À préparer",
-                    "blue":   "À lire",
-                    "teal":   "En construction",
-                    "cyan":   "À consolider",
-                    "indigo": "À entraîner",
-                    "orange": "Fragile",
-                    "red":    "Critique",
-                    "green":  "Maîtrisé",
-                    "slate":  "Non commencé",
-                }
-                _mastery_lbl = _mastery_labels.get(accent_color or "gray", "")
-                _tooltip_txt = f"Maîtrise : {_mastery_lbl}" if _mastery_lbl else "Maîtrise non évaluée"
-                with ui.row().classes("items-center gap-1 shrink-0").tooltip(_tooltip_txt):
-                    ui.element("div").style(
-                        f"width:7px;height:7px;border-radius:50%;"
-                        f"background:{accent_hex};flex-shrink:0;"
-                    )
-                    if _mastery_lbl:
-                        ui.label(_mastery_lbl).classes(
-                            "text-[10px] text-slate-400 dark:text-slate-500 shrink-0 leading-none"
-                        )
-
-                # Statut lecture
-                _lec_parts = []
-                if date_str:
-                    _lec_parts.append(f"1ère {date_str}")
-                if nb_lec > 0:
-                    _lec_parts.append(f"Lu {nb_lec}×")
-                if _lec_parts:
-                    ui.label(" · ".join(_lec_parts)).classes(
-                        "synapse-lec-mono text-slate-400 dark:text-slate-500 shrink-0"
-                    )
+                ui.element("div").classes("flex-1 min-w-0")
 
                 # ⋯ Menu — actions secondaires (PDF, suivi, liens, Obsidian, complétion)
+                # Toujours en fin de ligne 1 pour ne jamais être poussé sous le texte.
                 with ui.button(icon="more_vert").props(
                     "flat round dense size=xs"
                 ).classes("text-slate-300 dark:text-slate-600 shrink-0 -mr-1"):
@@ -271,6 +238,46 @@ def CourseCard(
                                         )
                                     )
 
+            # Ligne 2 : dot maîtrise + label court · [spacer] · statut lecture
+            # Ligne séparée (jamais fusionnée avec le menu ⋯) : peut truncate
+            # librement sans jamais faire sauter le menu à la ligne suivante.
+            _mastery_labels = {
+                "gray":   "À préparer",
+                "blue":   "À lire",
+                "teal":   "En construction",
+                "cyan":   "À consolider",
+                "indigo": "À entraîner",
+                "orange": "Fragile",
+                "red":    "Critique",
+                "green":  "Maîtrisé",
+                "slate":  "Non commencé",
+            }
+            _mastery_lbl = _mastery_labels.get(accent_color or "gray", "")
+            _tooltip_txt = f"Maîtrise : {_mastery_lbl}" if _mastery_lbl else "Maîtrise non évaluée"
+            with ui.row().classes("items-center gap-1.5 w-full flex-nowrap"):
+                with ui.row().classes("items-center gap-1 shrink-0").tooltip(_tooltip_txt):
+                    ui.element("div").style(
+                        f"width:7px;height:7px;border-radius:50%;"
+                        f"background:{accent_hex};flex-shrink:0;"
+                    )
+                    if _mastery_lbl:
+                        ui.label(_mastery_lbl).classes(
+                            "text-[10px] text-slate-400 dark:text-slate-500 shrink-0 leading-none"
+                        )
+                ui.element("div").classes("flex-1 min-w-0")
+
+                # Statut lecture (truncate si trop long — ne pousse jamais rien)
+                _lec_parts = []
+                if date_str:
+                    _lec_parts.append(f"1ère {date_str}")
+                if nb_lec > 0:
+                    _lec_parts.append(f"Lu {nb_lec}×")
+                if _lec_parts:
+                    ui.label(" · ".join(_lec_parts)).classes(
+                        "synapse-lec-mono text-slate-400 dark:text-slate-500 "
+                        "shrink truncate min-w-0"
+                    )
+
             # Titre
             ui.label(course.title).classes(
                 "text-[14px] font-semibold text-slate-900 dark:text-slate-100 leading-snug"
@@ -290,13 +297,30 @@ def CourseCard(
                 "text-slate-700 dark:text-slate-300 shrink-0"
             ).tooltip("Ouvrir dans Notion")
 
-            # OIC LiSA
+            # OIC LiSA — couleur du drapeau reflète l'état d'import :
+            #   gris  = jamais récupérés · ambre = récupérés mais vides (0 OIC)
+            #   bleu  = objectifs rentrés (le nombre maîtrisés s'affiche en tooltip)
+            # Quasar applique "text-primary !important" par défaut sur les
+            # boutons flat sans color= explicite, ce qui écrase toute classe
+            # Tailwind text-*. On passe donc la couleur via le prop Quasar
+            # natif color=, comme pour les autres états (QCM color=grey…).
+            _oics = _ls.get_lisa_oic(course.id)
+            if _oics is None:
+                _flag_color = "grey-5"
+                _flag_tip = "Objectifs OIC — non récupérés, cliquer pour charger depuis LiSA"
+            elif len(_oics) == 0:
+                _flag_color = "amber-7"
+                _flag_tip = "Objectifs OIC — aucun trouvé sur LiSA"
+            else:
+                _oic_mastered = sum(1 for o in _oics if o["mastered"])
+                _flag_color = "blue-7"
+                _flag_tip = f"Objectifs OIC — {_oic_mastered}/{len(_oics)} maîtrisés"
             ui.button(
                 icon="flag",
-                on_click=lambda c=course: open_lisa_dialog(c),
-            ).props("flat round dense size=sm").classes(
-                "text-violet-600 dark:text-violet-400 shrink-0"
-            ).tooltip("Objectifs OIC (LiSA)")
+                on_click=lambda c=course: open_lisa_dialog(c, refresh_fn=refresh_fn),
+            ).props(f"flat round dense size=sm color={_flag_color}").classes(
+                "shrink-0"
+            ).tooltip(_flag_tip)
 
             # +1 lecture
             ui.button(
@@ -324,11 +348,12 @@ def CourseCard(
 
             ui.element("div").classes("flex-1")
 
-            # Séance — CTA principal
+            # Séance — CTA principal (outline discret : s'intègre à la barre
+            # d'icônes flat plutôt que de la dominer visuellement)
             ui.button(
                 "Séance",
                 icon="add_task",
                 on_click=lambda: open_quick_session_dialog(course, refresh_fn, client),
-            ).props("unelevated rounded dense size=sm").classes(
-                "shrink-0 bg-violet-600 hover:bg-violet-700 text-white"
+            ).props("outline dense size=sm color=indigo").classes(
+                "shrink-0 !rounded-lg px-3 font-semibold"
             ).tooltip("Nouvelle séance de travail")

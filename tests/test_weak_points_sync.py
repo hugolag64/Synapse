@@ -427,19 +427,26 @@ class TestCourseMatching:
 # Fixtures et helpers internes
 # ──────────────────────────────────────────────────────────────────────────────
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def tmp_db(tmp_path, monkeypatch):
     """
-    Redirige DB_PATH vers un fichier temporaire isolé pour chaque test.
-    Garantit que les tests n'écrivent pas dans la vraie DB de développement.
+    Redirige DB_PATH vers un fichier temporaire isolé pour CHAQUE test de ce
+    fichier (autouse). Garantit que les tests n'écrivent pas dans la vraie DB
+    de développement.
+
+    Réinitialise aussi le singleton `_DB` (connexion SQLite mise en cache au
+    niveau module) : patcher DB_PATH seul ne suffit pas si `_conn()` a déjà
+    été appelé ailleurs dans la session de tests, auquel cas la connexion en
+    cache continue de pointer vers l'ancienne DB malgré le monkeypatch.
     """
     db_path = tmp_path / "test_synapse.db"
     import backend.core.reviews.local_store as ls
 
     monkeypatch.setattr(ls, "DB_PATH", db_path)
-    # Réinitialiser la DB avec les nouvelles tables + migrations
+    monkeypatch.setattr(ls, "_DB", None)
     ls.init_db()
-    return db_path
+    yield db_path
+    monkeypatch.setattr(ls, "_DB", None)
 
 
 def _scan_single(path: Path) -> "WeakPointSyncResult":

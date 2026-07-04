@@ -47,10 +47,10 @@ def _day_label(d: datetime.date) -> str:
     return f"{_DAYS_FR[d.weekday()]} {d.day} {_MONTHS_FR[d.month - 1]}"
 
 
-# ── Render review columns (structure) ────────────────────────────────────────
+# ── Render review columns (structure Morning Brief) ───────────────────────────
 
 def render_review_columns(state: DashboardState) -> None:
-    """Render la structure des tabs + colonnes (sans contenu — peuplé par rebuild)."""
+    """Render la liste unifiée : section RETARD + section AUJOURD'HUI."""
 
     def _open_sr_help():
         from ._dialogs import open_sr_help_dialog
@@ -59,77 +59,77 @@ def render_review_columns(state: DashboardState) -> None:
     def _open_focus(_state=state):
         open_focus_mode(_state)
 
-    with ui.card().classes(
-        "w-full rounded-2xl shadow-sm border border-slate-100 "
-        "dark:border-slate-800 bg-white dark:bg-slate-900 p-0"
-    ):
-        # Tabs navigation
-        with ui.row().classes(
-            "w-full items-center border-b border-slate-100 dark:border-slate-800 pr-2"
+    with ui.element("div").classes("w-full flex flex-col gap-3"):
+
+        # Ligne outils : filtre collège + boutons focus/aide
+        with ui.row().classes("items-center gap-2"):
+            state.college_filter_row = ui.row().classes(
+                "flex-1 gap-1.5 flex-wrap items-center"
+            )
+            state.college_filter_row.set_visibility(False)
+            with ui.row().classes("gap-0 shrink-0"):
+                ui.button(
+                    icon="center_focus_strong", on_click=_open_focus
+                ).props("flat round dense size=sm").classes(
+                    "text-slate-300 dark:text-slate-600"
+                ).tooltip("Mode Focus — une révision à la fois")
+                ui.button(icon="help_outline", on_click=_open_sr_help).props(
+                    "flat round dense size=sm"
+                ).classes("text-slate-300 dark:text-slate-600").tooltip("Pourquoi ces révisions ?")
+
+        # Carte principale (liste unifiée)
+        with ui.card().classes(
+            "w-full rounded-2xl shadow-sm border border-slate-100 "
+            "dark:border-slate-800 bg-white dark:bg-slate-900 p-0 overflow-hidden"
         ):
-            with ui.tabs().props("dense align=left").classes("flex-1 px-2") as main_tabs:
-                tab_today = ui.tab("Aujourd'hui", icon="today")
-                tab_week  = ui.tab("Semaine",     icon="date_range")
+            # ── Section RETARD ─────────────────────────────────────────────────
+            state.retard_header = ui.element("div").classes(
+                "flex items-center gap-2 px-4 py-2.5 "
+                "bg-red-50 dark:bg-red-950/30 "
+                "border-b border-red-100 dark:border-red-900/40"
+            )
+            with state.retard_header:
+                ui.element("div").classes(
+                    "w-1.5 h-1.5 rounded-full bg-red-400 shrink-0"
+                )
+                ui.label("RETARD").classes(
+                    "text-[11px] font-black text-red-500 dark:text-red-400 "
+                    "uppercase tracking-widest flex-1"
+                )
+                state.urgent_count_lbl = ui.label("").classes(
+                    "text-[11px] font-extrabold text-red-400 "
+                    "bg-red-100 dark:bg-red-900/50 px-2 py-0.5 rounded-full tabular-nums"
+                )
+                state.urgent_count_lbl.set_visibility(False)
+            state.retard_header.set_visibility(False)
 
-            ui.button(
-                icon="center_focus_strong", on_click=_open_focus
-            ).props("flat round dense size=sm").classes(
-                "text-slate-300 dark:text-slate-600"
-            ).tooltip("Mode Focus — une révision à la fois")
+            state.urgent_col = ui.column().classes("w-full gap-0")
 
-            ui.button(icon="help_outline", on_click=_open_sr_help).props(
-                "flat round dense size=sm"
-            ).classes("text-slate-300 dark:text-slate-600").tooltip("Pourquoi ces révisions ?")
+            # ── Section AUJOURD'HUI ────────────────────────────────────────────
+            state.today_header = ui.element("div").classes(
+                "flex items-center gap-2 px-4 py-2.5 "
+                "bg-slate-50 dark:bg-slate-800/30 "
+                "border-t border-b border-slate-100 dark:border-slate-800"
+            )
+            with state.today_header:
+                ui.element("div").classes(
+                    "w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600 shrink-0"
+                )
+                ui.label("AUJOURD'HUI").classes(
+                    "text-[11px] font-black text-slate-400 dark:text-slate-500 "
+                    "uppercase tracking-widest flex-1"
+                )
+                state.today_count_lbl = ui.label("").classes(
+                    "text-[11px] font-extrabold text-slate-400 "
+                    "bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full tabular-nums"
+                )
+                state.today_count_lbl.set_visibility(False)
+            state.today_header.set_visibility(False)
 
-        # PP-05 — Filtre par collège
-        state.college_filter_row = ui.row().classes(
-            "w-full px-4 py-2 gap-1.5 flex-wrap items-center "
-            "border-b border-slate-50 dark:border-slate-800/60"
-        )
+            state.today_col = ui.column().classes("w-full gap-0")
 
-        with ui.tab_panels(main_tabs, value=tab_today).classes("w-full p-0"):
-
-            # TAB Aujourd'hui
-            with ui.tab_panel(tab_today).classes("p-4 w-full"):
-                with ui.element("div").classes(
-                    "grid grid-cols-1 md:grid-cols-2 gap-4 w-full items-stretch"
-                ):
-                    # Colonne Urgent — inline pour exposer le ref comptage
-                    with ui.card().classes(
-                        "w-full h-full rounded-2xl p-4 shadow-sm border "
-                        "border-red-200 dark:border-red-800 "
-                        "bg-red-50 dark:bg-red-900/10 flex flex-col gap-3"
-                    ):
-                        with ui.row().classes("items-center gap-2 mb-1"):
-                            ui.icon("alarm", size="sm").classes("text-red-600 dark:text-red-400")
-                            ui.label("Urgent").classes("font-bold text-sm text-red-600 dark:text-red-400 flex-1")
-                            state.urgent_count_lbl = ui.label("").classes(
-                                "text-[11px] font-extrabold text-red-500 dark:text-red-400 "
-                                "bg-red-100 dark:bg-red-900/40 px-2 py-0.5 rounded-full tabular-nums"
-                            )
-                            state.urgent_count_lbl.set_visibility(False)
-                        state.urgent_col = ui.column().classes("w-full gap-2")
-
-                    # Colonne Aujourd'hui — inline pour exposer le ref comptage
-                    with ui.card().classes(
-                        "w-full h-full rounded-2xl p-4 shadow-sm border "
-                        "border-blue-200 dark:border-blue-800 "
-                        "bg-blue-50 dark:bg-blue-900/10 flex flex-col gap-3"
-                    ):
-                        with ui.row().classes("items-center gap-2 mb-1"):
-                            ui.icon("today", size="sm").classes("text-blue-600 dark:text-blue-400")
-                            ui.label("Aujourd'hui").classes("font-bold text-sm text-blue-600 dark:text-blue-400 flex-1")
-                            state.today_count_lbl = ui.label("").classes(
-                                "text-[11px] font-extrabold text-blue-500 dark:text-blue-400 "
-                                "bg-blue-100 dark:bg-blue-900/40 px-2 py-0.5 rounded-full tabular-nums"
-                            )
-                            state.today_count_lbl.set_visibility(False)
-                        state.today_col = ui.column().classes("w-full gap-2")
-
-            # TAB Semaine
-            with ui.tab_panel(tab_week).classes("p-4 w-full"):
-                with ui.scroll_area().classes("w-full").style("max-height:640px"):
-                    state.week_col = ui.column().classes("w-full gap-1")
+    # week_col hors vue (backward compat)
+    state.week_col = ui.element("div").classes("hidden")
 
 
 # ── Context manager colonne révision ─────────────────────────────────────────
@@ -149,6 +149,221 @@ def _review_column(title: str, color: str, icon_name: str):
             ui.icon(icon_name, size="sm").classes(text)
             ui.label(title).classes(f"font-bold text-sm {text}")
         yield
+
+
+# ── Render : ligne compacte Morning Brief ────────────────────────────────────
+
+def render_review_row(
+    container,
+    task: ReviewTask,
+    on_done=None,
+    on_postpone=None,
+    on_ignore=None,
+    qcm_info: dict | None = None,
+    lacune_count: int = 0,
+    validate_fn=None,
+    on_lacune_saved=None,
+    is_overdue: bool = False,
+):
+    """Ligne compacte : [dot] [J3] [titre]  [%qcm] [⚠n] [Xmin] [✓] [⋯]"""
+    col_map = {
+        "J3": "blue", "J7": "indigo", "J14": "violet",
+        "J30": "purple", "bonus": "orange", "qcm_error": "red", "manuel": "orange",
+    }
+    badge_color = col_map.get(task.review_type, "slate")
+    last_qcm_score: float | None = qcm_info.get("last_score") if qcm_info else None
+
+    try:
+        from backend.core.externat.service import externat_service as _ext_svc
+        _stage = _ext_svc.get_active_stage()
+        _stage_college = _stage.college_notion if _stage else None
+    except Exception:
+        _stage_college = None
+
+    na = get_next_action(
+        task,
+        last_qcm_score=last_qcm_score,
+        lacune_count=lacune_count,
+        stage_college=_stage_college,
+    )
+
+    _TYPE_DUR_BASE = {
+        "J3": 15, "J7": 20, "J14": 25, "J30": 30,
+        "bonus": 30, "qcm_error": 20, "manuel": 20,
+    }
+    _base_dur = _TYPE_DUR_BASE.get(task.review_type, 20)
+
+    dot_cls = "bg-red-400" if is_overdue else "bg-slate-300 dark:bg-slate-600"
+
+    with container:
+        with ui.element("div").classes(
+            "w-full px-4 py-3 flex items-center gap-3 "
+            "border-b border-slate-50 dark:border-slate-800/50 last:border-b-0 "
+            "hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+        ) as row_el:
+
+            # Dot statut
+            ui.element("div").classes(f"w-1.5 h-1.5 rounded-full {dot_cls} shrink-0 mt-px")
+
+            # Badge type
+            ui.badge(task.type_badge, color=badge_color).classes(
+                "text-[11px] font-bold px-1.5 py-0.5 shrink-0"
+            ).tooltip(f"Révision {task.review_type}")
+
+            # Titre
+            ui.label(task.label).classes(
+                "flex-1 min-w-0 text-[13px] font-medium "
+                "text-slate-800 dark:text-slate-100 truncate"
+            )
+
+            # Score QCM si dispo
+            if last_qcm_score is not None:
+                _qcm_color = (
+                    "green" if last_qcm_score >= 70
+                    else "orange" if last_qcm_score >= 55
+                    else "red"
+                )
+                ui.label(f"{last_qcm_score:.0f}%").classes(
+                    f"text-[11px] font-semibold text-{_qcm_color}-500 "
+                    f"dark:text-{_qcm_color}-400 shrink-0 tabular-nums"
+                )
+
+            # Indicateur lacune
+            if lacune_count > 0:
+                ui.label(f"⚠{lacune_count}").classes(
+                    "text-[11px] text-amber-500 shrink-0"
+                ).tooltip(f"{lacune_count} lacune{'s' if lacune_count > 1 else ''} active{'s' if lacune_count > 1 else ''}")
+
+            # Durée estimée
+            ui.label(f"{na.duration_min}min").classes(
+                "text-[11px] text-slate-300 dark:text-slate-600 shrink-0 tabular-nums"
+            )
+
+            # Bouton Valider
+            def _make_val(t=task, el=row_el):
+                async def _h():
+                    await on_done(t, el, ["révision"], na.duration_min, 3, "moyen")
+                return _h
+
+            ui.button(icon="check_circle").props(
+                "flat round dense size=sm color=green aria-label='Valider'"
+            ).classes("shrink-0").on_click(_make_val()).tooltip("Valider (confiance moyenne)")
+
+            # Menu ⋯
+            with ui.button(icon="more_horiz").props(
+                "flat round dense size=sm aria-label='Plus d\\'options'"
+            ).classes("text-slate-300 dark:text-slate-600 shrink-0"):
+                with ui.menu() as _menu:
+
+                    # Confiance rapide
+                    _CONF = [
+                        (1, "😰", "Très difficile"),
+                        (2, "😟", "Difficile"),
+                        (3, "😐", "Moyen"),
+                        (4, "😊", "Facile"),
+                        (5, "🔥", "Parfait !"),
+                    ]
+                    _SCORE_MAP = {
+                        1: (max(_base_dur, 30), "difficile"),
+                        2: (max(_base_dur, 25), "difficile"),
+                        3: (_base_dur,           "moyen"),
+                        4: (min(_base_dur, 15),  "facile"),
+                        5: (10,                  "facile"),
+                    }
+                    with ui.element("div").classes("px-3 pt-3 pb-2 flex flex-col gap-2"):
+                        ui.label("Confiance ?").classes(
+                            "text-[11px] font-bold text-slate-400 uppercase tracking-wide"
+                        )
+                        with ui.row().classes("gap-1 justify-center mt-1"):
+                            for _sc, _em, _tip in _CONF:
+                                _dur, _diff = _SCORE_MAP[_sc]
+                                def _make_quick(s=_sc, d=_dur, df=_diff, t=task, el=row_el, m=_menu):
+                                    async def _h():
+                                        m.close()
+                                        await on_done(t, el, ["révision"], d, s, df)
+                                    return _h
+                                ui.button(_em).props("flat round dense").classes("text-lg").on_click(
+                                    _make_quick()
+                                ).tooltip(f"{_tip} ({_sc}/5)")
+
+                    ui.separator()
+
+                    ui.menu_item(
+                        "Détailler…",
+                        on_click=lambda t=task, el=row_el: open_session_feedback_dialog(t, el, validate_fn),
+                    ).classes("text-xs text-slate-500 font-medium")
+
+                    ui.menu_item(
+                        "Lacune…",
+                        on_click=lambda t=task, r=on_lacune_saved: open_lacune_inline_dialog(t, on_save=r),
+                    ).classes("text-xs text-amber-600 font-medium")
+
+                    if task.has_pdf or task.agregation_fiche_edn:
+                        ui.separator()
+                        if task.has_pdf:
+                            ui.menu_item(
+                                "PDF",
+                                on_click=lambda tid=task.course_id: ui.navigate.to(
+                                    f"/pdf/{tid}", new_tab=True
+                                ),
+                            ).classes("text-xs")
+                        if task.agregation_fiche_edn:
+                            ui.menu_item(
+                                "Fiche EDN",
+                                on_click=lambda url=task.agregation_fiche_edn: ui.navigate.to(
+                                    url, new_tab=True
+                                ),
+                            ).classes("text-xs")
+
+                    if on_postpone or on_ignore:
+                        ui.separator()
+                        if on_postpone:
+                            def _wrap_post(d, t=task, el=row_el):
+                                async def _h(): await on_postpone(t, el, d)
+                                return _h
+                            ui.menu_item("+1 jour",    on_click=_wrap_post(1)).classes("text-xs")
+                            ui.menu_item("+3 jours",   on_click=_wrap_post(3)).classes("text-xs")
+                            ui.menu_item("+1 semaine", on_click=_wrap_post(7)).classes("text-xs text-amber-600")
+                        if on_ignore:
+                            ui.separator()
+                            def _wrap_ign(t=task, el=row_el):
+                                async def _h(): await on_ignore(t, el)
+                                return _h
+                            ui.menu_item("Ignorer", on_click=_wrap_ign()).classes("text-xs text-red-400")
+
+
+# ── Voir plus (lignes) ────────────────────────────────────────────────────────
+
+def _add_voir_plus_rows(
+    container, remaining, on_done, on_postpone, on_ignore,
+    qcm_by_course, lac_by_course, on_lacune_saved, validate_fn, is_overdue,
+):
+    with container:
+        extra_col = ui.column().classes("w-full gap-0")
+    extra_col.set_visibility(False)
+
+    for t in remaining:
+        render_review_row(
+            extra_col, t, on_done, on_postpone, on_ignore,
+            qcm_info=qcm_by_course.get(t.course_id),
+            lacune_count=lac_by_course.get(t.course_id, 0),
+            on_lacune_saved=on_lacune_saved,
+            validate_fn=validate_fn,
+            is_overdue=is_overdue,
+        )
+
+    n = len(remaining)
+    with container:
+        btn = ui.button(f"Voir {n} de plus ↓").props(
+            "flat dense size=sm color=blue-grey"
+        ).classes("w-full text-[11px] py-2")
+
+        def _toggle(b=btn, ec=extra_col):
+            vis = not ec.visible
+            ec.set_visibility(vis)
+            b.set_text("Masquer ↑" if vis else f"Voir {n} de plus ↓")
+
+        btn.on_click(_toggle)
 
 
 # ── État vide ─────────────────────────────────────────────────────────────────
@@ -209,6 +424,7 @@ def render_review_card(
     qcm_info: dict | None = None,
     lacune_count: int = 0,
     validate_fn=None,
+    on_lacune_saved=None,
 ):
     """Carte de révision redessinée — bordure colorée, mini QCM bar, next_action pill."""
     col_map = {
@@ -417,7 +633,7 @@ def render_review_card(
                             ui.separator()
                             ui.menu_item(
                                 "Lacune...",
-                                on_click=lambda t=task: open_lacune_inline_dialog(t),
+                                on_click=lambda t=task, r=on_lacune_saved: open_lacune_inline_dialog(t, on_save=r),
                             ).classes("text-xs text-amber-600 font-medium")
 
                     if task.has_pdf:
@@ -640,9 +856,8 @@ def rebuild_all(
     on_ignore,
     validate_fn,
 ) -> None:
-    """Reconstruit toutes les colonnes de révision + bannière + hero."""
+    """Reconstruit toutes les colonnes de révision + bannière."""
     from ._banner import update_banner
-    from ._hero import render_hero
 
     history   = local_store.get_all_history()
     all_tasks = review_service.generate_reviews(
@@ -674,9 +889,6 @@ def rebuild_all(
     load = compute_daily_load(urgent, today_tasks)
     update_banner(state, load, done_today=state.done_today_count, week_count=_week_count)
 
-    # Hero
-    render_hero(state, urgent, today_tasks, on_done, on_postpone, validate_fn)
-
     # QCM + lacunes (batch)
     try:
         qcm_by_course = local_store.get_qcm_last_scores_by_course()
@@ -688,53 +900,68 @@ def rebuild_all(
     state.focus_cache["qcm"] = qcm_by_course
     state.focus_cache["lac"] = lac_by_course
 
-    def _render_card(container, task, _on_done, _on_postpone, _on_ignore):
-        render_review_card(
-            container, task, _on_done, _on_postpone, _on_ignore,
+    def _render_row(container, task, _is_overdue):
+        render_review_row(
+            container, task, on_done, on_postpone, on_ignore,
             qcm_info=qcm_by_course.get(task.course_id),
             lacune_count=lac_by_course.get(task.course_id, 0),
+            on_lacune_saved=state.rebuild_all,
             validate_fn=validate_fn,
+            is_overdue=_is_overdue,
         )
 
-    # Badges de comptage colonnes
+    # Section RETARD
+    has_urgent = bool(urgent)
+    if state.retard_header is not None:
+        state.retard_header.set_visibility(has_urgent)
     if state.urgent_count_lbl is not None:
         state.urgent_count_lbl.set_text(str(len(urgent)))
-        state.urgent_count_lbl.set_visibility(bool(urgent))
+        state.urgent_count_lbl.set_visibility(has_urgent)
+
+    state.urgent_col.clear()
+    if urgent:
+        shown_u = urgent[:5]
+        rest_u  = urgent[5:]
+        for t in shown_u:
+            _render_row(state.urgent_col, t, True)
+        if rest_u:
+            _add_voir_plus_rows(
+                state.urgent_col, rest_u, on_done, on_postpone, on_ignore,
+                qcm_by_course, lac_by_course, state.rebuild_all, validate_fn, True,
+            )
+
+    # Section AUJOURD'HUI
+    has_today = bool(today_tasks)
+    if state.today_header is not None:
+        state.today_header.set_visibility(has_today or not urgent)
     if state.today_count_lbl is not None:
         state.today_count_lbl.set_text(str(len(today_tasks)))
-        state.today_count_lbl.set_visibility(bool(today_tasks))
+        state.today_count_lbl.set_visibility(has_today)
 
-    # Urgent
-    state.urgent_col.clear()
-    shown_u = urgent[:5]
-    rest_u  = urgent[5:]
-    if shown_u:
-        for t in shown_u:
-            _render_card(state.urgent_col, t, on_done, on_postpone, on_ignore)
-        if rest_u:
-            _add_voir_plus(state.urgent_col, rest_u, _render_card, on_done, on_postpone, on_ignore)
-    else:
-        _empty_state(state.urgent_col, "Aucun retard 🎉", "celebration")
-
-    # Aujourd'hui
     state.today_col.clear()
-    shown_t = today_tasks[:8]
-    rest_t  = today_tasks[8:]
-    if shown_t:
+    if today_tasks:
+        shown_t = today_tasks[:8]
+        rest_t  = today_tasks[8:]
         for t in shown_t:
-            _render_card(state.today_col, t, on_done, on_postpone, on_ignore)
+            _render_row(state.today_col, t, False)
         if rest_t:
-            _add_voir_plus(state.today_col, rest_t, _render_card, on_done, on_postpone, on_ignore)
+            _add_voir_plus_rows(
+                state.today_col, rest_t, on_done, on_postpone, on_ignore,
+                qcm_by_course, lac_by_course, state.rebuild_all, validate_fn, False,
+            )
     elif not urgent:
+        # Rien du tout — état vide global
+        if state.today_header is not None:
+            state.today_header.set_visibility(False)
         with state.today_col:
-            with ui.column().classes("w-full items-center py-8 gap-3 text-slate-400"):
+            with ui.column().classes("w-full items-center py-10 gap-3 text-slate-400 px-4"):
                 ui.icon("check_circle", size="xl").classes("opacity-30")
                 ui.label("Rien à faire aujourd'hui — profites-en pour avancer !").classes(
                     "text-sm text-center font-medium"
                 )
                 with ui.row().classes("gap-2 mt-2"):
                     ui.button(
-                        "Voir ma progression",
+                        "Ma progression",
                         icon="trending_up",
                         on_click=lambda: ui.navigate.to("/stats"),
                     ).props("outline rounded size=sm color=violet")
@@ -743,8 +970,6 @@ def rebuild_all(
                         icon="business",
                         on_click=lambda: ui.navigate.to("/colleges"),
                     ).props("outline rounded size=sm color=blue-grey")
-    else:
-        _empty_state(state.today_col, "Rien de prévu aujourd'hui", "event_available")
 
     # Semaine
     rebuild_week(state, all_tasks, on_done, on_postpone, on_ignore, validate_fn)
@@ -821,6 +1046,7 @@ def open_focus_mode(state: DashboardState) -> None:
             qcm_info=state.focus_cache["qcm"].get(t.course_id),
             lacune_count=state.focus_cache["lac"].get(t.course_id, 0),
             validate_fn=_on_done,
+            on_lacune_saved=state.rebuild_all,
         )
 
     async def _focus_on_done(task, card, activity_types=None, duration_minutes=None, confidence=None, difficulty=None, **kwargs):

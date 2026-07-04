@@ -555,7 +555,6 @@ def open_pdf_wizard(c, context: str, refresh_fn, client) -> None:
     4. Si non trouvé → affiche une recherche manuelle pré-remplie.
     """
     from backend.core.files import file_service as _fs
-    from backend.core.obsidian.service import COLLEGE_MAPPING
 
     state = {"found_path": None}
 
@@ -564,10 +563,9 @@ def open_pdf_wizard(c, context: str, refresh_fn, client) -> None:
         base_dir = os.path.join(settings.medicine_dir, "Collèges")
         manual_search_path = base_dir
         if c.college:
-            folder = COLLEGE_MAPPING.get(c.college[0], c.college[0])
-            candidate = os.path.join(base_dir, folder)
-            if os.path.exists(candidate):
-                manual_search_path = candidate
+            college_dir = _fs._get_college_folder(base_dir, c.college[0])
+            if college_dir:
+                manual_search_path = college_dir
     else:
         manual_search_path = settings.fac_dir or settings.medicine_dir
     if not manual_search_path or not os.path.exists(manual_search_path):

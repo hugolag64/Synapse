@@ -68,7 +68,7 @@ def frame(page_title: str):
     dark.value = is_dark
 
     ui.colors(
-        primary='#7C3AED',
+        primary='#2563EB',
         accent='#1E293B',
         dark='#080E1A',
         positive='#059669',

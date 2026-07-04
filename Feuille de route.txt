@@ -1,0 +1,667 @@
+1️⃣ ANALYSE GLOBALE DU PROJET
+Vue d’ensemble
+
+Medecinator est une application Python modulaire orientée productivité médicale, combinant :
+
+synchronisation Notion / Google Drive / Google Calendar
+
+gestion de To-Do dynamiques et rappels
+
+traitement de PDF de cours médicaux
+
+recherche locale + IA
+
+modes Focus / Journal / Dashboard
+
+double interface :
+
+UI desktop CustomTkinter
+
+UI web (NiceGUI-like embryonnaire)
+
+Le projet est déjà très avancé fonctionnellement, mais souffre d’un couplage partiel UI ↔ logique, hérité de l’évolution incrémentale.
+
+Architecture générale
+Medecinator/
+│
+├── api/                  → API HTTP (To-Do, intégrations)
+├── medecinator_core/     → CŒUR MÉTIER (le plus propre)
+│   ├── notion/
+│   └── services/
+│
+├── services/             → Services applicatifs transverses
+├── ui/                   → UI CustomTkinter (à migrer)
+├── web_app/              → UI web (NiceGUI-like)
+├── utils/                → Infra légère (event bus, debounce…)
+├── scripts/              → Outils ponctuels
+└── main.py               → Entrée applicative desktop
+
+Logique métier vs interface
+
+✅ Très bon point :
+
+La logique métier est majoritairement hors UI
+
+medecinator_core/ est déjà un quasi-backend
+
+⚠️ Points sensibles :
+
+Certains services sont appelés directement depuis l’UI
+
+États parfois stockés implicitement (singletons, cache global)
+
+UI CustomTkinter mélange parfois layout + orchestration
+
+Dépendances externes clés
+
+Notion API
+
+Google APIs (Drive, Calendar)
+
+CustomTkinter
+
+NiceGUI (web_app)
+
+OpenAI (search, résumé)
+
+PDF (PyMuPDF / metadata)
+
+Rôle principal du programme (3–5 phrases)
+
+Medecinator est une application de gestion et de révision médicale connectée à Notion, permettant d’organiser cours, To-Do, rappels et documents PDF dans un flux de travail structuré.
+Elle automatise la création de tâches quotidiennes, la synchronisation inter-services et la recherche intelligente dans les contenus médicaux.
+L’application propose des modes spécialisés (Dashboard, Focus, Recherche, IA) pour optimiser l’apprentissage et la productivité.
+Elle est conçue pour évoluer vers des interfaces multiples tout en conservant un noyau métier unique.
+
+2️⃣ ANALYSE FONCTION PAR FONCTION (PAR MODULE)
+
+Je liste chaque module, puis les fonctions/classes clés.
+Les fonctions triviales (getters, wrappers) sont groupées et signalées.
+
+🧠 medecinator_core/notion/
+notion_client.py
+
+Rôle : abstraction complète de l’API Notion
+
+Inputs : tokens, IDs, payloads structurés
+
+Outputs : dicts Notion normalisés
+
+Dépendances : requests, notion_api
+
+Risques : quotas, erreurs réseau
+
+🔑 Fondation critique
+
+notion_service.py
+
+Logique métier Notion (pages, propriétés, statuts)
+
+Appelé par To-Do, Dashboard, Search
+
+⚠️ Couplé aux schémas Notion → à stabiliser
+
+notion_cache.py
+
+Cache local (perf)
+
+Effets de bord disque
+
+Important pour UI réactive
+
+notion_batcher.py
+
+Optimisation appels API
+
+Sensible aux erreurs partielles
+
+🧠 medecinator_core/services/
+daily_todo_generator.py
+
+CŒUR FONCTIONNEL
+
+Génère To-Do journalières
+
+Gère rappels J+1/J+3/J+7…
+
+Écrit dans Notion + store local
+
+⚠️ Logique dense, à isoler pour migration
+
+logic.py
+
+Règles métier transverses
+
+Décisions (statuts, transitions)
+
+Doit rester 100% UI-agnostic
+
+local_todo_store.py
+
+Persistance locale
+
+Important pour offline / cache UI
+
+jobs.py
+
+Orchestration tâches planifiées
+
+Appelé au boot
+
+🧩 services/ (infra applicative)
+
+Familles principales :
+
+Synchronisation
+
+drive_sync.py
+
+pdf_sync.py
+
+google_calendar.py
+
+IA / Recherche
+
+ai_search.py
+
+quick_summary.py
+
+local_search.py
+
+Orchestration
+
+task_runner.py
+
+serial_executor.py
+
+worker.py
+
+Configuration & état
+
+settings_store.py
+
+preferences.py
+
+credentials.py
+
+👉 Ces services sont déjà quasi-backend
+👉 Excellents candidats pour NiceGUI
+
+🎨 ui/ (CustomTkinter)
+Exemples clés
+
+main_window.py
+
+dashboard.py
+
+college_view.py
+
+semestre_view.py
+
+pdf_viewer.py
+
+ai_dialog.py
+
+Rôle :
+
+Layout
+
+Callbacks
+
+Affichage
+
+⚠️ À NE PAS PORTER TEL QUEL
+→ uniquement mapper les interactions vers backend
+
+🌐 web_app/
+web_app/state.py
+
+Gestion d’état global (NiceGUI style)
+
+Base saine pour migration
+
+pages/*.py
+
+Début de découplage UI / logique
+
+Peut servir de modèle cible
+
+3️⃣ IDENTIFICATION DES BLOCS FONCTIONNELS
+Bloc	Modules
+Core métier	medecinator_core/*
+Intégrations API	Notion, Google
+Traitement données	PDF, Search
+États & cache	cache, settings
+Orchestration	jobs, runners
+UI Desktop	ui/*
+UI Web	web_app/*
+Infra	utils, logger
+
+🎯 Objectif migration :
+➡️ Backend = Core + Services
+➡️ Frontend = NiceGUI uniquement
+
+4️⃣ PRIORISATION STRATÉGIQUE (CRITIQUE)
+🔴 Niveau 1 – Fondations
+
+medecinator_core/notion/*
+
+daily_todo_generator.py
+
+logic.py
+
+settings_store.py
+
+👉 Sans eux, rien ne fonctionne.
+
+🟠 Niveau 2 – Fonctionnalités
+
+Search / IA
+
+PDF sync
+
+Calendar
+
+Jobs / runners
+
+👉 Valeur ajoutée, mais découplables.
+
+🟢 Niveau 3 – Interface
+
+CustomTkinter UI
+
+Layouts
+
+Widgets
+
+👉 Remplaçables entièrement.
+
+5️⃣ FEUILLE DE ROUTE DE MIGRATION
+Étape 1 – Gel du backend
+
+Tests sur medecinator_core
+
+API interne stable
+
+Livrable : backend importable sans UI
+
+Étape 2 – Extraction des états
+
+Centraliser état (NiceGUI state)
+
+Supprimer globals UI
+
+Étape 3 – Adaptateurs UI
+
+Wrappers async/sync
+
+Callbacks propres
+
+Étape 4 – NiceGUI
+
+Pages = Dashboard / Search / Focus
+
+Rebrancher services
+
+Étape 5 – Suppression CustomTkinter
+
+UI desktop obsolète
+
+Code mort nettoyé
+
+6️⃣ ADAPTATION À NICE GUI
+
+Callbacks NiceGUI → services
+
+États persistants :
+
+sélection collège
+
+To-Do du jour
+
+focus mode
+
+Async recommandé :
+
+Notion
+
+IA
+
+PDF
+
+🚫 Jamais d’appel API direct dans le layout
+
+7️⃣ ARCHITECTURE CIBLE
+
+👉 Clean Architecture + MVVM
+
+backend/
+  core/
+  services/
+frontend/
+  views/
+  viewmodels/
+  state.py
+
+
+Avantages :
+
+multi-UI
+
+testable
+
+évolutif
+
+8️⃣ ALERTES & DETTES TECHNIQUES
+
+⚠️ Points à surveiller :
+
+Couplage UI ↔ services
+
+Cache implicite
+
+Erreurs silencieuses API
+
+Tests insuffisants
+
+Dépendance au schéma Notion
+
+📌 À documenter en priorité :
+
+Flux To-Do
+
+États globaux
+
+Jobs automatiques
+
+✅ CONCLUSION
+
+👉 Projet très solide
+👉 Architecture déjà à 70% prête pour NiceGUI
+👉 Migration réaliste, propre, sans réécriture complète
+
+
+🧱 1️⃣ SQUELETTE DU PROJET MIGRÉ (ARCHITECTURE CIBLE)
+
+👉 Objectif :
+
+Backend totalement indépendant
+
+Frontend NiceGUI propre
+
+États centralisés
+
+Migration progressive possible (sans tout casser)
+
+📁 Arborescence cible recommandée
+medecinator/
+│
+├── backend/
+│   ├── core/                     # LOGIQUE MÉTIER PURE
+│   │   ├── notion/
+│   │   │   ├── client.py
+│   │   │   ├── service.py
+│   │   │   ├── cache.py
+│   │   │   └── batcher.py
+│   │   │
+│   │   ├── todo/
+│   │   │   ├── daily_generator.py
+│   │   │   ├── rules.py
+│   │   │   └── models.py
+│   │   │
+│   │   ├── search/
+│   │   ├── pdf/
+│   │   └── calendar/
+│   │
+│   ├── services/                 # SERVICES APPLICATIFS
+│   │   ├── sync/
+│   │   ├── ai/
+│   │   ├── jobs/
+│   │   └── orchestrator.py
+│   │
+│   ├── state/                    # ÉTATS APPLICATIFS
+│   │   ├── app_state.py
+│   │   ├── session_state.py
+│   │   └── persistence.py
+│   │
+│   ├── config/
+│   │   ├── settings.py
+│   │   └── credentials.py
+│   │
+│   └── api/                      # API INTERNE (OPTIONNEL)
+│       └── todo_api.py
+│
+├── frontend/
+│   ├── app.py                    # Entrée NiceGUI
+│   │
+│   ├── state.py                  # NiceGUI reactive state
+│   │
+│   ├── viewmodels/               # MVVM
+│   │   ├── dashboard_vm.py
+│   │   ├── todo_vm.py
+│   │   ├── search_vm.py
+│   │   └── focus_vm.py
+│   │
+│   ├── views/
+│   │   ├── dashboard.py
+│   │   ├── todo.py
+│   │   ├── search.py
+│   │   ├── focus.py
+│   │   └── settings.py
+│   │
+│   └── components/
+│       ├── todo_list.py
+│       ├── pdf_card.py
+│       └── status_badge.py
+│
+├── tests/
+│   ├── core/
+│   ├── services/
+│   └── integration/
+│
+└── README.md
+
+🧠 Principes clés respectés
+
+Backend = aucune dépendance NiceGUI
+
+Frontend = aucun accès direct aux APIs
+
+ViewModels = glue UI ↔ backend
+
+State = unique source de vérité
+
+CustomTkinter = supprimable sans impact
+
+🔁 2️⃣ PLAN DE REFACTOR (ORDRE STRICT À SUIVRE)
+
+⚠️ Important :
+NE PAS commencer par l’UI.
+La migration échoue toujours quand on commence par là.
+
+🔴 PHASE 1 – GEL ET SÉCURISATION DU BACKEND (CRITIQUE)
+🎯 Objectif
+
+Rendre tout le cœur métier stable, testable et UI-agnostic.
+
+🛠️ Actions
+1. Extraire medecinator_core → backend/core
+
+Déplacer sans refactor dans un premier temps
+
+Corriger uniquement les imports relatifs
+
+2. Isoler totalement :
+
+daily_todo_generator
+
+logic.py
+
+notion_service.py
+
+👉 Aucune référence UI autorisée.
+
+🧪 Tests recommandés
+
+Génération To-Do sans UI
+
+Création / mise à jour Notion
+
+Cas limites (jour déjà généré, erreur API)
+
+📦 Livrable
+
+Backend importable depuis un REPL
+
+python -c "from backend.core.todo import daily_generator"
+
+🟠 PHASE 2 – NORMALISATION DES ÉTATS
+🎯 Objectif
+
+Supprimer états implicites, globals, side effects UI
+
+🛠️ Actions
+1. Créer backend/state/app_state.py
+
+Exemples :
+
+@dataclass
+class AppState:
+    current_date: date
+    today_todo_id: str | None
+    selected_college: str | None
+
+2. Rediriger :
+
+cache Notion
+
+état To-Do
+
+focus mode
+
+➡️ plus aucun état dans l’UI
+
+🧪 Tests
+
+Persistence état
+
+Redémarrage application
+
+📦 Livrable
+
+État sérialisable
+
+Aucun global métier restant
+
+🟠 PHASE 3 – ADAPTATEURS SERVICES (ANTI-COUPLAGE)
+🎯 Objectif
+
+Créer une API interne stable pour l’UI
+
+🛠️ Actions
+
+Créer des façades :
+
+class TodoService:
+    def get_today()
+    def toggle_task(id)
+    def regenerate()
+
+
+➡️ L’UI n’appelle jamais le core directement
+
+🧪 Tests
+
+Appels unitaires
+
+Mock Notion
+
+📦 Livrable
+
+Services stables documentés
+
+🟢 PHASE 4 – INTRODUCTION DE NICEGUI (PARALLÈLE)
+🎯 Objectif
+
+Créer la nouvelle UI sans toucher à l’ancienne
+
+🛠️ Actions
+1. frontend/app.py
+
+Initialisation NiceGUI
+
+Chargement état
+
+2. frontend/state.py
+from nicegui import reactive
+ui_state = reactive({
+    "today_todo": [],
+    "loading": False,
+})
+
+3. ViewModels
+
+Appels async → services backend
+
+Mapping données → UI
+
+🧪 Tests
+
+Navigation
+
+Chargement asynchrone
+
+États réactifs
+
+📦 Livrable
+
+Dashboard NiceGUI fonctionnel
+
+To-Do interactive
+
+🟢 PHASE 5 – MIGRATION FONCTIONNELLE PAR ÉCRAN
+
+Ordre recommandé :
+
+Dashboard
+
+To-Do
+
+Recherche
+
+Focus
+
+Settings
+
+👉 1 écran = 1 PR = testable
+
+⚫ PHASE 6 – DÉCOMMISSION CUSTOMTKINTER
+🎯 Objectif
+
+Supprimer sans risque
+
+🛠️ Actions
+
+Supprimer ui/
+
+Nettoyer dépendances
+
+MAJ README
+
+📦 Livrable
+
+Application NiceGUI unique
+
+Backend propre
+
+⚠️ POINTS DE VIGILANCE ABSOLUS
+
+❌ Pas de logique métier dans les callbacks
+
+❌ Pas d’accès Notion depuis l’UI
+
+❌ Pas de state distribué
+
+✅ Async partout où il y a IO
+
+✅ Backend testable sans UI

@@ -30,6 +30,29 @@ def normalize_text(text: str) -> str:
 
 STOPWORDS = {'en', 'de', 'le', 'la', 'et', 'du', 'un', 'une', 'des', 'pour', 'chez', 'au', 'aux', 'dans', 'sur', 'par', 'avec', 'sans', 'sous', 'les'}
 
+_EMOJI_RE = re.compile(
+    "["
+    "\U0001F300-\U0001FAFF"
+    "\U00002700-\U000027BF"
+    "☀-⛿"
+    "︀-️"
+    "‍‌​"
+    "]+",
+    re.UNICODE,
+)
+
+# Clé   = nom Notion EXACT du collège (avec emoji).
+# Valeur = nom du dossier dans <medicine_dir>/Collèges/ (sans emoji).
+# Ne renseigner que les cas où le dossier diffère du nom Notion sans emoji.
+PDF_COLLEGE_MAPPING: dict[str, str] = {
+    "Chirurgie digestive 🧵": "Chirurgie générale viscérale et digestive",
+}
+
+
+def _normalize_college_name(name: str) -> str:
+    """Strip emojis et lowercase pour comparer noms de collèges."""
+    return " ".join(_EMOJI_RE.sub("", name).split()).lower()
+
 def fuzzy_word_in_text(qw: str, text_words: List[str]) -> float:
     for fw in text_words:
         if qw == fw:
@@ -196,6 +219,92 @@ class FileService:
         logger.info(f"Fuzzy search for '{query}' (Item: {item_number}) found {len(scored_matches)} matches in {target_dir}.")
         return [m[1] for m in scored_matches[:limit]]
 
+    # Accepte : "Item 207 - ...", "207 - ...", "Numéro 207 - ...", "207. ..." etc.
+    _ITEM_NUM_RE = re.compile(r"^(?:(?:item|num[ée]ro)\s*)?(\d{2,3})\s*[-–=.\s]", re.IGNORECASE)
+
+    def _find_pdf_by_item_number_in_items_dir(
+        self, college_folder_path: str, item_number: int
+    ) -> "str | None":
+        """
+        Lookup direct : cherche le PDF d'un item par son numéro dans le sous-dossier
+        items* du dossier college. Retourne le chemin absolu ou None.
+
+        Plus fiable que le fuzzy quand on connaît college + numéro d'item.
+        """
+        if not os.path.isdir(college_folder_path):
+            return None
+
+        try:
+            all_entries = os.listdir(college_folder_path)
+        except OSError:
+            return None
+
+        item_subdirs = [
+            os.path.join(college_folder_path, d)
+            for d in all_entries
+            if d.lower().startswith("item")
+            and os.path.isdir(os.path.join(college_folder_path, d))
+        ]
+        if not item_subdirs:
+            return None
+
+        items_dir = max(item_subdirs, key=os.path.getmtime)
+
+        try:
+            pdf_files = [f for f in os.listdir(items_dir) if f.lower().endswith(".pdf")]
+        except OSError:
+            return None
+
+        # Passe 1 : regex flexible sur le début du nom de fichier
+        for fname in pdf_files:
+            base = os.path.splitext(fname)[0]
+            m = self._ITEM_NUM_RE.match(base)
+            if m and int(m.group(1)) == item_number:
+                return os.path.join(items_dir, fname)
+
+        # Passe 2 : fallback — premier nombre entier dans le nom
+        for fname in pdf_files:
+            nums = re.findall(r'\b(\d{2,3})\b', os.path.splitext(fname)[0])
+            if nums and int(nums[0]) == item_number:
+                return os.path.join(items_dir, fname)
+
+        return None
+
+    def _get_college_folder(self, colleges_root: str, notion_name: str) -> "str | None":
+        """
+        Retourne le chemin absolu du dossier collège dans colleges_root, ou None.
+
+        Ordre :
+          1. PDF_COLLEGE_MAPPING (override explicite notion_name → dossier)
+          2. Nom brut (si le dossier existe avec ce nom exact)
+          3. Scan + correspondance normalisée (emojis strippés + lowercase)
+        """
+        # 1. Override explicite
+        if notion_name in PDF_COLLEGE_MAPPING:
+            path = os.path.join(colleges_root, PDF_COLLEGE_MAPPING[notion_name])
+            if os.path.isdir(path):
+                return path
+
+        # 2. Nom brut tel quel
+        path = os.path.join(colleges_root, notion_name)
+        if os.path.isdir(path):
+            return path
+
+        # 3. Scan normalisé (strip emoji + lowercase)
+        notion_norm = _normalize_college_name(notion_name)
+        if not notion_norm:
+            return None
+        try:
+            entries = os.listdir(colleges_root)
+        except OSError:
+            return None
+        for entry in entries:
+            entry_path = os.path.join(colleges_root, entry)
+            if os.path.isdir(entry_path) and _normalize_college_name(entry) == notion_norm:
+                logger.debug(f"PDF college match: '{notion_name}' → '{entry}'")
+                return entry_path
+        return None
+
     async def auto_detect_pdf(self, course, context: str = "college") -> "str | None":
         """
         Détecte automatiquement le PDF local le plus probable pour un cours.
@@ -204,8 +313,8 @@ class FileService:
           1. Guard : si l'URL PDF Notion est déjà renseignée → None (rien à faire)
           2. Cache SQLite : si un chemin valide est en cache → retourner directement
           3. Construction du search_path selon le contexte
-          4. Peuplement du cache FileService si nécessaire
-          5. Recherche floue avec seuil de score ≥ 50
+          4. [College uniquement] Lookup direct par numéro d'item dans items/
+          5. Peuplement du cache FileService + recherche floue (fallback)
           6. Persistence SQLite et retour du chemin trouvé
 
         Paramètres :
@@ -234,22 +343,35 @@ class FileService:
 
         # ── 3. Construction du search_path ───────────────────────────────────
         if context == "college":
-            # Import lazy pour éviter les imports circulaires
-            from backend.core.obsidian.service import COLLEGE_MAPPING
             college_name = course.college[0] if course.college else ""
-            college_folder = COLLEGE_MAPPING.get(college_name, college_name)
-            search_path = os.path.join(settings.medicine_dir, "Collèges", college_folder)
+            colleges_root = os.path.join(settings.medicine_dir, "Collèges")
+            college_dir = self._get_college_folder(colleges_root, college_name)
+            search_path = college_dir or colleges_root
         else:
             search_path = settings.fac_dir or settings.medicine_dir
 
         if not search_path or not os.path.exists(search_path):
             return None
 
-        # ── 4. Peuplement du cache FileService ───────────────────────────────
+        # ── 4. Lookup direct par numéro d'item (college uniquement) ──────────
+        if context == "college" and getattr(course, "item_number", None):
+            try:
+                item_num = int(float(course.item_number))
+                direct = self._find_pdf_by_item_number_in_items_dir(search_path, item_num)
+                if direct:
+                    logger.success(
+                        f"PDF auto-link: Item {item_num} → {os.path.basename(direct)!r} "
+                        f"(lookup direct)"
+                    )
+                    local_store.set_pdf_cache(course.id, context, direct)
+                    return direct
+            except (ValueError, TypeError):
+                pass
+
+        # ── 5. Peuplement du cache FileService + recherche floue ─────────────
         if search_path not in self.pdf_caches:
             await self.refresh_cache_async(search_path)
 
-        # ── 5. Recherche floue avec seuil de score ───────────────────────────
         results = self.find_pdf(
             course.title or "",
             search_path=search_path,

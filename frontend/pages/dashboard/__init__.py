@@ -60,19 +60,27 @@ async def dashboard_page() -> None:
             # 1. Bannière + badges secondaires
             render_banner(state)
 
-            # 2. Diagnostic du lundi (conteneur vide, rempli par timer)
+            # 2. Diagnostic du lundi (uniquement le lundi)
             state.monday_container = ui.element("div").classes("w-full")
-            ui.timer(0.1, lambda: render_monday_diagnostic(state), once=True)
+            if datetime.date.today().weekday() == 0:
+                ui.timer(0.1, lambda: render_monday_diagnostic(state), once=True)
 
-            # 3. Hero card + Pomodoro
+            # Hero caché (Morning Brief layout — la liste est le hero)
+            state.hero_container = ui.element("div").classes("hidden")
+
+            # 4. Révisions (3/4) + Sidebar Agenda+Pomodoro (1/4)
             pomo = PomodoroController()
-            with ui.element("div").classes("grid grid-cols-1 lg:grid-cols-3 gap-5 w-full"):
+            with ui.element("div").classes("grid grid-cols-1 lg:grid-cols-4 gap-5 w-full"):
 
-                # Hero card (2/3)
-                state.hero_container = ui.element("div").classes("lg:col-span-2 w-full")
+                # Révisions (3/4)
+                with ui.element("div").classes("col-span-1 lg:col-span-3"):
+                    render_review_columns(state)
 
-                # Pomodoro compact (1/3)
-                with ui.element("div").classes("lg:col-span-1"):
+                # Sidebar (1/4) : Agenda + Pomodoro empilés
+                with ui.column().classes("col-span-1 gap-5"):
+                    render_agenda_section(state)
+
+                    # Pomodoro compact
                     with ui.card().classes(
                         "w-full rounded-2xl p-5 shadow-sm border border-slate-200 "
                         "dark:border-slate-800 flex flex-col items-center gap-4 relative overflow-hidden"
@@ -85,34 +93,34 @@ async def dashboard_page() -> None:
                             "text-[11px] font-bold text-violet-400 tracking-widest uppercase z-10"
                         )
                         pomo.lbl_time = ui.label("50:00").classes(
-                            "text-6xl font-extrabold text-slate-900 dark:text-slate-100 "
+                            "text-4xl font-extrabold text-slate-900 dark:text-slate-100 "
                             "tracking-tighter tabular-nums z-10 pomo-time"
                         )
                         pomo.bar = ui.linear_progress(value=1.0, show_value=False).classes(
                             "w-full rounded-full"
                         ).props("color=deep-purple-4 track-color=deep-purple-1 size=6px")
                         pomo.lbl_status = ui.label("Prêt à démarrer ?").classes(
-                            "text-[13px] text-slate-400 dark:text-slate-500 font-medium"
+                            "text-[12px] text-slate-400 dark:text-slate-500 font-medium"
                         )
-                        with ui.row().classes("gap-3 z-10"):
+                        with ui.row().classes("gap-2 z-10"):
                             btn_main = ui.button(on_click=pomo.toggle).props(
-                                "round color=deep-purple size=lg unelevated"
+                                "round color=deep-purple size=md unelevated"
                             ).classes("shadow-md shadow-violet-200 dark:shadow-none")
                             with btn_main:
                                 pomo.btn_icon = ui.icon("play_arrow")
                             ui.button(icon="restart_alt", on_click=pomo.reset).props(
-                                "flat round color=grey-5 size=md"
+                                "flat round color=grey-5 size=sm"
                             )
                         with ui.row().classes("gap-2 z-10"):
                             prefs = data_store.preferences
                             p1w = prefs.get("pomo_1_work", 25)
                             p2w = prefs.get("pomo_2_work", 50)
                             ui.button(
-                                f"{p1w} min", on_click=lambda w=p1w: pomo.set_mode(w)
-                            ).props("outline rounded color=deep-purple").classes("text-[12px] font-semibold px-3")
+                                f"{p1w}m", on_click=lambda w=p1w: pomo.set_mode(w)
+                            ).props("outline rounded color=deep-purple size=sm").classes("text-[11px] font-semibold")
                             ui.button(
-                                f"{p2w} min", on_click=lambda w=p2w: pomo.set_mode(w)
-                            ).props("outline rounded color=deep-purple").classes("text-[12px] font-semibold px-3")
+                                f"{p2w}m", on_click=lambda w=p2w: pomo.set_mode(w)
+                            ).props("outline rounded color=deep-purple size=sm").classes("text-[11px] font-semibold")
 
                         pomo.timer = ui.timer(1.0, pomo.tick)
                         pomo.timer.deactivate()
@@ -121,17 +129,6 @@ async def dashboard_page() -> None:
                             on_key=lambda e: pomo.toggle() if e.action.keydown and e.key.name == "Space" else None,
                             ignore=["input", "select", "textarea"],
                         )
-
-            # 4. Grille : Agenda | Révisions
-            with ui.element("div").classes("grid grid-cols-1 lg:grid-cols-4 gap-5 w-full"):
-
-                # Col gauche : Agenda + Lacune du jour
-                with ui.column().classes("col-span-1 gap-5"):
-                    render_agenda_section(state)
-
-                # Col droite : Tabs Aujourd'hui | Semaine
-                with ui.element("div").classes("col-span-1 lg:col-span-3"):
-                    render_review_columns(state)
 
         # ── Actions ───────────────────────────────────────────────────────────
 

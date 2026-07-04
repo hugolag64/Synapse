@@ -640,6 +640,24 @@ def write_obsidian_reviewed_at(obsidian_path: str, date_iso: str) -> bool:
         return False
 
 
+def delete_obsidian_lacune_file(obsidian_path: str) -> bool:
+    """
+    Supprime physiquement le fichier .md d'une lacune Obsidian.
+    Retourne True si supprimé, False si introuvable ou erreur.
+    """
+    path = Path(obsidian_path.replace("/", "\\"))
+    if not path.exists():
+        logger.warning(f"delete_obsidian_lacune_file: fichier introuvable : {obsidian_path}")
+        return False
+    try:
+        path.unlink()
+        logger.info(f"Lacune Obsidian supprimée : {path.name}")
+        return True
+    except Exception as exc:
+        logger.error(f"delete_obsidian_lacune_file: impossible de supprimer {path.name}: {exc}")
+        return False
+
+
 # ── Singleton ─────────────────────────────────────────────────────────────────
 
 weak_points_sync_service = WeakPointsSyncService()

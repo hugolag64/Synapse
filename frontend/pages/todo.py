@@ -4,11 +4,33 @@ from backend.core.google.calendar_service import calendar_service
 from backend.core.reviews import local_store
 from backend.state.store import data_store
 from frontend.theme import frame
+from dataclasses import dataclass
 import asyncio
 import datetime
 
 _MONTHS = ['jan.','fév.','mars','avr.','mai','juin','juil.','août','sep.','oct.','nov.','déc.']
 _DAYS   = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']
+
+
+@dataclass
+class _DaySummary:
+    routine_total: int = 0
+    routine_done: int = 0
+    ajoute_total: int = 0
+    ajoute_done: int = 0
+    ajoute_loaded: bool = False
+
+    @property
+    def total(self) -> int:
+        return self.routine_total + self.ajoute_total
+
+    @property
+    def done(self) -> int:
+        return self.routine_done + self.ajoute_done
+
+    @property
+    def pct(self) -> float:
+        return (self.done / self.total) if self.total > 0 else 0.0
 
 
 def _fmt_date(d: datetime.date) -> str:

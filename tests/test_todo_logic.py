@@ -92,3 +92,28 @@ class TestComputeAjouteProgress:
         reviewed = [courses[0].title]
         dynamic = {'b1': {'text': 'x', 'checked': False}}
         assert _compute_ajoute_progress(items, reviewed, dynamic) == (2, 1)
+
+
+from frontend.pages.todo import _DaySummary
+
+
+class TestDaySummary:
+    def test_pct_zero_total(self):
+        assert _DaySummary().pct == 0.0
+
+    def test_pct_routine_only(self):
+        s = _DaySummary(routine_total=4, routine_done=2)
+        assert s.pct == 0.5
+
+    def test_pct_full(self):
+        s = _DaySummary(routine_total=2, routine_done=2, ajoute_total=2, ajoute_done=2, ajoute_loaded=True)
+        assert s.pct == 1.0
+
+    def test_pct_partial_with_ajoute(self):
+        s = _DaySummary(routine_total=4, routine_done=4, ajoute_total=4, ajoute_done=1, ajoute_loaded=True)
+        assert s.pct == pytest.approx(0.625)
+
+    def test_total_and_done(self):
+        s = _DaySummary(routine_total=3, routine_done=1, ajoute_total=2, ajoute_done=2)
+        assert s.total == 5
+        assert s.done == 3

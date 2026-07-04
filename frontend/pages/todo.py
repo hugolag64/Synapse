@@ -299,7 +299,7 @@ async def _render_ajout_block(
 
     container.clear()
     with container:
-        with ui.row().classes('w-full gap-4 items-start'):
+        with ui.row().classes('w-full gap-4 items-start').props('id=todo-ajoute-panel'):
             ui.element('div').classes('w-1 rounded-full bg-violet-500 self-stretch min-h-[2rem]')
             with ui.column().classes('flex-1 gap-2'):
                 ui.label('AJOUTÉ').classes(
@@ -596,7 +596,9 @@ def _render_hero_stats(
             with ui.row().classes(
                     'items-center gap-1 px-2 py-1 rounded-full cursor-pointer '
                     'bg-amber-50 dark:bg-amber-900/20'
-            ).tooltip(', '.join(carryover)):
+            ).tooltip(', '.join(carryover)).on('click', lambda: ui.run_javascript(
+                "document.getElementById('todo-ajoute-panel')?.scrollIntoView({behavior: 'smooth', block: 'start'})"
+            )):
                 ui.icon('history', color='amber-7', size='xs')
                 ui.label(f"{len(carryover)} reporté(s) d'hier").classes(
                     'text-xs font-semibold text-amber-700 dark:text-amber-400')

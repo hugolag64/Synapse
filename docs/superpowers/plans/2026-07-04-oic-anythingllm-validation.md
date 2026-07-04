@@ -1281,6 +1281,8 @@ git commit -m "feat: add OIC quiz evaluation dialog"
 
 Pas de test automatisé (voir Task 9). Vérification manuelle en Task 11.
 
+**Note :** ce fichier a dérivé par rapport à une version antérieure explorée pendant le brainstorming — `open_lisa_dialog` ne prend plus de paramètre `refresh_fn` (signature actuelle : `open_lisa_dialog(course) -> None`, ligne 16), et il n'y a plus de `dialog.on("hide", ...)`. Les lignes ci-dessous sont vérifiées contre le fichier réel du worktree au moment de l'écriture de cette révision du plan — si elles ont encore bougé d'ici l'exécution de cette tâche, relire le fichier avant d'appliquer les patches littéralement.
+
 - [ ] **Step 1: Importer `open_oic_eval_dialog`**
 
 Dans `frontend/components/lisa_dialog.py`, modifier l'import en ligne 13 :
@@ -1292,7 +1294,7 @@ from frontend.components.oic_eval_dialog import open_oic_eval_dialog
 
 - [ ] **Step 2: Ajouter le helper de badge de niveau**
 
-Insérer juste avant `def _render_oics(oics: list) -> None:` (ligne 111) :
+Insérer juste avant `def _render_oics(oics: list) -> None:` (ligne 106) :
 
 ```python
     def _level_badge(level: int) -> tuple[str, str]:
@@ -1307,9 +1309,19 @@ Insérer juste avant `def _render_oics(oics: list) -> None:` (ligne 111) :
 
 ```
 
-- [ ] **Step 3: Ajouter le bouton "Évaluer" et le badge dans la ligne OIC**
+- [ ] **Step 3: Ajouter un helper de rafraîchissement local après évaluation**
 
-Remplacer (lignes 204-206) :
+Dans `_render_oics`, juste après la fonction `_toggle` existante (elle se termine par `_render_oics(updated)`, autour de la ligne 174), ajouter une fonction sœur qui recharge depuis SQLite sans re-scraper LiSA (l'évaluation ne change que `oic_level`, une donnée locale) :
+
+```python
+                            async def _refresh_after_eval(cid=course_id):
+                                updated = (await asyncio.to_thread(ls.get_lisa_oic, cid)) or []
+                                _render_oics(updated)
+```
+
+- [ ] **Step 4: Ajouter le bouton "Évaluer" et le badge dans la ligne OIC**
+
+Remplacer (lignes 199-201) :
 
 ```python
                                     ui.icon(icon_name).classes(
@@ -1336,19 +1348,19 @@ par :
                                             "click.stop",
                                             lambda o=oic: open_oic_eval_dialog(
                                                 o, course,
-                                                refresh_fn=lambda: asyncio.ensure_future(_load(force=True)),
+                                                refresh_fn=lambda: asyncio.ensure_future(_refresh_after_eval()),
                                             ),
                                         ).tooltip("Évaluer cet OIC")
 ```
 
-**Note de vérification manuelle (Task 11) :** le modificateur `.on("click.stop", ...)` doit empêcher le clic sur le bouton de déclencher aussi le toggle `mastered` du `div` parent (ligne 186, `.on("click", ...)`). Si le clic sur "Évaluer" bascule quand même la case à cocher, remplacer `"click.stop"` par un événement personnalisé ou déplacer le bouton hors du `div` cliquable parent.
+**Note de vérification manuelle (Task 11) :** le modificateur `.on("click.stop", ...)` doit empêcher le clic sur le bouton de déclencher aussi le toggle `mastered` du `div` parent (ligne 181, `.on("click", ...)`). Si le clic sur "Évaluer" bascule quand même la case à cocher, remplacer `"click.stop"` par un événement personnalisé ou déplacer le bouton hors du `div` cliquable parent.
 
-- [ ] **Step 4: Vérifier la syntaxe**
+- [ ] **Step 5: Vérifier la syntaxe**
 
 Run: `python -c "import ast; ast.parse(open('frontend/components/lisa_dialog.py', encoding='utf-8').read())"`
 Expected: pas d'exception (syntaxe valide)
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add frontend/components/lisa_dialog.py

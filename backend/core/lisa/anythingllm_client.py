@@ -63,21 +63,25 @@ def _normalize(name: str) -> str:
 def resolve_workspace_slug(college_name: str) -> str:
     """
     Résout le slug AnythingLLM correspondant à un collège Synapse.
+    Compare à la fois le nom brut Notion et son équivalent COLLEGE_MAPPING
+    (les workspaces peuvent être nommés selon l'une ou l'autre convention).
     Mise en cache mémoire après premier succès. Lève WorkspaceNotFoundError si aucun match.
     """
     if college_name in _workspace_slug_cache:
         return _workspace_slug_cache[college_name]
 
     from fuzzywuzzy import fuzz
+    from backend.core.obsidian.service import COLLEGE_MAPPING
 
-    target = _normalize(college_name)
+    candidate_names = {college_name, COLLEGE_MAPPING.get(college_name, college_name)}
+    targets = [_normalize(name) for name in candidate_names]
     workspaces = list_workspaces()
 
     best_slug = None
     best_score = -1
     for ws in workspaces:
         candidate = _normalize(ws.get("name", ""))
-        score = fuzz.token_sort_ratio(target, candidate)
+        score = max(fuzz.token_sort_ratio(target, candidate) for target in targets)
         if score > best_score:
             best_score = score
             best_slug = ws.get("slug")

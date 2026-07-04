@@ -88,3 +88,9 @@ class TestResolveWorkspaceSlug:
         with patch("requests.get", return_value=_mock_response(200, payload)):
             with pytest.raises(client.WorkspaceNotFoundError):
                 client.resolve_workspace_slug("Cardiovasculaire ❤️")
+
+    def test_matches_via_college_mapping_when_names_diverge(self):
+        payload = {"workspaces": [{"id": 1, "name": "Cancérologie", "slug": "cancero-slug"}]}
+        with patch("requests.get", return_value=_mock_response(200, payload)):
+            slug = client.resolve_workspace_slug("Oncologie 🧬")
+        assert slug == "cancero-slug"

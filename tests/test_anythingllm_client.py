@@ -94,3 +94,25 @@ class TestResolveWorkspaceSlug:
         with patch("requests.get", return_value=_mock_response(200, payload)):
             slug = client.resolve_workspace_slug("Oncologie 🧬")
         assert slug == "cancero-slug"
+
+
+class TestQueryWorkspace:
+    def test_returns_text_response(self):
+        payload = {"id": "abc", "type": "textResponse", "textResponse": "Voici la réponse", "error": None}
+        with patch("requests.post", return_value=_mock_response(200, payload)) as mock_post:
+            result = client.query_workspace("cardio-slug", "Quelle question ?")
+        assert result == "Voici la réponse"
+        _, kwargs = mock_post.call_args
+        assert kwargs["json"] == {"message": "Quelle question ?", "mode": "query"}
+
+    def test_raises_on_connection_error(self):
+        import requests
+        with patch("requests.post", side_effect=requests.ConnectionError("refused")):
+            with pytest.raises(client.AnythingLLMUnavailableError):
+                client.query_workspace("cardio-slug", "msg")
+
+    def test_raises_when_api_returns_error_field(self):
+        payload = {"textResponse": None, "error": "workspace not found"}
+        with patch("requests.post", return_value=_mock_response(200, payload)):
+            with pytest.raises(client.AnythingLLMUnavailableError):
+                client.query_workspace("cardio-slug", "msg")

@@ -51,6 +51,35 @@ def list_workspaces() -> list[dict]:
     return data.get("workspaces", [])
 
 
+def query_workspace(slug: str, message: str) -> str:
+    """
+    POST /api/v1/workspace/{slug}/chat, mode='query'. Timeout 45s.
+    Retourne le texte brut de la réponse (champ 'textResponse').
+    """
+    if not HAS_REQUESTS:
+        raise AnythingLLMUnavailableError("Le paquet 'requests' n'est pas installé")
+    url = f"{_settings.anythingllm_url.rstrip('/')}/api/v1/workspace/{slug}/chat"
+    try:
+        resp = _requests.post(
+            url,
+            headers=_headers(),
+            json={"message": message, "mode": "query"},
+            timeout=45,
+        )
+        resp.raise_for_status()
+    except Exception as exc:
+        raise AnythingLLMUnavailableError(
+            f"AnythingLLM inaccessible sur {_settings.anythingllm_url} : {exc}"
+        ) from exc
+    try:
+        data = resp.json()
+    except Exception as exc:
+        raise AnythingLLMUnavailableError(f"Réponse AnythingLLM non-JSON : {exc}") from exc
+    if data.get("error"):
+        raise AnythingLLMUnavailableError(f"Erreur AnythingLLM : {data['error']}")
+    return data.get("textResponse", "")
+
+
 def _normalize(name: str) -> str:
     """Minuscule, sans accents ni emoji/symboles — ne garde que lettres/chiffres/espaces."""
     import re

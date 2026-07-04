@@ -88,7 +88,7 @@ def _render_routine_block(
                 ui.label('ROUTINE').classes(
                     'text-xs font-bold uppercase tracking-widest text-slate-400 mb-1')
                 with ui.element('div').classes(
-                        'grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2'):
+                        'grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-1'):
                     for name in items:
                         checked = checks.get(name, False)
 
@@ -265,7 +265,7 @@ def _render_course_item(
           'bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700')
 
     with ui.row().classes(
-            f'w-full items-center justify-between p-3 rounded-xl {bg} '
+            f'w-full items-center justify-between p-2.5 rounded-xl {bg} '
             f'transition-all duration-300'):
         with ui.column().classes('gap-0.5 flex-1 min-w-0'):
             title_cls = ('text-sm font-medium text-slate-400 line-through'
@@ -426,11 +426,10 @@ async def todo_page():
 
                 btn_next = ui.button(icon='chevron_right').props('flat round dense')
 
-            with ui.row().classes('w-full items-center gap-3 mt-2 mb-0'):
-                progress_bar = ui.linear_progress(value=0, show_value=False).classes(
-                    'h-2 rounded-full flex-1')
-                progress_label = ui.label('0%').classes(
-                    'text-sm font-bold text-slate-500 dark:text-slate-400 tabular-nums shrink-0 min-w-[3rem] text-right')
+            progress_bar   = ui.linear_progress(value=0, show_value=False).classes(
+                'h-1.5 rounded-full mt-2 mb-0')
+            progress_label = ui.label('0 / 0 · 0%').classes(
+                'text-xs text-slate-400 text-right mt-0.5')
 
         # ── Zone de contenu ────────────────────────────────────────────────────
         content = ui.column().classes('w-full px-4 py-5 gap-6')
@@ -440,22 +439,8 @@ async def todo_page():
             t = sum(b[0] for b in progress_state.values())
             d = sum(b[1] for b in progress_state.values())
             p = d / t if t > 0 else 0
-            pct = int(p * 100)
             progress_bar.set_value(p)
-            if pct >= 100:
-                progress_bar.props("color=green")
-                progress_label.set_text("✓ Journée complète !")
-                progress_label.classes(
-                    remove="text-slate-500 dark:text-slate-400",
-                    add="text-green-600 dark:text-green-400"
-                )
-            else:
-                progress_bar.props("color=primary")
-                progress_label.set_text(f"{pct}%")
-                progress_label.classes(
-                    remove="text-green-600 dark:text-green-400",
-                    add="text-slate-500 dark:text-slate-400"
-                )
+            progress_label.set_text(f"{d} / {t} · {int(p * 100)}%")
 
         def _update_header():
             today = datetime.date.today()

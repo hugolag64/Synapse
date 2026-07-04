@@ -684,7 +684,7 @@ async def todo_page():
         async def _load_carryover(date_obj: datetime.date):
             titles = await _get_yesterday_carryover(date_obj)
             carryover_holder[date_obj.isoformat()] = titles
-            if date_obj == state['date']:
+            if date_obj == state['date'] and not stats_container.is_deleted:
                 _refresh_stats()
 
         async def _render_day(date_obj: datetime.date):

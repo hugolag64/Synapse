@@ -1357,3 +1357,74 @@ body.body--dark .qcm-item-row:hover > div {
 .qcm-sort-header:hover {
   background: var(--s-bg-muted) !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   TODO — WEEK STRIP
+   ═══════════════════════════════════════════════════════════════ */
+
+.todo-week-strip {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.todo-day-pill {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 4px 8px;
+  border-radius: var(--s-r-lg);
+  border: 1px solid var(--s-border);
+  background: #FFFFFF;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+.todo-day-pill:hover {
+  border-color: #CBD5E1;
+  transform: translateY(-1px);
+}
+.todo-day-pill.active {
+  border-color: var(--s-primary-600);
+  background: var(--s-primary-50);
+}
+body.body--dark .todo-day-pill {
+  background: #111827;
+  border-color: #1E2D3D;
+}
+body.body--dark .todo-day-pill.active {
+  border-color: #93C5FD;
+  background: rgba(37,99,235,0.12);
+}
+
+.todo-day-pill-name {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--s-text-400);
+}
+.todo-day-pill.active .todo-day-pill-name { color: var(--s-primary-600); }
+body.body--dark .todo-day-pill.active .todo-day-pill-name { color: #93C5FD; }
+
+.todo-day-pill-num {
+  font-family: var(--s-font-body);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--s-text-900);
+}
+
+.todo-day-pill-bar {
+  height: 3px;
+  width: 100%;
+  border-radius: 99px;
+  background: var(--s-bg-muted);
+  overflow: hidden;
+}
+.todo-day-pill-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 400ms ease-out;
+}

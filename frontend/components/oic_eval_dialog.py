@@ -36,6 +36,7 @@ def open_oic_eval_dialog(oic, course, refresh_fn=None) -> None:
         "results": [],
         "records": [],
         "workspace_slug": None,
+        "level": oic["oic_level"] or 0,
     }
 
     with ui.dialog() as dialog, ui.card().classes("w-[600px] max-w-[95vw] p-4 rounded-2xl"):
@@ -135,10 +136,11 @@ def open_oic_eval_dialog(oic, course, refresh_fn=None) -> None:
         content_area.clear()
         session_score = evaluator.aggregate_session_score(state["results"])
         previous = [row["session_score"] for row in ls.get_oic_attempts(oic["id"], limit=2)]
-        old_level = oic["oic_level"] or 0
+        old_level = state["level"]
         new_level = evaluator.next_oic_level(old_level, session_score, previous)
         ls.save_oic_attempt(oic["id"], session_score, json.dumps(state["records"], ensure_ascii=False))
         ls.update_oic_level(oic["id"], new_level)
+        state["level"] = new_level
 
         with content_area:
             ui.label(f"Score global : {session_score}%").classes("text-lg font-bold")

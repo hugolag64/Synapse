@@ -151,9 +151,13 @@ def evaluate_open_answer(question: Question, student_response: str, workspace_sl
         parsed = _extract_json(raw)
         if isinstance(parsed, dict) and "verdict" in parsed and "score" in parsed:
             try:
+                verdict = parsed.get("verdict", "incorrect")
+                if verdict not in ("correct", "partial", "incorrect"):
+                    verdict = "incorrect"
+                score = max(0, min(100, int(parsed.get("score", 0))))
                 return EvalResult(
-                    verdict=parsed.get("verdict", "incorrect"),
-                    score=int(parsed.get("score", 0)),
+                    verdict=verdict,
+                    score=score,
                     elements_corrects=parsed.get("elements_corrects") or [],
                     elements_manquants=parsed.get("elements_manquants") or [],
                     explication=parsed.get("explication", ""),

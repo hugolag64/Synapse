@@ -158,3 +158,24 @@ class TestEvaluateOpenAnswer:
         assert result.verdict == "incorrect"
         assert result.score == 0
         assert result.explication == "Erreur de parsing IA"
+
+    def test_normalizes_unknown_verdict_to_incorrect(self):
+        raw = '{"verdict": "acquis", "score": 70}'
+        q = evaluator.Question(type="ouverte", enonce="Q?", criteres=["a"])
+        with patch("backend.core.lisa.evaluator._client.query_workspace", return_value=raw):
+            result = evaluator.evaluate_open_answer(q, "réponse", "slug")
+        assert result.verdict == "incorrect"
+
+    def test_clamps_score_above_100(self):
+        raw = '{"verdict": "correct", "score": 150}'
+        q = evaluator.Question(type="ouverte", enonce="Q?", criteres=["a"])
+        with patch("backend.core.lisa.evaluator._client.query_workspace", return_value=raw):
+            result = evaluator.evaluate_open_answer(q, "réponse", "slug")
+        assert result.score == 100
+
+    def test_clamps_score_below_0(self):
+        raw = '{"verdict": "incorrect", "score": -20}'
+        q = evaluator.Question(type="ouverte", enonce="Q?", criteres=["a"])
+        with patch("backend.core.lisa.evaluator._client.query_workspace", return_value=raw):
+            result = evaluator.evaluate_open_answer(q, "réponse", "slug")
+        assert result.score == 0

@@ -2551,6 +2551,9 @@ def upsert_lisa_oic(course_id: str, oics: list[dict]) -> None:
     today = datetime.date.today().isoformat()
     with _conn() as con:
         # Sauvegarder les mastered et oic_level actuels
+        # (note : les oic_attempts liés sont supprimés en cascade lors du DELETE
+        #  ci-dessous — c'est voulu, cf. migration _migrate_oic_anythingllm_validation.
+        #  Ne pas retirer ON DELETE CASCADE sans repenser ce flux.)
         saved_state: dict[str, sqlite3.Row] = {
             row["oic_code"]: row
             for row in con.execute(

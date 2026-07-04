@@ -315,15 +315,16 @@ def _render_course_item(
     is_reviewed: bool,
     source_type: str,
     task,
-    progress_state: dict,
-    refresh_progress,
+    cache: dict,
+    date_str: str,
+    on_update,
 ) -> None:
     bg = ('bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
           if is_reviewed else
           'bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700')
 
     with ui.row().classes(
-            f'w-full items-center justify-between p-2.5 rounded-xl {bg} '
+            f'w-full items-center justify-between p-3 rounded-xl {bg} '
             f'transition-all duration-300'):
         with ui.column().classes('gap-0.5 flex-1 min-w-0'):
             title_cls = ('text-sm font-medium text-slate-400 line-through'
@@ -346,10 +347,26 @@ def _render_course_item(
                     else:
                         await notion_service.add_course_to_daily_reviewed(task.id, course.title)
                 course.nb_lectures += 1
-                total = progress_state['ajout'][0]
-                progress_state['ajout'][1] = min(total, progress_state['ajout'][1] + 1)
-                refresh_progress()
-                ui.notify('Validé !', type='positive')
+                summary = cache[date_str]
+                summary.ajoute_done = min(summary.ajoute_total, summary.ajoute_done + 1)
+                on_update()
+
+                async def _undo():
+                    course.nb_lectures = max(0, course.nb_lectures - 1)
+                    if task:
+                        if s == 'notion_manual':
+                            await notion_service.unmark_manual_revision_done(task.id, course.title)
+                        else:
+                            await notion_service.remove_course_from_daily_reviewed(task.id, course.title)
+                    summary.ajoute_done = max(0, summary.ajoute_done - 1)
+                    on_update()
+                    ui.notify('Validation annulée', type='info')
+
+                ui.notify(
+                    'Validé !', type='positive', timeout=5000,
+                    actions=[{'label': 'ANNULER', 'color': 'white',
+                              'handler': lambda: asyncio.create_task(_undo())}],
+                )
 
             ui.button(icon='check', on_click=_validate).props('flat round dense').classes(
                 'text-green-500').tooltip('Marquer comme révisé')

@@ -572,3 +572,60 @@ class TestUpsertPreservesOicLevelAndAttempts:
         ls.save_oic_attempt(row["id"], 90, "[]")
         # Ne doit pas lever sqlite3.IntegrityError malgré la contrainte FK
         ls.upsert_lisa_oic("course-3", [{"oic_code": "OIC-200", "intitule": "B", "rang": "B"}])
+
+
+class TestMigrationUpgradesLegacyOicAttemptsSchema:
+    def test_rebuilds_table_without_cascade_to_add_cascade(self):
+        con = ls._conn()
+        con.execute("DROP TABLE IF EXISTS oic_attempts")
+        con.execute("""
+            CREATE TABLE oic_attempts (
+                id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                oic_id         INTEGER NOT NULL REFERENCES lisa_oic(id),
+                session_score  INTEGER NOT NULL,
+                questions_json TEXT    NOT NULL,
+                attempted_at   TEXT    NOT NULL
+            )
+        """)
+        # oic_id doit référencer une ligne lisa_oic existante : PRAGMA foreign_keys=ON
+        # est actif sur cette connexion, donc l'INSERT échouerait sinon avec ou sans
+        # cascade (la contrainte FK exige l'existence de la ligne référencée à l'écriture,
+        # indépendamment du comportement ON DELETE).
+        ls.upsert_lisa_oic("course-legacy-fk", [{"oic_code": "OIC-999", "intitule": "X", "rang": "A"}])
+        oic_row = con.execute(
+            "SELECT id FROM lisa_oic WHERE course_id = ?", ("course-legacy-fk",)
+        ).fetchone()
+        con.execute(
+            "INSERT INTO oic_attempts (id, oic_id, session_score, questions_json, attempted_at) "
+            "VALUES (1, ?, 50, '[]', '2026-01-01')",
+            (oic_row["id"],),
+        )
+        con.commit()
+
+        ls._migrate_oic_anythingllm_validation()
+
+        fk_rows = con.execute("PRAGMA foreign_key_list(oic_attempts)").fetchall()
+        assert any((row["on_delete"] or "").upper() == "CASCADE" for row in fk_rows)
+        preserved = con.execute("SELECT * FROM oic_attempts WHERE id = 1").fetchone()
+        assert preserved["session_score"] == 50
+
+    def test_cascade_active_after_legacy_upgrade(self):
+        con = ls._conn()
+        con.execute("DROP TABLE IF EXISTS oic_attempts")
+        con.execute("""
+            CREATE TABLE oic_attempts (
+                id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                oic_id         INTEGER NOT NULL REFERENCES lisa_oic(id),
+                session_score  INTEGER NOT NULL,
+                questions_json TEXT    NOT NULL,
+                attempted_at   TEXT    NOT NULL
+            )
+        """)
+        con.commit()
+        ls._migrate_oic_anythingllm_validation()
+
+        ls.upsert_lisa_oic("course-legacy", [{"oic_code": "OIC-999", "intitule": "X", "rang": "A"}])
+        row = con.execute("SELECT id FROM lisa_oic WHERE course_id = ?", ("course-legacy",)).fetchone()
+        ls.save_oic_attempt(row["id"], 80, "[]")
+        # Ne doit pas lever malgré le schéma initialement legacy (avant migration)
+        ls.upsert_lisa_oic("course-legacy", [{"oic_code": "OIC-999", "intitule": "X", "rang": "A"}])

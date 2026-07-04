@@ -2440,8 +2440,9 @@ def _migrate_routine_tables() -> None:
 
 def _migrate_oic_anythingllm_validation() -> None:
     """
-    Migration douce : ajoute oic_level à lisa_oic et crée oic_attempts.
-    Idempotente — ne touche pas aux données existantes.
+    Migration douce : ajoute oic_level à lisa_oic et crée/met à niveau oic_attempts.
+    Idempotente — ne touche pas aux données existantes (sauf reconstruction de table
+    nécessaire pour ajouter ON DELETE CASCADE à une table déjà créée sans cascade).
     """
     with _conn() as con:
         existing = {
@@ -2450,16 +2451,45 @@ def _migrate_oic_anythingllm_validation() -> None:
         }
         if "oic_level" not in existing:
             con.execute("ALTER TABLE lisa_oic ADD COLUMN oic_level INTEGER NOT NULL DEFAULT 0")
-        con.executescript("""
-            CREATE TABLE IF NOT EXISTS oic_attempts (
-                id             INTEGER PRIMARY KEY AUTOINCREMENT,
-                oic_id         INTEGER NOT NULL REFERENCES lisa_oic(id) ON DELETE CASCADE,
-                session_score  INTEGER NOT NULL,
-                questions_json TEXT    NOT NULL,
-                attempted_at   TEXT    NOT NULL
-            );
-            CREATE INDEX IF NOT EXISTS idx_oic_attempts_oic ON oic_attempts(oic_id);
-        """)
+
+        table_exists = con.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='oic_attempts'"
+        ).fetchone() is not None
+
+        has_cascade = False
+        if table_exists:
+            fk_rows = con.execute("PRAGMA foreign_key_list(oic_attempts)").fetchall()
+            has_cascade = any(
+                row["table"] == "lisa_oic" and (row["on_delete"] or "").upper() == "CASCADE"
+                for row in fk_rows
+            )
+
+        if not table_exists:
+            con.executescript("""
+                CREATE TABLE oic_attempts (
+                    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                    oic_id         INTEGER NOT NULL REFERENCES lisa_oic(id) ON DELETE CASCADE,
+                    session_score  INTEGER NOT NULL,
+                    questions_json TEXT    NOT NULL,
+                    attempted_at   TEXT    NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_oic_attempts_oic ON oic_attempts(oic_id);
+            """)
+        elif not has_cascade:
+            con.executescript("""
+                CREATE TABLE oic_attempts_new (
+                    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                    oic_id         INTEGER NOT NULL REFERENCES lisa_oic(id) ON DELETE CASCADE,
+                    session_score  INTEGER NOT NULL,
+                    questions_json TEXT    NOT NULL,
+                    attempted_at   TEXT    NOT NULL
+                );
+                INSERT INTO oic_attempts_new (id, oic_id, session_score, questions_json, attempted_at)
+                    SELECT id, oic_id, session_score, questions_json, attempted_at FROM oic_attempts;
+                DROP TABLE oic_attempts;
+                ALTER TABLE oic_attempts_new RENAME TO oic_attempts;
+                CREATE INDEX IF NOT EXISTS idx_oic_attempts_oic ON oic_attempts(oic_id);
+            """)
 
 
 # ── API publique — Routine quotidienne ───────────────────────────────────────

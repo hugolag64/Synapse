@@ -1,7 +1,7 @@
 # Spec — Validation active des OIC LiSA par IA locale
 
 **Date :** 2026-06-23  
-**Statut :** validé  
+**Statut :** remplacé par `2026-07-04-oic-anythingllm-validation-design.md` (jamais implémenté — remplacé par une approche AnythingLLM/RAG avec support QCM)  
 **Scope v1 :** évaluation IA seule (répétition espacée en v2)
 
 ---

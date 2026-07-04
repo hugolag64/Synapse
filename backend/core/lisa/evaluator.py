@@ -66,3 +66,60 @@ def next_oic_level(current_level: int, session_score: int, previous_scores: list
             provisional = 4
 
     return provisional
+
+
+def _extract_json(raw: str):
+    try:
+        return json.loads(raw)
+    except Exception:
+        pass
+    match = re.search(r"[\[{].*[\]}]", raw, re.DOTALL)
+    if match:
+        try:
+            return json.loads(match.group(0))
+        except Exception:
+            pass
+    return None
+
+
+def generate_questions(course_title: str, intitule: str, rang: str, workspace_slug: str) -> list[Question]:
+    """
+    Appel query #1. Demande 3-5 questions mixtes QCM/ouvertes en JSON strict.
+    Retry une fois si JSON invalide. Dégradé : une question ouverte générique si échec double.
+    """
+    prompt = (
+        "Tu es un enseignant en médecine française (EDN/ECN).\n"
+        f'Cours : "{course_title}"\n'
+        f'OIC (Objectif Intermédiaire de Connaissance) : "{intitule}"\n'
+        f"Rang : {rang}\n\n"
+        "En te basant sur les documents de ce workspace concernant ce cours,\n"
+        "génère entre 3 et 5 questions pour tester la maîtrise de cet OIC,\n"
+        "en mélangeant QCM et questions ouvertes.\n\n"
+        "Réponds UNIQUEMENT avec ce JSON (pas de texte autour) :\n"
+        "[\n"
+        '  {"type": "qcm", "enonce": "...", "options": ["...", "...", "..."], "correct_index": 0, "explication": "..."},\n'
+        '  {"type": "ouverte", "enonce": "...", "criteres": ["critère 1", "critère 2"]}\n'
+        "]"
+    )
+
+    for _attempt in range(2):
+        raw = _client.query_workspace(workspace_slug, prompt)
+        parsed = _extract_json(raw)
+        if isinstance(parsed, list) and parsed:
+            questions = []
+            for item in parsed:
+                q_type = item.get("type")
+                if q_type not in ("qcm", "ouverte"):
+                    continue
+                questions.append(Question(
+                    type=q_type,
+                    enonce=item.get("enonce", ""),
+                    options=item.get("options"),
+                    correct_index=item.get("correct_index"),
+                    explication=item.get("explication"),
+                    criteres=item.get("criteres"),
+                ))
+            if questions:
+                return questions
+
+    return [Question(type="ouverte", enonce=f"Expliquez : {intitule}", criteres=[f"Connaître {intitule}"])]

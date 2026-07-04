@@ -83,3 +83,39 @@ class TestNextOicLevel:
 
     def test_drops_from_five_on_low_score(self):
         assert evaluator.next_oic_level(5, 30, [90, 88]) == 4
+
+
+class TestGenerateQuestions:
+    def test_parses_valid_json_response(self):
+        raw = (
+            '[{"type": "qcm", "enonce": "Q1?", "options": ["a", "b"], "correct_index": 0, "explication": "exp"},'
+            '{"type": "ouverte", "enonce": "Q2?", "criteres": ["c1", "c2"]}]'
+        )
+        with patch("backend.core.lisa.evaluator._client.query_workspace", return_value=raw):
+            questions = evaluator.generate_questions("ITEM 1 - Cours", "Intitulé", "A", "slug")
+        assert len(questions) == 2
+        assert questions[0].type == "qcm"
+        assert questions[0].correct_index == 0
+        assert questions[1].type == "ouverte"
+        assert questions[1].criteres == ["c1", "c2"]
+
+    def test_extracts_json_surrounded_by_text(self):
+        raw = 'Voici le résultat :\n[{"type": "ouverte", "enonce": "Q?", "criteres": ["c"]}]\nMerci.'
+        with patch("backend.core.lisa.evaluator._client.query_workspace", return_value=raw):
+            questions = evaluator.generate_questions("Cours", "Intitulé", "A", "slug")
+        assert len(questions) == 1
+        assert questions[0].enonce == "Q?"
+
+    def test_retries_once_on_invalid_json_then_succeeds(self):
+        responses = ["pas du json", '[{"type": "ouverte", "enonce": "Q?", "criteres": ["c"]}]']
+        with patch("backend.core.lisa.evaluator._client.query_workspace", side_effect=responses) as mock_q:
+            questions = evaluator.generate_questions("Cours", "Intitulé", "A", "slug")
+        assert mock_q.call_count == 2
+        assert len(questions) == 1
+
+    def test_falls_back_to_generic_question_after_two_failures(self):
+        with patch("backend.core.lisa.evaluator._client.query_workspace", return_value="pas du json du tout"):
+            questions = evaluator.generate_questions("Cours", "Mon Intitulé", "A", "slug")
+        assert len(questions) == 1
+        assert questions[0].type == "ouverte"
+        assert "Mon Intitulé" in questions[0].enonce

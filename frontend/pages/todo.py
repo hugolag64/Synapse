@@ -635,77 +635,37 @@ def _render_hero_stats(
 
 async def todo_page():
     with frame("Suivi Quotidien"):
-        state          = {'date': datetime.date.today()}
-        # Chaque entrée = [total, done] — isolé par bloc pour éviter le double-comptage
-        # lors des re-renders partiels (ex: ajout d'une tâche libre)
-        progress_state = {'routine': [0, 0], 'ajout': [0, 0]}
+        state: dict = {'date': datetime.date.today()}
+        cache: dict = {}
+        carryover_holder: dict = {}
+        week = _week_dates(datetime.date.today())
 
-        # ── Header sticky ──────────────────────────────────────────────────────
-        with ui.element('div').style(
-            'position: sticky; top: 0; z-index: 10;'
-        ).classes(
-            'bg-white/90 dark:bg-slate-900/90 backdrop-blur-md '
-            'border-b border-slate-200 dark:border-slate-700 '
-            'px-4 pt-3 pb-2 w-full'
-        ):
-            with ui.row().classes('w-full items-center gap-1'):
-                btn_prev = ui.button(icon='chevron_left').props('flat round dense')
+        # Pré-remplit le cache avec la routine (instantané, local) pour les 7 jours
+        # de la strip, avant le premier rendu — sans ça, les pastilles autres que
+        # "aujourd'hui" resteraient vides jusqu'à ce que _load_week_ajoute les atteigne
+        # séquentiellement (spec section 3 : la routine doit être immédiate pour les 7 jours).
+        for _d in week:
+            cache[_d.isoformat()] = _get_routine_summary(_d)
 
-                with ui.row().classes('items-center gap-1 flex-1 justify-center'):
-                    btn_hier = ui.button('Hier').props('flat dense size=sm rounded')
-                    btn_auj  = ui.button("Auj.").props('flat dense size=sm rounded')
-                    btn_dem  = ui.button('Demain').props('flat dense size=sm rounded')
+        # ── Hero (sticky) ───────────────────────────────────────────────────────
+        with ui.element('div').classes(
+                'synapse-hero flex-col gap-3 items-stretch w-full'
+        ).style('position: sticky; top: 0; z-index: 10;'):
+            nav_container   = ui.column().classes('w-full gap-0')
+            stats_container = ui.row().classes('w-full items-center gap-4')
 
-                date_btn = ui.button('').props('flat dense').classes(
-                    'font-semibold text-slate-700 dark:text-slate-100 min-w-[190px] text-sm')
-
-                btn_next = ui.button(icon='chevron_right').props('flat round dense')
-
-            progress_bar   = ui.linear_progress(value=0, show_value=False).classes(
-                'h-1.5 rounded-full mt-2 mb-0')
-            progress_label = ui.label('0 / 0 · 0%').classes(
-                'text-xs text-slate-400 text-right mt-0.5')
+        # ── Strip 7 jours ──────────────────────────────────────────────────────
+        strip_container = ui.row().classes('w-full mt-3')
 
         # ── Zone de contenu ────────────────────────────────────────────────────
         content = ui.column().classes('w-full px-4 py-5 gap-6')
 
         # ── Helpers ────────────────────────────────────────────────────────────
-        def _refresh_progress():
-            t = sum(b[0] for b in progress_state.values())
-            d = sum(b[1] for b in progress_state.values())
-            p = d / t if t > 0 else 0
-            progress_bar.set_value(p)
-            progress_label.set_text(f"{d} / {t} · {int(p * 100)}%")
+        def _refresh_stats():
+            _render_hero_stats(stats_container, state, cache, carryover_holder)
 
-        def _update_header():
-            today = datetime.date.today()
-            d     = state['date']
-            date_btn.set_text(_fmt_date(d))
-            for btn, delta in [(btn_hier, -1), (btn_auj, 0), (btn_dem, 1)]:
-                if d == today + datetime.timedelta(days=delta):
-                    btn.props(remove='flat').props('unelevated color=primary size=sm rounded')
-                else:
-                    btn.props(remove='unelevated color=primary').props('flat size=sm rounded')
-
-        async def _render_day(date_obj: datetime.date):
-            state['date'] = date_obj
-            for k in progress_state:
-                progress_state[k] = [0, 0]
-            _update_header()
-            _refresh_progress()
-            await _render_content(content, date_obj, progress_state, _refresh_progress)
-
-        # ── Bindings ───────────────────────────────────────────────────────────
-        btn_prev.on('click', lambda: asyncio.create_task(
-            _render_day(state['date'] - datetime.timedelta(days=1))))
-        btn_next.on('click', lambda: asyncio.create_task(
-            _render_day(state['date'] + datetime.timedelta(days=1))))
-        btn_hier.on('click', lambda: asyncio.create_task(
-            _render_day(datetime.date.today() - datetime.timedelta(days=1))))
-        btn_auj.on('click',  lambda: asyncio.create_task(
-            _render_day(datetime.date.today())))
-        btn_dem.on('click',  lambda: asyncio.create_task(
-            _render_day(datetime.date.today() + datetime.timedelta(days=1))))
+        def _draw_strip():
+            _render_week_strip(strip_container, week, state['date'], cache, _render_day)
 
         def _open_date_picker():
             with ui.dialog() as dlg, ui.card().classes('items-center gap-3 p-4'):
@@ -717,8 +677,34 @@ async def todo_page():
                 ui.button('OK', on_click=_confirm).props('unelevated color=primary rounded')
             dlg.open()
 
-        date_btn.on('click', _open_date_picker)
+        async def _load_carryover(date_obj: datetime.date):
+            titles = await _get_yesterday_carryover(date_obj)
+            carryover_holder[date_obj.isoformat()] = titles
+            if date_obj == state['date']:
+                _refresh_stats()
 
-        _update_header()
+        async def _render_day(date_obj: datetime.date):
+            state['date'] = date_obj
+
+            nav_refs = _render_hero_nav(nav_container, state)
+            _wire_nav_handlers(nav_refs, _render_day, state, _open_date_picker)
+            _update_header(nav_refs, state)
+
+            # Rafraîchit la routine dans le cache AVANT le premier affichage des stats/strip,
+            # sinon la ligne hero et la strip liraient un _DaySummary manquant ou périmé
+            # (celui d'une date jamais visitée, ou d'un ancien jour) pendant l'instant
+            # qui précède la résolution de _render_content.
+            _refresh_routine_in_cache(date_obj, cache)
+            _refresh_stats()
+            _draw_strip()
+
+            asyncio.create_task(_load_carryover(date_obj))
+            await _render_content(content, date_obj, cache, _refresh_stats)
+            _refresh_stats()
+            _draw_strip()
+
+        # ── Démarrage ──────────────────────────────────────────────────────────
         ui.timer(0.1, lambda: asyncio.create_task(
             _render_day(datetime.date.today())), once=True)
+        ui.timer(0.5, lambda: asyncio.create_task(
+            _load_week_ajoute(week, cache, _draw_strip)), once=True)

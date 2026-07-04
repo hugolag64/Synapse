@@ -123,3 +123,40 @@ def generate_questions(course_title: str, intitule: str, rang: str, workspace_sl
                 return questions
 
     return [Question(type="ouverte", enonce=f"Expliquez : {intitule}", criteres=[f"Connaître {intitule}"])]
+
+
+def evaluate_open_answer(question: Question, student_response: str, workspace_slug: str) -> EvalResult:
+    """Appel query #2, un par question ouverte répondue. Retry une fois si JSON invalide."""
+    criteres = question.criteres or []
+    prompt = (
+        "Tu es un correcteur médical pour l'EDN (Examen Classant National).\n"
+        "Base-toi sur les documents de ce workspace pour vérifier l'exactitude.\n\n"
+        f'Question : "{question.enonce}"\n'
+        f"Critères attendus : {json.dumps(criteres, ensure_ascii=False)}\n"
+        f'Réponse de l\'étudiant : "{student_response}"\n\n'
+        "Évalue si la réponse couvre les critères attendus.\n"
+        "Réponds UNIQUEMENT avec ce JSON (pas de texte autour) :\n"
+        "{\n"
+        '  "verdict": "correct" | "partial" | "incorrect",\n'
+        '  "score": <entier 0-100>,\n'
+        '  "elements_corrects": ["..."],\n'
+        '  "elements_manquants": ["..."],\n'
+        '  "explication": "<phrase courte>",\n'
+        '  "rappel_cours": "<rappel essentiel en 1-3 phrases>"\n'
+        "}"
+    )
+
+    for _attempt in range(2):
+        raw = _client.query_workspace(workspace_slug, prompt)
+        parsed = _extract_json(raw)
+        if isinstance(parsed, dict) and "verdict" in parsed and "score" in parsed:
+            return EvalResult(
+                verdict=parsed.get("verdict", "incorrect"),
+                score=int(parsed.get("score", 0)),
+                elements_corrects=parsed.get("elements_corrects", []),
+                elements_manquants=parsed.get("elements_manquants", []),
+                explication=parsed.get("explication", ""),
+                rappel_cours=parsed.get("rappel_cours", ""),
+            )
+
+    return EvalResult(verdict="incorrect", score=0, explication="Erreur de parsing IA")

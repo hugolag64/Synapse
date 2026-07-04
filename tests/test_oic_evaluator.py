@@ -119,3 +119,32 @@ class TestGenerateQuestions:
         assert len(questions) == 1
         assert questions[0].type == "ouverte"
         assert "Mon Intitulé" in questions[0].enonce
+
+
+class TestEvaluateOpenAnswer:
+    def test_parses_valid_json_response(self):
+        raw = (
+            '{"verdict": "partial", "score": 65, "elements_corrects": ["a"], '
+            '"elements_manquants": ["b"], "explication": "exp", "rappel_cours": "rappel"}'
+        )
+        q = evaluator.Question(type="ouverte", enonce="Q?", criteres=["a", "b"])
+        with patch("backend.core.lisa.evaluator._client.query_workspace", return_value=raw):
+            result = evaluator.evaluate_open_answer(q, "ma réponse", "slug")
+        assert result.verdict == "partial"
+        assert result.score == 65
+        assert result.elements_manquants == ["b"]
+
+    def test_retries_once_on_invalid_json_then_succeeds(self):
+        responses = ["texte invalide", '{"verdict": "correct", "score": 90}']
+        q = evaluator.Question(type="ouverte", enonce="Q?", criteres=["a"])
+        with patch("backend.core.lisa.evaluator._client.query_workspace", side_effect=responses) as mock_q:
+            result = evaluator.evaluate_open_answer(q, "réponse", "slug")
+        assert mock_q.call_count == 2
+        assert result.verdict == "correct"
+
+    def test_falls_back_to_incorrect_after_two_failures(self):
+        q = evaluator.Question(type="ouverte", enonce="Q?", criteres=["a"])
+        with patch("backend.core.lisa.evaluator._client.query_workspace", return_value="pas du json"):
+            result = evaluator.evaluate_open_answer(q, "réponse", "slug")
+        assert result.verdict == "incorrect"
+        assert result.score == 0

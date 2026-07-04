@@ -419,6 +419,51 @@ def settings_page():
 
                     ui.button('Sauvegarder cookie', icon='save', on_click=_save_cookie_manual).props('outline color=teal size=sm rounded')
 
+    # --- ANYTHINGLLM ---
+    with ui.expansion('AnythingLLM', icon='smart_toy').classes(
+        'w-full rounded-xl border border-indigo-200 dark:border-indigo-800 mb-3 shadow-sm'
+    ).props('header-class="font-semibold text-indigo-700 dark:text-indigo-300"'):
+        with ui.column().classes('p-4 w-full gap-4'):
+            with ui.row().classes('items-start gap-2 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800'):
+                ui.icon('auto_awesome', color='indigo').classes('text-lg shrink-0 mt-0.5')
+                with ui.column().classes('gap-0.5'):
+                    ui.label('Évaluation des OIC par IA locale').classes('text-xs text-indigo-700 dark:text-indigo-300 font-semibold')
+                    ui.label('AnythingLLM doit tourner en local avec un workspace par collège.').classes('text-xs text-slate-500')
+            anythingllm_url_input = ui.input(
+                label='URL AnythingLLM',
+                value=_app_settings.anythingllm_url,
+                placeholder='http://localhost:3001',
+            ).props('outlined').classes('w-full')
+            anythingllm_key_input = ui.input(
+                label='Clé API',
+                value=_app_settings.anythingllm_api_key,
+                password=True, password_toggle_button=True,
+            ).props('outlined').classes('w-full')
+            anythingllm_status = ui.label('').classes('text-xs text-slate-400 -mt-1')
+
+            async def _test_anythingllm():
+                import asyncio
+                url = (anythingllm_url_input.value or '').strip()
+                key = (anythingllm_key_input.value or '').strip()
+                _write_env_var('ANYTHINGLLM_URL', url)
+                _write_env_var('ANYTHINGLLM_API_KEY', key)
+                _app_settings.anythingllm_url = url
+                _app_settings.anythingllm_api_key = key
+                anythingllm_status.set_text('Connexion en cours…')
+                anythingllm_status.classes('text-slate-400', remove='text-emerald-600 text-red-500')
+                try:
+                    from backend.core.lisa.anythingllm_client import list_workspaces, AnythingLLMUnavailableError
+                    workspaces = await asyncio.to_thread(list_workspaces)
+                    anythingllm_status.set_text(f'Connecté ✓ — {len(workspaces)} workspace(s) trouvé(s)')
+                    anythingllm_status.classes('text-emerald-600', remove='text-slate-400 text-red-500')
+                    ui.notify('Connexion AnythingLLM réussie ✓', type='positive', icon='smart_toy')
+                except AnythingLLMUnavailableError as exc:
+                    anythingllm_status.set_text(f'Échec : {exc}')
+                    anythingllm_status.classes('text-red-500', remove='text-slate-400 text-emerald-600')
+                    ui.notify(str(exc), type='negative')
+
+            ui.button('Tester la connexion', icon='wifi', on_click=_test_anythingllm).props('unelevated color=indigo size=sm rounded')
+
     # --- 5. IMPORT PDF → NOTION ---
     with ui.expansion('Import PDF → Notion', icon='picture_as_pdf').classes(
         'w-full rounded-xl border border-emerald-200 dark:border-emerald-800 mb-4 shadow-sm'

@@ -2453,7 +2453,7 @@ def _migrate_oic_anythingllm_validation() -> None:
         con.executescript("""
             CREATE TABLE IF NOT EXISTS oic_attempts (
                 id             INTEGER PRIMARY KEY AUTOINCREMENT,
-                oic_id         INTEGER NOT NULL REFERENCES lisa_oic(id),
+                oic_id         INTEGER NOT NULL REFERENCES lisa_oic(id) ON DELETE CASCADE,
                 session_score  INTEGER NOT NULL,
                 questions_json TEXT    NOT NULL,
                 attempted_at   TEXT    NOT NULL
@@ -2520,11 +2520,11 @@ def upsert_lisa_oic(course_id: str, oics: list[dict]) -> None:
     """
     today = datetime.date.today().isoformat()
     with _conn() as con:
-        # Sauvegarder les mastered actuels
-        saved_mastered: dict[str, int] = {
-            row["oic_code"]: row["mastered"]
+        # Sauvegarder les mastered et oic_level actuels
+        saved_state: dict[str, sqlite3.Row] = {
+            row["oic_code"]: row
             for row in con.execute(
-                "SELECT oic_code, mastered FROM lisa_oic WHERE course_id = ? AND oic_code IS NOT NULL",
+                "SELECT oic_code, mastered, oic_level FROM lisa_oic WHERE course_id = ? AND oic_code IS NOT NULL",
                 (course_id,),
             ).fetchall()
         }
@@ -2533,11 +2533,13 @@ def upsert_lisa_oic(course_id: str, oics: list[dict]) -> None:
         # Insérer les nouvelles
         for oic in oics:
             code = oic.get("oic_code") or ""
-            mastered = saved_mastered.get(code, 0) if code else 0
+            prev = saved_state.get(code) if code else None
+            mastered = prev["mastered"] if prev is not None else 0
+            oic_level = prev["oic_level"] if prev is not None else 0
             con.execute(
                 """INSERT INTO lisa_oic
-                   (course_id, oic_code, intitule, rang, rubrique, ordre, mastered, fetched_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                   (course_id, oic_code, intitule, rang, rubrique, ordre, mastered, oic_level, fetched_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     course_id,
                     code or None,
@@ -2546,6 +2548,7 @@ def upsert_lisa_oic(course_id: str, oics: list[dict]) -> None:
                     oic.get("rubrique", ""),
                     oic.get("ordre", 0),
                     mastered,
+                    oic_level,
                     today,
                 ),
             )

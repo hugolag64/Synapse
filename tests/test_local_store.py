@@ -555,3 +555,20 @@ class TestOicAttempts:
         ls.update_oic_level(oic_id, 3)
         row = ls._conn().execute("SELECT oic_level FROM lisa_oic WHERE id = ?", (oic_id,)).fetchone()
         assert row["oic_level"] == 3
+
+
+class TestUpsertPreservesOicLevelAndAttempts:
+    def test_oic_level_preserved_across_reupsert(self):
+        ls.upsert_lisa_oic("course-2", [{"oic_code": "OIC-100", "intitule": "A", "rang": "A"}])
+        row = ls._conn().execute("SELECT id FROM lisa_oic WHERE course_id = ?", ("course-2",)).fetchone()
+        ls.update_oic_level(row["id"], 4)
+        ls.upsert_lisa_oic("course-2", [{"oic_code": "OIC-100", "intitule": "A modifié", "rang": "A"}])
+        new_row = ls._conn().execute("SELECT oic_level FROM lisa_oic WHERE course_id = ?", ("course-2",)).fetchone()
+        assert new_row["oic_level"] == 4
+
+    def test_reupsert_does_not_crash_when_attempts_exist(self):
+        ls.upsert_lisa_oic("course-3", [{"oic_code": "OIC-200", "intitule": "B", "rang": "B"}])
+        row = ls._conn().execute("SELECT id FROM lisa_oic WHERE course_id = ?", ("course-3",)).fetchone()
+        ls.save_oic_attempt(row["id"], 90, "[]")
+        # Ne doit pas lever sqlite3.IntegrityError malgré la contrainte FK
+        ls.upsert_lisa_oic("course-3", [{"oic_code": "OIC-200", "intitule": "B", "rang": "B"}])

@@ -58,3 +58,33 @@ class TestListWorkspaces:
             client.list_workspaces()
         _, kwargs = mock_get.call_args
         assert kwargs["headers"]["Authorization"] == "Bearer secret-key"
+
+
+class TestResolveWorkspaceSlug:
+    def test_matches_by_normalized_name(self):
+        payload = {"workspaces": [
+            {"id": 1, "name": "Cardiovasculaire", "slug": "cardiovasculaire-abcd"},
+            {"id": 2, "name": "Dermatologie", "slug": "dermatologie-xyz"},
+        ]}
+        with patch("requests.get", return_value=_mock_response(200, payload)):
+            slug = client.resolve_workspace_slug("Cardiovasculaire ❤️")
+        assert slug == "cardiovasculaire-abcd"
+
+    def test_caches_result_after_first_resolution(self):
+        payload = {"workspaces": [{"id": 1, "name": "Cardiovasculaire", "slug": "cardio-slug"}]}
+        with patch("requests.get", return_value=_mock_response(200, payload)) as mock_get:
+            client.resolve_workspace_slug("Cardiovasculaire ❤️")
+            client.resolve_workspace_slug("Cardiovasculaire ❤️")
+        assert mock_get.call_count == 1
+
+    def test_raises_when_no_match_above_threshold(self):
+        payload = {"workspaces": [{"id": 1, "name": "Totalement autre chose", "slug": "autre"}]}
+        with patch("requests.get", return_value=_mock_response(200, payload)):
+            with pytest.raises(client.WorkspaceNotFoundError):
+                client.resolve_workspace_slug("Cardiovasculaire ❤️")
+
+    def test_raises_when_no_workspaces(self):
+        payload = {"workspaces": []}
+        with patch("requests.get", return_value=_mock_response(200, payload)):
+            with pytest.raises(client.WorkspaceNotFoundError):
+                client.resolve_workspace_slug("Cardiovasculaire ❤️")

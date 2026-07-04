@@ -51,6 +51,46 @@ def list_workspaces() -> list[dict]:
     return data.get("workspaces", [])
 
 
+def _normalize(name: str) -> str:
+    """Minuscule, sans accents ni emoji/symboles — ne garde que lettres/chiffres/espaces."""
+    import re
+    import unicodedata
+    decomposed = unicodedata.normalize("NFKD", name)
+    ascii_only = decomposed.encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"[^a-z0-9 ]", "", ascii_only.lower()).strip()
+
+
+def resolve_workspace_slug(college_name: str) -> str:
+    """
+    Résout le slug AnythingLLM correspondant à un collège Synapse.
+    Mise en cache mémoire après premier succès. Lève WorkspaceNotFoundError si aucun match.
+    """
+    if college_name in _workspace_slug_cache:
+        return _workspace_slug_cache[college_name]
+
+    from fuzzywuzzy import fuzz
+
+    target = _normalize(college_name)
+    workspaces = list_workspaces()
+
+    best_slug = None
+    best_score = -1
+    for ws in workspaces:
+        candidate = _normalize(ws.get("name", ""))
+        score = fuzz.token_sort_ratio(target, candidate)
+        if score > best_score:
+            best_score = score
+            best_slug = ws.get("slug")
+
+    if best_slug is None or best_score < WORKSPACE_MATCH_THRESHOLD:
+        raise WorkspaceNotFoundError(
+            f"Aucun workspace AnythingLLM ne correspond au collège « {college_name} »"
+        )
+
+    _workspace_slug_cache[college_name] = best_slug
+    return best_slug
+
+
 def clear_workspace_cache() -> None:
     """Vide le cache mémoire des slugs résolus (tests / rafraîchissement manuel)."""
     _workspace_slug_cache.clear()

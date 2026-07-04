@@ -19,6 +19,11 @@ class TestGradeQcm:
         assert result.verdict == "incorrect"
         assert result.score == 0
 
+    def test_none_explication_becomes_empty_string(self):
+        q = evaluator.Question(type="qcm", enonce="?", options=["a", "b"], correct_index=1, explication=None)
+        result = evaluator.grade_qcm(q, 1)
+        assert result.explication == ""
+
 
 class TestAggregateSessionScore:
     def test_averages_scores(self):
@@ -64,3 +69,17 @@ class TestNextOicLevel:
 
     def test_never_drops_below_zero(self):
         assert evaluator.next_oic_level(0, 20, []) == 0
+
+    def test_exactly_80_counts_as_high_score(self):
+        assert evaluator.next_oic_level(2, 80, []) == 3
+
+    def test_exactly_50_counts_as_partial_not_low(self):
+        # 50 should hit the 50<=score<80 branch, not the <50 branch
+        assert evaluator.next_oic_level(2, 50, []) == 1  # level<3: max(0, level-1)
+        assert evaluator.next_oic_level(3, 50, []) == 3  # level>=3: unchanged
+
+    def test_stays_at_five_with_continued_high_scores(self):
+        assert evaluator.next_oic_level(5, 85, [90, 88]) == 5
+
+    def test_drops_from_five_on_low_score(self):
+        assert evaluator.next_oic_level(5, 30, [90, 88]) == 4

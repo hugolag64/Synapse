@@ -33,6 +33,14 @@ class _DaySummary:
         return (self.done / self.total) if self.total > 0 else 0.0
 
 
+def _pill_color(summary: "_DaySummary") -> str:
+    if summary.total == 0:
+        return '#CBD5E1'
+    if summary.pct >= 1.0:
+        return '#059669'
+    return '#2563EB'
+
+
 def _fmt_date(d: datetime.date) -> str:
     return f"{_DAYS[d.weekday()]} {d.day} {_MONTHS[d.month - 1]} {d.year}"
 
@@ -515,6 +523,83 @@ def _render_note_block(
                         ui.notify('Erreur Notion', type='negative')
 
                 save_btn.on('click', lambda: asyncio.create_task(_save()))
+
+
+def _render_hero_nav(container: ui.column, state: dict) -> dict:
+    """Ligne de navigation date du hero. Reconstruite à chaque changement de jour."""
+    container.clear()
+    refs = {}
+    with container:
+        with ui.row().classes('w-full items-center gap-1'):
+            refs['prev'] = ui.button(icon='chevron_left').props('flat round dense')
+            with ui.row().classes('items-center gap-1 flex-1 justify-center'):
+                refs['hier'] = ui.button('Hier').props('flat dense size=sm rounded')
+                refs['auj']  = ui.button("Auj.").props('flat dense size=sm rounded')
+                refs['dem']  = ui.button('Demain').props('flat dense size=sm rounded')
+            refs['date_btn'] = ui.button(_fmt_date(state['date'])).props('flat dense').classes(
+                'font-semibold text-slate-700 dark:text-slate-100 min-w-[190px] text-sm')
+            refs['next'] = ui.button(icon='chevron_right').props('flat round dense')
+    return refs
+
+
+def _wire_nav_handlers(refs: dict, render_day, state: dict, on_date_click) -> None:
+    today = datetime.date.today()
+    refs['prev'].on('click', lambda: asyncio.create_task(
+        render_day(state['date'] - datetime.timedelta(days=1))))
+    refs['next'].on('click', lambda: asyncio.create_task(
+        render_day(state['date'] + datetime.timedelta(days=1))))
+    refs['hier'].on('click', lambda: asyncio.create_task(
+        render_day(today - datetime.timedelta(days=1))))
+    refs['auj'].on('click', lambda: asyncio.create_task(render_day(today)))
+    refs['dem'].on('click', lambda: asyncio.create_task(
+        render_day(today + datetime.timedelta(days=1))))
+    refs['date_btn'].on('click', on_date_click)
+
+
+def _update_header(refs: dict, state: dict) -> None:
+    today = datetime.date.today()
+    d = state['date']
+    for btn, delta in [(refs['hier'], -1), (refs['auj'], 0), (refs['dem'], 1)]:
+        if d == today + datetime.timedelta(days=delta):
+            btn.props(remove='flat').props('unelevated color=primary size=sm rounded')
+        else:
+            btn.props(remove='unelevated color=primary').props('flat size=sm rounded')
+
+
+def _render_hero_stats(
+    container: ui.row,
+    state: dict,
+    cache: dict,
+    carryover_holder: dict,
+) -> None:
+    container.clear()
+    date_str = state['date'].isoformat()
+    summary = cache.get(date_str, _DaySummary())
+    pct = summary.pct
+    color = _pill_color(summary)
+    streak = local_store.get_streak_days()
+    carryover = carryover_holder.get(date_str, [])
+
+    with container:
+        with ui.element('div').classes('synapse-ring').style(
+                f'--ring-pct:{pct * 100};--ring-color:{color}'):
+            ui.label(f'{int(pct * 100)}%').classes('synapse-ring-label').style(f'color:{color}')
+
+        if streak > 0:
+            with ui.row().classes('items-center gap-1'):
+                ui.icon('local_fire_department',
+                        color='orange-6' if streak >= 3 else 'amber-6', size='sm')
+                ui.label(f'{streak}j').classes(
+                    'text-sm font-bold text-slate-600 dark:text-slate-300')
+
+        if carryover:
+            with ui.row().classes(
+                    'items-center gap-1 px-2 py-1 rounded-full cursor-pointer '
+                    'bg-amber-50 dark:bg-amber-900/20'
+            ).tooltip(', '.join(carryover)):
+                ui.icon('history', color='amber-7', size='xs')
+                ui.label(f"{len(carryover)} reporté(s) d'hier").classes(
+                    'text-xs font-semibold text-amber-700 dark:text-amber-400')
 
 
 async def todo_page():

@@ -70,11 +70,36 @@ def _week_dates(center: datetime.date) -> list[datetime.date]:
     return [center + datetime.timedelta(days=offset) for offset in range(-3, 4)]
 
 
+def _get_routine_summary(date_obj: datetime.date) -> _DaySummary:
+    date_str = date_obj.isoformat()
+    items = local_store.get_routine_items()
+    checks = local_store.get_routine_checks(date_str)
+    return _DaySummary(
+        routine_total=len(items),
+        routine_done=sum(1 for name in items if checks.get(name, False)),
+    )
+
+
+def _refresh_routine_in_cache(date_obj: datetime.date, cache: dict) -> "_DaySummary":
+    """(Re)calcule la partie routine et la fusionne dans le cache, en conservant
+    Ajouté si déjà chargé (évite d'écraser un résumé déjà enrichi par la strip)."""
+    date_str = date_obj.isoformat()
+    routine = _get_routine_summary(date_obj)
+    existing = cache.get(date_str)
+    if existing and existing.ajoute_loaded:
+        existing.routine_total = routine.routine_total
+        existing.routine_done = routine.routine_done
+        cache[date_str] = existing
+        return existing
+    cache[date_str] = routine
+    return routine
+
+
 async def _render_content(
     container: ui.column,
     date_obj: datetime.date,
-    progress_state: dict,
-    refresh_progress,
+    cache: dict,
+    on_update,
 ) -> None:
     container.clear()
     if container.is_deleted:
@@ -82,10 +107,12 @@ async def _render_content(
     date_str = date_obj.isoformat()
     is_past  = date_obj < datetime.date.today()
 
+    _refresh_routine_in_cache(date_obj, cache)
+
     with container:
         # Routine : SQLite, instantané
         routine_col = ui.column().classes('w-full')
-        _render_routine_block(routine_col, date_str, progress_state, refresh_progress)
+        _render_routine_block(routine_col, date_str, cache, on_update)
 
         # Ajouté + Note : chargés en réseau (tâches 4 et 5)
         ajout_col = ui.column().classes('w-full')
@@ -93,8 +120,7 @@ async def _render_content(
 
         asyncio.create_task(
             _load_and_render_network_blocs(
-                ajout_col, note_col, date_obj, is_past,
-                progress_state, refresh_progress,
+                ajout_col, note_col, date_obj, is_past, cache, on_update,
             )
         )
 
@@ -102,16 +128,12 @@ async def _render_content(
 def _render_routine_block(
     container: ui.column,
     date_str: str,
-    progress_state: dict,
-    refresh_progress,
+    cache: dict,
+    on_update,
 ) -> None:
     items  = local_store.get_routine_items()
     checks = local_store.get_routine_checks(date_str)
-
-    progress_state['routine'] = [
-        len(items),
-        sum(1 for name in items if checks.get(name, False)),
-    ]
+    summary = cache[date_str]
 
     with container:
         with ui.row().classes('w-full gap-4 items-start'):
@@ -120,21 +142,21 @@ def _render_routine_block(
                 ui.label('ROUTINE').classes(
                     'text-xs font-bold uppercase tracking-widest text-slate-400 mb-1')
                 with ui.element('div').classes(
-                        'grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-1'):
+                        'grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2'):
                     for name in items:
                         checked = checks.get(name, False)
 
                         def _on_toggle(e, item_name=name):
                             delta = 1 if e.value else -1
-                            total = progress_state['routine'][0]
-                            progress_state['routine'][1] = max(0, min(total, progress_state['routine'][1] + delta))
-                            refresh_progress()
+                            summary.routine_done = max(
+                                0, min(summary.routine_total, summary.routine_done + delta))
+                            on_update()
                             local_store.set_routine_check(date_str, item_name, e.value)
 
                         ui.checkbox(name, value=checked, on_change=_on_toggle).props('dense').classes(
                             'text-slate-700 dark:text-slate-200 transition-opacity duration-200')
 
-    refresh_progress()
+    on_update()
 
 
 def _build_course_list(events, manual_titles, all_courses) -> list[dict]:
@@ -173,8 +195,8 @@ async def _load_and_render_network_blocs(
     note_col: ui.column,
     date_obj: datetime.date,
     is_past: bool,
-    progress_state: dict,
-    refresh_progress,
+    cache: dict,
+    on_update,
 ) -> None:
     _render_skeleton_bloc(ajout_col, 'bg-violet-500', 'AJOUTÉ')
     _render_skeleton_bloc(note_col,  'bg-amber-500',  'NOTE DU JOUR')
@@ -199,10 +221,10 @@ async def _load_and_render_network_blocs(
 
     await _render_ajout_block(
         ajout_col, date_obj, task, course_items,
-        reviewed_titles, progress_state, refresh_progress,
+        reviewed_titles, cache, on_update,
     )
     _render_note_block(note_col, task, is_past)
-    refresh_progress()
+    on_update()
 
 
 async def _render_ajout_block(
@@ -211,13 +233,17 @@ async def _render_ajout_block(
     task,
     course_items: list[dict],
     reviewed_titles: list[str],
-    progress_state: dict,
-    refresh_progress,
+    cache: dict,
+    on_update,
 ) -> None:
+    date_str = date_obj.isoformat()
     dynamic_tasks = task.dynamic_checkboxes if task else {}
-    ajout_total, ajout_done = _compute_ajoute_progress(course_items, reviewed_titles, dynamic_tasks)
-    # Écrase (ne cumule pas) pour éviter le double-comptage lors des re-renders
-    progress_state['ajout'] = [ajout_total, ajout_done]
+    ajoute_total, ajoute_done = _compute_ajoute_progress(course_items, reviewed_titles, dynamic_tasks)
+
+    summary = cache[date_str]
+    summary.ajoute_total = ajoute_total
+    summary.ajoute_done = ajoute_done
+    summary.ajoute_loaded = True
 
     container.clear()
     with container:
@@ -231,16 +257,16 @@ async def _render_ajout_block(
                 for item in course_items:
                     _render_course_item(
                         item['course'], item['course'].title in reviewed_titles,
-                        item['type'], task, progress_state, refresh_progress,
+                        item['type'], task, cache, date_str, on_update,
                     )
 
                 # ── Tâches dynamiques ─────────────────────────────────────────
                 for b_id, data in dynamic_tasks.items():
                     async def _toggle_dyn(e, bid=b_id):
                         delta = 1 if e.value else -1
-                        total = progress_state['ajout'][0]
-                        progress_state['ajout'][1] = max(0, min(total, progress_state['ajout'][1] + delta))
-                        refresh_progress()
+                        summary.ajoute_done = max(
+                            0, min(summary.ajoute_total, summary.ajoute_done + delta))
+                        on_update()
                         await notion_service.toggle_dynamic_task(bid, e.value)
 
                     ui.checkbox(data['text'], value=data['checked'],
@@ -274,7 +300,7 @@ async def _render_ajout_block(
                             if updated and not container.is_deleted:
                                 await _render_ajout_block(
                                     container, date_obj, updated, course_items,
-                                    reviewed_titles, progress_state, refresh_progress,
+                                    reviewed_titles, cache, on_update,
                                 )
 
                     new_task_input.on('keydown.enter',

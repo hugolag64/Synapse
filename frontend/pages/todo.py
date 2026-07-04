@@ -543,14 +543,18 @@ def _render_week_strip(
                             f'width:{int(pct * 100)}%;background:{color}')
 
 
-async def _load_week_ajoute(week: list[datetime.date], cache: dict, redraw) -> None:
+async def _load_week_ajoute(container: ui.row, week: list[datetime.date], cache: dict, redraw) -> None:
     """Enrichit chaque pastille avec les données Ajouté (Notion), une par une
     (throttle volontaire : jamais en parallèle)."""
     for d in week:
+        if container.is_deleted:
+            return
         summary = cache.get(d.isoformat())
         if summary and summary.ajoute_loaded:
             continue
         await _get_day_summary(d, cache)
+        if container.is_deleted:
+            return
         redraw()
 
 
@@ -707,4 +711,4 @@ async def todo_page():
         ui.timer(0.1, lambda: asyncio.create_task(
             _render_day(datetime.date.today())), once=True)
         ui.timer(0.5, lambda: asyncio.create_task(
-            _load_week_ajoute(week, cache, _draw_strip)), once=True)
+            _load_week_ajoute(strip_container, week, cache, _draw_strip)), once=True)

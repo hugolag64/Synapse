@@ -190,6 +190,50 @@ def _render_skeleton_bloc(container: ui.column, marker_css: str, title: str) -> 
                         f'h-5 rounded-md animate-pulse bg-slate-200 dark:bg-slate-700 {w}')
 
 
+async def _get_day_summary(date_obj: datetime.date, cache: dict) -> "_DaySummary":
+    """Résout (et met en cache) le résumé complet (routine + ajouté) d'une date.
+    Ne refait jamais l'appel Notion si ajoute_loaded est déjà True pour cette date."""
+    date_str = date_obj.isoformat()
+    summary = cache.get(date_str)
+    if summary is None:
+        summary = _get_routine_summary(date_obj)
+        cache[date_str] = summary
+    if summary.ajoute_loaded:
+        return summary
+
+    task = await notion_service.get_daily_task_by_date(date_obj)
+    reviewed_titles: list[str] = []
+    manual_titles: list[str] = []
+    if task:
+        reviewed_titles, manual_titles = await asyncio.gather(
+            notion_service.get_daily_reviewed_courses(task.id),
+            notion_service.get_daily_manual_revision_courses(task.id),
+        )
+    events = await calendar_service.get_events_for_day(date_obj)
+    course_items = _build_course_list(events, manual_titles, data_store.cours)
+    dynamic_tasks = task.dynamic_checkboxes if task else {}
+
+    summary.ajoute_total, summary.ajoute_done = _compute_ajoute_progress(
+        course_items, reviewed_titles, dynamic_tasks)
+    summary.ajoute_loaded = True
+    return summary
+
+
+async def _get_yesterday_carryover(date_obj: datetime.date) -> list[str]:
+    """Cours manuels programmés hier et non marqués révisés (lecture seule, pas de déplacement)."""
+    if date_obj != datetime.date.today():
+        return []
+    yesterday = date_obj - datetime.timedelta(days=1)
+    task = await notion_service.get_daily_task_by_date(yesterday)
+    if not task:
+        return []
+    reviewed_titles, manual_titles = await asyncio.gather(
+        notion_service.get_daily_reviewed_courses(task.id),
+        notion_service.get_daily_manual_revision_courses(task.id),
+    )
+    return _compute_carryover(manual_titles, reviewed_titles)
+
+
 async def _load_and_render_network_blocs(
     ajout_col: ui.column,
     note_col: ui.column,

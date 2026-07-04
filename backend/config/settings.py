@@ -81,6 +81,8 @@ class Settings(BaseSettings):
     lisa_cookie: str = Field("", alias='LISA_COOKIE')
     lisa_username: str = Field("", alias='LISA_USERNAME')
     lisa_password: str = Field("", alias='LISA_PASSWORD')
+    anythingllm_url: str = Field("http://localhost:3001", alias='ANYTHINGLLM_URL')
+    anythingllm_api_key: str = Field("", alias='ANYTHINGLLM_API_KEY')
 
     model_config = SettingsConfigDict(env_file='.env', extra='ignore')
 

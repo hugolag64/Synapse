@@ -672,6 +672,70 @@ class NotionService:
             logger.error(f"Failed to mark manual revision done: {e}")
             return False
 
+    async def unmark_manual_revision_done(self, page_id: str, course_title: str) -> bool:
+        """Undo mark_manual_revision_done: revert a 'Révisé' block back to 'Manuel' (unchecked)."""
+        try:
+            response = await notion_client.retrieve_block_children(page_id)
+            blocks = response.get("results", [])
+
+            target_block_id = None
+            for block in blocks:
+                if block.get("type") == "to_do":
+                    todo = block["to_do"]
+                    rich_text = todo.get("rich_text", [])
+                    if rich_text:
+                        content = rich_text[0].get("text", {}).get("content", "")
+                        if todo.get("checked") and content == f"Révisé : {course_title}":
+                            target_block_id = block["id"]
+                            break
+
+            if target_block_id:
+                await notion_client.update_block(
+                    block_id=target_block_id,
+                    to_do={
+                        "checked": False,
+                        "rich_text": [{"text": {"content": f"Manuel : {course_title}"}}],
+                    },
+                )
+                logger.success(f"Reverted manual revision '{course_title}' to pending.")
+                return True
+            else:
+                logger.warning(f"Could not find reviewed block for '{course_title}' to undo")
+                return False
+
+        except Exception as e:
+            logger.error(f"Failed to unmark manual revision: {e}")
+            return False
+
+    async def remove_course_from_daily_reviewed(self, page_id: str, course_title: str) -> bool:
+        """Undo add_course_to_daily_reviewed: archive the 'Révisé' block (no manual counterpart to revert to)."""
+        try:
+            response = await notion_client.retrieve_block_children(page_id)
+            blocks = response.get("results", [])
+
+            target_block_id = None
+            for block in blocks:
+                if block.get("type") == "to_do":
+                    todo = block["to_do"]
+                    rich_text = todo.get("rich_text", [])
+                    if rich_text:
+                        content = rich_text[0].get("text", {}).get("content", "")
+                        if content == f"Révisé : {course_title}":
+                            target_block_id = block["id"]
+                            break
+
+            if target_block_id:
+                await notion_client.update_block(block_id=target_block_id, archived=True)
+                logger.success(f"Removed reviewed block for '{course_title}'.")
+                return True
+            else:
+                logger.warning(f"Could not find reviewed block for '{course_title}' to remove")
+                return False
+
+        except Exception as e:
+            logger.error(f"Failed to remove course from daily reviewed: {e}")
+            return False
+
     async def find_course_by_title(self, title: str) -> Optional[Cours]:
         """Find a course by its exact title."""
         try:

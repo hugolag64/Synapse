@@ -223,6 +223,7 @@ def init_db() -> None:
     _migrate_course_edges_table()
     _migrate_pending_gap_proposals()
     _migrate_routine_tables()
+    _migrate_oic_anythingllm_validation()
     logger.info(f"SQLite initialisé : {DB_PATH}")
 
 
@@ -2437,6 +2438,30 @@ def _migrate_routine_tables() -> None:
             )
 
 
+def _migrate_oic_anythingllm_validation() -> None:
+    """
+    Migration douce : ajoute oic_level à lisa_oic et crée oic_attempts.
+    Idempotente — ne touche pas aux données existantes.
+    """
+    with _conn() as con:
+        existing = {
+            row["name"]
+            for row in con.execute("PRAGMA table_info(lisa_oic)").fetchall()
+        }
+        if "oic_level" not in existing:
+            con.execute("ALTER TABLE lisa_oic ADD COLUMN oic_level INTEGER NOT NULL DEFAULT 0")
+        con.executescript("""
+            CREATE TABLE IF NOT EXISTS oic_attempts (
+                id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                oic_id         INTEGER NOT NULL REFERENCES lisa_oic(id),
+                session_score  INTEGER NOT NULL,
+                questions_json TEXT    NOT NULL,
+                attempted_at   TEXT    NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_oic_attempts_oic ON oic_attempts(oic_id);
+        """)
+
+
 # ── API publique — Routine quotidienne ───────────────────────────────────────
 
 def get_routine_items() -> list[str]:
@@ -2548,6 +2573,32 @@ def toggle_lisa_oic_mastery(oic_id: int) -> bool:
             "UPDATE lisa_oic SET mastered = ? WHERE id = ?", (new_val, oic_id)
         )
         return bool(new_val)
+
+
+def save_oic_attempt(oic_id: int, session_score: int, questions_json: str) -> int:
+    """Enregistre une tentative d'évaluation OIC. Retourne l'id inséré."""
+    with _conn() as con:
+        cur = con.execute(
+            """INSERT INTO oic_attempts (oic_id, session_score, questions_json, attempted_at)
+               VALUES (?, ?, ?, ?)""",
+            (oic_id, session_score, questions_json, _now()),
+        )
+        return cur.lastrowid
+
+
+def get_oic_attempts(oic_id: int, limit: int = 10) -> list:
+    """Retourne les tentatives d'un OIC, les plus récentes en premier."""
+    with _conn() as con:
+        return con.execute(
+            "SELECT * FROM oic_attempts WHERE oic_id = ? ORDER BY id DESC LIMIT ?",
+            (oic_id, limit),
+        ).fetchall()
+
+
+def update_oic_level(oic_id: int, new_level: int) -> None:
+    """Met à jour le niveau de maîtrise progressif d'un OIC."""
+    with _conn() as con:
+        con.execute("UPDATE lisa_oic SET oic_level = ? WHERE id = ?", (new_level, oic_id))
 
 
 # ── Auto-init à l'import ──────────────────────────────────────────────────────

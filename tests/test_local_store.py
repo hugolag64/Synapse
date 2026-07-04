@@ -501,3 +501,57 @@ class TestLisaOic:
     def test_toggle_unknown_id_returns_false(self):
         result = ls.toggle_lisa_oic_mastery(9999)
         assert result is False
+
+
+class TestMigrateOicAnythingLLM:
+    def test_adds_oic_level_column(self):
+        cols = {row["name"] for row in ls._conn().execute("PRAGMA table_info(lisa_oic)").fetchall()}
+        assert "oic_level" in cols
+
+    def test_creates_oic_attempts_table(self):
+        tables = {row["name"] for row in ls._conn().execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        ).fetchall()}
+        assert "oic_attempts" in tables
+
+    def test_migration_idempotent(self):
+        ls._migrate_oic_anythingllm_validation()
+        ls._migrate_oic_anythingllm_validation()
+        cols = [row["name"] for row in ls._conn().execute("PRAGMA table_info(lisa_oic)").fetchall()]
+        assert cols.count("oic_level") == 1
+
+
+class TestOicAttempts:
+    def _make_oic(self) -> int:
+        ls.upsert_lisa_oic("course-1", [
+            {"oic_code": "OIC-001", "intitule": "Test OIC", "rang": "A"},
+        ])
+        row = ls._conn().execute(
+            "SELECT id FROM lisa_oic WHERE course_id = ?", ("course-1",)
+        ).fetchone()
+        return row["id"]
+
+    def test_save_oic_attempt_returns_id(self):
+        oic_id = self._make_oic()
+        attempt_id = ls.save_oic_attempt(oic_id, 85, '[{"enonce": "q1"}]')
+        assert attempt_id > 0
+
+    def test_get_oic_attempts_returns_most_recent_first(self):
+        oic_id = self._make_oic()
+        ls.save_oic_attempt(oic_id, 40, "[]")
+        ls.save_oic_attempt(oic_id, 90, "[]")
+        attempts = ls.get_oic_attempts(oic_id)
+        assert [a["session_score"] for a in attempts] == [90, 40]
+
+    def test_get_oic_attempts_respects_limit(self):
+        oic_id = self._make_oic()
+        for score in (10, 20, 30, 40):
+            ls.save_oic_attempt(oic_id, score, "[]")
+        attempts = ls.get_oic_attempts(oic_id, limit=2)
+        assert [a["session_score"] for a in attempts] == [40, 30]
+
+    def test_update_oic_level(self):
+        oic_id = self._make_oic()
+        ls.update_oic_level(oic_id, 3)
+        row = ls._conn().execute("SELECT oic_level FROM lisa_oic WHERE id = ?", (oic_id,)).fetchone()
+        assert row["oic_level"] == 3

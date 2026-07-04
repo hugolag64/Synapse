@@ -148,3 +148,13 @@ class TestEvaluateOpenAnswer:
             result = evaluator.evaluate_open_answer(q, "réponse", "slug")
         assert result.verdict == "incorrect"
         assert result.score == 0
+        assert result.explication == "Erreur de parsing IA"
+
+    def test_falls_back_when_score_is_non_numeric(self):
+        raw = '{"verdict": "correct", "score": "quatre-vingt"}'
+        q = evaluator.Question(type="ouverte", enonce="Q?", criteres=["a"])
+        with patch("backend.core.lisa.evaluator._client.query_workspace", return_value=raw):
+            result = evaluator.evaluate_open_answer(q, "réponse", "slug")
+        assert result.verdict == "incorrect"
+        assert result.score == 0
+        assert result.explication == "Erreur de parsing IA"

@@ -150,13 +150,16 @@ def evaluate_open_answer(question: Question, student_response: str, workspace_sl
         raw = _client.query_workspace(workspace_slug, prompt)
         parsed = _extract_json(raw)
         if isinstance(parsed, dict) and "verdict" in parsed and "score" in parsed:
-            return EvalResult(
-                verdict=parsed.get("verdict", "incorrect"),
-                score=int(parsed.get("score", 0)),
-                elements_corrects=parsed.get("elements_corrects", []),
-                elements_manquants=parsed.get("elements_manquants", []),
-                explication=parsed.get("explication", ""),
-                rappel_cours=parsed.get("rappel_cours", ""),
-            )
+            try:
+                return EvalResult(
+                    verdict=parsed.get("verdict", "incorrect"),
+                    score=int(parsed.get("score", 0)),
+                    elements_corrects=parsed.get("elements_corrects") or [],
+                    elements_manquants=parsed.get("elements_manquants") or [],
+                    explication=parsed.get("explication", ""),
+                    rappel_cours=parsed.get("rappel_cours", ""),
+                )
+            except (TypeError, ValueError):
+                pass
 
     return EvalResult(verdict="incorrect", score=0, explication="Erreur de parsing IA")

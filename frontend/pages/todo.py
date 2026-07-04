@@ -60,6 +60,16 @@ def _compute_ajoute_progress(
     return total, done
 
 
+def _compute_carryover(manual_titles: list[str], reviewed_titles: list[str]) -> list[str]:
+    """Titres de cours manuels programmés qui ne sont pas (encore) marqués révisés."""
+    return [t for t in manual_titles if t not in reviewed_titles]
+
+
+def _week_dates(center: datetime.date) -> list[datetime.date]:
+    """Fenêtre de 7 jours centrée sur `center` (J-3 à J+3)."""
+    return [center + datetime.timedelta(days=offset) for offset in range(-3, 4)]
+
+
 async def _render_content(
     container: ui.column,
     date_obj: datetime.date,

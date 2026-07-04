@@ -117,3 +117,32 @@ class TestDaySummary:
         s = _DaySummary(routine_total=3, routine_done=1, ajoute_total=2, ajoute_done=2)
         assert s.total == 5
         assert s.done == 3
+
+
+import datetime
+from frontend.pages.todo import _compute_carryover, _week_dates
+
+
+class TestComputeCarryover:
+    def test_empty(self):
+        assert _compute_carryover([], []) == []
+
+    def test_all_done(self):
+        assert _compute_carryover(['A', 'B'], ['A', 'B']) == []
+
+    def test_none_done(self):
+        assert _compute_carryover(['A', 'B'], []) == ['A', 'B']
+
+    def test_partial(self):
+        assert _compute_carryover(['A', 'B', 'C'], ['B']) == ['A', 'C']
+
+
+class TestWeekDates:
+    def test_length(self):
+        assert len(_week_dates(datetime.date(2026, 7, 3))) == 7
+
+    def test_centered(self):
+        result = _week_dates(datetime.date(2026, 7, 3))
+        assert result[3] == datetime.date(2026, 7, 3)
+        assert result[0] == datetime.date(2026, 6, 30)
+        assert result[6] == datetime.date(2026, 7, 6)

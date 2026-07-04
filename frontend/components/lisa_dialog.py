@@ -160,7 +160,7 @@ def open_lisa_dialog(course) -> None:
                         for oic in rang_oics:
                             oic_id      = oic["id"]
                             is_mastered = bool(oic["mastered"])
-                            oic_code    = oic.get("oic_code", "")
+                            oic_code    = oic["oic_code"] or ""
 
                             border = "#10b981" if is_mastered else accent
                             row_bg = (

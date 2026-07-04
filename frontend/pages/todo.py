@@ -525,6 +525,43 @@ def _render_note_block(
                 save_btn.on('click', lambda: asyncio.create_task(_save()))
 
 
+def _render_week_strip(
+    container: ui.row,
+    week: list[datetime.date],
+    active_date: datetime.date,
+    cache: dict,
+    on_pick_day,
+) -> None:
+    container.clear()
+    with container:
+        with ui.element('div').classes('todo-week-strip'):
+            for d in week:
+                summary = cache.get(d.isoformat(), _DaySummary())
+                pct = summary.pct
+                color = _pill_color(summary)
+                is_active = d == active_date
+
+                cls = 'todo-day-pill active' if is_active else 'todo-day-pill'
+                with ui.element('div').classes(cls).on(
+                        'click', lambda _e, dd=d: asyncio.create_task(on_pick_day(dd))):
+                    ui.label(_DAYS[d.weekday()]).classes('todo-day-pill-name')
+                    ui.label(str(d.day)).classes('todo-day-pill-num')
+                    with ui.element('div').classes('todo-day-pill-bar'):
+                        ui.element('div').classes('todo-day-pill-bar-fill').style(
+                            f'width:{int(pct * 100)}%;background:{color}')
+
+
+async def _load_week_ajoute(week: list[datetime.date], cache: dict, redraw) -> None:
+    """Enrichit chaque pastille avec les données Ajouté (Notion), une par une
+    (throttle volontaire : jamais en parallèle)."""
+    for d in week:
+        summary = cache.get(d.isoformat())
+        if summary and summary.ajoute_loaded:
+            continue
+        await _get_day_summary(d, cache)
+        redraw()
+
+
 def _render_hero_nav(container: ui.column, state: dict) -> dict:
     """Ligne de navigation date du hero. Reconstruite à chaque changement de jour."""
     container.clear()

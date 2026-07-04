@@ -11,6 +11,7 @@ from nicegui import ui
 
 from backend.core.reviews import local_store as ls
 from backend.core.lisa.scraper import scrape_oic, LisaFetchError
+from frontend.components.oic_eval_dialog import open_oic_eval_dialog
 
 
 def open_lisa_dialog(course) -> None:
@@ -103,6 +104,16 @@ def open_lisa_dialog(course) -> None:
 
     # ── Rendu liste OIC ───────────────────────────────────────────────────────
 
+    def _level_badge(level: int) -> tuple[str, str]:
+        if level >= 5:
+            return (
+                "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+                "★ Maîtrisé",
+            )
+        if level >= 3:
+            return "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300", f"Lvl {level}"
+        return "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300", f"Lvl {level}"
+
     def _render_oics(oics: list) -> None:
         _render_progress(oics)
         content_area.clear()
@@ -173,6 +184,10 @@ def open_lisa_dialog(course) -> None:
                                 updated = (await asyncio.to_thread(ls.get_lisa_oic, course_id)) or []
                                 _render_oics(updated)
 
+                            async def _refresh_after_eval(cid=course_id):
+                                updated = (await asyncio.to_thread(ls.get_lisa_oic, cid)) or []
+                                _render_oics(updated)
+
                             with ui.element("div").classes(
                                 f"flex items-stretch gap-0 rounded-xl overflow-hidden "
                                 f"border border-slate-100 dark:border-slate-700/50 "
@@ -196,9 +211,25 @@ def open_lisa_dialog(course) -> None:
                                         ui.label(oic["intitule"]).classes(
                                             f"text-[13px] leading-snug {text_cls}"
                                         )
-                                    ui.icon(icon_name).classes(
-                                        f"text-[20px] shrink-0 mt-0.5 {icon_cls}"
-                                    )
+                                    with ui.column().classes("items-end gap-1 shrink-0"):
+                                        ui.icon(icon_name).classes(f"text-[20px] mt-0.5 {icon_cls}")
+                                        level = oic["oic_level"] or 0
+                                        if level > 0:
+                                            level_cls, level_text = _level_badge(level)
+                                            ui.label(level_text).classes(
+                                                f"text-[8px] font-bold px-1.5 py-0.5 rounded {level_cls}"
+                                            )
+                                        ui.button(icon="school").props(
+                                            "flat dense round size=xs"
+                                        ).classes(
+                                            "text-violet-400 hover:text-violet-600"
+                                        ).on(
+                                            "click.stop",
+                                            lambda o=oic: open_oic_eval_dialog(
+                                                o, course,
+                                                refresh_fn=lambda: asyncio.ensure_future(_refresh_after_eval()),
+                                            ),
+                                        ).tooltip("Évaluer cet OIC")
 
     # ── Chargement async ──────────────────────────────────────────────────────
 

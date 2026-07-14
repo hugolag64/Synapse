@@ -56,9 +56,11 @@ def get_course_mastery(
 ) -> CourseProgressSnapshot:
     """
     Calcule le snapshot de progression d'un cours.
-    
-    Un cours non préparé (sans PDF) ou non lu a toujours un score = None
-    et ne peut jamais être fragile ou critique.
+
+    Un cours non préparé (sans PDF) ou non lu a un score = None et ne peut
+    jamais être fragile ou critique — sauf s'il porte un niveau déclaré
+    (ancien collège validé) : dans ce cas la graine tient lieu de score,
+    et son niveau peut être critique/fragile/à consolider.
     """
     sessions = sessions or []
 

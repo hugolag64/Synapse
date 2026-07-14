@@ -142,3 +142,11 @@ def get_all_item_states(context: str = "college") -> dict[str, ItemState]:
             "SELECT * FROM item_state WHERE context = ?", (context,)
         ).fetchall()
     return {r["course_id"]: _row_to_item_state(r) for r in rows}
+
+
+# ── Auto-init à l'import ──────────────────────────────────────────────────────
+# Garantit que les tables existent dès que knowledge.store est importé.
+try:
+    init_knowledge_tables()
+except Exception as _e:
+    logger.error(f"Impossible d'initialiser les tables knowledge: {_e}")

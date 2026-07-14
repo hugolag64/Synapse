@@ -65,26 +65,13 @@ def get_course_mastery(
     # ── Socle « état des connaissances » ──────────────────────────────────────
     # Un item déclaré (ancien collège validé) possède une graine de score qui se
     # dégrade avec le temps et se dilue devant les preuves réelles.
-    import sqlite3
     from backend.core.knowledge.service import (
         get_seed_snapshot, oic_coverage, badge_from_coverage,
     )
-    from backend.core.knowledge.models import blend, level_from_seed, SeedSnapshot
+    from backend.core.knowledge.models import blend, level_from_seed
 
-    try:
-        seed = get_seed_snapshot(course.id, context)
-    except sqlite3.OperationalError:
-        # Base locale antérieure à ce module (tables college_status/item_state
-        # pas encore créées) : équivalent à « aucun état déclaré ».
-        seed = SeedSnapshot(declared_level=None, seed_score=None, n_evidence=0)
-
-    try:
-        _cov = oic_coverage(course.id)      # une seule lecture, réutilisée pour le badge
-    except sqlite3.OperationalError:
-        _cov = {
-            "rang_a_total": 0, "rang_a_ok": 0, "rang_a_pct": 0.0,
-            "rang_b_total": 0, "rang_b_ok": 0, "rang_b_pct": 0.0,
-        }
+    seed = get_seed_snapshot(course.id, context)
+    _cov = oic_coverage(course.id)          # une seule lecture, réutilisée pour le badge
     _extra = {
         "declared_level":   seed.declared_level,
         "oic_coverage_a":   _cov["rang_a_pct"],

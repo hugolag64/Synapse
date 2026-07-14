@@ -25,6 +25,10 @@ class CourseProgressSnapshot:
     anki_done: bool
     reasons: list[str] = field(default_factory=list)
     next_action: str = ""
+    # ── Socle « état des connaissances » ──────────────────────────────────────
+    declared_level: str | None = None      # solide | correct | flou
+    oic_coverage_a: float = 0.0            # part d'OIC de rang A réussis
+    has_rang_a_badge: bool = False
 
 
 # ── Couleurs UI par niveau ─────────────────────────────────────────────────────
@@ -58,6 +62,35 @@ def get_course_mastery(
     """
     sessions = sessions or []
 
+    # ── Socle « état des connaissances » ──────────────────────────────────────
+    # Un item déclaré (ancien collège validé) possède une graine de score qui se
+    # dégrade avec le temps et se dilue devant les preuves réelles.
+    import sqlite3
+    from backend.core.knowledge.service import (
+        get_seed_snapshot, oic_coverage, badge_from_coverage,
+    )
+    from backend.core.knowledge.models import blend, level_from_seed, SeedSnapshot
+
+    try:
+        seed = get_seed_snapshot(course.id, context)
+    except sqlite3.OperationalError:
+        # Base locale antérieure à ce module (tables college_status/item_state
+        # pas encore créées) : équivalent à « aucun état déclaré ».
+        seed = SeedSnapshot(declared_level=None, seed_score=None, n_evidence=0)
+
+    try:
+        _cov = oic_coverage(course.id)      # une seule lecture, réutilisée pour le badge
+    except sqlite3.OperationalError:
+        _cov = {
+            "rang_a_total": 0, "rang_a_ok": 0, "rang_a_pct": 0.0,
+            "rang_b_total": 0, "rang_b_ok": 0, "rang_b_pct": 0.0,
+        }
+    _extra = {
+        "declared_level":   seed.declared_level,
+        "oic_coverage_a":   _cov["rang_a_pct"],
+        "has_rang_a_badge": badge_from_coverage(_cov),
+    }
+
     # 1. Extraction des propriétés du cours selon le contexte
     has_pdf = bool(course.url_pdf if context == "college" else course.url_pdf_ue)
     has_first_read = bool(course.date_1ere_lecture if context == "college" else course.date_1ere_lecture_ue)
@@ -71,15 +104,31 @@ def get_course_mastery(
         return CourseProgressSnapshot(
             course_id=course.id, context=context, level="à préparer", score=None,
             has_pdf=has_pdf, has_first_read=has_first_read, nb_lectures=nb_lectures,
-            qcm_done=qcm_done, anki_done=anki_done, reasons=["Pas de PDF lié"], next_action="Lier PDF"
+            qcm_done=qcm_done, anki_done=anki_done, reasons=["Pas de PDF lié"],
+            next_action="Lier PDF", **_extra,
         )
 
     if not has_first_read:
-        return CourseProgressSnapshot(
-            course_id=course.id, context=context, level="à lire", score=None,
-            has_pdf=has_pdf, has_first_read=has_first_read, nb_lectures=nb_lectures,
-            qcm_done=qcm_done, anki_done=anki_done, reasons=["Première lecture manquante"], next_action="1ère lecture"
-        )
+        # Item déclaré sans preuve réelle : la graine tient lieu de score.
+        # C'est ce qui rend planifiables les items des anciens collèges validés.
+        if seed.seed_score is not None and seed.n_evidence == 0:
+            return CourseProgressSnapshot(
+                course_id=course.id, context=context,
+                level=level_from_seed(seed.seed_score), score=seed.seed_score,
+                has_pdf=has_pdf, has_first_read=has_first_read, nb_lectures=nb_lectures,
+                qcm_done=qcm_done, anki_done=anki_done,
+                reasons=[f"Niveau déclaré : {seed.declared_level}"],
+                next_action="Réviser", **_extra,
+            )
+        if seed.seed_score is None:
+            return CourseProgressSnapshot(
+                course_id=course.id, context=context, level="à lire", score=None,
+                has_pdf=has_pdf, has_first_read=has_first_read, nb_lectures=nb_lectures,
+                qcm_done=qcm_done, anki_done=anki_done,
+                reasons=["Première lecture manquante"], next_action="1ère lecture",
+                **_extra,
+            )
+        # Item déclaré ET porteur de preuves : on poursuit vers le calcul normal.
 
     # 3. Calcul du score (cours commencés)
     score = 50
@@ -134,6 +183,11 @@ def get_course_mastery(
 
     score = max(0, min(100, score))
 
+    # Fusion graine / évidence : le poids de la graine décroît avec les preuves.
+    if seed.seed_score is not None:
+        score = blend(seed.seed_score, score, seed.n_evidence)
+        reasons.append(f"Niveau déclaré : {seed.declared_level}")
+
     # 4. Détermination du niveau
     if score < 40:
         level = "critique"
@@ -170,7 +224,8 @@ def get_course_mastery(
         qcm_done=qcm_done,
         anki_done=anki_done,
         reasons=reasons[:3],
-        next_action=next_action
+        next_action=next_action,
+        **_extra,
     )
 
 

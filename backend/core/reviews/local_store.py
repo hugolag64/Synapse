@@ -2614,13 +2614,23 @@ def toggle_lisa_oic_mastery(oic_id: int) -> bool:
 
 
 def save_oic_attempt(oic_id: int, session_score: int, questions_json: str) -> int:
-    """Enregistre une tentative d'évaluation OIC. Retourne l'id inséré."""
+    """
+    Enregistre une tentative d'évaluation OIC. Retourne l'id inséré.
+
+    Une tentative à OIC_SUCCESS_SCORE ou au-dessus marque l'OIC comme maîtrisé.
+    Un échec ultérieur ne le démarque pas : la réussite est acquise, c'est la
+    dégradation de la maîtrise de l'item qui porte l'oubli.
+    """
+    from backend.core.knowledge.models import OIC_SUCCESS_SCORE
+
     with _conn() as con:
         cur = con.execute(
             """INSERT INTO oic_attempts (oic_id, session_score, questions_json, attempted_at)
                VALUES (?, ?, ?, ?)""",
             (oic_id, session_score, questions_json, _now()),
         )
+        if session_score >= OIC_SUCCESS_SCORE:
+            con.execute("UPDATE lisa_oic SET mastered = 1 WHERE id = ?", (oic_id,))
         return cur.lastrowid
 
 

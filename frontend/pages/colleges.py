@@ -19,6 +19,8 @@ from backend.state.store import data_store
 from backend.core.notion.service import notion_service
 from backend.core.reviews.mastery import get_course_mastery, PROGRESSION_COLORS
 from backend.core.reviews.service import review_service
+from backend.core.knowledge import store as knowledge_store
+from backend.core.knowledge import service as knowledge_service
 
 
 # ── Mastery color system ──────────────────────────────────────────────────────
@@ -72,11 +74,20 @@ def _compute_stats(name: str) -> dict:
     total = len(courses)
     started = sum(1 for c in courses if c.date_1ere_lecture)
     pct = started / total if total > 0 else 0.0
+
+    status = knowledge_store.get_college_status(name)
+    situes, n_items = knowledge_service.college_triage_progress(
+        name, [c.id for c in courses]
+    )
+
     return {
         "total":   total,
         "started": started,
         "pct":     pct,
         "level":   _college_level(pct),
+        "status":  status,             # non_etudie | en_cours | valide
+        "situes":  situes,
+        "n_items": n_items,
     }
 
 
@@ -324,6 +335,38 @@ def colleges_page():
                     f"{s_tab.get('started', 0)} lus  ·  {level_lbl}"
                 ).classes("text-[11px] text-slate-400 dark:text-slate-500 shrink-0")
                 ui.element("div").classes("h-px flex-1 bg-slate-200 dark:bg-slate-700")
+
+            # ── Statut académique du collège ──────────────────────────────────
+            _st = all_stats[tab]
+
+            with ui.row().classes("items-center gap-3 mb-4"):
+                STATUS_LABELS = {
+                    "non_etudie": "Non étudié",
+                    "en_cours":   "En cours",
+                    "valide":     "Validé",
+                }
+
+                def _on_status_change(e, _name=tab):
+                    knowledge_store.set_college_status(_name, e.value)
+                    review_service.invalidate_cache()
+                    ui.notify(f"{_name} : {STATUS_LABELS[e.value]}", type="positive")
+                    _refresh_view()
+
+                ui.select(
+                    options=STATUS_LABELS,
+                    value=_st["status"],
+                    on_change=_on_status_change,
+                ).props("dense outlined").classes("w-40")
+
+                if _st["status"] == "valide":
+                    ui.label(
+                        f"{_st['situes']} items situés sur {_st['n_items']}"
+                    ).classes("text-xs text-slate-500")
+
+                    ui.button(
+                        "Trier maintenant",
+                        on_click=lambda _name=tab: ui.navigate.to(f"/triage/{_name}"),
+                    ).props("flat dense size=sm color=indigo")
 
             # ── Barre de couverture + filtres + tri ───────────────────────────
             _total = s_tab.get("total", 0)

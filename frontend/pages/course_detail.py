@@ -28,6 +28,9 @@ from backend.core.reviews.models import ReviewTask
 from backend.core.obsidian.service import obsidian_service
 from backend.core.obsidian.trap_detector import extract_traps
 from backend.config.settings import settings as _settings
+from backend.core.knowledge import store as knowledge_store
+from backend.core.knowledge import service as knowledge_service
+from backend.core.reviews.service import review_service
 
 
 # ── Helpers visuels ───────────────────────────────────────────────────────────
@@ -83,6 +86,63 @@ _NA_COLORS = {
     "indigo": "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-300 dark:border-indigo-800",
     "slate":  "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700",
 }
+
+
+def _render_knowledge_block(course) -> None:
+    """Niveau déclaré (modifiable à tout moment) + couverture OIC."""
+    container = ui.column().classes("w-full gap-2 mb-4")
+
+    def _render():
+        state = knowledge_store.get_item_state(course.id, "college")
+        cov = knowledge_service.oic_coverage(course.id)
+        badge = knowledge_service.has_rang_a_badge(course.id)
+
+        container.clear()
+        with container:
+            with ui.row().classes("items-center gap-2"):
+                ui.label("Niveau déclaré").classes(
+                    "text-xs font-semibold text-slate-500 uppercase tracking-wide"
+                )
+                if state is None:
+                    ui.badge("À situer").props("color=grey outline")
+
+            with ui.row().classes("items-center gap-1"):
+                for level, label, color in [
+                    ("solide", "Solide", "positive"),
+                    ("correct", "Correct", "warning"),
+                    ("flou", "Flou", "negative"),
+                ]:
+                    selected = state is not None and state.declared_level == level
+
+                    def _set(_level=level):
+                        knowledge_store.set_item_state(
+                            course.id, _level, context="college", source="triage"
+                        )
+                        review_service.invalidate_cache()
+                        _render()
+
+                    ui.button(label, on_click=_set).props(
+                        f"unelevated rounded size=sm color={color}"
+                        if selected else
+                        "outline rounded size=sm color=grey"
+                    )
+
+            if cov["rang_a_total"] or cov["rang_b_total"]:
+                with ui.row().classes("items-center gap-3 mt-1"):
+                    ui.label(
+                        f"OIC rang A : {cov['rang_a_ok']}/{cov['rang_a_total']} "
+                        f"({int(cov['rang_a_pct'] * 100)} %)"
+                    ).classes("text-xs text-slate-500")
+
+                    if cov["rang_b_total"]:
+                        ui.label(
+                            f"rang B : {cov['rang_b_ok']}/{cov['rang_b_total']}"
+                        ).classes("text-xs text-slate-400")
+
+                    if badge:
+                        ui.badge("Rang A ✓").props("color=green")
+
+    _render()
 
 
 # ── Page principale ───────────────────────────────────────────────────────────
@@ -269,6 +329,9 @@ def course_detail_page(course_id: str) -> None:
                         lacune_count, "lacune(s) active(s)",
                         "report_problem", "orange"
                     )
+
+            # ── État des connaissances (niveau déclaré + couverture OIC) ────────
+            _render_knowledge_block(course)
 
             # ── Grille principale ──────────────────────────────────────────────
             with ui.element("div").classes("grid grid-cols-1 lg:grid-cols-3 gap-6 w-full"):

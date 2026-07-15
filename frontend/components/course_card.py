@@ -33,6 +33,7 @@ from frontend.components.lisa_dialog import open_lisa_dialog
 from backend.core.obsidian.service import obsidian_service
 from backend.core.reviews import local_store as _ls
 from backend.config.settings import settings as _settings
+from backend.core.knowledge import service as knowledge_service
 
 
 _ACCENT_HEX: dict[str, str] = {
@@ -129,6 +130,10 @@ def CourseCard(
                     ).on("click", lambda: open_start_tracking_dialog(
                         course, context, refresh_fn, client, is_restart=True
                     )).tooltip("Révision J30 dépassée — cliquer pour redémarrer le suivi espacé")
+                if knowledge_service.is_to_situate(course.id, list(course.college or []), context):
+                    ui.badge("À situer", color="grey").props("outline").classes(
+                        "text-[10px] font-bold px-1.5 py-0.5 shrink-0"
+                    ).tooltip("Collège validé, niveau pas encore déclaré")
                 ui.element("div").classes("flex-1 min-w-0")
 
                 # ⋯ Menu — actions secondaires (PDF, suivi, liens, Obsidian, complétion)

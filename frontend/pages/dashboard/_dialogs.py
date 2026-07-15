@@ -17,6 +17,8 @@ from backend.core.reviews.models import ReviewTask
 from backend.core.reviews import local_store
 from backend.core.reviews.recommendation_service import compute_daily_load
 from backend.core.reviews.service import review_service
+from backend.core.knowledge import store as knowledge_store
+from backend.core.knowledge import service as knowledge_service
 from backend.state.store import data_store
 
 from ._state import DashboardState
@@ -223,6 +225,15 @@ def open_session_feedback_dialog(
         weak_detail="",
     )
 
+    # ── Socle « état des connaissances » ──────────────────────────────────────
+    # Si l'item vient d'un collège validé et n'a pas encore de niveau déclaré,
+    # la séance est l'occasion de le situer — un clic, dans un écran déjà ouvert.
+    _to_situate = knowledge_service.is_to_situate(
+        task.course_id, task.college or [], task.context
+    )
+    state_fb.declared_level = None
+    _declared_buttons: dict = {}
+
     ACTIVITIES  = [("révision","Révision"),("lecture","Lecture"),("qcm","QCM"),
                    ("dp_kfp","DP/KFP"),("anki","Anki"),("fiche","Fiche"),("correction","Correction")]
     DUR_PRESETS = [5, 10, 20, 30, 45, 60, 90]
@@ -421,6 +432,34 @@ def open_session_feedback_dialog(
                                 lambda e: setattr(state_fb, "weak_detail", e.value or "")
                             )
 
+                if _to_situate:
+                    with ui.element("div").classes("px-6 py-3"):
+                        ui.label("Où en es-tu sur cet item ?").classes(
+                            "text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2"
+                        )
+                        with ui.row().classes("gap-1"):
+                            for _lvl, _lbl, _col in [
+                                ("solide", "Solide", "positive"),
+                                ("correct", "Correct", "warning"),
+                                ("flou", "Flou", "negative"),
+                            ]:
+                                def _pick(_l=_lvl):
+                                    state_fb.declared_level = _l
+                                    _render_declared()
+
+                                _b = ui.button(_lbl, on_click=_pick)
+                                _b.props(_chip_off())
+                                _declared_buttons[_lvl] = _b
+
+                        def _render_declared():
+                            for _l, _btn in _declared_buttons.items():
+                                _col = {"solide": "positive", "correct": "warning",
+                                        "flou": "negative"}[_l]
+                                _btn.props(
+                                    _chip_on(_col) if state_fb.declared_level == _l
+                                    else _chip_off()
+                                )
+
             with ui.element("div").classes(
                 "px-6 py-4 bg-slate-50 dark:bg-slate-800/50 "
                 "border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2"
@@ -429,6 +468,12 @@ def open_session_feedback_dialog(
 
                 async def _submit():
                     dialog.close()
+                    if state_fb.declared_level:
+                        knowledge_store.set_item_state(
+                            task.course_id, state_fb.declared_level,
+                            context=task.context, source="reprise",
+                        )
+                        review_service.invalidate_cache()
                     await validate_fn(
                         task, card,
                         activity_types=state_fb.activity_types or ["révision"],

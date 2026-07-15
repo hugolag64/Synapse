@@ -56,6 +56,12 @@ _TEXT_CLS = {
     "non_commence": "text-slate-400 dark:text-slate-500",
 }
 
+STATUS_LABELS = {
+    "non_etudie": "Non étudié",
+    "en_cours":   "En cours",
+    "valide":     "Validé",
+}
+
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -69,16 +75,33 @@ def _college_level(pct: float) -> str:
     return "solide"
 
 
-def _compute_stats(name: str) -> dict:
+def _compute_stats(
+    name: str,
+    all_college_statuses: dict[str, str] | None = None,
+    all_item_states: dict | None = None,
+) -> dict:
+    """
+    Stats d'un collège. `all_college_statuses`/`all_item_states` permettent au
+    caller de pré-charger ces tables une seule fois pour tous les collèges au
+    lieu d'une requête par collège (voir _show : 28 collèges → 1 lecture chacune).
+    """
     courses = data_store.get_cours_for_college(name)
     total = len(courses)
     started = sum(1 for c in courses if c.date_1ere_lecture)
     pct = started / total if total > 0 else 0.0
 
-    status = knowledge_store.get_college_status(name)
-    situes, n_items = knowledge_service.college_triage_progress(
-        name, [c.id for c in courses]
-    )
+    if all_college_statuses is None:
+        status = knowledge_store.get_college_status(name)
+    else:
+        status = all_college_statuses.get(name, "non_etudie")
+
+    if all_item_states is None:
+        situes, n_items = knowledge_service.college_triage_progress(
+            name, [c.id for c in courses]
+        )
+    else:
+        n_items = len(courses)
+        situes = sum(1 for c in courses if c.id in all_item_states)
 
     return {
         "total":   total,
@@ -124,7 +147,13 @@ def colleges_page():
             _s["tab"] = colleges[0]
         tab = _s["tab"]
 
-        all_stats = {name: _compute_stats(name) for name in colleges}
+        # Une seule lecture de chaque table pour tous les collèges (au lieu
+        # d'une lecture complète par collège — 28 collèges, même requête).
+        _statuses = knowledge_store.get_all_college_statuses()
+        _states   = knowledge_store.get_all_item_states("college")
+        all_stats = {
+            name: _compute_stats(name, _statuses, _states) for name in colleges
+        }
 
         root.clear()
         with root:
@@ -340,12 +369,6 @@ def colleges_page():
             _st = all_stats[tab]
 
             with ui.row().classes("items-center gap-3 mb-4"):
-                STATUS_LABELS = {
-                    "non_etudie": "Non étudié",
-                    "en_cours":   "En cours",
-                    "valide":     "Validé",
-                }
-
                 def _on_status_change(e, _name=tab):
                     knowledge_store.set_college_status(_name, e.value)
                     review_service.invalidate_cache()

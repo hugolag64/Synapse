@@ -73,11 +73,19 @@ def get_course_mastery(
     from backend.core.knowledge.models import blend, level_from_seed
 
     seed = get_seed_snapshot(course.id, context)
-    _cov = oic_coverage(course.id)          # une seule lecture, réutilisée pour le badge
+    # La couverture OIC ne concerne que les items déclarés (anciens collèges) :
+    # évite une requête lisa_oic par cours pour les ~99% de cours non déclarés.
+    if seed.declared_level is not None:
+        _cov = oic_coverage(course.id)      # une seule lecture, réutilisée pour le badge
+        _oic_coverage_a   = _cov["rang_a_pct"]
+        _has_rang_a_badge = badge_from_coverage(_cov)
+    else:
+        _oic_coverage_a   = 0.0
+        _has_rang_a_badge = False
     _extra = {
         "declared_level":   seed.declared_level,
-        "oic_coverage_a":   _cov["rang_a_pct"],
-        "has_rang_a_badge": badge_from_coverage(_cov),
+        "oic_coverage_a":   _oic_coverage_a,
+        "has_rang_a_badge": _has_rang_a_badge,
     }
 
     # 1. Extraction des propriétés du cours selon le contexte

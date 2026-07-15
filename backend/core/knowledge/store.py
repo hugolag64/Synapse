@@ -17,7 +17,7 @@ from loguru import logger
 
 from backend.core.reviews.local_store import _conn, _now
 from backend.core.knowledge.models import (
-    CollegeStatus, ItemState, COLLEGE_STATUSES, DECLARED_LEVELS,
+    ItemState, COLLEGE_STATUSES, DECLARED_LEVELS,
 )
 
 

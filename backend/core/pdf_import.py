@@ -36,8 +36,16 @@ async def auto_import_courses_from_pdf_folders(
     force: bool = False,
 ) -> dict:
     """
-    Scanne les dossiers Collèges/{college}/items/*.pdf et crée dans Notion
+    Scanne les dossiers Collèges/{college}/item*/*.pdf et crée dans Notion
     les cours dont le numéro d'item n'existe pas encore.
+
+    Le collège Notion attribué à un item est dérivé du dossier local où son
+    PDF a été trouvé (pas d'une table statique par item) : un item trouvé
+    dans plusieurs dossiers de collèges est créé avec tous ces collèges dans
+    le multi-select. Un item déjà présent dans Notion n'est jamais modifié —
+    « un PDF du même numéro traîne dans un autre dossier » n'est pas une
+    preuve fiable de rattachement officiel (copies de référence, dossiers
+    mal numérotés).
 
     Paramètres :
         cours_existants : liste des cours déjà chargés depuis Notion.
@@ -51,7 +59,8 @@ async def auto_import_courses_from_pdf_folders(
     result = {"created": 0, "existing_skipped": 0, "failed": 0, "total_found": 0}
 
     try:
-        from backend.core.qcm.items_mapping import all_items, get_college_from_item
+        from backend.core.qcm.items_mapping import all_items
+        from backend.core.files import resolve_college_folder
         from backend.config.settings import settings, NOTION_PROPS as P
         from backend.core.notion.service import notion_service
         from backend.core.notion.client import notion_client
@@ -68,7 +77,7 @@ async def auto_import_courses_from_pdf_folders(
             notion_client=notion_client,
             local_store=local_store,
             all_items=all_items,
-            get_college_from_item=get_college_from_item,
+            resolve_college_folder=resolve_college_folder,
         )
     except Exception as exc:
         logger.error(f"PDF import: erreur inattendue — {exc}")
@@ -78,7 +87,7 @@ async def auto_import_courses_from_pdf_folders(
 async def _run_import(
     cours_existants, force, result, *,
     settings, P, notion_service, notion_client, local_store,
-    all_items, get_college_from_item,
+    all_items, resolve_college_folder,
 ) -> dict:
     medicine_dir = getattr(settings, "medicine_dir", None)
     if not medicine_dir or not os.path.isdir(medicine_dir):
@@ -115,8 +124,26 @@ async def _run_import(
     else:
         processed = local_store.get_processed_pdf_items()
 
+    # ── Options réelles du multi-select Collège (source de vérité) ──────────
+    try:
+        db = await notion_client.retrieve_database(settings.notion.cours_db_id)
+        notion_college_names = [
+            o["name"] for o in db["properties"][P.COLLEGE]["multi_select"]["options"]
+        ]
+    except Exception as exc:
+        logger.warning(f"PDF import: impossible de lire les options Collège Notion — {exc}")
+        return result
+
+    # ── item_number déjà présents dans Notion (n'importe quel collège) ───────
+    # On ne touche jamais un item déjà créé : ajouter un collège manquant à un
+    # item existant à partir du seul indice "un PDF du même numéro traîne dans
+    # un autre dossier" est trop souvent un faux positif (copie de référence,
+    # dossier "ITEMS 25" mal numéroté) pour être fait automatiquement.
+    existing_item_numbers: set[int] = {n for (n, _col) in existing}
+
     # ── Scan des dossiers Collèges/ ───────────────────────────────────────────
-    to_create: list[dict] = []
+    # item_num -> {collège Notion -> nom du 1er fichier trouvé, pour le cache}
+    found: dict[int, dict[str, str]] = {}
 
     try:
         folder_names = os.listdir(colleges_root)
@@ -143,51 +170,50 @@ async def _run_import(
         if not item_subdirs:
             continue
 
-        # Si plusieurs dossiers item*, prend le plus récemment modifié
-        items_subdir = max(item_subdirs, key=os.path.getmtime)
-        if len(item_subdirs) > 1:
-            logger.debug(
-                f"PDF import: {len(item_subdirs)} dossiers item* dans {folder_name!r} "
-                f"→ sélectionné : {os.path.basename(items_subdir)!r}"
-            )
-
-        try:
-            pdf_files = [f for f in os.listdir(items_subdir) if f.lower().endswith(".pdf")]
-        except OSError:
+        # Le collège se déduit du dossier scanné, pas du numéro d'item seul —
+        # un même item peut légitimement appartenir à plusieurs collèges.
+        notion_college = resolve_college_folder(folder_name, notion_college_names)
+        if notion_college is None:
+            logger.debug(f"PDF import: dossier {folder_name!r} non résolu vers un collège Notion — ignoré")
             continue
 
-        for fname in pdf_files:
-            item_num = _extract_item_number(fname)
-            if item_num is None:
-                continue
-            if item_num not in valid_items:
-                logger.debug(f"PDF import: numéro item {item_num} hors EDN — {fname!r}")
-                continue
-
-            # Collège Notion via les données EDN (fiable, pas de collision COLLEGE_MAPPING)
-            notion_college = get_college_from_item(item_num)
-            if not notion_college:
-                logger.debug(f"PDF import: item {item_num} sans collège EDN assigné — {fname!r}")
+        # Tous les sous-dossiers item*/ITEMS*/ITEM* sont scannés, pas seulement
+        # le plus récemment modifié — un collège peut en avoir plusieurs.
+        for items_subdir in item_subdirs:
+            try:
+                pdf_files = [f for f in os.listdir(items_subdir) if f.lower().endswith(".pdf")]
+            except OSError:
                 continue
 
-            result["total_found"] += 1
+            for fname in pdf_files:
+                item_num = _extract_item_number(fname)
+                if item_num is None:
+                    continue
+                if item_num not in valid_items:
+                    logger.debug(f"PDF import: numéro item {item_num} hors EDN — {fname!r}")
+                    continue
 
-            # Skip si déjà traité avec succès (cache SQLite)
-            if (notion_college, item_num) in processed:
-                continue
+                result["total_found"] += 1
+                found.setdefault(item_num, {}).setdefault(notion_college, fname)
 
-            # Skip si déjà dans Notion, mémoriser dans le cache
-            if (item_num, notion_college) in existing:
-                local_store.upsert_pdf_scan(notion_college, item_num, "existing", fname)
+    to_create: list[dict] = []
+    for item_num, colleges in found.items():
+        if item_num in existing_item_numbers:
+            for college, fname in colleges.items():
+                local_store.upsert_pdf_scan(college, item_num, "existing", fname)
                 result["existing_skipped"] += 1
-                continue
+            continue
 
-            to_create.append({
-                "item_number": item_num,
-                "college": notion_college,
-                "title": valid_items[item_num]["title"],
-                "source_file": fname,
-            })
+        # Déjà traité avec succès lors d'un cycle précédent (cache SQLite)
+        if all((college, item_num) in processed for college in colleges):
+            continue
+
+        to_create.append({
+            "item_number": item_num,
+            "colleges": sorted(colleges.keys()),
+            "title": valid_items[item_num]["title"],
+            "source_file": next(iter(colleges.values())),
+        })
 
     if not to_create:
         logger.info(
@@ -213,13 +239,13 @@ async def _run_import(
     # ── Création Notion ───────────────────────────────────────────────────────
     for entry in to_create:
         num = entry["item_number"]
-        college = entry["college"]
+        colleges = entry["colleges"]
         title = entry["title"]
         fname = entry["source_file"]
 
         props = {
             P.COURS_TITLE: {"title": [{"text": {"content": title}}]},
-            P.COLLEGE: {"multi_select": [{"name": college}]},
+            P.COLLEGE: {"multi_select": [{"name": c} for c in colleges]},
             P.ITEM: {"number": num},
         }
         if num in items_map:
@@ -229,12 +255,14 @@ async def _run_import(
 
         try:
             await notion_client.create_page(parent_db_id=cours_db_id, properties=props)
-            logger.success(f"PDF import: ✓ Item {num:>3} ({college}) — {title[:60]}")
-            local_store.upsert_pdf_scan(college, num, "created", fname)
+            logger.success(f"PDF import: ✓ Item {num:>3} ({', '.join(colleges)}) — {title[:60]}")
+            for college in colleges:
+                local_store.upsert_pdf_scan(college, num, "created", fname)
             result["created"] += 1
         except Exception as exc:
             logger.error(f"PDF import: ✗ Item {num:>3} — {exc}")
-            local_store.upsert_pdf_scan(college, num, "failed", fname)
+            for college in colleges:
+                local_store.upsert_pdf_scan(college, num, "failed", fname)
             result["failed"] += 1
 
         await asyncio.sleep(0.35)  # Respecte le rate-limit Notion (~3 req/s)

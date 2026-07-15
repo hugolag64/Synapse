@@ -53,6 +53,39 @@ def _normalize_college_name(name: str) -> str:
     """Strip emojis et lowercase pour comparer noms de collèges."""
     return " ".join(_EMOJI_RE.sub("", name).split()).lower()
 
+
+def resolve_college_folder(folder_name: str, notion_college_names: List[str]) -> str | None:
+    """
+    Résout un nom de dossier local (<medicine_dir>/Collèges/{folder_name}) vers
+    le nom Notion exact du collège correspondant, ou None si aucune correspondance
+    fiable n'est trouvée (le dossier est alors ignoré plutôt que mal classé).
+
+    Ordre de résolution :
+      1. PDF_COLLEGE_MAPPING (override manuel Notion → dossier)
+      2. Correspondance exacte après normalisation (emoji/casse/accents ignorés)
+      3. Correspondance floue : le nom normalisé de l'un est contenu dans l'autre
+    """
+    folder_norm = normalize_text(_normalize_college_name(folder_name))
+
+    override_by_folder = {
+        normalize_text(_normalize_college_name(v)): k
+        for k, v in PDF_COLLEGE_MAPPING.items()
+    }
+    if folder_norm in override_by_folder:
+        return override_by_folder[folder_norm]
+
+    by_norm = {
+        normalize_text(_normalize_college_name(n)): n for n in notion_college_names
+    }
+    if folder_norm in by_norm:
+        return by_norm[folder_norm]
+
+    for n_norm, n_full in by_norm.items():
+        if n_norm in folder_norm or folder_norm in n_norm:
+            return n_full
+
+    return None
+
 def fuzzy_word_in_text(qw: str, text_words: List[str]) -> float:
     for fw in text_words:
         if qw == fw:

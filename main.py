@@ -31,6 +31,7 @@ from frontend.pages.weak_points import weak_points_page
 from frontend.pages.qcm import qcm_page
 from frontend.pages.planning import planning_page
 from frontend.pages.externat import externat_page
+from frontend.pages.triage import triage_page
 from frontend.theme import frame
 from backend.state.store import data_store
 

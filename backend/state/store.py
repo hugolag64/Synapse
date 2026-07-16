@@ -119,8 +119,11 @@ class DataStore:
     @staticmethod
     def _deduplicate_cours(cours: list) -> list:
         """
-        Déduplique par item_number : si plusieurs cours partagent le même numéro d'item,
-        garde celui dont le titre est le plus proche du titre EDN canonique.
+        Déduplique par (item_number, collège) : si plusieurs cours partagent le même
+        numéro d'item ET le même ensemble de collèges, garde celui dont le titre est
+        le plus proche du titre EDN canonique. Un même item peut légitimement avoir
+        plusieurs cours (un par collège — voir Cours DB : une page = un couple
+        (item, collège)) ; ceux-ci ne sont jamais fusionnés entre eux.
         Les cours sans item_number sont conservés sans modification.
         """
         def _norm_item(raw: str) -> str | None:
@@ -138,14 +141,15 @@ class DataStore:
                 canonical.lower().strip(),
             ).ratio()
 
-        groups: dict[str, list] = {}
+        groups: dict[tuple[str, tuple], list] = {}
         no_item: list = []
         for c in cours:
             n = _norm_item(getattr(c, "item_number", "") or "")
             if n is None:
                 no_item.append(c)
             else:
-                groups.setdefault(n, []).append(c)
+                college_key = tuple(sorted(getattr(c, "college", None) or []))
+                groups.setdefault((n, college_key), []).append(c)
 
         result: list = list(no_item)
         for n, group in groups.items():
@@ -513,6 +517,12 @@ class DataStore:
                 existing_map[new_c.id] = new_c
             self.cours = self._deduplicate_cours(list(existing_map.values()))
         return len(updated)
+
+    async def remove_cours(self, course_id: str) -> None:
+        """Retire un Cours du store local (après suppression Notion) et persiste."""
+        async with self._cours_lock:
+            self.cours = [c for c in self.cours if c.id != course_id]
+        self.save_to_disk()
 
     # ... getters ...
     

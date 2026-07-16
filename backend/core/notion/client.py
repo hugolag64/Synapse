@@ -92,6 +92,14 @@ class NotionClient:
             logger.error(f"Error creating page in db {parent_db_id}: {e}")
             raise
 
+    async def archive_page(self, page_id: str):
+        """Archive (soft-delete) a page."""
+        try:
+            return await self.client.pages.update(page_id=page_id, archived=True)
+        except Exception as e:
+            logger.error(f"Error archiving page {page_id}: {e}")
+            raise
+
     async def update_block(self, block_id: str, **kwargs):
         """Update a block's content (e.g. to_do checked state)."""
         try:

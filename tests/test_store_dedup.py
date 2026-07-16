@@ -92,6 +92,41 @@ class TestDeduplicateCours:
         assert "c" in ids
         assert "d" in ids
 
+    def test_multi_college_same_item_not_merged(self):
+        """
+        Un item peut légitimement avoir plusieurs pages Cours, une par collège
+        (Cours DB : une page = un couple (item, collège)). Même titre, collèges
+        différents -> aucune fusion, les deux doivent survivre.
+        """
+        cours = [
+            _make_cours("a", "Splénomégalie", "275", college=["Médecine interne"]),
+            _make_cours("b", "Splénomégalie", "275", college=["Hématologie"]),
+        ]
+        with patch("backend.state.store.item_title", return_value="Splénomégalie"):
+            result = DataStore._deduplicate_cours(cours)
+        assert len(result) == 2
+        ids = {c.id for c in result}
+        assert ids == {"a", "b"}
+
+    def test_same_college_duplicate_titles_still_merged(self):
+        """Même item ET même collège, titres différents -> toujours dédupliqué (bug d'origine)."""
+        cours = [
+            _make_cours("acr", "ACR", "331", college=["Médecine Intensive - Réanimation"]),
+            _make_cours(
+                "full",
+                "Arrêt cardio-circulatoire",
+                "331",
+                college=["Médecine Intensive - Réanimation"],
+            ),
+        ]
+        with patch(
+            "backend.state.store.item_title",
+            return_value="Arrêt cardio-circulatoire",
+        ):
+            result = DataStore._deduplicate_cours(cours)
+        assert len(result) == 1
+        assert result[0].id == "full"
+
     def test_dedup_after_item_number_resolution(self):
         """
         Simulates the load_from_disk path: courses arrive with item_number=""

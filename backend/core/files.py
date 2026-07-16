@@ -45,7 +45,17 @@ _EMOJI_RE = re.compile(
 # Valeur = nom du dossier dans <medicine_dir>/Collèges/ (sans emoji).
 # Ne renseigner que les cas où le dossier diffère du nom Notion sans emoji.
 PDF_COLLEGE_MAPPING: dict[str, str] = {
-    "Chirurgie digestive 🧵": "Chirurgie générale viscérale et digestive",
+    "Chirurgie digestive 🧵": "Chirurgie Générale Viscérale et Digetive",  # typo "Digetive" dans le nom réel du dossier Drive
+}
+
+# Alias dossier → collège Notion, pour la résolution dossier-vers-collège
+# uniquement (scan PDF / diagnostic de réconciliation). Contrairement à
+# PDF_COLLEGE_MAPPING (un seul dossier "canonique" par collège, utilisé aussi
+# pour l'ouverture de PDF), un même collège peut avoir plusieurs dossiers
+# alias ici sans affecter _get_college_folder.
+PDF_COLLEGE_FOLDER_ALIASES: dict[str, str] = {
+    "Chirurgie Vasculaire": "Cardiovasculaire ❤️",  # item 227 (insuffisance veineuse chronique) est un item cardiovasculaire
+    "Médecine Infectieuse et Tropicale": "Infectiologie 🦠",
 }
 
 
@@ -62,8 +72,9 @@ def resolve_college_folder(folder_name: str, notion_college_names: List[str]) ->
 
     Ordre de résolution :
       1. PDF_COLLEGE_MAPPING (override manuel Notion → dossier)
-      2. Correspondance exacte après normalisation (emoji/casse/accents ignorés)
-      3. Correspondance floue : le nom normalisé de l'un est contenu dans l'autre
+      2. PDF_COLLEGE_FOLDER_ALIASES (alias dossier → collège, many-to-one)
+      3. Correspondance exacte après normalisation (emoji/casse/accents ignorés)
+      4. Correspondance floue : le nom normalisé de l'un est contenu dans l'autre
     """
     folder_norm = normalize_text(_normalize_college_name(folder_name))
 
@@ -73,6 +84,13 @@ def resolve_college_folder(folder_name: str, notion_college_names: List[str]) ->
     }
     if folder_norm in override_by_folder:
         return override_by_folder[folder_norm]
+
+    alias_by_folder = {
+        normalize_text(_normalize_college_name(k)): v
+        for k, v in PDF_COLLEGE_FOLDER_ALIASES.items()
+    }
+    if folder_norm in alias_by_folder:
+        return alias_by_folder[folder_norm]
 
     by_norm = {
         normalize_text(_normalize_college_name(n)): n for n in notion_college_names

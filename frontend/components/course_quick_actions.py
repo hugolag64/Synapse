@@ -25,6 +25,8 @@ from backend.core.files import file_service
 from backend.core.google.calendar_service import calendar_service
 from backend.core.obsidian.service import obsidian_service
 from backend.config.settings import settings as _settings
+from backend.core.notion.client import notion_client
+from backend.state.store import data_store
 
 import os
 import datetime
@@ -418,6 +420,31 @@ async def _create_obsidian_note_action(course, refresh_fn, client) -> None:
                     refresh_fn()
             else:
                 ui.notify(f"Erreur Obsidian : {result}", type="negative")
+    except Exception:
+        pass
+
+
+async def _delete_course_action(course, refresh_fn, client) -> None:
+    """Archive la page Notion du cours puis le retire du cache local (une page = un couple (item, collège))."""
+    try:
+        await notion_client.archive_page(course.id)
+    except Exception as exc:
+        try:
+            ctx = client if client else ui.context.client
+            with ctx:
+                ui.notify(f"Erreur suppression : {exc}", type="negative")
+        except Exception:
+            pass
+        return
+
+    await data_store.remove_cours(course.id)
+
+    try:
+        ctx = client if client else ui.context.client
+        with ctx:
+            ui.notify(f"« {course.title} » supprimé de {', '.join(course.college)} ✓", type="warning", icon="delete")
+            if refresh_fn:
+                refresh_fn()
     except Exception:
         pass
 

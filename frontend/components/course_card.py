@@ -28,6 +28,7 @@ from frontend.components.course_quick_actions import (
     _create_obsidian_note_action,
     _open_link_note_dialog,
     open_pdf_wizard,
+    _delete_course_action,
 )
 from frontend.components.lisa_dialog import open_lisa_dialog
 from backend.core.obsidian.service import obsidian_service
@@ -242,6 +243,16 @@ def CourseCard(
                                             else "text-slate-400 dark:text-slate-500"
                                         )
                                     )
+
+                        ui.separator().classes("my-1")
+
+                        # ── 5. Suppression ────────────────────────────────────
+                        ui.menu_item(
+                            "Supprimer",
+                            on_click=lambda c=course: asyncio.create_task(
+                                _delete_course_action(c, refresh_fn, client)
+                            ),
+                        ).props("dense").classes("text-[13px] text-red-500")
 
             # Ligne 2 : dot maîtrise + label court · [spacer] · statut lecture
             # Ligne séparée (jamais fusionnée avec le menu ⋯) : peut truncate

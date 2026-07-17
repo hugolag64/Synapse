@@ -213,7 +213,7 @@ from backend.core.notion.models import Cours
 
 
 def _mock_cours(id, title, college, semestre=None, date_1ere_lecture=None,
-                 item_number="1", nb_lectures=0):
+                 item_number="1", nb_lectures=0, url_pdf="dummy.pdf"):
     c = MagicMock(spec=Cours)
     c.id = id
     c.title = title
@@ -224,7 +224,7 @@ def _mock_cours(id, title, college, semestre=None, date_1ere_lecture=None,
     c.date_1ere_lecture_ue = None
     c.nb_lectures = nb_lectures
     c.nb_lectures_ue = 0
-    c.url_pdf = None
+    c.url_pdf = url_pdf
     c.url_pdf_ue = None
     c.agregation_fiche_edn = None
     c.anki = False
@@ -243,11 +243,32 @@ def test_pool_inclut_item_declare_sans_lecture(mock_data_store):
     mock_data_store.cours = [c]
 
     tasks = consolidation.get_due_consolidation_tasks(
-        context="college", today=date.today() + datetime.timedelta(days=1),
+        context="college", today=date.today() + datetime.timedelta(days=15),
     )
     assert len(tasks) == 1
     assert tasks[0].review_type == "consolidation"
     assert tasks[0].course_id == "course-1"
+
+
+@patch('backend.state.store.data_store')
+def test_pool_item_declare_il_y_a_longtemps_est_immediatement_du(mock_data_store):
+    import backend.core.knowledge.store as ks
+    from backend.core.reviews import consolidation
+
+    ks.set_item_state("course-old", "flou", context="college", source="triage")
+    # set_item_state always stamps declared_at = today(); backdate it directly
+    # to simulate a college validated 60 days before this pool-builder ever runs.
+    with ls._conn() as con:
+        con.execute(
+            "UPDATE item_state SET declared_at = ? WHERE course_id = ? AND context = ?",
+            ((date.today() - datetime.timedelta(days=60)).isoformat(), "course-old", "college"),
+        )
+    c = _mock_cours("course-old", "Cours ancien", ["Cardiovasculaire ❤️"], date_1ere_lecture=None)
+    mock_data_store.cours = [c]
+
+    tasks = consolidation.get_due_consolidation_tasks(context="college")
+    assert len(tasks) == 1
+    assert tasks[0].course_id == "course-old"
 
 
 @patch('backend.state.store.data_store')

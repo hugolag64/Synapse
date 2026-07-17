@@ -37,11 +37,12 @@ _HIDDEN_STATUSES = {"done", "ignored", "cancelled"}
 def _bootstrap_at_date(
     course, context: str, date_ref: Optional[datetime.date], today: datetime.date
 ) -> datetime.date:
-    """Date d'ancrage pour l'amorçage : 'aujourd'hui' pour items pré-app (case a),
-    ou date de complétion du J30 pour items ayant fini leur cycle (case b)."""
+    """Date d'ancrage pour l'amorçage : date de déclaration (item pré-app) ou
+    date de complétion du J30 (item ayant fini son cycle)."""
     if date_ref is None:
-        # Declared items (case a): bootstrap anchored to today so they're immediately schedulable
-        return today
+        from backend.core.knowledge import store as ks
+        item_state = ks.get_item_state(course.id, context)
+        return item_state.declared_at if item_state else today
     return local_store.get_last_completed_date(course.id, context, "J30") or today
 
 
@@ -63,15 +64,13 @@ def get_due_consolidation_tasks(
         date_ref = c.date_1ere_lecture if context == "college" else c.date_1ere_lecture_ue
 
         mastery = get_course_mastery(c, context=context)
-        if mastery.score is None and mastery.declared_level is None:
+        if mastery.score is None:
             continue
 
         if date_ref is not None and not local_store.is_j_cycle_complete(c.id, context):
             continue  # encore en cours de cycle J3-J30 normal
 
         due = local_store.get_consolidation_due_date(c.id, context)
-        is_newly_bootstrapped = False
-        bootstrap_date = None
         if due is None:
             bootstrap_date = _bootstrap_at_date(c, context, date_ref, today)
             initial = INITIAL_INTERVAL_BY_LEVEL.get(mastery.level, DEFAULT_INITIAL_INTERVAL)
@@ -81,7 +80,6 @@ def get_due_consolidation_tasks(
             due = local_store.get_consolidation_due_date(c.id, context)
             if due is None:
                 continue
-            is_newly_bootstrapped = True
 
         task_id = local_store.make_task_id(c.id, context, "consolidation", due)
         row = local_store.get_history(task_id)
@@ -94,14 +92,7 @@ def get_due_consolidation_tasks(
         else:
             effective = due
 
-        # Newly-declared items with low confidence (flou, fragile, en construction)
-        # are included immediately for early review
-        is_declared_undisturbed = mastery.declared_level is not None and date_ref is None
-        is_low_confidence = mastery.declared_level in ("flou", "fragile", "en construction")
-        if is_newly_bootstrapped and is_declared_undisturbed and is_low_confidence:
-            # Include newly-bootstrapped low-confidence declared items immediately
-            pass
-        elif effective > today:
+        if effective > today:
             continue
 
         days_overdue = (today - effective).days

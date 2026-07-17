@@ -469,6 +469,163 @@ def ignore(
         ))
 
 
+# ── API publique — consolidation (SM-2 auto-chaîné) ──────────────────────────
+
+def is_j_cycle_complete(course_id: str, context: str) -> bool:
+    """True si les 4 révisions J3/J7/J14/J30 sont toutes marquées done."""
+    with _conn() as con:
+        rows = con.execute(
+            """SELECT DISTINCT review_type FROM review_history
+               WHERE course_id = ? AND context = ?
+                 AND review_type IN ('J3','J7','J14','J30') AND status = 'done'""",
+            (course_id, context),
+        ).fetchall()
+    done_types = {r["review_type"] for r in rows}
+    return done_types == {"J3", "J7", "J14", "J30"}
+
+
+def get_last_completed_date(
+    course_id: str, context: str, review_type: str
+) -> Optional[datetime.date]:
+    """Date de complétion la plus récente d'un review_type donné, ou None."""
+    with _conn() as con:
+        row = con.execute(
+            """SELECT completed_at FROM review_history
+               WHERE course_id = ? AND context = ? AND review_type = ? AND status = 'done'
+               ORDER BY completed_at DESC LIMIT 1""",
+            (course_id, context, review_type),
+        ).fetchone()
+    if not row or not row["completed_at"]:
+        return None
+    return datetime.date.fromisoformat(str(row["completed_at"])[:10])
+
+
+def get_last_consolidation_state(course_id: str, context: str) -> Optional[sqlite3.Row]:
+    """Dernière ligne 'consolidation' done (la plus récente), ou None si jamais amorcée."""
+    with _conn() as con:
+        return con.execute(
+            """SELECT * FROM review_history
+               WHERE course_id = ? AND context = ? AND review_type = 'consolidation'
+                 AND status = 'done'
+               ORDER BY completed_at DESC, id DESC LIMIT 1""",
+            (course_id, context),
+        ).fetchone()
+
+
+def bootstrap_consolidation(
+    course_id: str,
+    context: str,
+    course_title: str,
+    item_number: str,
+    initial_interval_days: int,
+    at_date: datetime.date,
+) -> None:
+    """
+    Amorce la chaîne SM-2 'consolidation' pour un cours, si elle n'existe pas
+    déjà. Insère une ligne synthétique 'done' qui sert de premier point
+    d'ancrage pour get_consolidation_due_date et mark_consolidation_done.
+    Idempotent : ne fait rien si une ligne consolidation existe déjà.
+    """
+    if get_last_consolidation_state(course_id, context) is not None:
+        return
+
+    from backend.core.reviews.sm2 import SM2_INIT_EF
+
+    task_id = make_task_id(course_id, context, "consolidation", at_date)
+    now = _now()
+    with _conn() as con:
+        con.execute("""
+            INSERT INTO review_history
+                (task_id, course_id, course_title, item_number, context, review_type,
+                 theoretical_due_date, effective_due_date, status, completed_at,
+                 easiness_factor, repetition_count, next_interval_days,
+                 created_at, updated_at)
+            VALUES (?,?,?,?,?,'consolidation',?,?,'done',?,?,?,?,?,?)
+            ON CONFLICT(task_id) DO NOTHING
+        """, (
+            task_id, course_id, course_title, item_number, context,
+            at_date.isoformat(), at_date.isoformat(), at_date.isoformat(),
+            SM2_INIT_EF, 0, initial_interval_days,
+            now, now,
+        ))
+
+
+def get_consolidation_due_date(course_id: str, context: str) -> Optional[datetime.date]:
+    """Prochaine échéance de consolidation, ou None si jamais amorcée."""
+    row = get_last_consolidation_state(course_id, context)
+    if not row or not row["completed_at"] or row["next_interval_days"] is None:
+        return None
+    completed = datetime.date.fromisoformat(str(row["completed_at"])[:10])
+    return completed + datetime.timedelta(days=row["next_interval_days"])
+
+
+def mark_consolidation_done(
+    course_id: str,
+    context: str,
+    theoretical_due_date: datetime.date,
+    course_title: str = "",
+    item_number: str = "",
+    confidence: int = 3,
+    difficulty: Optional[str] = None,
+    notes: Optional[str] = None,
+) -> int:
+    """
+    Valide une occurrence 'consolidation' et fait progresser la chaîne SM-2.
+
+    Repart de l'état de la DERNIÈRE occurrence complétée (pas de l'occurrence
+    courante, qui n'existe pas encore en base tant qu'elle n'a pas de
+    completed_at) — sinon l'ease factor et le repetition_count repartiraient
+    de zéro à chaque validation, ce qui casserait la croissance des intervalles.
+
+    Retourne le nouvel intervalle (jours), utile pour les tests/logs.
+    """
+    from backend.core.reviews.sm2 import compute_next_interval, SM2_INIT_EF
+
+    prev = get_last_consolidation_state(course_id, context)
+    prev_ef       = (prev["easiness_factor"]   if prev else None) or SM2_INIT_EF
+    prev_rep      = (prev["repetition_count"]  if prev else None) or 0
+    prev_interval = (prev["next_interval_days"] if prev else None) or 21
+
+    next_interval, new_ef = compute_next_interval(
+        current_interval_days=prev_interval,
+        confidence=confidence,
+        easiness_factor=prev_ef,
+        repetition=prev_rep,
+    )
+    new_rep = prev_rep + 1
+
+    task_id = make_task_id(course_id, context, "consolidation", theoretical_due_date)
+    now = _now()
+    with _conn() as con:
+        con.execute("""
+            INSERT INTO review_history
+                (task_id, course_id, course_title, item_number, context, review_type,
+                 theoretical_due_date, effective_due_date, status, completed_at,
+                 confidence, difficulty, notes,
+                 easiness_factor, repetition_count, next_interval_days,
+                 created_at, updated_at)
+            VALUES (?,?,?,?,?,'consolidation',?,?,'done',?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(task_id) DO UPDATE SET
+                status             = 'done',
+                completed_at       = excluded.completed_at,
+                postponed_to       = NULL,
+                confidence         = excluded.confidence,
+                difficulty         = excluded.difficulty,
+                notes              = excluded.notes,
+                easiness_factor    = excluded.easiness_factor,
+                repetition_count   = excluded.repetition_count,
+                next_interval_days = excluded.next_interval_days,
+                updated_at         = excluded.updated_at
+        """, (
+            task_id, course_id, course_title, item_number, context,
+            theoretical_due_date.isoformat(), theoretical_due_date.isoformat(),
+            now, confidence, difficulty, notes,
+            new_ef, new_rep, next_interval,
+            now, now,
+        ))
+    return next_interval
+
+
 # ── Migration study_sessions v2 ──────────────────────────────────────────────
 
 def migrate_study_sessions_v2() -> None:

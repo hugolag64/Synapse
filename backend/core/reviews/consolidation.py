@@ -186,3 +186,59 @@ def select_daily(
             skipped.append(t)
 
     return selected, skipped
+
+
+def get_or_bootstrap_task(course_id: str, context: str = "college") -> Optional[ReviewTask]:
+    """
+    Retourne la ReviewTask 'consolidation' d'un cours choisi manuellement
+    ("j'ai travaillé ce cours aujourd'hui"), en amorçant sa chaîne SM-2 si
+    elle n'existe pas encore. due_date est forcée à aujourd'hui — l'utilisateur
+    choisit de le traiter maintenant, indépendamment de sa vraie échéance.
+    Retourne None si le cours est introuvable ou jamais démarré (mastery.score is None).
+    """
+    from backend.state.store import data_store
+
+    course = next((c for c in data_store.cours if c.id == course_id), None)
+    if course is None:
+        return None
+
+    mastery = get_course_mastery(course, context=context)
+    if mastery.score is None:
+        return None
+
+    today = datetime.date.today()
+    due = local_store.get_consolidation_due_date(course.id, context)
+    if due is None:
+        date_ref = course.date_1ere_lecture if context == "college" else course.date_1ere_lecture_ue
+        at_date = _bootstrap_at_date(course, context, date_ref, today)
+        initial = INITIAL_INTERVAL_BY_LEVEL.get(mastery.level, DEFAULT_INITIAL_INTERVAL)
+        local_store.bootstrap_consolidation(
+            course.id, context, course.title, course.item_number or "", initial, at_date,
+        )
+        due = local_store.get_consolidation_due_date(course.id, context) or today
+
+    task_id = local_store.make_task_id(course.id, context, "consolidation", due)
+    return ReviewTask(
+        id=task_id,
+        course_id=course.id,
+        course_title=course.title,
+        item_number=course.item_number or None,
+        college=list(course.college),
+        context=context,
+        url_pdf=course.url_pdf,
+        url_pdf_ue=course.url_pdf_ue,
+        agregation_fiche_edn=course.agregation_fiche_edn,
+        theoretical_due_date=due,
+        due_date=today,
+        review_type="consolidation",
+        status="todo",
+        nb_lectures=course.nb_lectures if context == "college" else course.nb_lectures_ue,
+        anki=getattr(course, "anki", False),
+        qcm_done=getattr(course, "qcm_done", False),
+        course_status=getattr(course, "course_status", "À lire"),
+        days_overdue=0,
+        mastery_score=mastery.score,
+        mastery_level=mastery.level,
+        mastery_reasons=mastery.reasons,
+        semestre=course.semestre,
+    )

@@ -399,3 +399,55 @@ def test_select_daily_priorise_niveau_critique(mock_data_store):
 
     selected, _ = consolidation.select_daily([maitrise, critique], max_items=1, max_per_college=5)
     assert selected[0].course_id == "crit"
+
+
+# ── get_or_bootstrap_task (ajout manuel d'un cours) ─────────────────────────
+
+@patch('backend.state.store.data_store')
+def test_get_or_bootstrap_task_cree_la_chaine_si_absente(mock_data_store):
+    import backend.core.knowledge.store as ks
+    from backend.core.reviews import consolidation
+
+    ks.set_item_state("course-6", "correct", context="college", source="triage")
+    c = _mock_cours("course-6", "Cours ajouté", ["Infectiologie 🦠"])
+    mock_data_store.cours = [c]
+
+    task = consolidation.get_or_bootstrap_task("course-6", context="college")
+    assert task is not None
+    assert task.course_id == "course-6"
+    assert task.review_type == "consolidation"
+    assert ls.get_last_consolidation_state("course-6", "college") is not None
+
+
+@patch('backend.state.store.data_store')
+def test_get_or_bootstrap_task_reutilise_chaine_existante(mock_data_store):
+    import backend.core.knowledge.store as ks
+    from backend.core.reviews import consolidation
+
+    ls.bootstrap_consolidation(
+        "course-7", "college", "Déjà amorcé", "1",
+        initial_interval_days=21, at_date=date(2026, 1, 1),
+    )
+    ks.set_item_state("course-7", "correct", context="college", source="triage")
+    c = _mock_cours("course-7", "Déjà amorcé", ["Neurologie 🧠"])
+    mock_data_store.cours = [c]
+
+    task = consolidation.get_or_bootstrap_task("course-7", context="college")
+    assert task.theoretical_due_date == date(2026, 1, 22)
+
+
+@patch('backend.state.store.data_store')
+def test_get_or_bootstrap_task_none_si_cours_introuvable(mock_data_store):
+    from backend.core.reviews import consolidation
+
+    mock_data_store.cours = []
+    assert consolidation.get_or_bootstrap_task("nope", context="college") is None
+
+
+@patch('backend.state.store.data_store')
+def test_get_or_bootstrap_task_none_si_jamais_demarre(mock_data_store):
+    from backend.core.reviews import consolidation
+
+    c = _mock_cours("course-8", "Jamais commencé", ["Nutrition 🍔"])
+    mock_data_store.cours = [c]
+    assert consolidation.get_or_bootstrap_task("course-8", context="college") is None

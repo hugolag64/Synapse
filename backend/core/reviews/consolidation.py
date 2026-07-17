@@ -1,0 +1,134 @@
+"""
+consolidation.py — Synapse
+---------------------------
+Flux de consolidation long terme : items dont le cycle J3-J30 est terminé,
+ou qui ont un niveau déclaré (flou/correct/solide) sans jamais avoir été
+suivis dans l'app (lus avant l'existence de Synapse).
+
+Utilise le moteur SM-2 existant, étendu avec un review_type "consolidation"
+auto-chaîné (backend.core.reviews.local_store) : l'intervalle s'étire
+automatiquement avec la maîtrise plutôt que de suivre un cycle fixe.
+
+Pas d'I/O réseau — data_store.cours est déjà chargé en mémoire.
+"""
+from __future__ import annotations
+
+import datetime
+from typing import Optional
+
+from backend.core.reviews import local_store
+from backend.core.reviews.models import ReviewTask
+from backend.core.reviews.mastery import get_course_mastery
+
+# Intervalle initial (jours) selon le niveau de maîtrise au moment de l'amorçage.
+INITIAL_INTERVAL_BY_LEVEL: dict[str, int] = {
+    "critique":          14,
+    "fragile":           18,
+    "en construction":   18,
+    "à consolider":      24,
+    "à entraîner":       24,
+    "maîtrisé":          30,
+}
+DEFAULT_INITIAL_INTERVAL = 21
+
+_HIDDEN_STATUSES = {"done", "ignored", "cancelled"}
+
+
+def _bootstrap_at_date(
+    course, context: str, date_ref: Optional[datetime.date], today: datetime.date
+) -> datetime.date:
+    """Date d'ancrage pour l'amorçage : 'aujourd'hui' pour items pré-app (case a),
+    ou date de complétion du J30 pour items ayant fini leur cycle (case b)."""
+    if date_ref is None:
+        # Declared items (case a): bootstrap anchored to today so they're immediately schedulable
+        return today
+    return local_store.get_last_completed_date(course.id, context, "J30") or today
+
+
+def get_due_consolidation_tasks(
+    context: str = "college",
+    today: Optional[datetime.date] = None,
+) -> list[ReviewTask]:
+    """
+    Construit les ReviewTask virtuelles 'consolidation' dues aujourd'hui ou
+    en retard, pour tous les cours éligibles. Amorce (bootstrap) au passage
+    les items nouvellement éligibles qui n'ont pas encore de chaîne SM-2.
+    """
+    from backend.state.store import data_store
+
+    today = today or datetime.date.today()
+    tasks: list[ReviewTask] = []
+
+    for c in data_store.cours:
+        date_ref = c.date_1ere_lecture if context == "college" else c.date_1ere_lecture_ue
+
+        mastery = get_course_mastery(c, context=context)
+        if mastery.score is None and mastery.declared_level is None:
+            continue
+
+        if date_ref is not None and not local_store.is_j_cycle_complete(c.id, context):
+            continue  # encore en cours de cycle J3-J30 normal
+
+        due = local_store.get_consolidation_due_date(c.id, context)
+        is_newly_bootstrapped = False
+        bootstrap_date = None
+        if due is None:
+            bootstrap_date = _bootstrap_at_date(c, context, date_ref, today)
+            initial = INITIAL_INTERVAL_BY_LEVEL.get(mastery.level, DEFAULT_INITIAL_INTERVAL)
+            local_store.bootstrap_consolidation(
+                c.id, context, c.title, c.item_number or "", initial, bootstrap_date,
+            )
+            due = local_store.get_consolidation_due_date(c.id, context)
+            if due is None:
+                continue
+            is_newly_bootstrapped = True
+
+        task_id = local_store.make_task_id(c.id, context, "consolidation", due)
+        row = local_store.get_history(task_id)
+        status = row["status"] if row else "todo"
+        if status in _HIDDEN_STATUSES:
+            continue
+
+        if status == "postponed" and row["postponed_to"]:
+            effective = datetime.date.fromisoformat(row["postponed_to"])
+        else:
+            effective = due
+
+        # Newly-declared items with low confidence (flou, fragile, en construction)
+        # are included immediately for early review
+        is_declared_undisturbed = mastery.declared_level is not None and date_ref is None
+        is_low_confidence = mastery.declared_level in ("flou", "fragile", "en construction")
+        if is_newly_bootstrapped and is_declared_undisturbed and is_low_confidence:
+            # Include newly-bootstrapped low-confidence declared items immediately
+            pass
+        elif effective > today:
+            continue
+
+        days_overdue = (today - effective).days
+
+        tasks.append(ReviewTask(
+            id=task_id,
+            course_id=c.id,
+            course_title=c.title,
+            item_number=c.item_number or None,
+            college=list(c.college),
+            context=context,
+            url_pdf=c.url_pdf,
+            url_pdf_ue=c.url_pdf_ue,
+            agregation_fiche_edn=c.agregation_fiche_edn,
+            theoretical_due_date=due,
+            due_date=effective,
+            review_type="consolidation",
+            status=status,
+            nb_lectures=c.nb_lectures if context == "college" else c.nb_lectures_ue,
+            anki=getattr(c, "anki", False),
+            qcm_done=getattr(c, "qcm_done", False),
+            course_status=getattr(c, "course_status", "À lire"),
+            days_overdue=max(days_overdue, 0),
+            mastery_score=mastery.score,
+            mastery_level=mastery.level,
+            mastery_reasons=mastery.reasons,
+            semestre=c.semestre,
+        ))
+
+    return tasks

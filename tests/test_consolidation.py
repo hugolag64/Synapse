@@ -203,3 +203,115 @@ def test_review_task_accepte_consolidation_et_semestre():
     )
     assert t.review_type == "consolidation"
     assert t.semestre == "Semestre 4"
+
+
+# ── get_due_consolidation_tasks ──────────────────────────────────────────────────
+
+from unittest.mock import patch, MagicMock
+from datetime import date
+from backend.core.notion.models import Cours
+
+
+def _mock_cours(id, title, college, semestre=None, date_1ere_lecture=None,
+                 item_number="1", nb_lectures=0):
+    c = MagicMock(spec=Cours)
+    c.id = id
+    c.title = title
+    c.item_number = item_number
+    c.college = college
+    c.semestre = semestre
+    c.date_1ere_lecture = date_1ere_lecture
+    c.date_1ere_lecture_ue = None
+    c.nb_lectures = nb_lectures
+    c.nb_lectures_ue = 0
+    c.url_pdf = None
+    c.url_pdf_ue = None
+    c.agregation_fiche_edn = None
+    c.anki = False
+    c.qcm_done = False
+    c.course_status = "À lire"
+    return c
+
+
+@patch('backend.state.store.data_store')
+def test_pool_inclut_item_declare_sans_lecture(mock_data_store):
+    import backend.core.knowledge.store as ks
+    from backend.core.reviews import consolidation
+
+    ks.set_item_state("course-1", "flou", context="college", source="triage")
+    c = _mock_cours("course-1", "Cours test", ["Cardiovasculaire ❤️"], date_1ere_lecture=None)
+    mock_data_store.cours = [c]
+
+    tasks = consolidation.get_due_consolidation_tasks(
+        context="college", today=date.today() + datetime.timedelta(days=1),
+    )
+    assert len(tasks) == 1
+    assert tasks[0].review_type == "consolidation"
+    assert tasks[0].course_id == "course-1"
+
+
+@patch('backend.state.store.data_store')
+def test_pool_exclut_item_en_cours_de_cycle_j(mock_data_store):
+    from backend.core.reviews import consolidation
+
+    ls.mark_done(
+        task_id="course-2_college_J3_2026-01-01",
+        course_id="course-2", context="college", review_type="J3",
+        theoretical_due_date=date(2026, 1, 1),
+    )
+    c = _mock_cours(
+        "course-2", "Cours en cycle", ["Cardiovasculaire ❤️"],
+        date_1ere_lecture=date(2025, 12, 1), nb_lectures=1,
+    )
+    mock_data_store.cours = [c]
+
+    tasks = consolidation.get_due_consolidation_tasks(context="college")
+    assert tasks == []
+
+
+@patch('backend.state.store.data_store')
+def test_pool_inclut_item_ayant_fini_j30(mock_data_store):
+    from backend.core.reviews import consolidation
+
+    for rt in ("J3", "J7", "J14", "J30"):
+        ls.mark_done(
+            task_id=f"course-3_college_{rt}_2026-01-01",
+            course_id="course-3", context="college", review_type=rt,
+            theoretical_due_date=date(2026, 1, 1),
+        )
+    c = _mock_cours(
+        "course-3", "Cours fini", ["Pneumologie 🫁"],
+        date_1ere_lecture=date(2025, 12, 1), nb_lectures=4,
+    )
+    mock_data_store.cours = [c]
+
+    tasks = consolidation.get_due_consolidation_tasks(
+        context="college", today=date.today() + datetime.timedelta(days=40),
+    )
+    assert len(tasks) == 1
+    assert tasks[0].course_id == "course-3"
+
+
+@patch('backend.state.store.data_store')
+def test_pool_exclut_item_non_demarre(mock_data_store):
+    from backend.core.reviews import consolidation
+
+    c = _mock_cours("course-4", "Jamais touché", ["Dermatologie 🧴"])
+    mock_data_store.cours = [c]
+
+    tasks = consolidation.get_due_consolidation_tasks(context="college")
+    assert tasks == []
+
+
+@patch('backend.state.store.data_store')
+def test_pool_exclut_item_pas_encore_du(mock_data_store):
+    import backend.core.knowledge.store as ks
+    from backend.core.reviews import consolidation
+
+    ks.set_item_state("course-5", "solide", context="college", source="triage")
+    c = _mock_cours("course-5", "Cours solide", ["Nutrition 🍔"])
+    mock_data_store.cours = [c]
+
+    # Amorcé aujourd'hui avec un intervalle initial de 30j (solide) -> pas dû aujourd'hui.
+    tasks = consolidation.get_due_consolidation_tasks(context="college", today=date.today())
+    assert tasks == []

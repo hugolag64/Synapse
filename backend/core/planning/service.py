@@ -233,6 +233,25 @@ class PlanningService:
 
         return plans
 
+    # ── plan_consolidation ───────────────────────────────────────────────────
+
+    def plan_consolidation(
+        self,
+        max_items: int = 6,
+        max_per_college: int = 2,
+    ):
+        """
+        Sélection du jour pour le flux de consolidation long terme (items
+        ayant fini leur cycle J3-J30, ou déclarés flou/correct/solide sans
+        avoir jamais été suivis dans l'app). Retourne (selected, skipped).
+        """
+        from backend.core.reviews import consolidation
+
+        tasks = consolidation.get_due_consolidation_tasks()
+        return consolidation.select_daily(
+            tasks, max_items=max_items, max_per_college=max_per_college,
+        )
+
 
 # ── Singleton ─────────────────────────────────────────────────────────────────
 

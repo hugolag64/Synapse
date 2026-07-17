@@ -451,3 +451,28 @@ def test_get_or_bootstrap_task_none_si_jamais_demarre(mock_data_store):
     c = _mock_cours("course-8", "Jamais commencé", ["Nutrition 🍔"])
     mock_data_store.cours = [c]
     assert consolidation.get_or_bootstrap_task("course-8", context="college") is None
+
+
+# ── PlanningService.plan_consolidation ───────────────────────────────────────
+
+@patch('backend.state.store.data_store')
+def test_plan_consolidation_retourne_selection_et_surplus(mock_data_store):
+    import backend.core.knowledge.store as ks
+    from backend.core.planning.service import planning_service
+
+    mock_data_store.preferences = {"semestre_actuel": "Semestre 7"}
+    ks.set_item_state("course-9", "flou", context="college", source="triage")
+    # Backdate declared_at to make the item immediately due for consolidation
+    with ls._conn() as con:
+        con.execute(
+            "UPDATE item_state SET declared_at = ? WHERE course_id = ? AND context = ?",
+            ((date.today() - datetime.timedelta(days=60)).isoformat(), "course-9", "college"),
+        )
+    c = _mock_cours("course-9", "Cours plan", ["Cardiovasculaire ❤️"])
+    mock_data_store.cours = [c]
+
+    selected, skipped = planning_service.plan_consolidation(
+        max_items=6, max_per_college=2,
+    )
+    assert len(selected) == 1
+    assert skipped == []

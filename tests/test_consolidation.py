@@ -188,3 +188,18 @@ def test_mark_consolidation_done_progresse_sur_plusieurs_occurrences():
     row2 = ls.get_last_consolidation_state("course-1", "college")
     assert row2["repetition_count"] == 2
     assert i2 >= i1  # confiance haute répétée -> l'intervalle continue de croître ou se stabilise
+
+
+# ── ReviewTask accepts review_type="consolidation" + semestre ─────────────────
+
+def test_review_task_accepte_consolidation_et_semestre():
+    from datetime import date
+    from backend.core.reviews.models import ReviewTask
+
+    t = ReviewTask(
+        id="x", course_id="c1", course_title="Titre",
+        theoretical_due_date=date(2026, 6, 1), due_date=date(2026, 6, 1),
+        review_type="consolidation", semestre="Semestre 4",
+    )
+    assert t.review_type == "consolidation"
+    assert t.semestre == "Semestre 4"

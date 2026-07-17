@@ -12,7 +12,7 @@ from datetime import date
 
 # ── Types ─────────────────────────────────────────────────────────────────────
 
-ReviewType   = Literal["J3", "J7", "J14", "J30", "bonus", "qcm_error", "manuel"]
+ReviewType   = Literal["J3", "J7", "J14", "J30", "bonus", "qcm_error", "manuel", "consolidation"]
 ReviewStatus = Literal["todo", "done", "postponed", "ignored", "cancelled"]
 ReviewContext = Literal["college", "ue"]
 
@@ -69,6 +69,9 @@ class ReviewTask(BaseModel):
     mastery_score: Optional[int] = None         # 0..100
     mastery_level: Optional[str] = None         # 'solide'|'correct'|'fragile'|'critique'
     mastery_reasons: List[str] = Field(default_factory=list)
+
+    # Semestre du cours (Notion), utilisé pour pondérer la priorité de consolidation
+    semestre: Optional[str] = None
 
     # Source de la date théorique : 'notion' | 'sm2' | 'fixe'
     date_source: Optional[str] = None

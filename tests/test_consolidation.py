@@ -336,3 +336,66 @@ def test_pool_exclut_item_pas_encore_du(mock_data_store):
     # Amorcé aujourd'hui avec un intervalle initial de 30j (solide) -> pas dû aujourd'hui.
     tasks = consolidation.get_due_consolidation_tasks(context="college", today=date.today())
     assert tasks == []
+
+
+# ── select_daily : diversité + pondération semestre/niveau ─────────────────
+
+def _task(course_id, college, days_overdue, mastery_level="fragile", semestre="Semestre 4"):
+    from backend.core.reviews.models import ReviewTask
+    return ReviewTask(
+        id=f"{course_id}_task", course_id=course_id, course_title=course_id,
+        college=[college],
+        theoretical_due_date=date.today(), due_date=date.today(),
+        review_type="consolidation", days_overdue=days_overdue,
+        mastery_level=mastery_level, semestre=semestre,
+    )
+
+
+def test_select_daily_respecte_le_plafond_par_college():
+    from backend.core.reviews import consolidation
+
+    tasks = [
+        _task("c1", "Cardiovasculaire ❤️", 10),
+        _task("c2", "Cardiovasculaire ❤️", 9),
+        _task("c3", "Cardiovasculaire ❤️", 8),
+        _task("c4", "Pneumologie 🫁", 5),
+    ]
+    selected, skipped = consolidation.select_daily(tasks, max_items=6, max_per_college=2)
+
+    cardio_selected = [t for t in selected if t.college == ["Cardiovasculaire ❤️"]]
+    assert len(cardio_selected) == 2
+    assert len(skipped) == 1
+    assert skipped[0].course_id == "c3"  # le moins prioritaire des 3 cardio
+
+
+def test_select_daily_respecte_max_items():
+    from backend.core.reviews import consolidation
+
+    tasks = [_task(f"c{i}", f"College {i}", 10 - i) for i in range(5)]
+    selected, skipped = consolidation.select_daily(tasks, max_items=3, max_per_college=5)
+    assert len(selected) == 3
+    assert len(skipped) == 2
+
+
+@patch('backend.state.store.data_store')
+def test_select_daily_priorise_semestre_ancien(mock_data_store):
+    from backend.core.reviews import consolidation
+
+    mock_data_store.preferences = {"semestre_actuel": "Semestre 7"}
+    old = _task("old", "A", days_overdue=5, mastery_level="à consolider", semestre="Semestre 3")
+    recent = _task("recent", "B", days_overdue=5, mastery_level="à consolider", semestre="Semestre 7")
+
+    selected, _ = consolidation.select_daily([recent, old], max_items=1, max_per_college=5)
+    assert selected[0].course_id == "old"
+
+
+@patch('backend.state.store.data_store')
+def test_select_daily_priorise_niveau_critique(mock_data_store):
+    from backend.core.reviews import consolidation
+
+    mock_data_store.preferences = {"semestre_actuel": "Semestre 7"}
+    critique = _task("crit", "A", days_overdue=5, mastery_level="critique", semestre="Semestre 7")
+    maitrise = _task("mait", "B", days_overdue=5, mastery_level="maîtrisé", semestre="Semestre 7")
+
+    selected, _ = consolidation.select_daily([maitrise, critique], max_items=1, max_per_college=5)
+    assert selected[0].course_id == "crit"

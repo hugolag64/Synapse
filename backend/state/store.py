@@ -61,6 +61,7 @@ class DataStore:
     def _get_default_preferences(self):
         return {
             'dark_mode': False,
+            'semestre_actuel': 'Semestre 7',
             # Profile 1 (Standard)
             'pomo_1_work': 25,
             'pomo_1_break': 5,

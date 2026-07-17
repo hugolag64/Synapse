@@ -31,6 +31,23 @@ INITIAL_INTERVAL_BY_LEVEL: dict[str, int] = {
 }
 DEFAULT_INITIAL_INTERVAL = 21
 
+# Poids semestre : +0.15 par semestre d'écart avec la préférence semestre_actuel.
+SEMESTER_GAP_WEIGHT = 0.15
+
+# Poids niveau (multiplicatif — distinct du barème additif de reviews/service.py,
+# adapté pour la formule jours_de_retard * poids_semestre * poids_niveau).
+MASTERY_WEIGHT: dict[str, float] = {
+    "critique":         2.5,
+    "fragile":          2.0,
+    "en construction":  1.6,
+    "à consolider":     1.3,
+    "à entraîner":      1.1,
+    "maîtrisé":         1.0,
+}
+
+MAX_PER_COLLEGE_PER_DAY = 2
+MAX_ITEMS_PER_DAY = 6
+
 _HIDDEN_STATUSES = {"done", "ignored", "cancelled"}
 
 
@@ -123,3 +140,49 @@ def get_due_consolidation_tasks(
         ))
 
     return tasks
+
+
+def _semestre_num(semestre: Optional[str]) -> Optional[int]:
+    if not semestre:
+        return None
+    digits = "".join(ch for ch in semestre if ch.isdigit())
+    return int(digits) if digits else None
+
+
+def _priority_score(task: ReviewTask) -> float:
+    from backend.state.store import data_store
+
+    actuel = _semestre_num(data_store.preferences.get("semestre_actuel")) or 7
+    item_sem = _semestre_num(task.semestre)
+    gap = max(0, actuel - item_sem) if item_sem is not None else 0
+    poids_semestre = 1 + gap * SEMESTER_GAP_WEIGHT
+    poids_niveau = MASTERY_WEIGHT.get(task.mastery_level or "", 1.0)
+    return max(task.days_overdue, 1) * poids_semestre * poids_niveau
+
+
+def select_daily(
+    tasks: list[ReviewTask],
+    max_items: int = MAX_ITEMS_PER_DAY,
+    max_per_college: int = MAX_PER_COLLEGE_PER_DAY,
+) -> tuple[list[ReviewTask], list[ReviewTask]]:
+    """
+    Trie les tâches par priorité (ancienneté x semestre x niveau) et
+    sélectionne les N premières en plafonnant le nombre par collège, pour
+    éviter qu'une seule journée soit monopolisée par un seul collège.
+    Le surplus est retourné dans `skipped` (repasse le(s) jour(s) suivant(s),
+    sa date d'échéance SM-2 ne changeant pas tant qu'il n'est pas validé).
+    """
+    scored = sorted(tasks, key=_priority_score, reverse=True)
+    selected: list[ReviewTask] = []
+    skipped: list[ReviewTask] = []
+    college_count: dict[str, int] = {}
+
+    for t in scored:
+        primary = t.college[0] if t.college else "?"
+        if len(selected) < max_items and college_count.get(primary, 0) < max_per_college:
+            selected.append(t)
+            college_count[primary] = college_count.get(primary, 0) + 1
+        else:
+            skipped.append(t)
+
+    return selected, skipped

@@ -12,7 +12,7 @@ from datetime import date
 
 # ── Types ─────────────────────────────────────────────────────────────────────
 
-ReviewType   = Literal["J3", "J7", "J14", "J30", "bonus", "qcm_error", "manuel", "consolidation"]
+ReviewType   = Literal["J3", "J7", "J14", "J30", "bonus", "qcm_error", "manuel", "consolidation", "lacune"]
 ReviewStatus = Literal["todo", "done", "postponed", "ignored", "cancelled"]
 ReviewContext = Literal["college", "ue"]
 

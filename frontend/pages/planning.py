@@ -24,6 +24,10 @@ from backend.core.reviews.local_store import (
     get_all_weak_points_table,
 )
 from backend.core.google.calendar_service import calendar_service
+from backend.core.reviews import consolidation
+from backend.core.reviews.local_store import mark_consolidation_done, postpone as postpone_task, add_study_session
+from backend.core.reviews.models import ReviewTask
+from frontend.pages.dashboard._dialogs import open_session_feedback_dialog
 from backend.state.store import data_store
 
 
@@ -116,6 +120,43 @@ def _slot_card(slot: PlannedSlot, selected: dict[str, bool], slot_key: str):
                 ).on(
                     "click", lambda u=slot.url_pdf: ui.navigate.to(u, new_tab=True)
                 ).tooltip("Ouvrir le PDF")
+
+
+# ── Composant ConsolidationCard ────────────────────────────────────────────
+
+def _consolidation_card(task: ReviewTask, on_validate, on_postpone):
+    """Carte d'un item du flux de consolidation, avec actions Valider/Passer."""
+    with ui.card().classes(
+        "w-full p-0 rounded-xl border-l-4 border-l-cyan-500 "
+        "border-y border-r border-slate-100 dark:border-slate-800 "
+        "shadow-sm hover:shadow-md transition-all overflow-hidden"
+    ) as card:
+        with ui.row().classes("items-center gap-3 px-3 py-2.5 w-full"):
+            ui.icon("history_edu", size="sm").classes("text-cyan-500 shrink-0")
+
+            with ui.column().classes("flex-1 gap-0 min-w-0"):
+                ui.label(task.label).classes(
+                    "text-sm font-semibold text-slate-800 dark:text-slate-100 leading-snug"
+                ).style(
+                    "overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+                ).tooltip(task.label)
+                sub_parts = []
+                if task.mastery_level:
+                    sub_parts.append(f"niveau {task.mastery_level}")
+                if task.days_overdue > 0:
+                    sub_parts.append(f"{task.days_overdue}j de retard")
+                ui.label(" · ".join(sub_parts) or "à consolider").classes(
+                    "text-[11px] text-slate-500 dark:text-slate-400"
+                )
+
+            with ui.row().classes("items-center gap-1 shrink-0"):
+                ui.button("Passer", on_click=lambda: on_postpone(task)).props(
+                    "flat dense size=sm color=slate"
+                )
+                ui.button("Valider", icon="check", on_click=lambda t=task, c=card: on_validate(t, c)).props(
+                    "unelevated dense size=sm color=cyan"
+                )
+    return card
 
 
 # ── Dialog export Google Calendar ─────────────────────────────────────────────
@@ -398,7 +439,7 @@ async def planning_page():
     ]
 
     # ── État de la page ───────────────────────────────────────────────────────
-    mode_state  = {"value": "day"}     # "day" | "week"
+    mode_state  = {"value": "day"}     # "day" | "week" | "consolidation"
     plan_state  = {"day": None, "week": None}
     selected    = {}                   # slot_key → bool (pour Calendar export)
 
@@ -422,7 +463,7 @@ async def planning_page():
 
         with ui.row().classes("items-center gap-3 flex-wrap"):
 
-            # Toggle Journée / Semaine
+            # Toggle Journée / Semaine / Consolidation
             with ui.element("div").classes(
                 "flex rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700"
             ):
@@ -432,21 +473,34 @@ async def planning_page():
                 btn_week = ui.button("Semaine", icon="date_range").props(
                     "flat size=sm color=slate"
                 ).classes("rounded-none")
+                btn_consolidation = ui.button("Consolidation", icon="history_edu").props(
+                    "flat size=sm color=slate"
+                ).classes("rounded-none")
 
             def _set_day():
                 mode_state["value"] = "day"
                 btn_day.props("unelevated color=indigo")
                 btn_week.props("flat color=slate")
+                btn_consolidation.props("flat color=slate")
                 plan_container.clear()
 
             def _set_week():
                 mode_state["value"] = "week"
                 btn_day.props("flat color=slate")
                 btn_week.props("unelevated color=indigo")
+                btn_consolidation.props("flat color=slate")
+                plan_container.clear()
+
+            def _set_consolidation():
+                mode_state["value"] = "consolidation"
+                btn_day.props("flat color=slate")
+                btn_week.props("flat color=slate")
+                btn_consolidation.props("unelevated color=indigo")
                 plan_container.clear()
 
             btn_day.on("click", _set_day)
             btn_week.on("click", _set_week)
+            btn_consolidation.on("click", _set_consolidation)
 
             # Bouton Planifier
             async def _planifier():
@@ -460,7 +514,76 @@ async def planning_page():
                 except Exception:
                     pass
 
-                if mode_state["value"] == "day":
+                if mode_state["value"] == "consolidation":
+                    async def _refresh_consolidation():
+                        selected, _skipped = planning_service.plan_consolidation()
+                        plan_container.clear()
+                        with plan_container:
+                            _render_consolidation(selected)
+
+                    async def _do_mark_consolidation(
+                        t: ReviewTask, card,
+                        activity_types=None, duration_minutes=None,
+                        confidence=None, difficulty=None, qcm_result=None,
+                        weak_category=None, weak_detail=None,
+                    ) -> None:
+                        mark_consolidation_done(
+                            course_id=t.course_id, context=t.context,
+                            theoretical_due_date=t.theoretical_due_date,
+                            course_title=t.course_title, item_number=t.item_number or "",
+                            confidence=confidence or 3, difficulty=difficulty,
+                        )
+                        add_study_session(
+                            course_id=t.course_id, course_title=t.course_title,
+                            item_number=t.item_number or "", context=t.context,
+                            activity_types=activity_types or ["révision"],
+                            duration_minutes=duration_minutes, confidence=confidence,
+                            difficulty=difficulty, qcm_result=qcm_result,
+                            weak_category=weak_category, weak_detail=weak_detail,
+                        )
+                        ui.notify(f"✓ Consolidé : {t.course_title}", type="positive")
+                        await _refresh_consolidation()
+
+                    def _on_validate(t: ReviewTask, card) -> None:
+                        open_session_feedback_dialog(t, card, _do_mark_consolidation)
+
+                    async def _on_postpone(t: ReviewTask, days: int = 7) -> None:
+                        postpone_task(
+                            task_id=t.id, course_id=t.course_id, context=t.context,
+                            review_type="consolidation",
+                            theoretical_due_date=t.theoretical_due_date,
+                            postponed_to=datetime.date.today() + datetime.timedelta(days=days),
+                            course_title=t.course_title, item_number=t.item_number or "",
+                        )
+                        ui.notify(f"Reporté : {t.course_title}", type="info")
+                        await _refresh_consolidation()
+
+                    def _render_consolidation(tasks: list[ReviewTask]) -> None:
+                        if not tasks:
+                            with ui.column().classes("w-full items-center py-8 gap-2 text-slate-400"):
+                                ui.icon("check_circle_outline", size="xl").classes("text-green-400")
+                                ui.label("Rien à consolider aujourd'hui.").classes("text-sm")
+                            return
+
+                        with ui.row().classes("items-center justify-between w-full mb-2"):
+                            ui.label(f"{len(tasks)} item(s) à consolider").classes(
+                                "text-xs font-bold text-cyan-600 uppercase tracking-wider"
+                            )
+
+                            async def _postpone_all():
+                                for t in list(tasks):
+                                    await _on_postpone(t)
+
+                            ui.button("Tout reporter", icon="skip_next", on_click=_postpone_all).props(
+                                "flat dense size=sm color=slate"
+                            )
+
+                        for t in tasks:
+                            _consolidation_card(t, _on_validate, _on_postpone)
+
+                    await _refresh_consolidation()
+
+                elif mode_state["value"] == "day":
                     plan = planning_service.plan_day(
                         urgent_tasks, today_tasks, active_lacunes, cal_events
                     )
@@ -484,7 +607,7 @@ async def planning_page():
                                     "Cochez les créneaux à ajouter avant d'envoyer."
                                 ).classes("text-[11px] text-slate-400 italic")
 
-                else:
+                else:  # "week"
                     plans = planning_service.plan_week(all_tasks, active_lacunes)
                     plan_state["week"] = plans
                     plan_state["day"] = None

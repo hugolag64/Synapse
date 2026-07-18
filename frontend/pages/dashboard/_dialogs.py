@@ -212,6 +212,8 @@ def open_session_feedback_dialog(
         _acts, _dur, _conf, _diff, _qcm = ["lecture"], 30, 3, "moyen", None
     elif task.review_type == "qcm_error":
         _acts, _dur, _conf, _diff, _qcm = ["qcm", "correction"], 20, 2, "difficile", "raté"
+    elif task.review_type == "lacune":
+        _acts, _dur, _conf, _diff, _qcm = ["correction"], 15, 3, "moyen", None
     else:
         _acts, _dur, _conf, _diff, _qcm = ["révision"], 20, 3, "moyen", None
 

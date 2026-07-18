@@ -215,6 +215,10 @@ def render_review_row(
                 "flex-1 min-w-0 text-[13px] font-medium "
                 "text-slate-800 dark:text-slate-100 truncate"
             )
+            if task.review_type == "consolidation" and task.college:
+                ui.label(task.college[0]).classes(
+                    "text-[11px] text-cyan-600 dark:text-cyan-400 shrink-0"
+                )
 
             # Score QCM si dispo
             if last_qcm_score is not None:
@@ -240,14 +244,31 @@ def render_review_row(
             )
 
             # Bouton Valider
-            def _make_val(t=task, el=row_el):
-                async def _h():
-                    await on_done(t, el, ["révision"], na.duration_min, 3, "moyen")
-                return _h
+            if task.review_type == "consolidation":
+                ui.button(icon="check_circle").props(
+                    "flat round dense size=sm color=cyan aria-label='Valider'"
+                ).classes("shrink-0").on_click(
+                    lambda t=task, el=row_el: open_session_feedback_dialog(t, el, validate_fn)
+                ).tooltip("Valider (détails)")
 
-            ui.button(icon="check_circle").props(
-                "flat round dense size=sm color=green aria-label='Valider'"
-            ).classes("shrink-0").on_click(_make_val()).tooltip("Valider (confiance moyenne)")
+                if on_postpone:
+                    def _make_pass(t=task, el=row_el):
+                        async def _h():
+                            await on_postpone(t, el, 7)
+                        return _h
+
+                    ui.button(icon="skip_next").props(
+                        "flat round dense size=sm color=slate aria-label='Passer'"
+                    ).classes("shrink-0").on_click(_make_pass()).tooltip("Passer (7 jours)")
+            else:
+                def _make_val(t=task, el=row_el):
+                    async def _h():
+                        await on_done(t, el, ["révision"], na.duration_min, 3, "moyen")
+                    return _h
+
+                ui.button(icon="check_circle").props(
+                    "flat round dense size=sm color=green aria-label='Valider'"
+                ).classes("shrink-0").on_click(_make_val()).tooltip("Valider (confiance moyenne)")
 
             # Menu ⋯
             with ui.button(icon="more_horiz").props(

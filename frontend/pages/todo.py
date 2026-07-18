@@ -78,6 +78,27 @@ def _week_dates(center: datetime.date) -> list[datetime.date]:
     return [center + datetime.timedelta(days=offset) for offset in range(-3, 4)]
 
 
+def _gather_plan_du_jour(context: str = "college") -> list:
+    """Pure function — agrège révisions du jour, consolidation, et lacunes actives.
+
+    Aucune dépendance NiceGUI : réutilisable et testable indépendamment du rendu.
+    """
+    from backend.core.reviews.service import review_service
+    from backend.core.planning.service import planning_service
+    from backend.core.reviews.lacune_adapter import weak_point_to_task
+
+    history = local_store.get_all_history()
+    all_tasks = review_service.generate_reviews(context=context, history=history)
+    review_items = review_service.get_urgent_tasks(all_tasks) + review_service.get_today_tasks(all_tasks)
+
+    consolidation_selected, _ = planning_service.plan_consolidation()
+
+    weak_point_rows = local_store.get_all_weak_points_table(status_filter="active")
+    lacune_items = [weak_point_to_task(row) for row in weak_point_rows]
+
+    return review_items + consolidation_selected + lacune_items
+
+
 def _get_routine_summary(date_obj: datetime.date) -> _DaySummary:
     date_str = date_obj.isoformat()
     items = local_store.get_routine_items()
@@ -118,6 +139,11 @@ async def _render_content(
     _refresh_routine_in_cache(date_obj, cache)
 
     with container:
+        # Plan du jour : révisions + consolidation + lacunes, instantané
+        if date_obj == datetime.date.today():
+            plan_col = ui.column().classes('w-full')
+            _render_plan_du_jour_block(plan_col)
+
         # Routine : SQLite, instantané
         routine_col = ui.column().classes('w-full')
         _render_routine_block(routine_col, date_str, cache, on_update)
@@ -160,6 +186,75 @@ def _render_routine_block(
 
                     ui.checkbox(name, value=checked, on_change=_on_toggle).props('dense').classes(
                         'text-slate-700 dark:text-slate-200 transition-opacity duration-200')
+
+
+def _render_plan_du_jour_block(container: ui.column) -> None:
+    from frontend.pages.dashboard._dialogs import open_session_feedback_dialog
+
+    items = _gather_plan_du_jour()
+
+    _BORDER_BY_TYPE = {"consolidation": "border-l-cyan-500", "lacune": "border-l-orange-500"}
+
+    with container:
+        with ui.element('div').classes('synapse-panel w-full p-4'):
+            ui.label('PLAN DU JOUR').classes('synapse-section-label mb-2')
+            if not items:
+                ui.label("Rien de prévu aujourd'hui.").classes(
+                    'text-sm text-slate-400 dark:text-slate-500')
+                return
+
+            def _validate(t, card, activity_types=None, duration_minutes=None,
+                          confidence=None, difficulty=None, qcm_result=None,
+                          weak_category=None, weak_detail=None) -> None:
+                if t.review_type == "consolidation":
+                    local_store.mark_consolidation_done(
+                        course_id=t.course_id, context=t.context,
+                        theoretical_due_date=t.theoretical_due_date,
+                        course_title=t.course_title, item_number=t.item_number or "",
+                        confidence=confidence or 3, difficulty=difficulty,
+                    )
+                elif t.review_type == "lacune":
+                    weak_point_id = int(t.id.removeprefix("lacune_"))
+                    local_store.resolve_weak_point(weak_point_id)
+                else:
+                    local_store.mark_done(
+                        task_id=t.id, course_id=t.course_id, context=t.context,
+                        review_type=t.review_type, theoretical_due_date=t.theoretical_due_date,
+                        course_title=t.course_title, item_number=t.item_number or "",
+                        difficulty=difficulty, confidence=confidence,
+                    )
+                local_store.add_study_session(
+                    course_id=t.course_id, course_title=t.course_title,
+                    item_number=t.item_number or "", context=t.context,
+                    activity_types=activity_types or ["révision"],
+                    duration_minutes=duration_minutes, confidence=confidence,
+                    difficulty=difficulty, qcm_result=qcm_result,
+                    weak_category=weak_category, weak_detail=weak_detail,
+                )
+                ui.notify(f"✓ Fait : {t.course_title}", type="positive")
+                container.clear()
+                _render_plan_du_jour_block(container)
+
+            for t in items:
+                border = _BORDER_BY_TYPE.get(t.review_type, "border-l-blue-500")
+                with ui.card().classes(
+                    f"w-full p-0 rounded-xl border-l-4 {border} "
+                    "border-y border-r border-slate-100 dark:border-slate-800 "
+                    "shadow-sm hover:shadow-md transition-all overflow-hidden mb-2"
+                ) as card:
+                    with ui.row().classes("items-center gap-3 px-3 py-2.5 w-full"):
+                        ui.icon("task_alt", size="sm").classes("text-slate-400 shrink-0")
+                        with ui.column().classes("flex-1 gap-0 min-w-0"):
+                            ui.label(t.label).classes(
+                                "text-sm font-semibold text-slate-800 dark:text-slate-100 leading-snug"
+                            ).style("overflow:hidden;text-overflow:ellipsis;white-space:nowrap").tooltip(t.label)
+                            if t.college:
+                                ui.label(", ".join(t.college[:2])).classes(
+                                    "text-[11px] text-slate-500 dark:text-slate-400")
+                        ui.button(
+                            "Valider", icon="check",
+                            on_click=lambda t=t, c=card: open_session_feedback_dialog(t, c, _validate),
+                        ).props("unelevated dense size=sm color=cyan")
 
     on_update()
 

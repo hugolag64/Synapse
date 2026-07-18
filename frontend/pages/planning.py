@@ -558,7 +558,53 @@ async def planning_page():
                         ui.notify(f"Reporté : {t.course_title}", type="info")
                         await _refresh_consolidation()
 
+                    def _search_courses(query: str) -> list:
+                        q = query.strip()
+                        if len(q) < 2:
+                            return []
+                        try:
+                            from backend.core.search.service import search_index
+                            hits = search_index.search(q, limit=8, score_cutoff=50)
+                            return [c for c, _ in hits]
+                        except Exception:
+                            q_low = q.lower()
+                            return [
+                                c for c in data_store.cours
+                                if q_low in c.title.lower()
+                                or (c.item_number and q_low in c.item_number)
+                            ][:8]
+
+                    async def _add_course_worked(course_id: str) -> None:
+                        task = consolidation.get_or_bootstrap_task(course_id, context="college")
+                        if task is None:
+                            ui.notify("Cours introuvable ou jamais commencé.", type="warning")
+                            return
+                        dummy_card = ui.card()  # cible d'animation pour le dialogue existant
+                        dummy_card.set_visibility(False)
+                        open_session_feedback_dialog(task, dummy_card, _do_mark_consolidation)
+
                     def _render_consolidation(tasks: list[ReviewTask]) -> None:
+                        with ui.row().classes("items-center gap-2 w-full mb-3"):
+                            search_input = ui.input(
+                                placeholder="Ajouter un cours travaillé aujourd'hui…"
+                            ).props("outlined dense clearable").classes("flex-1")
+                            results_container = ui.column().classes("w-full gap-1")
+
+                            def _on_search(e):
+                                results_container.clear()
+                                hits = _search_courses(e.value or "")
+                                with results_container:
+                                    for c in hits:
+                                        label = f"ITEM {c.item_number} – {c.title}" if c.item_number else c.title
+                                        ui.button(
+                                            label,
+                                            on_click=lambda cid=c.id: _add_course_worked(cid),
+                                        ).props("flat dense align=left size=sm color=slate").classes(
+                                            "w-full justify-start normal-case"
+                                        )
+
+                            search_input.on("update:model-value", _on_search)
+
                         if not tasks:
                             with ui.column().classes("w-full items-center py-8 gap-2 text-slate-400"):
                                 ui.icon("check_circle_outline", size="xl").classes("text-green-400")

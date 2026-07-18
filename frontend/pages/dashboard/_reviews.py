@@ -865,6 +865,10 @@ def rebuild_all(
     )
     all_tasks = externat_service.apply_stage_boost(all_tasks)
 
+    from backend.core.planning.service import planning_service
+    consolidation_selected, _ = planning_service.plan_consolidation()
+    all_tasks = all_tasks + consolidation_selected
+
     render_college_chips(state, all_tasks)
     if state.college_filter:
         all_tasks = [

@@ -187,6 +187,8 @@ def _render_routine_block(
                     ui.checkbox(name, value=checked, on_change=_on_toggle).props('dense').classes(
                         'text-slate-700 dark:text-slate-200 transition-opacity duration-200')
 
+    on_update()
+
 
 def _render_plan_du_jour_block(container: ui.column) -> None:
     from frontend.pages.dashboard._dialogs import open_session_feedback_dialog
@@ -255,8 +257,6 @@ def _render_plan_du_jour_block(container: ui.column) -> None:
                             "Valider", icon="check",
                             on_click=lambda t=t, c=card: open_session_feedback_dialog(t, c, _validate),
                         ).props("unelevated dense size=sm color=cyan")
-
-    on_update()
 
 
 def _build_course_list(events, manual_titles, all_courses) -> list[dict]:

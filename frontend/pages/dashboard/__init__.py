@@ -157,17 +157,28 @@ async def dashboard_page() -> None:
                 pass
             await asyncio.sleep(0.3)
 
-            local_store.mark_done(
-                task_id=task.id,
-                course_id=task.course_id,
-                context=task.context,
-                review_type=task.review_type,
-                theoretical_due_date=task.theoretical_due_date,
-                course_title=task.course_title,
-                item_number=task.item_number or "",
-                difficulty=difficulty,
-                confidence=confidence,
-            )
+            if task.review_type == "consolidation":
+                local_store.mark_consolidation_done(
+                    course_id=task.course_id,
+                    context=task.context,
+                    theoretical_due_date=task.theoretical_due_date,
+                    course_title=task.course_title,
+                    item_number=task.item_number or "",
+                    confidence=confidence or 3,
+                    difficulty=difficulty,
+                )
+            else:
+                local_store.mark_done(
+                    task_id=task.id,
+                    course_id=task.course_id,
+                    context=task.context,
+                    review_type=task.review_type,
+                    theoretical_due_date=task.theoretical_due_date,
+                    course_title=task.course_title,
+                    item_number=task.item_number or "",
+                    difficulty=difficulty,
+                    confidence=confidence,
+                )
             state.done_today_count += 1
 
             local_store.add_study_session(
@@ -204,23 +215,25 @@ async def dashboard_page() -> None:
             except Exception:
                 pass
 
-            # Sync Notion en arrière-plan
-            async def _sync():
-                c = next((x for x in data_store.cours if x.id == task.course_id), None)
-                if not c:
-                    return
-                if task.context == "college":
-                    ok = await notion_service.increment_lecture_college(c.id, c.nb_lectures)
+            # Sync Notion en arrière-plan (uniquement pour les révisions J3-J30 classiques —
+            # la consolidation ne touche jamais aux compteurs Notion)
+            if task.review_type != "consolidation":
+                async def _sync():
+                    c = next((x for x in data_store.cours if x.id == task.course_id), None)
+                    if not c:
+                        return
+                    if task.context == "college":
+                        ok = await notion_service.increment_lecture_college(c.id, c.nb_lectures)
+                        if ok:
+                            c.nb_lectures += 1
+                    else:
+                        ok = await notion_service.increment_lecture_ue(c.id, c.nb_lectures_ue)
+                        if ok:
+                            c.nb_lectures += 1
                     if ok:
-                        c.nb_lectures += 1
-                else:
-                    ok = await notion_service.increment_lecture_ue(c.id, c.nb_lectures_ue)
-                    if ok:
-                        c.nb_lectures_ue += 1
-                if ok:
-                    data_store.save_to_disk()
+                        data_store.save_to_disk()
 
-            asyncio.create_task(_sync())
+                asyncio.create_task(_sync())
 
         async def _on_postpone(task: ReviewTask, card, days: int) -> None:
             if card is not None:

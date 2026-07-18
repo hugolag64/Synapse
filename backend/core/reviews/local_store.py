@@ -525,6 +525,14 @@ def bootstrap_consolidation(
     déjà. Insère une ligne synthétique 'done' qui sert de premier point
     d'ancrage pour get_consolidation_due_date et mark_consolidation_done.
     Idempotent : ne fait rien si une ligne consolidation existe déjà.
+
+    repetition_count est volontairement seedé à 2 (pas 0) : sm2.compute_next_interval
+    a des paliers fixes (3j / 7j) pour repetition 0 et 1, dédiés au cycle J3→J30
+    qui démarre toujours "à froid". Ici on démarre déjà avec un intervalle
+    mastery-seedé (initial_interval_days) qu'on veut faire croître via l'ease
+    factor dès la première vraie validation — pas le réinitialiser à 3 jours.
+    Ne PAS "simplifier" ceci en 0 : ça ferait retomber la chaîne consolidation
+    sur les paliers fixes du cycle J et annulerait l'intervalle de maîtrise.
     """
     if get_last_consolidation_state(course_id, context) is not None:
         return
@@ -545,7 +553,7 @@ def bootstrap_consolidation(
         """, (
             task_id, course_id, course_title, item_number, context,
             at_date.isoformat(), at_date.isoformat(), at_date.isoformat(),
-            SM2_INIT_EF, 0, initial_interval_days,
+            SM2_INIT_EF, 2, initial_interval_days,
             now, now,
         ))
 

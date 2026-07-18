@@ -120,11 +120,19 @@ def test_get_consolidation_due_date_apres_bootstrap():
 
 # ── mark_consolidation_done : croissance / décroissance type Anki ──────────
 
-def test_mark_consolidation_done_intervalles_fixes_pour_les_2_premieres_repetitions():
-    """compute_next_interval (SM-2 standard) utilise des paliers fixes (3j, 7j)
-    pour repetition 0 et 1, quelle que soit la confiance (>= 3/5) — la
-    croissance liée à l'ease factor ne démarre qu'à partir de la 3e répétition.
-    C'est un comportement existant de sm2.py, pas quelque chose à contourner."""
+def test_mark_consolidation_done_croit_des_la_premiere_repetition():
+    """La chaîne 'consolidation' amorce repetition_count à 2 (voir
+    bootstrap_consolidation), précisément pour éviter les paliers fixes
+    (3j / 7j) que compute_next_interval réserve à repetition 0 et 1 pour
+    le cycle J3→J30 qui démarre "à froid". Ici, dès la première vraie
+    validation, l'intervalle croît via l'ease factor à partir de
+    l'intervalle mastery-seedé (initial_interval_days), au lieu de
+    retomber à un palier fixe qui écraserait cet intervalle.
+
+    Calcul (voir sm2.compute_next_interval, repetition=2 -> branche else) :
+      i1 = round(21 * 2.6) = 55
+      i2 = round(55 * 2.7) = 148
+    """
     ls.bootstrap_consolidation(
         "course-1", "college", "Mon cours", "42",
         initial_interval_days=21, at_date=datetime.date(2026, 6, 1),
@@ -132,11 +140,11 @@ def test_mark_consolidation_done_intervalles_fixes_pour_les_2_premieres_repetiti
     i1 = ls.mark_consolidation_done(
         "course-1", "college", datetime.date(2026, 6, 22), confidence=5,
     )
-    assert i1 == 3
+    assert i1 == 55
 
     due2 = datetime.date(2026, 6, 22) + datetime.timedelta(days=i1)
     i2 = ls.mark_consolidation_done("course-1", "college", due2, confidence=5)
-    assert i2 == 7
+    assert i2 == 148
 
 
 def test_mark_consolidation_done_croit_a_partir_de_la_3e_repetition():
@@ -168,9 +176,44 @@ def test_mark_consolidation_done_echec_revient_a_un_intervalle_court():
     assert i3 < i2
 
 
+def test_mark_consolidation_done_ne_discarde_pas_intervalle_maitrise():
+    """Régression : bootstrap_consolidation seed repetition_count=2 (pas 0), pour
+    que la toute première validation utilise directement la croissance SM-2
+    (current_interval_days * new_ef) plutôt que les paliers fixes 3j/7j du
+    cycle J. Avant le fix, un cours amorcé "maîtrisé" (30j) retombait à un
+    intervalle fixe de 3 jours dès la première validation.
+
+    Calcul attendu (voir sm2.compute_next_interval) :
+      grade = confidence(5) - 1 = 4 -> réussite
+      new_ef = min-clamped(2.5 + 0.1 - (4-4)*0.08) = 2.6
+      repetition seedé à 2 -> branche else : round(30 * 2.6) = 78
+    """
+    ls.bootstrap_consolidation(
+        "course-1", "college", "Mon cours", "42",
+        initial_interval_days=30, at_date=datetime.date(2026, 6, 1),
+    )
+    due = datetime.date(2026, 6, 1) + datetime.timedelta(days=30)
+    i1 = ls.mark_consolidation_done("course-1", "college", due, confidence=5)
+    assert i1 == 78  # PAS 3 (l'ancien bug figeait le premier intervalle a 3j)
+
+    row1 = ls.get_last_consolidation_state("course-1", "college")
+    assert row1["repetition_count"] == 3
+    assert row1["easiness_factor"] == 2.6
+
+    # Deuxième validation : la croissance continue (pas de retour aux paliers
+    # fixes 3j/7j), avec repetition qui continue de s'incrémenter.
+    due2 = due + datetime.timedelta(days=i1)
+    i2 = ls.mark_consolidation_done("course-1", "college", due2, confidence=5)
+    assert i2 == 211  # round(78 * 2.7)
+    row2 = ls.get_last_consolidation_state("course-1", "college")
+    assert row2["repetition_count"] == 4
+
+
 def test_mark_consolidation_done_progresse_sur_plusieurs_occurrences():
     """Le repetition_count et l'ease factor doivent survivre d'une occurrence
-    à l'autre, malgré des task_id différents à chaque fois (due date différente)."""
+    à l'autre, malgré des task_id différents à chaque fois (due date différente).
+    repetition_count part de 2 (seedé par bootstrap_consolidation), donc la
+    première validation l'amène à 3, la deuxième à 4."""
     ls.bootstrap_consolidation(
         "course-1", "college", "Mon cours", "42",
         initial_interval_days=21, at_date=datetime.date(2026, 6, 1),
@@ -179,14 +222,14 @@ def test_mark_consolidation_done_progresse_sur_plusieurs_occurrences():
         "course-1", "college", datetime.date(2026, 6, 22), confidence=5,
     )
     row1 = ls.get_last_consolidation_state("course-1", "college")
-    assert row1["repetition_count"] == 1
+    assert row1["repetition_count"] == 3
 
     due2 = datetime.date(2026, 6, 22) + datetime.timedelta(days=i1)
     i2 = ls.mark_consolidation_done(
         "course-1", "college", due2, confidence=5,
     )
     row2 = ls.get_last_consolidation_state("course-1", "college")
-    assert row2["repetition_count"] == 2
+    assert row2["repetition_count"] == 4
     assert i2 >= i1  # confiance haute répétée -> l'intervalle continue de croître ou se stabilise
 
 

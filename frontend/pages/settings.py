@@ -260,6 +260,26 @@ def settings_page():
                     pass
             _goal_inp.on('blur', _save_goal)
 
+            with ui.row().classes('w-full items-center gap-4 mt-2'):
+                ui.icon('speed', color='amber').classes('text-xl shrink-0')
+                with ui.column().classes('gap-0 flex-1'):
+                    ui.label('Charge max quotidienne').classes('font-semibold text-sm text-slate-700 dark:text-slate-200')
+                    ui.label('0 = illimité — plafonne retard + aujourd\'hui + consolidation').classes('text-xs text-slate-400 dark:text-slate-500')
+                _budget_inp = ui.number(
+                    value=data_store.preferences.get('daily_budget_min', 0), min=0, max=300, step=15,
+                ).props('outlined dense').classes('w-28')
+                ui.label('min / jour').classes('text-xs text-slate-500 shrink-0')
+            def _save_budget(e):
+                try:
+                    data_store.set_preference('daily_budget_min', int(e.value))
+                    ui.notify(
+                        f"Charge max : {int(e.value)} min/jour ✓" if int(e.value) > 0 else "Charge max désactivée",
+                        type='positive', timeout=1500,
+                    )
+                except Exception:
+                    pass
+            _budget_inp.on('blur', _save_budget)
+
         # Mode Examen
         with ui.expansion('Mode Examen', icon='event').classes(
             'w-full rounded-xl border border-red-200 dark:border-red-900/50 mb-3 shadow-sm'

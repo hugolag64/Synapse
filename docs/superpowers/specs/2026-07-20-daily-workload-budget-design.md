@@ -11,7 +11,7 @@ Un réglage `daily_goal` existe déjà (`data_store.preferences`, utilisé dans 
 - Unité du plafond : **minutes estimées**, pas nombre d'items (réutilise `get_next_action(t).duration_min`, déjà utilisé par `compute_daily_load`).
 - Périmètre : **tout confondu** — retard + aujourd'hui + consolidation partagent un seul budget minutes/jour (pas d'exemption pour le retard).
 - Valeur par défaut : **désactivée (0 = illimité)**. Le comportement actuel ne change pas tant que l'utilisateur n'a pas réglé la valeur dans Paramètres.
-- Le badge "charge lourde" de la bannière (actuellement seuil fixe 120 min) s'aligne sur le plafond perso quand il est réglé.
+- Un badge "charge lourde" est ajouté à la bannière active (elle n'en a pas aujourd'hui — le seuil fixe 120 min n'existe que dans la page legacy), et son seuil s'aligne sur le plafond perso quand il est réglé (cf. section 3, corrigée après exploration du code).
 
 ## 1. Réglage — préférence `daily_budget_min`
 
@@ -43,7 +43,7 @@ def apply_daily_budget(
     """
 ```
 
-Ordre de priorité pour le cumul : `urgent_tasks` trié par `days_overdue` décroissant (déjà l'ordre utilisé à l'affichage), puis `today_tasks` trié par `priority_score` décroissant. On cumule `get_next_action(t).duration_min` et on coupe dès que l'ajout du prochain item dépasserait `budget_min`. Aucun état à persister — les items non retenus gardent leur `due_date` d'origine et redeviennent (ou restent) prioritaires le jour suivant.
+Correction post-exploration : `urgent_tasks` et `today_tasks` arrivent déjà triés par `priority_score` décroissant (`ReviewService.generate_reviews` trie à la ligne 212/263 avant le split retard/aujourd'hui). `apply_daily_budget` ne re-trie donc pas — il consomme les deux listes dans l'ordre reçu (`urgent_tasks` d'abord, puis `today_tasks`), cumule `get_next_action(t).duration_min`, et coupe dès que l'ajout du prochain item dépasserait `budget_min`. Aucun état à persister — les items non retenus gardent leur `due_date` d'origine et redeviennent (ou restent) prioritaires le jour suivant.
 
 Si `budget_min == 0` : retourne les listes inchangées et `overflow_count=0`.
 
@@ -64,10 +64,21 @@ Les troncatures d'affichage existantes ([:5] retard, [:8] aujourd'hui + "voir pl
 
 ## 3. Bannière + transparence
 
-Fichier : `frontend/pages/dashboard/_banner.py`.
+Correction post-exploration : le badge "charge lourde" fixe à 120 min existe seulement dans `dashboard_legacy.py` (page legacy, hors périmètre). La bannière active (`frontend/pages/dashboard/_banner.py`, utilisée par `frontend/pages/dashboard/__init__.py`) n'affiche actuellement **aucun** indicateur de charge lourde — seulement la pill "Objectif quotidien" (minimum) et la barre de progression. Il faut donc en ajouter un, pas en modifier un existant.
 
-- Seuil `is_heavy` : actuellement fixe à 120 min dans `compute_daily_load`. Remplacer par une comparaison au niveau de la bannière : `threshold = daily_budget_min if daily_budget_min > 0 else 120`, `is_heavy = load["total_min"] > threshold`.
-- Si `overflow_count > 0` (retourné par `apply_daily_budget`) : afficher un texte discret sous le header "Aujourd'hui", ex. `"{overflow_count} tâche(s) reportée(s) — plafond atteint"`.
+- `compute_daily_load` (`recommendation_service.py`) gagne un paramètre optionnel `heavy_threshold_min: int = 120`, utilisé à la place du `120` en dur pour calculer `is_heavy`.
+- Dans `rebuild_all()`, l'appel devient :
+  ```python
+  _budget = data_store.preferences.get("daily_budget_min", 0)
+  load = compute_daily_load(
+      urgent, today_tasks,
+      heavy_threshold_min=_budget if _budget > 0 else 120,
+  )
+  ```
+  (appelé sur les listes **avant** `apply_daily_budget`, cf. section 2).
+- Dans `_banner.py` :
+  - `render_banner` : ajouter une pill "heavy" à côté de la pill "goal" existante (même structure `ui.element` + `ui.icon` + `ui.label`, masquée par défaut via `state.banner_refs["heavy_el"]`/`state.banner_refs["heavy"]`), icône `"warning"`, couleur ambre.
+  - `update_banner` : nouveau paramètre `overflow_count: int = 0`. Affiche la pill "heavy" quand `load["is_heavy"]` est vrai, texte `"Charge lourde"`. Si `overflow_count > 0`, texte `f"{overflow_count} reportée(s) — plafond atteint"` à la place (priorité à l'info la plus actionnable).
 
 ## Hors périmètre
 

@@ -566,29 +566,42 @@ def render_review_card(
 
                     ui.button("⏱").props("flat round dense size=xs").classes(
                         "text-slate-300 hover:text-orange-500 shrink-0"
-                    ).tooltip("Chronométrer (auto-remplit la durée)").on_click(_toggle_timer)
+                    ).tooltip("Chronométrer (pré-remplit la durée du dialog)").on_click(_toggle_timer)
 
-                    # UX-02 — Bouton 1-clic "✓ Valider"
-                    def _make_direct_val(t, c, _ts=_tstate):
-                        async def _h():
-                            _dur = 20
+                    # Bouton Valider — ouvre toujours le dialog complet.
+                    # Si le chrono tournait, sa durée pré-remplit le dialog.
+                    def _make_open_dialog(t, c, _ts=_tstate):
+                        def _h():
+                            _dur = None
                             if _ts["t0"] is not None:
                                 _dur = max(1, int(
                                     (datetime.datetime.now() - _ts["t0"]).total_seconds() / 60
                                 ))
-                            await on_done(t, c, ["révision"], _dur, 3, "moyen")
+                            open_session_feedback_dialog(t, c, validate_fn, initial_duration_minutes=_dur)
                         return _h
 
                     ui.button("Valider").props(
-                        "unelevated rounded dense size=sm color=green-6"
+                        "unelevated rounded dense size=sm color=cyan"
                         " aria-label='Valider la révision'"
                     ).classes("text-[11px] font-bold px-3").on_click(
-                        _make_direct_val(task, card)
-                    ).tooltip("Valider rapidement (confiance moyenne)")
+                        _make_open_dialog(task, card)
+                    ).tooltip("Valider (détails)")
+
+                    if on_postpone:
+                        def _make_pass(t=task, c=card):
+                            async def _h():
+                                await on_postpone(t, c, 7)
+                            return _h
+
+                        ui.button("Passer").props(
+                            "flat rounded dense size=sm color=slate"
+                        ).classes("text-[11px] font-semibold px-2").on_click(
+                            _make_pass()
+                        ).tooltip("Passer (7 jours)")
 
                     with ui.button(icon="tune").props(
-                        "flat round dense size=sm color=green aria-label='Feedback détaillé'"
-                    ).tooltip("Valider avec feedback détaillé"):
+                        "flat round dense size=sm color=green aria-label='Options'"
+                    ).tooltip("Confiance rapide, report fin, lacune…"):
                         with ui.menu() as _val_menu:
                             _CONF_EMOJIS = [
                                 (1, "😰", "red",   "Très difficile"),
@@ -631,16 +644,31 @@ def render_review_card(
 
                             ui.separator().classes("mb-1")
                             ui.menu_item(
-                                "Détailler...",
-                                on_click=lambda t=task, c=card: open_session_feedback_dialog(
-                                    t, c, validate_fn
-                                ),
-                            ).classes("text-xs text-slate-500 font-medium")
-                            ui.separator()
-                            ui.menu_item(
                                 "Lacune...",
                                 on_click=lambda t=task, r=on_lacune_saved: open_lacune_inline_dialog(t, on_save=r),
                             ).classes("text-xs text-amber-600 font-medium")
+
+                            if on_postpone or on_ignore:
+                                ui.separator()
+                                if on_postpone:
+                                    def _wrap_post(d, t=task, c=card, m=_val_menu):
+                                        async def _h():
+                                            m.close()
+                                            await on_postpone(t, c, d)
+                                        return _h
+                                    ui.menu_item("+1 jour",    on_click=_wrap_post(1)).classes("text-xs")
+                                    ui.menu_item("+3 jours",   on_click=_wrap_post(3)).classes("text-xs")
+                                    ui.menu_item("+1 semaine", on_click=_wrap_post(7)).classes(
+                                        "text-xs text-amber-600"
+                                    ).tooltip("Peut créer un retard critique")
+                                if on_ignore:
+                                    ui.separator()
+                                    def _wrap_ign(t=task, c=card, m=_val_menu):
+                                        async def _h():
+                                            m.close()
+                                            await on_ignore(t, c)
+                                        return _h
+                                    ui.menu_item("Ignorer", on_click=_wrap_ign()).classes("text-xs text-red-400")
 
                     if task.has_pdf:
                         ui.button(
@@ -668,44 +696,6 @@ def render_review_card(
                             _lbl.set_text(f"{_m:02d}:{_s:02d}")
                     _ctmr = ui.timer(1.0, _tick_fn)
                     _ctmr.deactivate()
-
-                    # ── Reporter (menu déroulant) + Ignorer ───────────────────
-                    if on_postpone or on_ignore:
-                        def wrap_post(t, c, d):
-                            async def _h(): await on_postpone(t, c, d)
-                            return _h
-                        def wrap_ign(t, c):
-                            async def _h(): await on_ignore(t, c)
-                            return _h
-
-                        with ui.element("div"):
-                            _postpone_btn = ui.button(icon="skip_next").props(
-                                "flat round dense size=xs color=grey-7"
-                            ).tooltip("Reporter")
-                            with ui.menu() as _postpone_menu:
-                                _postpone_btn.on("click", _postpone_menu.open)
-                                ui.menu_item(
-                                    "+1 jour",
-                                    on_click=wrap_post(task, card, 1),
-                                ).classes("text-xs")
-                                ui.menu_item(
-                                    "+3 jours",
-                                    on_click=wrap_post(task, card, 3),
-                                ).classes("text-xs")
-                                ui.menu_item(
-                                    "+1 semaine",
-                                    on_click=wrap_post(task, card, 7),
-                                ).classes("text-xs text-amber-600").tooltip(
-                                    "Peut créer un retard critique"
-                                )
-
-                        ui.button(icon="close").props(
-                            "flat round dense size=xs color=grey-7"
-                        ).classes(
-                            "opacity-50 hover:opacity-100 transition-opacity"
-                        ).tooltip("Ignorer cette révision").on_click(
-                            wrap_ign(task, card)
-                        )
 
 
 # ── Render : ligne compacte (vue Semaine) ─────────────────────────────────────

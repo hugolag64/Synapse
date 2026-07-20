@@ -243,32 +243,22 @@ def render_review_row(
                 "text-[11px] text-slate-300 dark:text-slate-600 shrink-0 tabular-nums"
             )
 
-            # Bouton Valider
-            if task.review_type == "consolidation":
-                ui.button(icon="check_circle").props(
-                    "flat round dense size=sm color=cyan aria-label='Valider'"
-                ).classes("shrink-0").on_click(
-                    lambda t=task, el=row_el: open_session_feedback_dialog(t, el, validate_fn)
-                ).tooltip("Valider (détails)")
+            # Bouton Valider — ouvre toujours le dialog complet, pour tous les types
+            ui.button(icon="check_circle").props(
+                "flat round dense size=sm color=cyan aria-label='Valider'"
+            ).classes("shrink-0").on_click(
+                lambda t=task, el=row_el: open_session_feedback_dialog(t, el, validate_fn)
+            ).tooltip("Valider (détails)")
 
-                if on_postpone:
-                    def _make_pass(t=task, el=row_el):
-                        async def _h():
-                            await on_postpone(t, el, 7)
-                        return _h
-
-                    ui.button(icon="skip_next").props(
-                        "flat round dense size=sm color=slate aria-label='Passer'"
-                    ).classes("shrink-0").on_click(_make_pass()).tooltip("Passer (7 jours)")
-            else:
-                def _make_val(t=task, el=row_el):
+            if on_postpone:
+                def _make_pass(t=task, el=row_el):
                     async def _h():
-                        await on_done(t, el, ["révision"], na.duration_min, 3, "moyen")
+                        await on_postpone(t, el, 7)
                     return _h
 
-                ui.button(icon="check_circle").props(
-                    "flat round dense size=sm color=green aria-label='Valider'"
-                ).classes("shrink-0").on_click(_make_val()).tooltip("Valider (confiance moyenne)")
+                ui.button(icon="skip_next").props(
+                    "flat round dense size=sm color=slate aria-label='Passer'"
+                ).classes("shrink-0").on_click(_make_pass()).tooltip("Passer (7 jours)")
 
             # Menu ⋯
             with ui.button(icon="more_horiz").props(
@@ -308,11 +298,6 @@ def render_review_row(
                                 ).tooltip(f"{_tip} ({_sc}/5)")
 
                     ui.separator()
-
-                    ui.menu_item(
-                        "Détailler…",
-                        on_click=lambda t=task, el=row_el: open_session_feedback_dialog(t, el, validate_fn),
-                    ).classes("text-xs text-slate-500 font-medium")
 
                     ui.menu_item(
                         "Lacune…",

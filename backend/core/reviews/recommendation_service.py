@@ -225,3 +225,41 @@ def compute_daily_load(
         "estimated_h" : h,
         "estimated_m" : m,
     }
+
+
+# ── Plafond de charge quotidienne ────────────────────────────────────────────
+
+def apply_daily_budget(
+    urgent_tasks: list["ReviewTask"],
+    today_tasks:  list["ReviewTask"],
+    budget_min: int,
+) -> tuple[list["ReviewTask"], list["ReviewTask"], int]:
+    """
+    Tronque urgent_tasks + today_tasks (dans cet ordre, sans les retrier —
+    ils arrivent déjà triés par priority_score décroissant depuis
+    ReviewService.generate_reviews) pour que le total estimé ne dépasse pas
+    budget_min minutes. budget_min <= 0 désactive le plafond (no-op).
+
+    Ne modifie aucune due_date : les items coupés repasseront naturellement
+    le(s) jour(s) suivant(s) (même logique que consolidation.select_daily).
+
+    Retourne (kept_urgent, kept_today, overflow_count).
+    """
+    if budget_min <= 0:
+        return urgent_tasks, today_tasks, 0
+
+    kept_urgent: list["ReviewTask"] = []
+    kept_today: list["ReviewTask"] = []
+    total_min = 0
+    overflow = 0
+
+    for bucket_in, bucket_out in ((urgent_tasks, kept_urgent), (today_tasks, kept_today)):
+        for t in bucket_in:
+            duration = get_next_action(t).duration_min
+            if total_min + duration > budget_min:
+                overflow += 1
+                continue
+            bucket_out.append(t)
+            total_min += duration
+
+    return kept_urgent, kept_today, overflow

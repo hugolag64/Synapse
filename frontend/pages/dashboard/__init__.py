@@ -158,14 +158,16 @@ async def dashboard_page() -> None:
             await asyncio.sleep(0.3)
 
             if task.review_type == "consolidation":
-                local_store.mark_consolidation_done(
-                    course_id=task.course_id,
-                    context=task.context,
-                    theoretical_due_date=task.theoretical_due_date,
-                    course_title=task.course_title,
-                    item_number=task.item_number or "",
-                    confidence=confidence or 3,
+                from backend.core.reviews.consolidation import complete_consolidation_task
+                complete_consolidation_task(
+                    task,
+                    activity_types=activity_types,
+                    duration_minutes=duration_minutes,
+                    confidence=confidence,
                     difficulty=difficulty,
+                    qcm_result=qcm_result,
+                    weak_category=weak_category,
+                    weak_detail=weak_detail,
                 )
             else:
                 local_store.mark_done(
@@ -179,21 +181,20 @@ async def dashboard_page() -> None:
                     difficulty=difficulty,
                     confidence=confidence,
                 )
+                local_store.add_study_session(
+                    course_id=task.course_id,
+                    course_title=task.course_title,
+                    item_number=task.item_number or "",
+                    context=task.context,
+                    activity_types=activity_types or ["révision"],
+                    duration_minutes=duration_minutes,
+                    confidence=confidence,
+                    difficulty=difficulty,
+                    qcm_result=qcm_result,
+                    weak_category=weak_category,
+                    weak_detail=weak_detail,
+                )
             state.done_today_count += 1
-
-            local_store.add_study_session(
-                course_id=task.course_id,
-                course_title=task.course_title,
-                item_number=task.item_number or "",
-                context=task.context,
-                activity_types=activity_types or ["révision"],
-                duration_minutes=duration_minutes,
-                confidence=confidence,
-                difficulty=difficulty,
-                qcm_result=qcm_result,
-                weak_category=weak_category,
-                weak_detail=weak_detail,
-            )
 
             _do_rebuild()
             ui.notify(f"✓ Révisé : {task.course_title}", type="positive")

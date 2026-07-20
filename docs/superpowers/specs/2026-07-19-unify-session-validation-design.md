@@ -107,6 +107,20 @@ serveur). Vérification :
    la logique non triviale, ajouter un test unitaire ciblé ; sinon pas de
    nouveau test requis.
 
+## Effet de bord identifié en planification : chrono du Mode Focus
+
+`render_review_card` (Mode Focus) a un chrono (⏱) qui mesure le temps passé
+et ne servait jusqu'ici qu'à pré-remplir la durée de l'ancien 1-clic
+"Valider", qui disparaît. Pour ne pas perdre cette valeur :
+
+- `open_session_feedback_dialog` gagne un paramètre optionnel
+  `initial_duration_minutes: int | None = None`. Quand fourni, la durée du
+  dialog est initialisée sur cette valeur (arrondie à la minute) au lieu du
+  preset par défaut, au lieu de forcer l'utilisateur à recliquer un preset.
+- Le bouton "Valider" de `render_review_card` calcule la durée écoulée
+  (même logique que l'ancien `_make_direct_val`) si le chrono tournait, et
+  la passe à `open_session_feedback_dialog` via ce paramètre.
+
 ## Hors scope
 
 La remarque plus large de l'utilisateur sur les "features top mais pas

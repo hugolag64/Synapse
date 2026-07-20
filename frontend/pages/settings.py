@@ -252,10 +252,11 @@ def settings_page():
                     value=data_store.preferences.get('daily_goal', 5), min=1, max=50,
                 ).props('outlined dense').classes('w-28')
                 ui.label('/ jour').classes('text-xs text-slate-500 shrink-0')
-            def _save_goal(e):
+            def _save_goal():
                 try:
-                    data_store.set_preference('daily_goal', int(e.value))
-                    ui.notify(f"Objectif : {int(e.value)}/jour ✓", type='positive', timeout=1500)
+                    value = int(_goal_inp.value)
+                    data_store.set_preference('daily_goal', value)
+                    ui.notify(f"Objectif : {value}/jour ✓", type='positive', timeout=1500)
                 except Exception:
                     pass
             _goal_inp.on('blur', _save_goal)
@@ -269,11 +270,12 @@ def settings_page():
                     value=data_store.preferences.get('daily_budget_min', 0), min=0, max=300, step=15,
                 ).props('outlined dense').classes('w-28')
                 ui.label('min / jour').classes('text-xs text-slate-500 shrink-0')
-            def _save_budget(e):
+            def _save_budget():
                 try:
-                    data_store.set_preference('daily_budget_min', int(e.value))
+                    value = int(_budget_inp.value)
+                    data_store.set_preference('daily_budget_min', value)
                     ui.notify(
-                        f"Charge max : {int(e.value)} min/jour ✓" if int(e.value) > 0 else "Charge max désactivée",
+                        f"Charge max : {value} min/jour ✓" if value > 0 else "Charge max désactivée",
                         type='positive', timeout=1500,
                     )
                 except Exception:

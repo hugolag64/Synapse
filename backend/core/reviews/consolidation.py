@@ -242,3 +242,43 @@ def get_or_bootstrap_task(course_id: str, context: str = "college") -> Optional[
         mastery_reasons=mastery.reasons,
         semestre=course.semestre,
     )
+
+
+def complete_consolidation_task(
+    task: ReviewTask,
+    activity_types: Optional[list] = None,
+    duration_minutes: Optional[int] = None,
+    confidence: Optional[int] = None,
+    difficulty: Optional[str] = None,
+    qcm_result: Optional[str] = None,
+    weak_category: Optional[str] = None,
+    weak_detail: Optional[str] = None,
+) -> None:
+    """
+    Valide une occurrence 'consolidation' : avance la chaîne SM-2 et logue la
+    séance de travail associée. Point d'entrée unique utilisé par le dashboard
+    et par planning.py — évite de dupliquer ces deux appels local_store à deux
+    endroits.
+    """
+    local_store.mark_consolidation_done(
+        course_id=task.course_id,
+        context=task.context,
+        theoretical_due_date=task.theoretical_due_date,
+        course_title=task.course_title,
+        item_number=task.item_number or "",
+        confidence=confidence or 3,
+        difficulty=difficulty,
+    )
+    local_store.add_study_session(
+        course_id=task.course_id,
+        course_title=task.course_title,
+        item_number=task.item_number or "",
+        context=task.context,
+        activity_types=activity_types or ["révision"],
+        duration_minutes=duration_minutes,
+        confidence=confidence,
+        difficulty=difficulty,
+        qcm_result=qcm_result,
+        weak_category=weak_category,
+        weak_detail=weak_detail,
+    )

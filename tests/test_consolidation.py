@@ -519,3 +519,56 @@ def test_plan_consolidation_retourne_selection_et_surplus(mock_data_store):
     )
     assert len(selected) == 1
     assert skipped == []
+
+
+# ── complete_consolidation_task ──────────────────────────────────────────────
+
+def _make_consolidation_task(
+    course_id="course-1", context="college", due=datetime.date(2026, 1, 1),
+):
+    from backend.core.reviews.models import ReviewTask
+    return ReviewTask(
+        id=f"{course_id}_{context}_consolidation_{due.isoformat()}",
+        course_id=course_id,
+        course_title="Cardiopathies",
+        item_number="234",
+        college=["Cardiologie"],
+        context=context,
+        theoretical_due_date=due,
+        due_date=due,
+        review_type="consolidation",
+        status="todo",
+    )
+
+
+def test_complete_consolidation_task_avance_la_chaine_sm2():
+    from backend.core.reviews.consolidation import complete_consolidation_task
+    task = _make_consolidation_task()
+    complete_consolidation_task(task, confidence=4, difficulty="facile")
+    state = ls.get_last_consolidation_state("course-1", "college")
+    assert state is not None
+    assert state["repetition_count"] == 1
+
+
+def test_complete_consolidation_task_logue_une_session():
+    from backend.core.reviews.consolidation import complete_consolidation_task
+    task = _make_consolidation_task()
+    complete_consolidation_task(
+        task, activity_types=["révision", "qcm"], duration_minutes=25,
+        confidence=4, difficulty="facile", qcm_result="réussi",
+    )
+    sessions = ls.get_recent_study_sessions(limit=5)
+    assert len(sessions) == 1
+    assert sessions[0]["course_id"] == "course-1"
+    assert sessions[0]["duration_minutes"] == 25
+    assert sessions[0]["qcm_result"] == "réussi"
+
+
+def test_complete_consolidation_task_defaut_confiance_3_si_absente():
+    from backend.core.reviews.consolidation import complete_consolidation_task
+    task = _make_consolidation_task()
+    complete_consolidation_task(task)  # aucune confidence fournie
+    state = ls.get_last_consolidation_state("course-1", "college")
+    assert state["repetition_count"] == 1
+    sessions = ls.get_recent_study_sessions(limit=5)
+    assert sessions[0]["activity_types"] == '["révision"]'

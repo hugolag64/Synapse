@@ -206,6 +206,7 @@ def open_session_feedback_dialog(
     task: ReviewTask,
     card,
     validate_fn,
+    initial_duration_minutes: int | None = None,
 ) -> None:
     """Modale 'Retour de séance' avec chips multi-sélection."""
     if task.review_type == "bonus":
@@ -216,6 +217,9 @@ def open_session_feedback_dialog(
         _acts, _dur, _conf, _diff, _qcm = ["correction"], 15, 3, "moyen", None
     else:
         _acts, _dur, _conf, _diff, _qcm = ["révision"], 20, 3, "moyen", None
+
+    if initial_duration_minutes is not None:
+        _dur = max(1, int(initial_duration_minutes))
 
     state_fb = SimpleNamespace(
         activity_types=list(_acts),
@@ -300,9 +304,10 @@ def open_session_feedback_dialog(
                         b = ui.button(f"{d}′").props(_chip_on("indigo") if is_on else _chip_off())
                         dur_btns[d] = b
                     with ui.element("div").classes("flex items-center gap-1 ml-1"):
-                        custom_dur = ui.number(min=1, max=300, placeholder="···").classes("w-12").props(
-                            "dense borderless"
-                        )
+                        custom_dur = ui.number(
+                            min=1, max=300, placeholder="···",
+                            value=(state_fb.duration if state_fb.duration not in DUR_PRESETS else None),
+                        ).classes("w-12").props("dense borderless")
                         ui.label("min").classes("text-xs text-slate-400 pb-0.5")
 
                 def _set_dur(val: int):

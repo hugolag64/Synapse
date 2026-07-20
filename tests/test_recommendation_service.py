@@ -91,3 +91,29 @@ def test_apply_daily_budget_conserve_lordre_recu_sans_retrier():
 
     assert [t.course_id for t in kept_t] == ["low_prio"]
     assert overflow == 1
+
+
+# ── compute_daily_load : seuil configurable ─────────────────────────────────
+
+def test_compute_daily_load_seuil_par_defaut_120():
+    from backend.core.reviews.recommendation_service import compute_daily_load
+
+    # 5 today tasks * 30 min = 150 min > 120
+    today = [_task(f"t{i}") for i in range(5)]
+    load = compute_daily_load([], today)
+    assert load["total_min"] == 150
+    assert load["is_heavy"] is True
+
+
+def test_compute_daily_load_seuil_personnalise():
+    from backend.core.reviews.recommendation_service import compute_daily_load
+
+    # 3 today tasks * 30 min = 90 min : pas heavy avec seuil par défaut 120,
+    # mais heavy avec un seuil personnalisé à 60.
+    today = [_task(f"t{i}") for i in range(3)]
+    load_default = compute_daily_load([], today)
+    assert load_default["is_heavy"] is False
+
+    load_custom = compute_daily_load([], today, heavy_threshold_min=60)
+    assert load_custom["is_heavy"] is True
+    assert load_custom["total_min"] == 90  # total_min ne dépend pas du seuil

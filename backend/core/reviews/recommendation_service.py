@@ -199,6 +199,7 @@ def get_next_action(
 def compute_daily_load(
     urgent_tasks: list["ReviewTask"],
     today_tasks:  list["ReviewTask"],
+    heavy_threshold_min: int = 120,
 ) -> dict:
     """
     Estime la charge journalière (urgent + prévu aujourd'hui).
@@ -208,7 +209,7 @@ def compute_daily_load(
             "total_min"     : int,    # total estimé en minutes
             "urgent_count"  : int,
             "today_count"   : int,
-            "is_heavy"      : bool,   # True si > 120 min
+            "is_heavy"      : bool,   # True si > heavy_threshold_min (120 par défaut)
             "estimated_h"   : int,    # heures entières
             "estimated_m"   : int,    # minutes restantes
         }
@@ -221,7 +222,7 @@ def compute_daily_load(
         "total_min"   : total_min,
         "urgent_count": len(urgent_tasks),
         "today_count" : len(today_tasks),
-        "is_heavy"    : total_min > 120,
+        "is_heavy"    : total_min > heavy_threshold_min,
         "estimated_h" : h,
         "estimated_m" : m,
     }

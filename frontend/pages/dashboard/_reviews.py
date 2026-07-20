@@ -16,6 +16,7 @@ from backend.core.reviews.models import ReviewTask
 from backend.core.reviews.recommendation_service import get_next_action
 from backend.core.reviews.mastery import PROGRESSION_COLORS
 from backend.core.externat.service import externat_service
+from backend.state.store import data_store
 
 from ._state import DashboardState
 from ._dialogs import (
@@ -885,9 +886,14 @@ def rebuild_all(
     )
 
     # Bannière
-    from backend.core.reviews.recommendation_service import compute_daily_load
-    load = compute_daily_load(urgent, today_tasks)
-    update_banner(state, load, done_today=state.done_today_count, week_count=_week_count)
+    from backend.core.reviews.recommendation_service import compute_daily_load, apply_daily_budget
+    _daily_budget = data_store.preferences.get("daily_budget_min", 0)
+    load = compute_daily_load(
+        urgent, today_tasks,
+        heavy_threshold_min=_daily_budget if _daily_budget > 0 else 120,
+    )
+    urgent, today_tasks, _overflow_count = apply_daily_budget(urgent, today_tasks, _daily_budget)
+    update_banner(state, load, done_today=state.done_today_count, week_count=_week_count, overflow_count=_overflow_count)
 
     # QCM + lacunes (batch)
     try:

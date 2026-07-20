@@ -65,6 +65,18 @@ def render_banner(state: DashboardState) -> None:
                     )
                 state.banner_refs["goal_el"].set_visibility(False)
 
+                # Charge lourde / plafond atteint
+                state.banner_refs["heavy_el"] = ui.element("div").classes(
+                    "flex items-center gap-1.5 px-2.5 py-1 rounded-full "
+                    "bg-amber-50 dark:bg-amber-900/20 cursor-pointer"
+                ).on("click", lambda: ui.navigate.to("/settings"))
+                with state.banner_refs["heavy_el"]:
+                    ui.icon("warning", size="xs").classes("text-amber-500")
+                    state.banner_refs["heavy"] = ui.label("").classes(
+                        "text-[12px] font-semibold text-amber-700 dark:text-amber-400"
+                    )
+                state.banner_refs["heavy_el"].set_visibility(False)
+
                 # Stage actif
                 _active_stage = externat_service.get_active_stage()
                 if _active_stage:
@@ -93,7 +105,7 @@ def render_banner(state: DashboardState) -> None:
         _bar_el.set_visibility(False)
 
 
-def update_banner(state: DashboardState, load: dict, done_today: int = 0, week_count: int = 0) -> None:
+def update_banner(state: DashboardState, load: dict, done_today: int = 0, week_count: int = 0, overflow_count: int = 0) -> None:
     """Met à jour la bannière Morning Brief : sous-titre concis + pills discrètes."""
     n_u = load["urgent_count"]
     n_t = load["today_count"]
@@ -152,3 +164,15 @@ def update_banner(state: DashboardState, load: dict, done_today: int = 0, week_c
     else:
         state.banner_refs["goal_el"].set_visibility(False)
         state.banner_refs["daily_bar"].set_visibility(False)
+
+    # Charge lourde / plafond de charge atteint
+    if overflow_count > 0:
+        state.banner_refs["heavy_el"].set_visibility(True)
+        state.banner_refs["heavy"].set_text(
+            f"{overflow_count} reportée{'s' if overflow_count > 1 else ''} — plafond atteint"
+        )
+    elif load.get("is_heavy"):
+        state.banner_refs["heavy_el"].set_visibility(True)
+        state.banner_refs["heavy"].set_text("Charge lourde")
+    else:
+        state.banner_refs["heavy_el"].set_visibility(False)

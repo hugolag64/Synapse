@@ -1,6 +1,10 @@
 from nicegui import ui
 from contextlib import contextmanager
 
+# ── Feuille de surcharge de tokens (refonte cockpit) — non-destructive ────────
+from frontend.design_tokens import apply_design_tokens
+apply_design_tokens()
+
 # ── Google Fonts — loaded once globally ───────────────────────────────────────
 ui.add_head_html(
     '<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">',

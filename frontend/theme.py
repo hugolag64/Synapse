@@ -67,6 +67,13 @@ def frame(page_title: str):
     """Top navigation frame — 60px bar, full-width content."""
     from backend.state.store import data_store
 
+    # ── Refonte : shell cockpit si ui_mode == 'cockpit' (classic sinon) ────────
+    if data_store.preferences.get('ui_mode', 'classic') == 'cockpit':
+        from frontend.cockpit_shell import cockpit_frame
+        with cockpit_frame(page_title):
+            yield
+        return
+
     dark = ui.dark_mode()
     is_dark = data_store.preferences.get('dark_mode', False)
     dark.value = is_dark
@@ -245,6 +252,16 @@ def frame(page_title: str):
         ui.button(icon='help_outline', on_click=_open_shortcuts).props(
             'flat round dense size=sm'
         ).classes('text-slate-400 dark:text-slate-500 ml-0.5').tooltip('Raccourcis clavier')
+
+        # → Bascule vers le cockpit (refonte)
+        def _enable_cockpit():
+            data_store.set_preference('ui_mode', 'cockpit')
+            ui.navigate.reload()
+        ui.button('Cockpit β', on_click=_enable_cockpit).props(
+            'flat dense size=sm no-caps'
+        ).classes(
+            'text-violet-500 dark:text-violet-400 ml-0.5 text-[11px]'
+        ).tooltip('Basculer vers la nouvelle interface (refonte)')
 
         # Settings
         _settings_active = (page_title in ('Paramètres', 'Settings'))

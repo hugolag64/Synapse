@@ -71,6 +71,7 @@ class DataStore:
 
             'college_sort': 'newest',
             'agenda_open': True,  # État du panneau Agenda du Jour
+            'ui_mode': 'classic',  # 'classic' | 'cockpit' (refonte UI)
         }
 
     @property

@@ -149,6 +149,11 @@ def _render_knowledge_block(course) -> None:
 
 def course_detail_page(course_id: str) -> None:
     with frame("Fiche cours"):
+        # ── Refonte : détail item cockpit (feature-flag ui_mode) ──────────────
+        if data_store.preferences.get("ui_mode", "cockpit") == "cockpit":
+            from frontend.pages.course_detail_cockpit import render_item_cockpit
+            render_item_cockpit(course_id)
+            return
 
         # Chercher le cours
         course = next((c for c in data_store.cours if c.id == course_id), None)

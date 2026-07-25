@@ -32,6 +32,7 @@ from frontend.pages.qcm import qcm_page
 from frontend.pages.planning import planning_page
 from frontend.pages.externat import externat_page
 from frontend.pages.triage import triage_page
+from frontend.pages.course_detail import course_detail_page
 from frontend.theme import frame
 from backend.state.store import data_store
 
@@ -247,6 +248,14 @@ async def todo():
 async def planning():
     with frame('Planning'):
         await planning_page()
+
+# Détail d'un item. La route n'avait jamais été déclarée alors que la command
+# palette, dashboard_card et search_bar y naviguent déjà — la fiche était donc
+# injoignable. Enregistrée ici pour la refonte (étape 4) ; la vue rendue dépend
+# du flag ui_mode (cockpit par défaut, classic conservé).
+@ui.page('/cours/{course_id}')
+def cours(course_id: str):
+    course_detail_page(course_id)
 
 # externat_page is already decorated with @ui.page — imported above
 

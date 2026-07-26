@@ -123,6 +123,12 @@ def colleges_page():
         ui.label("Chargement des données…").classes("text-slate-500")
         return
 
+    # ── Refonte : rollup cockpit (feature-flag ui_mode) ────────────────────────
+    if data_store.preferences.get("ui_mode", "cockpit") == "cockpit":
+        from frontend.pages.colleges_cockpit import render_colleges_cockpit
+        render_colleges_cockpit()
+        return
+
     prefs = data_store.preferences
     _s = {
         "tab":             prefs.get("college_last_tab", None),

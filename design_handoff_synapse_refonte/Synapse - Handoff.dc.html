@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/linear-editorial-design-system-5e898589-c560-4133-8eec-108b991d2e07/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/linear-editorial-design-system-5e898589-c560-4133-8eec-108b991d2e07/tokens/colors.css">
+<link rel="stylesheet" href="_ds/linear-editorial-design-system-5e898589-c560-4133-8eec-108b991d2e07/tokens/typography.css">
+<link rel="stylesheet" href="_ds/linear-editorial-design-system-5e898589-c560-4133-8eec-108b991d2e07/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/linear-editorial-design-system-5e898589-c560-4133-8eec-108b991d2e07/base.css">
+<style>
+  body{margin:0;background:#d8d8dc;font-family:var(--font-sans);-webkit-font-smoothing:antialiased;color:var(--text);}
+  *{box-sizing:border-box;}
+  a{color:var(--accent);text-decoration:none;}
+  a:hover{text-decoration:underline;}
+  .doc h2{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin:0 0 14px;display:flex;align-items:center;gap:10px;}
+  .doc h2::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent);}
+  .doc h3{font-size:15px;font-weight:600;letter-spacing:-0.01em;margin:22px 0 10px;}
+  .doc p{font-size:13.5px;line-height:1.65;color:var(--text-muted);margin:0 0 12px;}
+  .doc code{font-family:var(--font-mono);font-size:12px;background:var(--surface);padding:1px 5px;border-radius:4px;color:var(--text);}
+  .doc li{font-size:13px;line-height:1.6;color:var(--text-muted);margin-bottom:4px;}
+  .doc strong{color:var(--text);font-weight:600;}
+  .sec{padding:34px 0;border-top:1px solid var(--border);}
+  .mono{font-family:var(--font-mono);}
+  .row{display:grid;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+  .cell{background:var(--bg);padding:9px 12px;font-size:12.5px;color:var(--text-muted);}
+  .cell.h{background:var(--bg-alt);font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-dim);font-weight:600;}
+  .cell.k{color:var(--text);font-weight:500;}
+</style>
+</helmet>
+
+<div style="max-width:940px;margin:0 auto;padding:56px 40px 100px;">
+  <div class="doc">
+    <div style="font-family:var(--font-mono);font-size:12px;color:var(--accent);letter-spacing:0.04em;margin-bottom:6px;">SYNAPSE · REFONTE UI/UX · ÉTAPE 5</div>
+    <h1 style="font-size:34px;font-weight:600;letter-spacing:-0.02em;line-height:1.12;margin:0 0 14px;">Handoff — design system, composants & spécification</h1>
+    <p style="font-size:15px;max-width:720px;">Spécification exploitable pour l'implémentation NiceGUI/Quasar (ou par Claude Code). Direction retenue : <strong>1a — Linear dominant</strong> + sidebar labellisée de 1b. Fondée sur le design system <strong>Linear Editorial</strong> et la grammaire de statut Synapse.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;">
+      <span style="font-size:12px;color:var(--text-muted);border:1px solid var(--border);border-radius:6px;padding:5px 11px;">Prototype : <code>Synapse — Prototype.dc.html</code></span>
+      <span style="font-size:12px;color:var(--text-muted);border:1px solid var(--border);border-radius:6px;padding:5px 11px;">Directions : <code>Synapse Refonte — Analyse & 3 directions.dc.html</code></span>
+    </div>
+
+    <!-- TOKENS -->
+    <div class="sec">
+      <h2>1 · Design tokens</h2>
+      <p>Repris du design system Linear Editorial (<code>tokens/*.css</code>). Une seule couleur d'accent, neutres near-white/near-black, sémantiques réservées au statut.</p>
+      <h3>Couleurs</h3>
+      <div class="row" style="grid-template-columns:1.3fr 1fr 1fr 1.4fr;">
+        <div class="cell h">Token</div><div class="cell h">Clair</div><div class="cell h">Sombre</div><div class="cell h">Usage</div>
+        <div class="cell k mono">--bg</div><div class="cell mono">#ffffff</div><div class="cell mono">#0f0f14</div><div class="cell">Fond principal</div>
+        <div class="cell k mono">--bg-alt</div><div class="cell mono">#fafafa</div><div class="cell mono">#15151b</div><div class="cell">Sidebar, panneaux</div>
+        <div class="cell k mono">--surface</div><div class="cell mono">#f4f4f5</div><div class="cell mono">#1a1a20</div><div class="cell">Ligne sélectionnée, pistes</div>
+        <div class="cell k mono">--text</div><div class="cell mono">#0f0f14</div><div class="cell mono">#f4f4f6</div><div class="cell">Texte principal</div>
+        <div class="cell k mono">--text-muted</div><div class="cell mono">#6b6b76</div><div class="cell mono">#8b8b96</div><div class="cell">Secondaire</div>
+        <div class="cell k mono">--text-dim</div><div class="cell mono">#a0a0ab</div><div class="cell mono">#5c5c68</div><div class="cell">Labels, ids</div>
+        <div class="cell k mono">--border</div><div class="cell mono">#e4e4e7</div><div class="cell mono">#26262f</div><div class="cell">Séparateurs 1px</div>
+        <div class="cell k mono">--accent</div><div class="cell mono">#5e6ad2</div><div class="cell mono">#7b85e8</div><div class="cell">Boutons primaires, focus, liens</div>
+        <div class="cell k mono">--success</div><div class="cell mono">#3fb271</div><div class="cell mono">#3fb271</div><div class="cell">À jour / solide</div>
+        <div class="cell k mono">--warning</div><div class="cell mono">#e5a23f</div><div class="cell mono">#e5a23f</div><div class="cell">Échéance / fragile</div>
+        <div class="cell k mono">--danger</div><div class="cell mono">#e5484d</div><div class="cell mono">#e5484d</div><div class="cell">Retard / critique</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;">
+        <div>
+          <h3 style="margin-top:0;">Typographie</h3>
+          <ul style="margin:0;padding-left:16px;">
+            <li><code>--font-sans</code> Inter 400/500/600</li>
+            <li><code>--font-mono</code> JetBrains Mono — ids, durées, dates</li>
+            <li>Échelle : 11 · 13 · 14 · 16 · 18 · 22 · 28 px</li>
+            <li>Titres ≥ 22px : letter-spacing −0.5 %</li>
+            <li>Emphase = poids 600, jamais d'italique</li>
+          </ul>
+        </div>
+        <div>
+          <h3 style="margin-top:0;">Espacement · rayons · profondeur</h3>
+          <ul style="margin:0;padding-left:16px;">
+            <li>Base 4px : 4/8/12/16/24/32/48/64</li>
+            <li>Rayons : 4 (contrôles) · 6 (boutons/champs) · 8 (cartes/dialogues) — plafond 8px</li>
+            <li>1 seule ombre : <code>0 2px 8px rgba(0,0,0,.04)</code> (popover/dialogue)</li>
+            <li>Motion : 120–180ms ease-out, couleur/bordure uniquement</li>
+            <li>Densité : information/pixel — pas de grandes cartes vides</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATUT -->
+    <div class="sec">
+      <h2>2 · Grammaire de statut</h2>
+      <p>Six dimensions, <strong>une seule</strong> encodée par la couleur (voir la référence complète <code>#statuts</code> dans le fichier des directions).</p>
+      <div class="row" style="grid-template-columns:1fr 1.1fr 1.5fr;">
+        <div class="cell h">Dimension</div><div class="cell h">Encodage</div><div class="cell h">Valeurs</div>
+        <div class="cell k">Progression</div><div class="cell">Forme (anneau)</div><div class="cell">○ à préparer · ◔ à lire · ◑ en construction · ◕ à consolider · ◉ à entraîner · ● maîtrisé</div>
+        <div class="cell k">Maîtrise</div><div class="cell">Barre + score 0–100</div><div class="cell">solide 80+ · correct 55+ · fragile 30+ · critique &lt;30</div>
+        <div class="cell k">Urgence / retard</div><div class="cell">Couleur (stable)</div><div class="cell">rouge en retard · ambre échéance · vert à jour · gris non planifié</div>
+        <div class="cell k">Type d'activité</div><div class="cell">Étiquette mono</div><div class="cell">PDF · NOTE · QCM · VIDÉO · RAPPEL · LACUNE</div>
+        <div class="cell k">Charge / temps</div><div class="cell">Largeur barre + min. mono</div><div class="cell">durée estimée, charge du jour</div>
+        <div class="cell k">Reporté / archivé</div><div class="cell">Opacité réduite</div><div class="cell">jamais de couleur</div>
+      </div>
+    </div>
+
+    <!-- COMPOSANTS -->
+    <div class="sec">
+      <h2>3 · Inventaire des composants</h2>
+      <p>Chaque composant a les états : normal · hover · sélection · focus clavier · désactivé · loading (skeleton) · erreur si pertinent · variantes clair/sombre. Hover = fond <code>--surface-hover</code> / bordure <code>--border-strong</code> ; focus = anneau accent 2px offset 2px.</p>
+      <div class="row" style="grid-template-columns:1fr 2fr 1.4fr;">
+        <div class="cell h">Composant</div><div class="cell h">Rôle</div><div class="cell h">Notes d'état</div>
+        <div class="cell k">App shell</div><div class="cell">Sidebar + zone centrale + panneau contextuel droit</div><div class="cell">panneau masquable ; 3 colonnes ≥1200px</div>
+        <div class="cell k">Sidebar</div><div class="cell">Nav groupée (Pilotage / Connaissance / Analyse / Système) + récents + recherche</div><div class="cell">réductible en icônes (56px) ; actif = fond surface</div>
+        <div class="cell k">Command palette</div><div class="cell">⌘K — aller à + actions, fuzzy</div><div class="cell">scrim 0.32 ; focus auto ; esc ferme</div>
+        <div class="cell k">Daily summary</div><div class="cell">Bandeau une ligne : temps, tâches, retards, lacunes, progression</div><div class="cell">pas de cartes séparées ; séparateurs 1px</div>
+        <div class="cell k">Recommended action</div><div class="cell">Bloc dominant : quoi/pourquoi/temps/ressource/conséquence report</div><div class="cell">fond <code>--accent-wash</code> ; 1 CTA primaire</div>
+        <div class="cell k">Study task row</div><div class="cell">Ligne dense : forme, id, titre, collège, type, durée, échéance</div><div class="cell">sélection persistante ; ouvre le panneau</div>
+        <div class="cell k">Item row</div><div class="cell">Ligne liste Items : + maîtrise, prochaine révision</div><div class="cell">clic → détail item</div>
+        <div class="cell k">Mastery indicator</div><div class="cell">Barre 0–100 + score mono, couleur santé</div><div class="cell">loading = piste grise animée</div>
+        <div class="cell k">Review timeline</div><div class="cell">J3/J7/J14/J30, fait/dû/futur</div><div class="cell">dot couleur urgence ; CTA réviser sur dû</div>
+        <div class="cell k">Weak point</div><div class="cell">Lacune : statut, récurrence, item, collège</div><div class="cell">résolue = opacité 0.55</div>
+        <div class="cell k">Context panel</div><div class="cell">Pourquoi, maîtrise, note Obsidian, notions reliées, ressources, actions</div><div class="cell">fermable ✕ ; drawer sous 1200px</div>
+        <div class="cell k">Note preview</div><div class="cell">Extrait de note Obsidian avec liens</div><div class="cell">plein écran optionnel (emprunt 1c)</div>
+        <div class="cell k">QCM summary</div><div class="cell">Moyenne, taux, cours à retravailler + barres</div><div class="cell">&lt;70 % = badge « à retravailler »</div>
+        <div class="cell k">Activity history</div><div class="cell">Timeline : date, type, détail, durée</div><div class="cell">groupée par jour</div>
+        <div class="cell k">Compact calendar</div><div class="cell">Planning semaine 7 colonnes : tâches + événements + charge</div><div class="cell">tâche = bord plein accent ; événement = pointillé</div>
+        <div class="cell k">Focus bar</div><div class="cell">Mode focus plein écran : tâche, objectif, minuteur, ressource, noter lacune</div><div class="cell">esc quitte ; cohérent avec le thème</div>
+        <div class="cell k">Filter bar</div><div class="cell">Chips collège / type / statut</div><div class="cell">actif = fond accent</div>
+        <div class="cell k">Empty / loading / error</div><div class="cell">États vides sobres, skeletons, message d'erreur</div><div class="cell">pas d'illustration ; texte + 1 action</div>
+      </div>
+    </div>
+
+    <!-- INTERACTIONS -->
+    <div class="sec">
+      <h2>4 · Comportements & interactions</h2>
+      <div class="row" style="grid-template-columns:1.2fr 2fr;">
+        <div class="cell h">Interaction</div><div class="cell h">Comportement attendu</div>
+        <div class="cell k">Réduire la sidebar</div><div class="cell">‹/› bascule 200px ↔ 56px, transition width 160ms ; labels masqués, glyphes conservés</div>
+        <div class="cell k">Command palette</div><div class="cell">⌘K / Ctrl+K ouvre ; frappe filtre ; entrée exécute ; esc ferme</div>
+        <div class="cell k">Navigation clavier</div><div class="cell">↑/↓ dans les listes, entrée ouvre, focus visible partout</div>
+        <div class="cell k">Sélection d'une tâche</div><div class="cell">clic → surbrillance persistante + ouverture du panneau contextuel</div>
+        <div class="cell k">Reporter / replanifier</div><div class="cell">offset depuis la date d'échéance (jamais depuis aujourd'hui) ; date théorique conservée</div>
+        <div class="cell k">Ouvrir PDF / Obsidian</div><div class="cell">actions directes depuis ligne, panneau, détail item</div>
+        <div class="cell k">Mode focus</div><div class="cell">réduit l'UI à la tâche + minuteur + ressource + noter une difficulté</div>
+        <div class="cell k">Aujourd'hui / Semaine</div><div class="cell">bascule segmentée dans l'en-tête</div>
+        <div class="cell k">Filtrage</div><div class="cell">chips collège / type ; état conservé par vue</div>
+        <div class="cell k">Clair / sombre</div><div class="cell"><code>data-theme="dark"</code> sur la racine → tokens basculent</div>
+      </div>
+      <p style="margin-top:14px;">Animations courtes, discrètes, fonctionnelles — couleur/bordure/opacité uniquement. Pas de bounce, scale, ni chorégraphie de transition de page.</p>
+    </div>
+
+    <!-- RESPONSIVE -->
+    <div class="sec">
+      <h2>5 · Règles responsive</h2>
+      <ul style="margin:0;padding-left:18px;">
+        <li><strong>≥1200px</strong> — 3 colonnes : sidebar + centre + panneau contextuel.</li>
+        <li><strong>900–1200px</strong> — panneau contextuel devient un drawer superposé ; l'en-tête du détail item passe à la ligne.</li>
+        <li><strong>768–900px</strong> — sidebar réduite en icônes par défaut.</li>
+        <li><strong>&lt;768px (mobile)</strong> — sidebar → bottom nav ; version simplifiée : résumé + action recommandée + file compacte ; le détail s'ouvre en drawer plein écran ; panneau contextuel empilé.</li>
+        <li>Tables → paires clé/valeur empilées sous 640px ; titres descendent d'un cran par breakpoint.</li>
+      </ul>
+    </div>
+
+    <!-- NICEGUI -->
+    <div class="sec">
+      <h2>6 · Correspondance NiceGUI / Quasar & écarts</h2>
+      <div class="row" style="grid-template-columns:1.1fr 1.2fr 1.6fr;">
+        <div class="cell h">Composant Synapse</div><div class="cell h">Base Quasar</div><div class="cell h">Écart / à custom</div>
+        <div class="cell k">App shell</div><div class="cell">q-layout + q-drawer ×2</div><div class="cell">OK natif</div>
+        <div class="cell k">Sidebar groupée</div><div class="cell">q-drawer + q-list/q-item</div><div class="cell">groupes + mode icônes = props <code>mini</code>, style à surcharger</div>
+        <div class="cell k">Command palette</div><div class="cell">q-dialog + q-input + q-list</div><div class="cell">fuzzy + raccourci + navigation clavier = custom</div>
+        <div class="cell k">Study task row</div><div class="cell">q-item / div flex</div><div class="cell">densité + 6 dimensions de statut = template custom</div>
+        <div class="cell k">Mastery / barres</div><div class="cell">q-linear-progress</div><div class="cell">couleur santé via <code>color</code> ; OK</div>
+        <div class="cell k">Onglets détail item</div><div class="cell">q-tabs + q-tab-panels</div><div class="cell">OK natif</div>
+        <div class="cell k">Context / note panel</div><div class="cell">q-drawer right</div><div class="cell">rétroliens + note preview = custom</div>
+        <div class="cell k">Planning semaine</div><div class="cell">grille CSS custom</div><div class="cell">pas de planner dense natif ; drag = q-draggable / SortableJS</div>
+        <div class="cell k">Mode focus</div><div class="cell">q-dialog maximized</div><div class="cell">minuteur = logique Python/timer custom</div>
+        <div class="cell k">Filtres, chips</div><div class="cell">q-chip / q-btn-toggle</div><div class="cell">style à surcharger (pas de pills)</div>
+        <div class="cell k">Tooltips / toasts</div><div class="cell">q-tooltip / q.notify</div><div class="cell">OK ; restyler sobre</div>
+        <div class="cell k">Clair / sombre</div><div class="cell">$q.dark + variables CSS</div><div class="cell">mapper les tokens sur <code>:root</code> / <code>.body--dark</code></div>
+      </div>
+      <p style="margin-top:14px;"><strong>Note technique.</strong> Quasar impose ses propres styles (rayons, ombres, ripple). Prévoir une feuille de surcharge : désactiver le ripple, ramener les rayons à 4/6/8, retirer les ombres sauf popover, forcer la palette de tokens. Injecter les variables via <code>ui.add_head_html</code>.</p>
+    </div>
+
+    <!-- ACCEPTATION -->
+    <div class="sec">
+      <h2>7 · Critères d'acceptation</h2>
+      <ul style="margin:0;padding-left:18px;">
+        <li>La page Aujourd'hui répond en &lt;5s à « quoi faire maintenant, pourquoi, quelle ressource » : action recommandée visible sans scroll.</li>
+        <li>Une seule couleur porteuse de sens (rouge/ambre/vert = urgence) ; aucun badge coloré décoratif.</li>
+        <li>Aucun emoji comme icône ; glyphes géométriques + <code>&lt;kbd&gt;</code>.</li>
+        <li>Densité : file de travail entièrement scannable, lignes ≤ 44px de haut, aucune grande carte vide.</li>
+        <li>⌘K, navigation clavier, sélection persistante, panneau contextuel fonctionnels.</li>
+        <li>Cohérence clair/sombre sur tous les composants (contraste AA sur texte muted).</li>
+        <li>Report = offset depuis la date d'échéance ; date théorique préservée (<code>task_id</code> inchangé).</li>
+        <li>Responsive : 3 colonnes ≥1200px, drawer &lt;1200px, bottom nav &lt;768px.</li>
+        <li>Transitions ≤180ms, couleur/bordure uniquement.</li>
+      </ul>
+    </div>
+
+    <!-- CLAUDE CODE -->
+    <div class="sec">
+      <h2>8 · Spécification pour l'implémentation</h2>
+      <p>Mapping vers l'arborescence existante (<code>frontend/pages</code>, <code>frontend/components</code>). Refonte de la couche présentation ; le backend (reviews, mastery, Notion, Obsidian) est inchangé.</p>
+      <div class="row" style="grid-template-columns:1fr 1.1fr 1.5fr;">
+        <div class="cell h">Vue prototype</div><div class="cell h">Fichier cible</div><div class="cell h">Remplace / fait évoluer</div>
+        <div class="cell k">Aujourd'hui</div><div class="cell mono">pages/dashboard.py</div><div class="cell">résumé une ligne + action recommandée + file (au lieu des cartes)</div>
+        <div class="cell k">Détail item</div><div class="cell mono">pages/course_detail.py</div><div class="cell">en-tête synthétique + onglets + panneau (au lieu de 15 cartes)</div>
+        <div class="cell k">Collèges</div><div class="cell mono">pages/colleges.py</div><div class="cell">liste progression au lieu de la grille de cartes</div>
+        <div class="cell k">Semestres</div><div class="cell mono">pages/semestres.py</div><div class="cell">cartes progression par UE</div>
+        <div class="cell k">Items</div><div class="cell mono">pages/(nouveau) items.py</div><div class="cell">liste transverse filtrable</div>
+        <div class="cell k">Révisions</div><div class="cell mono">pages/todo.py · planning.py</div><div class="cell">file par cycle J3/J7/J14/J30</div>
+        <div class="cell k">Planning</div><div class="cell mono">pages/planning.py</div><div class="cell">grille semaine + événements Google Calendar</div>
+        <div class="cell k">QCM</div><div class="cell mono">pages/qcm.py</div><div class="cell">analytique + cours à retravailler</div>
+        <div class="cell k">Lacunes</div><div class="cell mono">pages/weak_points.py</div><div class="cell">liste par statut + sync Obsidian</div>
+        <div class="cell k">Statistiques</div><div class="cell mono">pages/stats.py · bilan.py</div><div class="cell">métriques + temps/collège + activité</div>
+        <div class="cell k">Externat</div><div class="cell mono">pages/externat.py</div><div class="cell">stages + items rattachés</div>
+        <div class="cell k">App shell / thème</div><div class="cell mono">frontend/theme.py</div><div class="cell">sidebar groupée, tokens, clair/sombre, command palette</div>
+      </div>
+      <p style="margin-top:14px;">Composants réutilisables à créer sous <code>frontend/components</code> : <code>study_task_row</code>, <code>mastery_indicator</code>, <code>context_panel</code>, <code>command_palette</code> (évolution de l'existant), <code>review_timeline</code>, <code>compact_calendar</code>, <code>focus_bar</code>. Le prototype interactif sert de référence visuelle et comportementale de vérité.</p>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

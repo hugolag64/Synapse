@@ -7,10 +7,8 @@ révision · QCM moyen. Le chemin classic (grille de cartes + sélection +
 grid de cours) reste strictement inchangé.
 
 Écarts assumés (voir Journal du CLAUDE.md de la refonte) :
-  • « retard » cliquable doit ouvrir Items filtré sur ce collège (README §5) ;
-    la vue Items n'existe pas encore (session 9) — toast « bientôt » en
-    attendant, cohérent avec le badge « bientôt » déjà affiché dans la
-    sidebar pour Items ;
+  • « retard » cliquable ouvre `/items?college=...` (README §5) — câblé pour
+    de bon depuis la session 9 (Items) ;
   • « QCM moyen » = moyenne des *derniers* scores par cours
     (`get_qcm_last_scores_by_course`), pas une moyenne de toutes les
     sessions — aucun agrégat par collège n'existe côté backend, et c'est la
@@ -141,7 +139,8 @@ def render_colleges_cockpit() -> None:
         return out
 
     def _open_items(college: str) -> None:
-        ui.notify(f"Vue Items bientôt disponible (session 9) — {college}", type="info")
+        from urllib.parse import quote
+        ui.navigate.to(f"/items?college={quote(college)}")
 
     def _draw_topbar(n_total: int) -> None:
         topbar.clear()

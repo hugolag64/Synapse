@@ -25,7 +25,7 @@ _NAV_GROUPS = [
     ("Connaissance", [
         ("▤", "Collèges",  "/colleges",  None),
         ("◫", "Semestres", "/semestres", None),
-        ("≡", "Items",     None,         None),          # nouveau — session 9
+        ("≡", "Items",     "/items",     None),
         ("✓", "QCM",       "/qcm",       None),
         ("⚑", "Lacunes",   "/lacunes",   ("dot", "warning")),
     ]),

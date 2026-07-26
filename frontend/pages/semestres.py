@@ -13,6 +13,12 @@ def semestres_page():
         ui.label("Chargement des données...").classes("text-slate-500")
         return
 
+    # ── Refonte : cartes de progression cockpit (feature-flag ui_mode) ────────
+    if data_store.preferences.get("ui_mode", "cockpit") == "cockpit":
+        from frontend.pages.semestres_cockpit import render_semestres_cockpit
+        render_semestres_cockpit()
+        return
+
     current_tab = {'value': None}  # semestre actif
     content = ui.column().classes('w-full')
 

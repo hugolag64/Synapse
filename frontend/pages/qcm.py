@@ -851,6 +851,12 @@ def _render_item_stats(container, rows: list, refresh_fn=None) -> None:
 
 def qcm_page():
     with frame("QCM"):
+        # ── Refonte : analytique cockpit (feature-flag ui_mode) ────────────────
+        if data_store.preferences.get("ui_mode", "cockpit") == "cockpit":
+            from frontend.pages.qcm_cockpit import render_qcm_cockpit
+            render_qcm_cockpit()
+            return
+
         try:
             with ui.column().classes("w-full gap-5 max-w-5xl mx-auto"):
 

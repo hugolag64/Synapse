@@ -40,7 +40,7 @@ from frontend.components.study_task_row import _ring_glyph, due_info
 from frontend.components.mastery_indicator import mastery_indicator, ensure_styles as _mastery_styles
 
 _CSS = """
-.it-wrap { max-width:1200px; width:100%; }
+.it-wrap { max-width:1200px; width:100%; min-width:0; overflow:hidden; }
 .it-topbar { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:4px 0 14px; flex-wrap:wrap; }
 .it-title { font-size:20px; font-weight:600; color:var(--text); letter-spacing:-0.01em; }
 .it-subtitle { font-size:12.5px; color:var(--text-muted); margin-top:4px; }
@@ -68,7 +68,7 @@ _CSS = """
 .it-h-type { flex:0 0 70px; }
 .it-h-mastery { flex:0 0 140px; }
 .it-h-next { flex:0 0 84px; }
-.it-row { display:flex; align-items:center; gap:12px; height:44px; padding:0 10px; border-bottom:1px solid var(--border);
+.it-row { display:flex; align-items:center; gap:12px; height:44px; width:100%; min-width:0; padding:0 10px; border-bottom:1px solid var(--border);
   cursor:pointer; color:var(--text); text-decoration:none; transition: background var(--duration-fast) var(--ease-standard); }
 .it-row:hover { background:var(--surface); }
 .it-row:last-child { border-bottom:none; }
@@ -159,7 +159,8 @@ def items_page(request: Request) -> None:
     _mastery_styles()
 
     college_param = request.query_params.get("college") or None
-    filt = {"mode": "college" if college_param else "all", "sort": "item"}
+    filt = {"mode": "college" if college_param else "all", "sort": "item",
+            "college": college_param or "Tous"}
 
     with ui.column().classes("it-wrap gap-0"):
         topbar = ui.element("div").classes("it-topbar")
@@ -209,8 +210,8 @@ def items_page(request: Request) -> None:
 
     def _visible(rows: list[dict]) -> list[dict]:
         mode = filt["mode"]
-        if mode == "college" and college_param:
-            return [r for r in rows if college_param in (r["course"].college or [])]
+        if filt["college"] != "Tous":
+            return [r for r in rows if filt["college"] in (r["course"].college or [])]
         if mode == "fragile":
             return [r for r in rows if r["mastery_level"] in ("fragile", "critique")]
         if mode == "overdue":
@@ -266,14 +267,27 @@ def items_page(request: Request) -> None:
                     ui.label(label)
                 el.on("click", lambda m=mode: _select_sort(m))
 
+            colleges = sorted({name for c in data_store.cours for name in (c.college or [])})
+            ui.select(
+                ["Tous", *colleges], value=filt["college"], label="Collège",
+                on_change=lambda e: _select_college(e.value),
+            ).props("outlined dense options-dense").classes("w-52")
+
     def _select_sort(mode: str) -> None:
         filt["sort"] = mode
         _draw_chips()
         _draw_list(_all_rows["value"])
 
+    def _select_college(name: str) -> None:
+        filt["college"] = name or "Tous"
+        filt["mode"] = "college" if name and name != "Tous" else "all"
+        _draw_chips()
+        _draw_head()
+        _draw_list(_all_rows["value"])
+
     def _draw_head() -> None:
         head.clear()
-        show_college = not (filt["mode"] == "college" and college_param)
+        show_college = filt["college"] == "Tous"
         with head:
             ui.label("").classes("it-h-ring")
             ui.label("ITEM").classes("it-h-id")
@@ -285,7 +299,7 @@ def items_page(request: Request) -> None:
 
     def _draw_row(r: dict) -> None:
         c = r["course"]
-        show_college = not (filt["mode"] == "college" and college_param)
+        show_college = filt["college"] == "Tous"
         row = ui.element("div").classes("it-row")
         row.on("click", lambda cid=c.id: ui.navigate.to(f"/cours/{cid}"))
         with row:

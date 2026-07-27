@@ -711,7 +711,7 @@ def add_study_session(
     weak_detail: Optional[str] = None,
     perceived_mastery: Optional[int] = None,
     notes: Optional[str] = None,
-) -> None:
+) -> int:
     """Enregistre une session de travail après validation d'une révision."""
     import json as _json
 
@@ -736,18 +736,18 @@ def add_study_session(
         ))
         session_id: int = cur.lastrowid
 
-    _detail = (weak_detail or "").strip()
-    if _detail:
-        _cat = (weak_category or "").strip()
-        if _cat.lower() in ("aucune", ""):
-            _cat = None
+    category = (weak_category or "").strip()
+    if item_number and category and category.casefold() != "aucune":
         try:
-            add_weak_point(
-                course_id=course_id, detail=_detail, course_title=course_title,
-                item_number=item_number, category=_cat, source_session_id=session_id,
+            check_and_propose_recurring_study_feedback(
+                item_number=item_number,
+                error_type=category,
+                new_session_id=session_id,
+                course_title=course_title,
+                course_id=course_id,
             )
         except Exception as exc:
-            logger.warning(f"Auto weak_point (non-bloquant): {exc}")
+            logger.warning(f"Recurring study feedback gap (non-bloquant): {exc}")
 
     return session_id
 
@@ -2247,9 +2247,10 @@ def check_and_propose_recurring_gaps(
             if total_count < RECURRENCE_THRESHOLD:
                 continue
 
-            all_session_ids = sorted(
-                {r["id"] for r in prior_rows} | {new_session_id}
-            )
+            all_session_ids = {
+                *(f"qcm:{r['id']}" for r in prior_rows),
+                f"qcm:{new_session_id}",
+            }
 
             # Vérifier si une proposition pending existe déjà
             existing = con.execute(
@@ -2260,7 +2261,11 @@ def check_and_propose_recurring_gaps(
 
             if existing:
                 old_sids = _json.loads(existing["session_ids"] or "[]")
-                merged = sorted(set(old_sids) | set(all_session_ids))
+                tagged_old_sids = {
+                    sid if isinstance(sid, str) and ":" in sid else f"qcm:{sid}"
+                    for sid in old_sids
+                }
+                merged = sorted(tagged_old_sids | all_session_ids)
                 con.execute(
                     "UPDATE pending_gap_proposals "
                     "SET occurrence_count = ?, session_ids = ? WHERE id = ?",
@@ -2275,13 +2280,82 @@ def check_and_propose_recurring_gaps(
                     "VALUES (?,?,?,?,?,?,?,?,'pending')",
                     (
                         item_number, error_type, course_title, course_id,
-                        _json.dumps(all_session_ids), total_count,
+                        _json.dumps(sorted(all_session_ids)), total_count,
                         now, expires_at,
                     ),
                 )
                 proposal_ids.append(cur.lastrowid)
 
     return proposal_ids
+
+
+def check_and_propose_recurring_study_feedback(
+    item_number: str,
+    error_type: str,
+    new_session_id: int,
+    course_title: str = "",
+    course_id: str = "",
+) -> list[int]:
+    """Propose une lacune seulement après répétition d'un signal de session."""
+    import datetime as _dt
+    import json as _json
+
+    normalized_error_type = error_type.strip()
+    if not item_number or not normalized_error_type:
+        return []
+
+    with _conn() as con:
+        rows = con.execute(
+            "SELECT DISTINCT id FROM study_sessions "
+            "WHERE item_number = ? "
+            "AND LOWER(TRIM(weak_category)) = LOWER(TRIM(?))",
+            (item_number, normalized_error_type),
+        ).fetchall()
+
+        source_session_ids = {f"study:{row['id']}" for row in rows}
+        source_session_ids.add(f"study:{new_session_id}")
+        occurrence_count = len(source_session_ids)
+        if occurrence_count < RECURRENCE_THRESHOLD:
+            return []
+
+        existing = con.execute(
+            "SELECT id, session_ids FROM pending_gap_proposals "
+            "WHERE item_number = ? AND error_type = ? AND status = 'pending'",
+            (item_number, normalized_error_type),
+        ).fetchone()
+        if existing:
+            old_sids = _json.loads(existing["session_ids"] or "[]")
+            tagged_old_sids = {
+                sid if isinstance(sid, str) and ":" in sid else f"qcm:{sid}"
+                for sid in old_sids
+            }
+            merged = sorted(tagged_old_sids | source_session_ids)
+            con.execute(
+                "UPDATE pending_gap_proposals "
+                "SET occurrence_count = ?, session_ids = ? WHERE id = ?",
+                (len(merged), _json.dumps(merged), existing["id"]),
+            )
+            return [existing["id"]]
+
+        now = _now()
+        expires_at = (_dt.date.fromisoformat(now[:10]) + _dt.timedelta(days=14)).isoformat()
+        cur = con.execute(
+            "INSERT INTO pending_gap_proposals "
+            "(item_number, error_type, course_title, course_id, session_ids, "
+            "occurrence_count, created_at, expires_at, status) "
+            "VALUES (?,?,?,?,?,?,?,?,'pending')",
+            (
+                item_number,
+                normalized_error_type,
+                course_title,
+                course_id,
+                _json.dumps(sorted(source_session_ids)),
+                occurrence_count,
+                now,
+                expires_at,
+            ),
+        )
+        return [cur.lastrowid]
 
 
 def get_pending_proposals(limit: int = 50) -> list:

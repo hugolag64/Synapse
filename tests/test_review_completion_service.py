@@ -61,6 +61,24 @@ def test_complete_review_records_history_and_session_with_feedback():
     assert sessions[0]["qcm_result"] == "réussi"
 
 
+def test_complete_review_records_feedback_without_creating_immediate_weak_point():
+    complete_review(
+        _task(),
+        qcm_result="raté",
+        weak_category="raisonnement",
+        weak_detail="Oubli du diagnostic différentiel",
+    )
+
+    with local_store._conn() as con:
+        weak_points = con.execute("SELECT COUNT(*) FROM weak_points").fetchone()[0]
+    session = _sessions("course-1")[0]
+
+    assert session["qcm_result"] == "raté"
+    assert session["weak_category"] == "raisonnement"
+    assert session["weak_detail"] == "Oubli du diagnostic différentiel"
+    assert weak_points == 0
+
+
 def test_complete_consolidation_uses_consolidation_state_and_session():
     result = complete_review(
         _task("consolidation", "course-1_college_consolidation_2026-07-27"),

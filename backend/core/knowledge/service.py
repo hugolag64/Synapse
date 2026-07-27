@@ -113,7 +113,7 @@ def oic_coverage(course_id: str) -> dict:
     """
     with _conn() as con:
         rows = con.execute(
-            "SELECT rang, mastered FROM lisa_oic WHERE course_id = ?", (course_id,)
+            "SELECT rang, mastered FROM lisa_oic WHERE course_id = ? AND active = 1", (course_id,)
         ).fetchall()
 
     def _tally(rang: str) -> tuple[int, int]:

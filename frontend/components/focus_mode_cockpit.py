@@ -31,6 +31,7 @@ from nicegui import ui
 
 from backend.core.reviews.recommendation_service import get_next_action
 from backend.state.store import data_store
+from frontend.components.session_feedback import submit_session_feedback
 from frontend.components.study_task_row import type_tag
 
 _CSS = """
@@ -200,10 +201,25 @@ def open_focus_mode_cockpit(state) -> None:
             initial_duration_minutes=_elapsed_minutes(),
         )
 
-    async def _cockpit_on_done(task, card, activity_types=None, duration_minutes=None,
-                                confidence=None, difficulty=None, **kwargs):
-        if _on_done:
-            await _on_done(task, card, activity_types, duration_minutes, confidence, difficulty)
+    async def _cockpit_on_done(
+        task,
+        card,
+        activity_types=None,
+        duration_minutes=None,
+        confidence=None,
+        difficulty=None,
+        **feedback,
+    ):
+        await submit_session_feedback(
+            _on_done,
+            task,
+            card,
+            activity_types=activity_types,
+            duration_minutes=duration_minutes,
+            confidence=confidence,
+            difficulty=difficulty,
+            **feedback,
+        )
         _nav(1)
 
     def _nav(delta: int) -> None:

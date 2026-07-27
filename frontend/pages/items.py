@@ -84,6 +84,11 @@ _CSS = """
 .it-next { display:flex; align-items:center; gap:5px; flex:0 0 84px; font-size:11.5px; color:var(--text-muted); }
 .it-next-dot { width:6px; height:6px; border-radius:50%; flex:0 0 6px; }
 .it-empty { padding:32px 10px; text-align:center; color:var(--text-dim); font-size:13px; }
+@media (max-width: 900px) {
+  .it-college, .it-h-college { flex-basis:120px; }
+  .it-mastery, .it-h-mastery { flex-basis:110px; }
+  .it-next, .it-h-next { flex-basis:70px; }
+}
 """
 
 
@@ -96,6 +101,21 @@ def _safe_item_number(n: str | None) -> float:
         return 999999.0
 
 
+def _sort_item_rows(rows: list[dict], mode: str = "item") -> list[dict]:
+    """Trie sans dupliquer les items multi-collèges."""
+    if mode == "college":
+        return sorted(
+            rows,
+            key=lambda r: (
+                (r["course"].college or [""])[0].casefold(),
+                _safe_item_number(r["course"].item_number),
+                r["course"].title.casefold(),
+            ),
+        )
+    return sorted(
+        rows,
+        key=lambda r: (_safe_item_number(r["course"].item_number), r["course"].title.casefold()),
+    )
 def _last_review_info(sessions: list) -> tuple[str, str]:
     """(couleur token, libellé relatif) à partir des study_sessions d'un cours."""
     if not sessions:
@@ -139,7 +159,7 @@ def items_page(request: Request) -> None:
     _mastery_styles()
 
     college_param = request.query_params.get("college") or None
-    filt = {"mode": "college" if college_param else "all"}
+    filt = {"mode": "college" if college_param else "all", "sort": "item"}
 
     with ui.column().classes("it-wrap gap-0"):
         topbar = ui.element("div").classes("it-topbar")
@@ -185,8 +205,7 @@ def items_page(request: Request) -> None:
                 "sessions": sessions,
                 "overdue": c.id in urgent_ids,
             })
-        rows.sort(key=lambda r: _safe_item_number(r["course"].item_number))
-        return rows
+        return _sort_item_rows(rows, filt["sort"])
 
     def _visible(rows: list[dict]) -> list[dict]:
         mode = filt["mode"]
@@ -238,6 +257,20 @@ def items_page(request: Request) -> None:
             if filt["mode"] == "college" and college_param:
                 ui.label(f"Filtré sur {college_param}").classes("it-filter-hint")
 
+            ui.label("Trier par").classes("it-filter-hint")
+            for label, mode in (("Item", "item"), ("Collège", "college")):
+                el = ui.element("div").classes(
+                    "it-chip active" if filt["sort"] == mode else "it-chip"
+                )
+                with el:
+                    ui.label(label)
+                el.on("click", lambda m=mode: _select_sort(m))
+
+    def _select_sort(mode: str) -> None:
+        filt["sort"] = mode
+        _draw_chips()
+        _draw_list(_all_rows["value"])
+
     def _draw_head() -> None:
         head.clear()
         show_college = not (filt["mode"] == "college" and college_param)
@@ -260,7 +293,7 @@ def items_page(request: Request) -> None:
             ui.label(c.item_number or "—").classes("it-id")
             ui.label(c.title).classes("it-title-cell")
             if show_college:
-                college = (c.college or [""])[0]
+                college = " · ".join(c.college or [""])
                 ui.label(college).classes("it-college")
             else:
                 color, label = _last_review_info(r["sessions"])

@@ -99,3 +99,26 @@ def test_record_oic_evaluation_requires_canonical_aliases():
                 source="oic", course_id="course-1", oic_code="OIC-1", score_percent=80
             )
         )
+
+
+def test_record_oic_evaluation_preserves_existing_attempt_and_success_state():
+    local_store.upsert_lisa_oic(
+        "course-1", [{"oic_code": "OIC-1", "intitule": "Évaluer", "rang": "A"}]
+    )
+
+    result = record_evaluation(
+        EvaluationInput(
+            source="oic",
+            course_id="course-1",
+            course_ids=("course-1",),
+            oic_code="OIC-1",
+            score_percent=85,
+            questions_json="[]",
+        )
+    )
+
+    row = local_store.get_lisa_oic("course-1")[0]
+    assert result.persisted_id > 0
+    assert result.recommendation == "consolidate"
+    assert local_store.get_oic_attempts(row["id"])[0]["session_score"] == 85
+    assert row["mastered"] == 1

@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "synapse",
+      "runtimeExecutable": "C:/Users/hugol/Desktop/Projet Python/Synapse/.claude/run_synapse.bat",
+      "runtimeArgs": [],
+      "port": 8082
+    },
+    {
+      "name": "synapse-consolidation-worktree",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "C:/Users/hugol/Desktop/Projet Python/Synapse/.claude/worktrees/consolidation-planning/main.py"
+      ],
+      "port": 8082
+    }
+  ]
+}

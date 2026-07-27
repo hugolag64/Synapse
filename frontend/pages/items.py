@@ -229,7 +229,7 @@ def items_page(request: Request) -> None:
             with search:
                 ui.label("⌕")
                 ui.label("Filtrer")
-                ui.html("<kbd>Ctrl+P</kbd>")
+                ui.html("<kbd>Ctrl+Alt+P</kbd>")
             search.on("click", open_item_search_palette)
 
     def _select(mode: str) -> None:

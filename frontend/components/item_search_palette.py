@@ -1,4 +1,4 @@
-"""Palette de recherche rapide dédiée à la vue Items (Ctrl+P)."""
+"""Palette de recherche rapide dédiée à la vue Items (Ctrl+Alt+P)."""
 from __future__ import annotations
 
 import unicodedata
@@ -9,11 +9,21 @@ from backend.state.store import data_store
 
 
 _CSS = """
-.item-search-dialog { animation: item-search-in 140ms ease-out both; }
+.item-search-dialog { animation: item-search-in 140ms ease-out both; background:var(--bg); color:var(--text);
+  border:1px solid var(--border); border-radius:12px; box-shadow:0 18px 50px rgba(31,35,50,.18); }
 @keyframes item-search-in { from { opacity:0; transform:translateY(-8px) scale(.98); }
   to { opacity:1; transform:translateY(0) scale(1); } }
+.item-search-header { background:var(--bg); border-bottom:1px solid var(--border); }
+.item-search-input { color:var(--text); font-size:13px; }
+.item-search-input input::placeholder { color:var(--text-dim); }
 .item-search-result { transition:background 100ms ease; }
 .item-search-result:hover { background:var(--surface); }
+.item-search-result.selected { background:var(--surface); }
+.item-search-number { color:var(--text-muted); font:11px var(--font-mono); }
+.item-search-title { color:var(--text); font-size:13px; font-weight:600; }
+.item-search-college { color:var(--text-muted); font-size:11.5px; }
+.item-search-hint { color:var(--text-dim); font-size:11px; }
+.item-search-kbd { border:1px solid var(--border); border-radius:4px; color:var(--text-muted); font:10.5px var(--font-mono); padding:1px 5px; }
 """
 
 
@@ -55,21 +65,20 @@ def open_item_search_palette() -> None:
     ui.add_head_html(f"<style>{_CSS}</style>", shared=True)
     with ui.dialog() as dialog:
         with ui.card().classes(
-            "item-search-dialog w-[620px] max-w-[94vw] p-0 rounded-2xl overflow-hidden "
-            "bg-white dark:bg-slate-900 shadow-2xl"
+            "item-search-dialog w-[620px] max-w-[94vw] p-0 overflow-hidden"
         ):
-            with ui.element("div").classes("flex items-center gap-3 px-4 py-3 border-b border-slate-200 dark:border-slate-700"):
-                ui.icon("search", size="sm").classes("text-slate-400")
+            with ui.element("div").classes("item-search-header flex items-center gap-3 px-4 py-3"):
+                ui.icon("search", size="sm").style("color:var(--text-muted)")
                 search_input = ui.input(placeholder="Rechercher un item, un titre ou un collège…").props(
                     "autofocus borderless dense"
-                ).classes("flex-1")
-                ui.element("kbd").classes("text-xs text-slate-400").text = "Ctrl+P"
+                ).classes("item-search-input flex-1")
+                ui.element("kbd").classes("item-search-kbd").text = "Ctrl+Alt+P"
                 ui.button(icon="close", on_click=dialog.close).props("flat round dense color=grey")
             body = ui.column().classes("w-full gap-0").style("max-height:52vh;overflow-y:auto")
-            with ui.element("div").classes("px-4 py-2 border-t border-slate-200 dark:border-slate-700 flex gap-4"):
-                ui.label("↑↓ parcourir").classes("text-[11px] text-slate-400")
-                ui.label("Entrée ouvrir").classes("text-[11px] text-slate-400")
-                ui.label("Échap fermer").classes("text-[11px] text-slate-400")
+            with ui.element("div").classes("px-4 py-2 border-t flex gap-4").style("border-color:var(--border)"):
+                ui.label("↑↓ parcourir").classes("item-search-hint")
+                ui.label("Entrée ouvrir").classes("item-search-hint")
+                ui.label("Échap fermer").classes("item-search-hint")
 
     state = {"query": "", "selected": 0, "results": []}
 
@@ -83,22 +92,22 @@ def open_item_search_palette() -> None:
         state["selected"] = min(state["selected"], max(0, len(state["results"]) - 1))
         with body:
             if not state["results"]:
-                ui.label(f"Aucun item pour « {state['query']} »").classes("px-4 py-8 text-sm text-slate-400")
+                ui.label(f"Aucun item pour « {state['query']} »").classes("px-4 py-8 item-search-hint")
                 return
             for index, course in enumerate(state["results"]):
                 selected = index == state["selected"]
                 row = ui.element("div").classes(
                     "item-search-result w-full px-4 py-3 flex items-center gap-3 cursor-pointer "
-                    + ("bg-slate-100 dark:bg-slate-800" if selected else "")
+                    + (" selected" if selected else "")
                 )
                 row.on("click", lambda c=course: _open(c))
                 with row:
-                    ui.label(f"ITEM {course.display_item_number or course.item_number or '—'}").classes("w-20 shrink-0 text-xs font-mono text-slate-400")
+                    ui.label(f"ITEM {course.display_item_number or course.item_number or '—'}").classes("item-search-number w-20 shrink-0")
                     with ui.column().classes("flex-1 gap-0 min-w-0"):
-                        ui.label(course.title).classes("text-sm font-semibold truncate")
+                        ui.label(course.title).classes("item-search-title truncate")
                         colleges = " · ".join(course.college or [])
                         if colleges:
-                            ui.label(colleges).classes("text-xs text-slate-400 truncate")
+                            ui.label(colleges).classes("item-search-college truncate")
 
     def _on_change(event) -> None:
         state["query"] = event.value or ""

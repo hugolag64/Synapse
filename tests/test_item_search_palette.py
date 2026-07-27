@@ -29,3 +29,12 @@ def test_items_page_imports_palette_for_page_level_keybinding():
     source = Path("frontend/pages/items.py").read_text(encoding="utf-8")
     import_line = "from frontend.components.item_search_palette import open_item_search_palette"
     assert source.index(import_line) < source.index("def items_page")
+
+
+def test_item_search_uses_non_print_shortcut_and_synapse_tokens():
+    palette = Path("frontend/components/item_search_palette.py").read_text(encoding="utf-8")
+    bindings = Path("frontend/keybindings.py").read_text(encoding="utf-8")
+    assert "Ctrl+Alt+P" in palette
+    assert "e.modifiers.alt" in bindings
+    assert "var(--bg)" in palette
+    assert "var(--border)" in palette

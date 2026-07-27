@@ -38,6 +38,7 @@ from backend.core.reviews.service import review_service
 from backend.core.reviews.mastery import get_course_mastery
 from frontend.components.study_task_row import _ring_glyph, due_info
 from frontend.components.mastery_indicator import mastery_indicator, ensure_styles as _mastery_styles
+from frontend.components.item_search_palette import open_item_search_palette
 
 _CSS = """
 .it-wrap { max-width:1200px; width:100%; min-width:0; overflow:hidden; }
@@ -224,7 +225,6 @@ def items_page(request: Request) -> None:
             with ui.column().classes("gap-0"):
                 ui.label("Items").classes("it-title")
                 ui.label("Tous les items médicaux · cliquez pour ouvrir le détail").classes("it-subtitle")
-            from frontend.components.item_search_palette import open_item_search_palette
             search = ui.element("div").classes("it-search")
             with search:
                 ui.label("⌕")

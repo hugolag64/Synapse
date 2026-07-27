@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from pathlib import Path
 
 from frontend.components.item_search_palette import search_items
 
@@ -22,3 +23,9 @@ def test_search_items_empty_query_returns_recent_slice():
     courses = [_course(str(i), f"Cours {i}", ["Médecine"]) for i in range(12)]
 
     assert search_items("", courses) == courses[:8]
+
+
+def test_items_page_imports_palette_for_page_level_keybinding():
+    source = Path("frontend/pages/items.py").read_text(encoding="utf-8")
+    import_line = "from frontend.components.item_search_palette import open_item_search_palette"
+    assert source.index(import_line) < source.index("def items_page")

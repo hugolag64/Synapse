@@ -1,5 +1,6 @@
 """Tests unitaires — consolidation (SM-2 self-chaining) et pool de consolidation."""
 import datetime
+from zoneinfo import ZoneInfo
 import pytest
 
 
@@ -71,7 +72,7 @@ def test_get_last_completed_date_present():
         theoretical_due_date=datetime.date(2026, 1, 30),
     )
     d = ls.get_last_completed_date("course-1", "college", "J30")
-    assert d == datetime.date.today()
+    assert d == datetime.datetime.now(ZoneInfo("Indian/Reunion")).date()
 
 
 # ── bootstrap_consolidation ──────────────────────────────────────────────────

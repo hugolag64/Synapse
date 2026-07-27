@@ -75,7 +75,7 @@ _CSS = """
 .cg-empty { padding:32px 10px; text-align:center; color:var(--text-dim); font-size:13px; }
 .cg-items { padding:8px 12px 12px 34px; background:var(--surface); border-bottom:1px solid var(--border); }
 .cg-item { display:flex; align-items:center; gap:10px; min-height:32px; padding:4px 0; }
-.cg-item-title { flex:1 1 auto; min-width:0; font-size:12px; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cg-item-title { flex:1 1 auto; min-width:0; font-size:12px; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer; }
 .cg-item-meta { flex:0 0 auto; font-size:10px; color:var(--text-dim); }
 """
 
@@ -252,7 +252,8 @@ def render_colleges_cockpit() -> None:
                     task = item["task"]
                     with ui.element("div").classes("cg-item") as item_el:
                         number = getattr(course, "item_number", None) or "—"
-                        ui.label(f"Item {number} · {course.title}").classes("cg-item-title")
+                        title_el = ui.label(f"Item {number} · {course.title}").classes("cg-item-title")
+                        title_el.on("click", lambda cid=course.id: ui.navigate.to(f"/cours/{cid}"))
                         if task is not None:
                             ui.button(
                                 "Valider", icon="check",

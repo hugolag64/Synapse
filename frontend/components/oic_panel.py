@@ -157,7 +157,14 @@ class OICPanelController:
                     ui.button("Réessayer", icon="refresh", on_click=lambda: asyncio.ensure_future(self.load(True))).props("unelevated color=violet size=sm rounded")
 
 
-def render_oic_panel(course, content_area, progress_area, refresh_fn=None, course_ids: Sequence[str] | None = None) -> OICPanelController:
+def render_oic_panel(
+    course,
+    content_area,
+    progress_area,
+    refresh_fn=None,
+    course_ids: Sequence[str] | None = None,
+    auto_load: bool = True,
+) -> OICPanelController:
     controller = OICPanelController(
         course=course,
         course_ids=tuple(course_ids or [course.id]),
@@ -166,5 +173,6 @@ def render_oic_panel(course, content_area, progress_area, refresh_fn=None, cours
         progress_area=progress_area,
         refresh_fn=refresh_fn,
     )
-    asyncio.ensure_future(controller.load())
+    if auto_load:
+        asyncio.ensure_future(controller.load())
     return controller

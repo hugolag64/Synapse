@@ -43,6 +43,9 @@ from frontend.components.relation_graph import (
 from frontend.components.review_timeline import (
     review_timeline, build_stages, ensure_styles as _timeline_styles,
 )
+from frontend.components.oic_panel import (
+    render_oic_panel, should_load_on_tab_activation,
+)
 from frontend.components.study_task_row import _ring_glyph
 
 _MONTHS_FR = ["jan", "fév", "mar", "avr", "mai", "juin",
@@ -335,6 +338,11 @@ def render_item_cockpit(course_id: str) -> None:
     item_label = course.display_item_number or course.item_number or "—"
     college = (course.college or [""])[0] if course.college else ""
     ring = _ring_glyph(score)
+    item_key = str(course.display_item_number or course.item_number or "").strip()
+    oic_course_ids = [
+        c.id for c in data_store.cours
+        if str(getattr(c, "display_item_number", "") or getattr(c, "item_number", "") or "").strip() == item_key
+    ] or [course.id]
 
     # ── Focus : réutilise le Mode Focus existant ──────────────────────────────
     def _open_focus() -> None:
@@ -418,8 +426,10 @@ def render_item_cockpit(course_id: str) -> None:
             t_rev = ui.tab("Révisions")
             t_qcm = ui.tab("QCM")
             t_lac = ui.tab("Lacunes")
+            t_oic = ui.tab("OIC")
             t_hist = ui.tab("Historique")
 
+        oic_controller = None
         with ui.tab_panels(tabs, value=t_over, animated=False).classes("ci-panels w-full"):
             with ui.tab_panel(t_over):
                 _tab_overview(course, task, score, level, next_due, next_cycle,
@@ -432,8 +442,30 @@ def render_item_cockpit(course_id: str) -> None:
                 _tab_qcm(qcm_summary, qcm_sessions, lacunes)
             with ui.tab_panel(t_lac):
                 _tab_lacunes(lacunes)
+            with ui.tab_panel(t_oic):
+                oic_progress = ui.element("div").classes(
+                    "px-5 py-3 flex items-center gap-6 flex-wrap border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60"
+                )
+                oic_content = ui.element("div").classes("overflow-y-auto w-full")
+                with oic_content:
+                    ui.label("Ouvre cet onglet pour charger les OIC de l’item.").classes("ci-empty")
+                oic_controller = render_oic_panel(
+                    course,
+                    oic_content,
+                    oic_progress,
+                    refresh_fn=lambda: ui.notify("État OIC mis à jour", type="positive"),
+                    course_ids=oic_course_ids,
+                    auto_load=False,
+                )
             with ui.tab_panel(t_hist):
                 _tab_history(sessions, qcm_sessions, lacunes, review_hist)
+
+        async def _on_tab_change(event) -> None:
+            active = getattr(event, "value", event)
+            if oic_controller and should_load_on_tab_activation(active, oic_controller.loaded):
+                await oic_controller.load()
+
+        tabs.on_value_change(lambda event: asyncio.ensure_future(_on_tab_change(event)))
 
     with panel:
         _render_panel(course, lacunes, has_pdf, obs_path)

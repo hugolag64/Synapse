@@ -86,7 +86,7 @@ def ensure_styles() -> None:
 
 
 def study_task_row(task, *, selected: bool = False, on_select=None,
-                   dimmed: bool = False) -> None:
+                   on_double_click=None, dimmed: bool = False) -> None:
     ensure_styles()
 
     from backend.core.reviews.recommendation_service import get_next_action
@@ -101,6 +101,8 @@ def study_task_row(task, *, selected: bool = False, on_select=None,
     row = ui.element("div").classes(cls)
     if on_select is not None:
         row.on("click", lambda t=task: on_select(t))
+    if on_double_click is not None:
+        row.on("dblclick", lambda t=task: on_double_click(t))
 
     college = (task.college or [""])[0] if task.college else ""
     due_color, due_label = due_info(task)

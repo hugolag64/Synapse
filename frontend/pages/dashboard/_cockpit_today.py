@@ -253,6 +253,9 @@ async def render_today_cockpit() -> None:
         sel["task"] = task
         _render()
 
+    def _open_item_detail(task) -> None:
+        ui.navigate.to(f"/cours/{task.course_id}")
+
     # ── Layout : conteneurs ───────────────────────────────────────────────────
     with ui.element("div").classes("cockpit-today"):
         center = ui.element("div").classes("ct-center")
@@ -351,7 +354,10 @@ async def render_today_cockpit() -> None:
                     dimmed = (t.mastery_score is not None and t.mastery_score >= 80
                               and t.days_overdue <= 0)
                     is_sel = sel["task"] is not None and sel["task"].id == t.id
-                    study_task_row(t, selected=is_sel, on_select=_on_select, dimmed=dimmed)
+                    study_task_row(
+                        t, selected=is_sel, on_select=_on_select,
+                        on_double_click=_open_item_detail, dimmed=dimmed,
+                    )
             else:
                 ui.label("Rien à réviser aujourd'hui ✓").classes("ct-empty")
 

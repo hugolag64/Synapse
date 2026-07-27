@@ -23,6 +23,7 @@ from nicegui import ui
 
 from backend.state.store import data_store
 from backend.core.reviews.local_store import get_all_history, get_qcm_last_scores_by_course
+from backend.core.reviews.validation import complete_review
 from backend.core.reviews.service import review_service
 from frontend.components.study_task_row import due_info
 from frontend.components.mastery_indicator import _LEVEL_COLOR, _level_from_score
@@ -72,13 +73,35 @@ _CSS = """
 .cg-next-dot { width:6px; height:6px; border-radius:50%; flex:0 0 6px; }
 .cg-qcm { flex:0 0 52px; text-align:right; font-family:var(--font-mono); font-size:12px; font-weight:600; }
 .cg-empty { padding:32px 10px; text-align:center; color:var(--text-dim); font-size:13px; }
+.cg-items { padding:8px 12px 12px 34px; background:var(--surface); border-bottom:1px solid var(--border); }
+.cg-item { display:flex; align-items:center; gap:10px; min-height:32px; padding:4px 0; }
+.cg-item-title { flex:1 1 auto; min-width:0; font-size:12px; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cg-item-meta { flex:0 0 auto; font-size:10px; color:var(--text-dim); }
 """
+
+
+def _college_item_rows(courses: list, tasks: list) -> list[dict]:
+    """Construit la vue simplifiée d'un collège, triée par numéro d'item."""
+    task_by_course = {task.course_id: task for task in tasks}
+
+    def sort_key(course):
+        raw = str(getattr(course, "item_number", "") or "")
+        try:
+            return (0, int(raw), str(getattr(course, "title", "")))
+        except ValueError:
+            return (1, raw, str(getattr(course, "title", "")))
+
+    return [
+        {"course": course, "task": task_by_course.get(course.id)}
+        for course in sorted(courses, key=sort_key)
+    ]
 
 
 def render_colleges_cockpit() -> None:
     ui.add_head_html(f"<style>{_CSS}</style>", shared=True)
 
     filt = {"unread": False, "overdue": False, "no_pdf": False}
+    expanded: set[str] = set()
 
     with ui.column().classes("cg-wrap gap-0"):
         topbar = ui.element("div").classes("cg-topbar")
@@ -124,7 +147,8 @@ def render_colleges_cockpit() -> None:
                 "name": name, "total": total, "started": started, "pct": pct,
                 "retard": retard_count, "fragile": fragile_count,
                 "next_task": next_task, "qcm_avg": qcm_avg, "unread": started == 0,
-                "no_pdf": no_pdf,
+                "no_pdf": no_pdf, "courses": courses,
+                "tasks": college_tasks,
             })
         return rows
 
@@ -176,7 +200,9 @@ def render_colleges_cockpit() -> None:
         bar_color = _LEVEL_COLOR.get(level, "var(--text-muted)")
         restants = r["total"] - r["started"]
 
-        with ui.element("div").classes("cg-row"):
+        row_el = ui.element("div").classes("cg-row cursor-pointer")
+        row_el.on("click", lambda name=r["name"]: _toggle_expand(name))
+        with row_el:
             with ui.element("div").classes("cg-name-cell"):
                 ui.label(r["name"]).classes("cg-name")
                 ui.label(f"{r['started']}/{r['total']} lus · {restants} restants").classes("cg-name-sub")
@@ -215,6 +241,52 @@ def render_colleges_cockpit() -> None:
             else:
                 qcm_color = _LEVEL_COLOR.get(_level_from_score(qcm_avg), "var(--text-muted)")
                 ui.label(f"{qcm_avg}%").classes("cg-qcm").style(f"color:{qcm_color}")
+
+        if r["name"] in expanded:
+            with ui.element("div").classes("cg-items"):
+                item_rows = _college_item_rows(r["courses"], r["tasks"])
+                if not item_rows:
+                    ui.label("Aucun item dans ce collège.").classes("cg-item-meta")
+                for item in item_rows:
+                    course = item["course"]
+                    task = item["task"]
+                    with ui.element("div").classes("cg-item") as item_el:
+                        number = getattr(course, "item_number", None) or "—"
+                        ui.label(f"Item {number} · {course.title}").classes("cg-item-title")
+                        if task is not None:
+                            ui.button(
+                                "Valider", icon="check",
+                                on_click=lambda t=task, el=item_el: _open_feedback(t, el),
+                            ).props("unelevated dense size=sm color=positive")
+                        else:
+                            ui.label("aucune révision prévue").classes("cg-item-meta")
+
+    async def _validate(task, _card=None, activity_types=None, duration_minutes=None,
+                        confidence=None, difficulty=None, qcm_result=None,
+                        weak_category=None, weak_detail=None):
+        complete_review(
+            task,
+            activity_types=activity_types,
+            duration_minutes=duration_minutes,
+            confidence=confidence,
+            difficulty=difficulty,
+            qcm_result=qcm_result,
+            weak_category=weak_category,
+            weak_detail=weak_detail,
+        )
+        ui.notify(f"✓ Validé : {task.course_title}", type="positive")
+        _render()
+
+    def _open_feedback(task, card) -> None:
+        from frontend.pages.dashboard._dialogs import open_session_feedback_dialog
+        open_session_feedback_dialog(task, card, _validate)
+
+    def _toggle_expand(name: str) -> None:
+        if name in expanded:
+            expanded.remove(name)
+        else:
+            expanded.add(name)
+        _render()
 
     def _draw_list(rows: list[dict]) -> None:
         list_col.clear()

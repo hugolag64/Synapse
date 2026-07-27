@@ -32,6 +32,7 @@ _CSS = """
 .str-due-dot { width:6px; height:6px; border-radius:50%; flex:0 0 6px; }
 """
 _injected = {"done": False}
+SINGLE_CLICK_DELAY = 0.24
 
 
 def _ring_glyph(score) -> str:
@@ -99,10 +100,23 @@ def study_task_row(task, *, selected: bool = False, on_select=None,
         cls += " dimmed"
 
     row = ui.element("div").classes(cls)
+    pending_click = {"timer": None}
     if on_select is not None:
-        row.on("click", lambda t=task: on_select(t))
+        def _single_click(t=task):
+            pending_click["timer"] = ui.timer(
+                SINGLE_CLICK_DELAY,
+                lambda: on_select(t),
+                once=True,
+            )
+        row.on("click", _single_click)
     if on_double_click is not None:
-        row.on("dblclick", lambda t=task: on_double_click(t))
+        def _double_click(t=task):
+            timer = pending_click.get("timer")
+            if timer is not None:
+                timer.cancel()
+                pending_click["timer"] = None
+            on_double_click(t)
+        row.on("dblclick", _double_click)
 
     college = (task.college or [""])[0] if task.college else ""
     due_color, due_label = due_info(task)

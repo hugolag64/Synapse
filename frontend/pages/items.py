@@ -224,13 +224,13 @@ def items_page(request: Request) -> None:
             with ui.column().classes("gap-0"):
                 ui.label("Items").classes("it-title")
                 ui.label("Tous les items médicaux · cliquez pour ouvrir le détail").classes("it-subtitle")
-            from frontend.components.command_palette import open_command_palette
+            from frontend.components.item_search_palette import open_item_search_palette
             search = ui.element("div").classes("it-search")
             with search:
                 ui.label("⌕")
                 ui.label("Filtrer")
-                ui.html("<kbd>⌘K</kbd>")
-            search.on("click", open_command_palette)
+                ui.html("<kbd>Ctrl+P</kbd>")
+            search.on("click", open_item_search_palette)
 
     def _select(mode: str) -> None:
         filt["mode"] = mode
@@ -347,3 +347,6 @@ def items_page(request: Request) -> None:
         _draw_list(_all_rows["value"])
 
     _render()
+
+    from frontend.keybindings import register_item_search_keybinding
+    register_item_search_keybinding(open_item_search_palette)

@@ -62,3 +62,12 @@ def register_keybindings() -> None:
         on_key=_on_key,
         ignore=["input", "select", "textarea"],
     )
+
+
+def register_item_search_keybinding(open_palette) -> None:
+    """Enregistre Ctrl+P pour une page Items sans modifier les raccourcis globaux."""
+    def _on_key(e) -> None:
+        if e.action.keydown and e.modifiers.ctrl and e.key.name.lower() == "p":
+            open_palette()
+
+    ui.keyboard(on_key=_on_key, ignore=["input", "select", "textarea"])

@@ -1,6 +1,21 @@
 """Tests du modèle OIC canonique partagé entre les alias collège."""
 
+import pytest
+
 from backend.core.lisa import item_service
+
+
+@pytest.fixture(autouse=True)
+def isolated_db(tmp_path, monkeypatch):
+    from backend.core.reviews import local_store
+
+    monkeypatch.setattr(local_store, "DB_PATH", tmp_path / "oic.db")
+    monkeypatch.setattr(local_store, "_DB", None)
+    local_store.init_db()
+    yield
+    if local_store._DB is not None:
+        local_store._DB.close()
+    monkeypatch.setattr(local_store, "_DB", None)
 
 
 def test_merges_alias_rows_by_oic_code_and_keeps_strongest_state():
@@ -90,3 +105,29 @@ def test_refresh_reconciliation_keeps_existing_identity_and_state():
     assert result[0]["id"] == 17
     assert result[0]["mastered"] == 1
     assert result[0]["oic_level"] == 3
+
+
+def test_refresh_keeps_attempts_for_existing_oic_code():
+    from backend.core.reviews import local_store
+
+    oic = {
+        "oic_code": "OIC-75-01-A",
+        "intitule": "Initial",
+        "rang": "A",
+        "ordre": 1,
+    }
+    local_store.upsert_lisa_oic("psy", [oic])
+    row = local_store.get_lisa_oic("psy")[0]
+    local_store.update_oic_level(row["id"], 3)
+    local_store.save_oic_attempt(row["id"], 85, "[]")
+
+    local_store.upsert_lisa_oic(
+        "psy",
+        [{**oic, "intitule": "Updated"}],
+    )
+
+    refreshed = local_store.get_lisa_oic("psy")[0]
+    assert refreshed["id"] == row["id"]
+    assert refreshed["mastered"] == 1
+    assert refreshed["oic_level"] == 3
+    assert local_store.get_oic_attempts(refreshed["id"])[0]["session_score"] == 85

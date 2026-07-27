@@ -2618,6 +2618,8 @@ def _migrate_oic_anythingllm_validation() -> None:
         }
         if "oic_level" not in existing:
             con.execute("ALTER TABLE lisa_oic ADD COLUMN oic_level INTEGER NOT NULL DEFAULT 0")
+        if "active" not in existing:
+            con.execute("ALTER TABLE lisa_oic ADD COLUMN active INTEGER NOT NULL DEFAULT 1")
 
         table_exists = con.execute(
             "SELECT 1 FROM sqlite_master WHERE type='table' AND name='oic_attempts'"
@@ -2704,54 +2706,56 @@ def get_lisa_oic(course_id: str) -> list | None:
         if cached is None:
             return None
         return con.execute(
-            "SELECT * FROM lisa_oic WHERE course_id = ? ORDER BY rang, ordre",
+            "SELECT * FROM lisa_oic WHERE course_id = ? AND active = 1 ORDER BY rang, ordre",
             (course_id,),
         ).fetchall()
 
 
 def upsert_lisa_oic(course_id: str, oics: list[dict]) -> None:
     """
-    Remplace les OIC d'un cours dans SQLite.
-    Préserve mastered=1 pour les oic_code qui existent encore.
+    Réconcilie les OIC d'un cours dans SQLite.
+    Préserve l'identité, mastered, le niveau et les tentatives des codes existants.
     Marque le cours comme fetché même si oics=[].
     """
     today = datetime.date.today().isoformat()
     with _conn() as con:
-        # Sauvegarder les mastered et oic_level actuels
-        # (note : les oic_attempts liés sont supprimés en cascade lors du DELETE
-        #  ci-dessous — c'est voulu, cf. migration _migrate_oic_anythingllm_validation.
-        #  Ne pas retirer ON DELETE CASCADE sans repenser ce flux.)
+        # Désactiver les codes absents de la réponse sans supprimer leurs tentatives.
+        con.execute("UPDATE lisa_oic SET active = 0 WHERE course_id = ?", (course_id,))
         saved_state: dict[str, sqlite3.Row] = {
             row["oic_code"]: row
             for row in con.execute(
-                "SELECT oic_code, mastered, oic_level FROM lisa_oic WHERE course_id = ? AND oic_code IS NOT NULL",
+                "SELECT id, oic_code, mastered, oic_level FROM lisa_oic WHERE course_id = ? AND oic_code IS NOT NULL",
                 (course_id,),
             ).fetchall()
         }
-        # Supprimer les anciennes lignes
-        con.execute("DELETE FROM lisa_oic WHERE course_id = ?", (course_id,))
-        # Insérer les nouvelles
+        # Mettre à jour les codes existants ou insérer les nouveaux.
         for oic in oics:
             code = oic.get("oic_code") or ""
             prev = saved_state.get(code) if code else None
             mastered = prev["mastered"] if prev is not None else 0
             oic_level = prev["oic_level"] if prev is not None else 0
-            con.execute(
-                """INSERT INTO lisa_oic
-                   (course_id, oic_code, intitule, rang, rubrique, ordre, mastered, oic_level, fetched_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    course_id,
-                    code or None,
-                    oic.get("intitule", ""),
-                    oic.get("rang", "A"),
-                    oic.get("rubrique", ""),
-                    oic.get("ordre", 0),
-                    mastered,
-                    oic_level,
-                    today,
-                ),
-            )
+            if prev is not None:
+                con.execute(
+                    """UPDATE lisa_oic SET intitule = ?, rang = ?, rubrique = ?,
+                       ordre = ?, mastered = ?, oic_level = ?, fetched_at = ?, active = 1
+                       WHERE id = ?""",
+                    (
+                        oic.get("intitule", ""), oic.get("rang", "A"),
+                        oic.get("rubrique", ""), oic.get("ordre", 0),
+                        mastered, oic_level, today, prev["id"],
+                    ),
+                )
+            else:
+                con.execute(
+                    """INSERT INTO lisa_oic
+                       (course_id, oic_code, intitule, rang, rubrique, ordre, mastered, oic_level, fetched_at, active)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)""",
+                    (
+                        course_id, code or None, oic.get("intitule", ""),
+                        oic.get("rang", "A"), oic.get("rubrique", ""),
+                        oic.get("ordre", 0), mastered, oic_level, today,
+                    ),
+                )
         # Marquer comme fetché
         con.execute(
             "INSERT OR REPLACE INTO lisa_oic_cache (course_id, fetched_at) VALUES (?, ?)",

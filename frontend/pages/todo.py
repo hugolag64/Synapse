@@ -2,6 +2,7 @@ from nicegui import ui
 from backend.core.notion.service import notion_service
 from backend.core.google.calendar_service import calendar_service
 from backend.core.reviews import local_store
+from backend.core.reviews.validation import complete_review
 from backend.state.store import data_store
 from frontend.theme import frame
 from dataclasses import dataclass
@@ -208,30 +209,15 @@ def _render_plan_du_jour_block(container: ui.column) -> None:
             def _validate(t, card, activity_types=None, duration_minutes=None,
                           confidence=None, difficulty=None, qcm_result=None,
                           weak_category=None, weak_detail=None) -> None:
-                if t.review_type == "consolidation":
-                    local_store.mark_consolidation_done(
-                        course_id=t.course_id, context=t.context,
-                        theoretical_due_date=t.theoretical_due_date,
-                        course_title=t.course_title, item_number=t.item_number or "",
-                        confidence=confidence or 3, difficulty=difficulty,
-                    )
-                elif t.review_type == "lacune":
-                    weak_point_id = int(t.id.removeprefix("lacune_"))
-                    local_store.resolve_weak_point(weak_point_id)
-                else:
-                    local_store.mark_done(
-                        task_id=t.id, course_id=t.course_id, context=t.context,
-                        review_type=t.review_type, theoretical_due_date=t.theoretical_due_date,
-                        course_title=t.course_title, item_number=t.item_number or "",
-                        difficulty=difficulty, confidence=confidence,
-                    )
-                local_store.add_study_session(
-                    course_id=t.course_id, course_title=t.course_title,
-                    item_number=t.item_number or "", context=t.context,
-                    activity_types=activity_types or ["révision"],
-                    duration_minutes=duration_minutes, confidence=confidence,
-                    difficulty=difficulty, qcm_result=qcm_result,
-                    weak_category=weak_category, weak_detail=weak_detail,
+                complete_review(
+                    t,
+                    activity_types=activity_types,
+                    duration_minutes=duration_minutes,
+                    confidence=confidence,
+                    difficulty=difficulty,
+                    qcm_result=qcm_result,
+                    weak_category=weak_category,
+                    weak_detail=weak_detail,
                 )
                 ui.notify(f"✓ Fait : {t.course_title}", type="positive")
                 container.clear()

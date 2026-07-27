@@ -20,6 +20,7 @@ from backend.core.notion.service import notion_service
 from backend.core.reviews import local_store
 from backend.core.reviews.service import review_service
 from backend.core.reviews.models import ReviewTask
+from backend.core.reviews.validation import complete_review
 from backend.core.reviews.recommendation_service import (
     compute_daily_load, apply_daily_budget, get_next_action,
 )
@@ -143,26 +144,13 @@ async def render_today_cockpit() -> None:
                        confidence=None, difficulty=None, qcm_result=None,
                        weak_category=None, weak_detail=None) -> None:
         if task.review_type == "consolidation":
-            from backend.core.reviews.consolidation import complete_consolidation_task
-            complete_consolidation_task(
-                task, activity_types=activity_types, duration_minutes=duration_minutes,
-                confidence=confidence, difficulty=difficulty, qcm_result=qcm_result,
-                weak_category=weak_category, weak_detail=weak_detail,
-            )
+            complete_review(task, activity_types=activity_types, duration_minutes=duration_minutes,
+                            confidence=confidence, difficulty=difficulty, qcm_result=qcm_result,
+                            weak_category=weak_category, weak_detail=weak_detail)
         else:
-            local_store.mark_done(
-                task_id=task.id, course_id=task.course_id, context=task.context,
-                review_type=task.review_type, theoretical_due_date=task.theoretical_due_date,
-                course_title=task.course_title, item_number=task.item_number or "",
-                difficulty=difficulty, confidence=confidence,
-            )
-            local_store.add_study_session(
-                course_id=task.course_id, course_title=task.course_title,
-                item_number=task.item_number or "", context=task.context,
-                activity_types=activity_types or ["révision"], duration_minutes=duration_minutes,
-                confidence=confidence, difficulty=difficulty, qcm_result=qcm_result,
-                weak_category=weak_category, weak_detail=weak_detail,
-            )
+            complete_review(task, activity_types=activity_types, duration_minutes=duration_minutes,
+                            confidence=confidence, difficulty=difficulty, qcm_result=qcm_result,
+                            weak_category=weak_category, weak_detail=weak_detail)
         state.done_today_count += 1
         if sel["task"] and sel["task"].id == task.id:
             sel["task"] = None

@@ -28,6 +28,7 @@ from backend.core.google.calendar_service import calendar_service
 from backend.core.reviews import consolidation
 from backend.core.reviews.local_store import postpone as postpone_task
 from backend.core.reviews.models import ReviewTask
+from backend.core.reviews.validation import complete_review
 from frontend.pages.dashboard._dialogs import open_session_feedback_dialog
 from frontend.pages.dashboard._reviews import render_review_row
 from backend.state.store import data_store
@@ -498,7 +499,7 @@ async def planning_page():
                         confidence=None, difficulty=None, qcm_result=None,
                         weak_category=None, weak_detail=None,
                     ) -> None:
-                        consolidation.complete_consolidation_task(
+                        complete_review(
                             t,
                             activity_types=activity_types, duration_minutes=duration_minutes,
                             confidence=confidence, difficulty=difficulty, qcm_result=qcm_result,

@@ -24,6 +24,7 @@ import datetime
 from nicegui import ui
 
 from backend.core.reviews import local_store
+from backend.core.reviews.validation import complete_review
 from backend.core.reviews.service import review_service
 from backend.core.notion.service import notion_service
 from backend.state.store import data_store
@@ -98,18 +99,15 @@ async def render_revisions_cockpit() -> None:
     async def _on_done(task, card=None, activity_types=None, duration_minutes=None,
                         confidence=None, difficulty=None, qcm_result=None,
                         weak_category=None, weak_detail=None) -> None:
-        local_store.mark_done(
-            task_id=task.id, course_id=task.course_id, context=task.context,
-            review_type=task.review_type, theoretical_due_date=task.theoretical_due_date,
-            course_title=task.course_title, item_number=task.item_number or "",
-            difficulty=difficulty, confidence=confidence,
-        )
-        local_store.add_study_session(
-            course_id=task.course_id, course_title=task.course_title,
-            item_number=task.item_number or "", context=task.context,
-            activity_types=activity_types or ["révision"], duration_minutes=duration_minutes,
-            confidence=confidence, difficulty=difficulty, qcm_result=qcm_result,
-            weak_category=weak_category, weak_detail=weak_detail,
+        complete_review(
+            task,
+            activity_types=activity_types,
+            duration_minutes=duration_minutes,
+            confidence=confidence,
+            difficulty=difficulty,
+            qcm_result=qcm_result,
+            weak_category=weak_category,
+            weak_detail=weak_detail,
         )
         ui.notify(f"✓ Révisé : {task.course_title}", type="positive")
         _load_and_render()

@@ -155,6 +155,11 @@ async def _run_vault_scan(vault_path_input) -> None:
 @ui.page('/settings')
 @frame('Paramètres')
 def settings_page():
+    # ── Refonte : liste de connexions + apparence cockpit (feature-flag) ──────
+    if data_store.preferences.get("ui_mode", "cockpit") == "cockpit":
+        from frontend.pages.settings_cockpit import render_settings_cockpit
+        render_settings_cockpit()
+        return
 
     def _section_header(label: str) -> None:
         with ui.row().classes("items-center gap-3 mt-8 mb-3"):

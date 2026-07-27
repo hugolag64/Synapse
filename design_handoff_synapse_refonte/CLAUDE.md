@@ -3,9 +3,9 @@
 Instructions persistantes pour l'implémentation de la refonte. **Lis ce fichier au début de chaque session.**
 
 > ## ▶ REPRISE — commencer ici
-> **Fait : étapes 0 → 14** (Fondations · App shell · Composants · Aujourd'hui · Détail item · Révisions · Planning · Collèges · Semestres · Items · QCM · Lacunes · Statistiques · Revue hebdo · Externat). Commits `b9d169a`, `7cec4ce`, `0f62b5a` sur `master`.
+> **Fait : étapes 0 → 15** (Fondations · App shell · Composants · Aujourd'hui · Détail item · Révisions · Planning · Collèges · Semestres · Items · QCM · Lacunes · Statistiques · Revue hebdo · Externat · Paramètres). Commits `b9d169a`, `7cec4ce`, `0f62b5a` sur `master`.
 > **Le cockpit est désormais le mode par défaut** (`ui_mode` = `cockpit`) ; « ◐ Vue classic » en bas de sidebar pour repasser en classic.
-> **Prochaine session = ÉTAPE 15 · Paramètres** (`pages/settings.py`) — connexions + apparence.
+> **Prochaine session = ÉTAPE 16 · Mode focus** (`focus_bar`, `q-dialog` maximized) — tâche + minuteur + ressource + noter une lacune.
 > Rappels avant de coder : relire le README (section de l'écran) + comparer à la capture correspondante ; suivre les Règles d'or (Quasar d'abord, tokens, grammaire de statut, **`ui.add_head_html` au build synchrone uniquement**, **accès aux lignes SQLite via un helper tolérant — `local_store` renvoie des `sqlite3.Row`, pas des `dict`**, diff avant d'écrire, 1 écran/session, commit atomique) ; brancher sur le flag `ui_mode` sans toucher au chemin classic.
 > Pour lancer/vérifier : `SYNAPSE_ENV=prod ./.venv/Scripts/python.exe main.py` (port 8082).
 
@@ -47,7 +47,7 @@ Suivre cet ordre — les fondations d'abord (tout en dépend).
 - [x] **12. Statistiques** (`pages/stats.py` early-return → `pages/stats_cockpit.py`, nouveau) — bandeau temps/révisions/maîtrise + toggle 7j/30j/Tout + temps par collège + timeline d'activité. `bilan.py` pas utilisé ici (voir Journal — probablement pour Revue hebdo, session 13).
 - [x] **13. Revue hebdo** (`pages/revue.py`, nouveau — aucun équivalent classic) — bandeau + consolidé/régression (scores avant/après) + focus semaine prochaine (top 3 catégories de lacunes actives). Source réelle : `backend/core/analytics/weekly_report.py`, jamais routé avant cette session.
 - [x] **14. Externat** (`pages/externat.py` early-return → `pages/externat_cockpit.py`, nouveau) — cartes de stage (statut, dates, items rattachés). Lecture seule ; gestion complète (créer/éditer/supprimer) reste classic-only.
-- [ ] **15. Paramètres** (`pages/settings.py`) — connexions + apparence.
+- [x] **15. Paramètres** (`pages/settings.py` early-return → `pages/settings_cockpit.py`, nouveau) — liste de connexions (statuts synchrones, pas de ping live) + bascule apparence. Le reste (Pomodoro, durées, examen, LiSA, AnythingLLM…) reste classic-only.
 - [ ] **16. Mode focus** (`focus_bar`, `q-dialog` maximized) — tâche + minuteur + ressource + noter une lacune.
 - [ ] **17. Responsive** — 3 col ≥1200px ; panneau → drawer 900–1200px ; sidebar icônes 768–900px ; bottom nav <768px.
 - [ ] **18. Passe finale** — vérifier chaque critère d'acceptation du README, contraste AA, cohérence clair/sombre.
@@ -153,3 +153,9 @@ Command palette (fuzzy + ⌘K + clavier) = custom. Planning dense = grille CSS c
   - **Écran en lecture seule** : le README §12 ne décrit qu'une liste de cartes, aucune action. La gestion complète (créer/éditer/supprimer un stage, onglets cours/lacunes/QCM du stage) reste accessible via « Vue classic ».
   - **Vérifié avec une donnée réelle temporaire** (aucun stage n'existe actuellement pour cet utilisateur) : stage de test ajouté via `externat_store.add_stage(...)` en Python, rendu confirmé au navigateur (statut « En cours » en ambre, dates formatées, 6 premiers items + « +17 »), puis **supprimé immédiatement** (`delete_stage`) — état vide reconfirmé après coup. Aucune donnée réelle de l'utilisateur touchée.
   - **Testé au navigateur** : état vide honnête (« Aucun stage enregistré »), rendu de carte complet avec données de test (voir ci-dessus), couleur de statut confirmée via styles calculés, zéro exception serveur.
+- **2026-07-27 — Étape 15 : Paramètres.** Nouveau : `frontend/pages/settings_cockpit.py`. Modifié : `settings.py` (early-return juste après `def settings_page():`).
+  - **Pas de capture pour cet écran** (absente de `screenshots/`) — mise en page déduite du seul texte README §13.
+  - **Statuts de connexion = vérifications synchrones bon marché, pas de ping réseau live.** `_check_notion` du classic (`frontend/pages/health.py`) interroge l'API Notion à chaque affichage — pas adapté à un écran cockpit censé s'afficher instantanément comme tous les autres. Notion : `bool(settings.notion.token)` (champ Pydantic obligatoire — l'app ne démarre pas sans, donc toujours vrai en pratique, pas un vrai indicateur de santé live). Obsidian/Google Calendar : mêmes vérifications que `_check_obsidian`/`_check_google_calendar` (chemin vault configuré ; `credentials.json` + `token.json` présents), rejouées ici plutôt que d'importer ces fonctions couplées au rendu Tailwind du classic.
+  - **EDNpro/Hypocampus toujours ambre « Saisie manuelle »** — pas un statut dérivé, contrainte connue du projet (pas d'API, cf. mémoire utilisateur).
+  - **Écran très réduit par rapport au classic** : Pomodoro, durées d'activité, objectif quotidien, charge max, mode examen, LiSA/UNESS, AnythingLLM, agendas Calendar additionnels, correspondances Obsidian, import PDF, santé du système — tout reste classic-only (« Vue classic »), le README §13 ne décrivant qu'une liste de connexions + bascule d'apparence.
+  - **Testé au navigateur** : 3 connexions réelles toutes « Connecté » (vert) — cohérent avec les vérifications faites tout au long de cette session (Notion/Obsidian/Calendar fonctionnels) — EDNpro/Hypocampus ambre, bascule sombre testée dans les deux sens (clic → `body--dark` appliqué → reclique → retour à l'état initial, aucun résidu laissé), zéro exception serveur.

@@ -770,6 +770,12 @@ def _render_semaine_tab() -> None:
 
 def stats_page() -> None:
     with frame("Ma Progression"):
+        # ── Refonte : bandeau + temps/collège + timeline cockpit (feature-flag) ─
+        if data_store.preferences.get("ui_mode", "cockpit") == "cockpit":
+            from frontend.pages.stats_cockpit import render_stats_cockpit
+            render_stats_cockpit()
+            return
+
         state = SimpleNamespace(days=7)
 
         with ui.element("div").classes("synapse-hero w-full mb-4"):

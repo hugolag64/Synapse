@@ -42,9 +42,12 @@ _MONTHS_FR = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet",
               "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
 
 _CSS = """
-.cockpit-today { display:flex; gap:0; align-items:flex-start; width:100%; }
+.cockpit-today { display:flex; gap:0; align-items:stretch; width:100%; }
 .ct-center { flex:1 1 auto; min-width:0; max-width:900px; }
-.ct-panel { flex:0 0 296px; width:296px; align-self:stretch; border-left:1px solid var(--border);
+.ct-resizer { flex:0 0 8px; width:8px; cursor:col-resize; position:relative; }
+.ct-resizer::after { content:""; position:absolute; top:0; bottom:0; left:3px; width:1px; background:var(--border); }
+.ct-resizer:hover::after { width:2px; left:2px; background:var(--accent); }
+.ct-panel { flex:0 0 var(--ct-panel-width,296px); width:var(--ct-panel-width,296px); align-self:stretch; border-left:0;
   padding:8px 8px 16px 20px; margin-left:24px; min-height:calc(100vh - 60px); }
 .ct-topbar { display:flex; align-items:center; gap:12px; height:46px; }
 .ct-title { font-size:15px; font-weight:600; color:var(--text); }
@@ -88,6 +91,12 @@ _CSS = """
 """
 
 
+def _clamp_panel_width(value: float, viewport_width: float) -> int:
+    """Borne la largeur du panneau contexte pour préserver la file centrale."""
+    max_width = max(220, min(520, int(viewport_width) - 360))
+    return max(220, min(max_width, int(value)))
+
+
 async def render_today_cockpit() -> None:
     logger.info("ENTERING DASHBOARD PAGE (cockpit today)")
     ui.add_head_html(f"<style>{_CSS}</style>", shared=True)
@@ -96,6 +105,39 @@ async def render_today_cockpit() -> None:
     _row_styles()
     _panel_styles()
     _mastery_styles()
+    ui.run_javascript(r"""
+    (() => {
+      const key = 'synapse.dashboard.contextWidth';
+      const attach = () => {
+        const layout = document.querySelector('.cockpit-today');
+        const handle = layout?.querySelector('.ct-resizer');
+        if (!layout || !handle || handle.dataset.ready) return;
+        handle.dataset.ready = '1';
+        const clamp = value => Math.max(220, Math.min(Math.min(520, innerWidth - 360), value));
+        const saved = Number(localStorage.getItem(key));
+        if (saved) layout.style.setProperty('--ct-panel-width', `${clamp(saved)}px`);
+        handle.addEventListener('pointerdown', event => {
+          event.preventDefault();
+          handle.setPointerCapture(event.pointerId);
+          const move = moveEvent => {
+            const width = clamp(innerWidth - moveEvent.clientX - 24);
+            layout.style.setProperty('--ct-panel-width', `${width}px`);
+            localStorage.setItem(key, String(width));
+          };
+          const stop = () => {
+            handle.removeEventListener('pointermove', move);
+            handle.removeEventListener('pointerup', stop);
+            handle.removeEventListener('pointercancel', stop);
+          };
+          handle.addEventListener('pointermove', move);
+          handle.addEventListener('pointerup', stop);
+          handle.addEventListener('pointercancel', stop);
+        });
+      };
+      attach();
+      new MutationObserver(attach).observe(document.body, {childList:true, subtree:true});
+    })();
+    """)
 
     state = DashboardState()
     sel: dict = {"task": None}
@@ -210,6 +252,7 @@ async def render_today_cockpit() -> None:
     # ── Layout : conteneurs ───────────────────────────────────────────────────
     with ui.element("div").classes("cockpit-today"):
         center = ui.element("div").classes("ct-center")
+        resizer = ui.element("div").classes("ct-resizer").props('aria-label="Redimensionner le panneau contexte"')
         panel = ui.element("aside").classes("ct-panel")
 
     # ── Rendu ─────────────────────────────────────────────────────────────────

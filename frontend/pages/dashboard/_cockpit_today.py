@@ -103,6 +103,37 @@ def _clamp_panel_width(value: float, viewport_width: float) -> int:
     return max(220, min(max_width, int(value)))
 
 
+_RESIZER_JS = r"""
+(() => {
+  const key = 'synapse.dashboard.contextWidth';
+  const layout = document.querySelector('.cockpit-today');
+  const handle = layout?.querySelector('.ct-resizer');
+  if (!layout || !handle || handle.dataset.ready) return;
+  handle.dataset.ready = '1';
+  const clamp = value => Math.max(220, Math.min(Math.min(520, innerWidth - 360), value));
+  const saved = Number(localStorage.getItem(key));
+  if (saved) layout.style.setProperty('--ct-panel-width', `${clamp(saved)}px`);
+  handle.addEventListener('pointerdown', event => {
+    event.preventDefault();
+    handle.setPointerCapture(event.pointerId);
+    const move = moveEvent => {
+      const width = clamp(innerWidth - moveEvent.clientX - 24);
+      layout.style.setProperty('--ct-panel-width', `${width}px`);
+      localStorage.setItem(key, String(width));
+    };
+    const stop = () => {
+      handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', stop);
+      handle.removeEventListener('pointercancel', stop);
+    };
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('pointerup', stop);
+    handle.addEventListener('pointercancel', stop);
+  });
+})();
+"""
+
+
 async def render_today_cockpit() -> None:
     logger.info("ENTERING DASHBOARD PAGE (cockpit today)")
     ui.add_head_html(f"<style>{_CSS}</style>", shared=True)
@@ -111,39 +142,6 @@ async def render_today_cockpit() -> None:
     _row_styles()
     _panel_styles()
     _mastery_styles()
-    ui.run_javascript(r"""
-    (() => {
-      const key = 'synapse.dashboard.contextWidth';
-      const attach = () => {
-        const layout = document.querySelector('.cockpit-today');
-        const handle = layout?.querySelector('.ct-resizer');
-        if (!layout || !handle || handle.dataset.ready) return;
-        handle.dataset.ready = '1';
-        const clamp = value => Math.max(220, Math.min(Math.min(520, innerWidth - 360), value));
-        const saved = Number(localStorage.getItem(key));
-        if (saved) layout.style.setProperty('--ct-panel-width', `${clamp(saved)}px`);
-        handle.addEventListener('pointerdown', event => {
-          event.preventDefault();
-          handle.setPointerCapture(event.pointerId);
-          const move = moveEvent => {
-            const width = clamp(innerWidth - moveEvent.clientX - 24);
-            layout.style.setProperty('--ct-panel-width', `${width}px`);
-            localStorage.setItem(key, String(width));
-          };
-          const stop = () => {
-            handle.removeEventListener('pointermove', move);
-            handle.removeEventListener('pointerup', stop);
-            handle.removeEventListener('pointercancel', stop);
-          };
-          handle.addEventListener('pointermove', move);
-          handle.addEventListener('pointerup', stop);
-          handle.addEventListener('pointercancel', stop);
-        });
-      };
-      attach();
-      new MutationObserver(attach).observe(document.body, {childList:true, subtree:true});
-    })();
-    """)
 
     state = DashboardState()
     sel: dict = {"task": None}
@@ -260,6 +258,7 @@ async def render_today_cockpit() -> None:
         center = ui.element("div").classes("ct-center")
         resizer = ui.element("div").classes("ct-resizer").props('aria-label="Redimensionner le panneau contexte"')
         panel = ui.element("aside").classes("ct-panel")
+    ui.timer(0.1, lambda: ui.run_javascript(_RESIZER_JS), once=True)
 
     # ── Rendu ─────────────────────────────────────────────────────────────────
     def _render_summary(load: dict, crit: int, total: int) -> None:

@@ -35,3 +35,4 @@ synapse_edn_test/
 .venv_backup*/
 
 .superpowers/
+.worktrees/

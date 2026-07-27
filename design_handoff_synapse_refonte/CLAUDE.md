@@ -3,9 +3,9 @@
 Instructions persistantes pour l'implémentation de la refonte. **Lis ce fichier au début de chaque session.**
 
 > ## ▶ REPRISE — commencer ici
-> **Fait : étapes 0 → 10** (Fondations · App shell · Composants · Aujourd'hui · Détail item · Révisions · Planning · Collèges · Semestres · Items · QCM). Commits `b9d169a`, `7cec4ce`, `0f62b5a` sur `master`.
+> **Fait : étapes 0 → 11** (Fondations · App shell · Composants · Aujourd'hui · Détail item · Révisions · Planning · Collèges · Semestres · Items · QCM · Lacunes). Commits `b9d169a`, `7cec4ce`, `0f62b5a` sur `master`.
 > **Le cockpit est désormais le mode par défaut** (`ui_mode` = `cockpit`) ; « ◐ Vue classic » en bas de sidebar pour repasser en classic.
-> **Prochaine session = ÉTAPE 11 · Lacunes** (`pages/weak_points.py`) — liste par statut + sync Obsidian + backlink vivant.
+> **Prochaine session = ÉTAPE 12 · Statistiques** (`pages/stats.py` · `bilan.py`) — métriques + temps/collège + activité.
 > Rappels avant de coder : relire le README (section de l'écran) + comparer à la capture correspondante ; suivre les Règles d'or (Quasar d'abord, tokens, grammaire de statut, **`ui.add_head_html` au build synchrone uniquement**, **accès aux lignes SQLite via un helper tolérant — `local_store` renvoie des `sqlite3.Row`, pas des `dict`**, diff avant d'écrire, 1 écran/session, commit atomique) ; brancher sur le flag `ui_mode` sans toucher au chemin classic.
 > Pour lancer/vérifier : `SYNAPSE_ENV=prod ./.venv/Scripts/python.exe main.py` (port 8082).
 
@@ -43,7 +43,7 @@ Suivre cet ordre — les fondations d'abord (tout en dépend).
 - [x] **8. Semestres** (`pages/semestres.py` early-return → `pages/semestres_cockpit.py`, nouveau) — une carte par semestre, titre « Semestre N — UE1 · UE2 · … » en toutes lettres, % (couleur santé), barre, nombre d'items.
 - [x] **9. Items** (`pages/items.py`, nouveau — pas d'équivalent classic) — liste transverse filtrable ; en vue filtrée collège (depuis « retard » de Collèges), colonne Collège → « Dernière révision ». Route `/items` câblée dans la sidebar (n'était plus « bientôt »).
 - [x] **10. QCM** (`pages/qcm.py` early-return → `pages/qcm_cockpit.py`, nouveau) — bandeau moyenne/taux de réussite/à retravailler + liste par cours (score, barre santé, badge). Réutilise `_compute_groups`/`_open_add_dialog` du classic.
-- [ ] **11. Lacunes** (`pages/weak_points.py`) — liste par statut + sync Obsidian + backlink vivant.
+- [x] **11. Lacunes** (`pages/weak_points.py` early-return → `pages/weak_points_cockpit.py`, nouveau) — liste de cartes par statut, ↻ Synchroniser Obsidian + + Ajouter (dialog classic réutilisé). Pas de kanban/drag ici (hors périmètre README §9) ; filtre `?item=` non branché côté cockpit (voir Journal).
 - [ ] **12. Statistiques** (`pages/stats.py` · `bilan.py`) — métriques + temps/collège + activité.
 - [ ] **13. Revue hebdo** (`pages/revue.py`, nouveau) — consolidé / régression + focus semaine prochaine.
 - [ ] **14. Externat** (`pages/externat.py`) — stages + items rattachés.
@@ -129,3 +129,9 @@ Command palette (fuzzy + ⌘K + clavier) = custom. Planning dense = grille CSS c
   - **Écart assumé — périmètre réduit au rollup simple du README §8.** Le classic a des couches supplémentaires (stats par item EDN groupées par collège, filtres période/plateforme, wizard de proposition de lacune, wizard de session) non décrites dans la spec cockpit pour cet écran ; restent accessibles via « Vue classic ».
   - **Badge « à retravailler » sur `avg_score`** (le score affiché sur la ligne), pas `last_score` (métrique différente déjà utilisée par le bandeau, non touchée).
   - **Testé au navigateur** : rendu correct avec 0 session réelle (état vide propre, cohérent avec le reste de la session — aucune donnée QCM enregistrée pour cet utilisateur), bouton « + Saisir un résultat » ouvre bien le dialog classic complet (plateforme, type, sélecteur de cours…), zéro exception serveur liée à la page (une erreur asyncio `ConnectionResetError` Windows/Proactor sans rapport est apparue indépendamment de la navigation, bruit habituel de la stack, pas un bug introduit ici).
+- **2026-07-27 — Étape 11 : Lacunes.** Nouveau : `frontend/pages/weak_points_cockpit.py`. Modifié : `weak_points.py` (early-return juste après `logger.info("ENTERING WEAK POINTS PAGE")`, avant le `try:` existant).
+  - **Grammaire de la ligne de statut déduite de la seule capture** (le README §9 ne détaille pas la composition) : « critique » (sévérité ≥4, prioritaire sur le statut brut sauf résolue) · statut brut sinon · « récurrente Nx » si statut='récurrente' · « Nx » si récurrence ≥2 sur un autre statut · date de résolution si résolue — une seule chaîne en casse phrase, reconstituée en comparant les 4 lignes de la capture (« Critique · récurrente 3× », « Active », « À revoir · 2× », « Résolue · 02 juin »).
+  - **Réutilisation** : `open_add_dialog` du classic tel quel pour « + Ajouter » ; `weak_points_sync_service.sync()` appelé directement (le handler de sync du classic est une closure couplée aux éléments UI de `weak_points_page`, pas réutilisable telle quelle — 3 lignes réimplémentées plutôt qu'un import).
+  - **Écart assumé — pas de kanban/drag.** Le README §9 ne décrit qu'une liste de cartes ; le classic garde son kanban 4 colonnes + SortableJS accessible via « Vue classic ».
+  - **Écart assumé — filtre `?item=` non branché côté cockpit.** `weak_points_page(item_filter=...)` existe pour le classic (lien `/lacunes?item=X` depuis `qcm.py` classic uniquement) mais aucun écran cockpit ne produit ce lien pour l'instant ; à revoir si un futur écran cockpit en a besoin.
+  - **Testé au navigateur** : rendu avec la seule lacune réelle de cet utilisateur (« Point faible : traitement », active, collège/id absents = données réelles incomplètes), couleur du point conforme (ambre = active), dialog « + Ajouter » ouvre le formulaire classic complet, clic « Synchroniser Obsidian » déclenche un vrai sync (671 fichiers scannés, terminé en ~9s côté serveur, « Aucune modification », état de chargement du bouton nettoyé correctement), zéro exception serveur.

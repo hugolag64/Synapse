@@ -23,6 +23,7 @@ logger.add(
 from frontend.pages.semestres import semestres_page
 from frontend.pages.colleges import colleges_page
 from frontend.pages.items import items_page
+from frontend.pages.revue import revue_page
 from frontend.pages.todo import todo_page
 from frontend.pages.dashboard import dashboard_page
 from frontend.pages.settings import settings_page

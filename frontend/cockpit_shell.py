@@ -30,7 +30,7 @@ _NAV_GROUPS = [
         ("⚑", "Lacunes",   "/lacunes",   ("dot", "warning")),
     ]),
     ("Analyse", [
-        ("◈", "Revue hebdo",   None,        None),        # nouveau — session 13
+        ("◈", "Revue hebdo",   "/revue",    None),
         ("◍", "Statistiques",  "/stats",    None),
         ("◇", "Externat",      "/externat", None),
     ]),

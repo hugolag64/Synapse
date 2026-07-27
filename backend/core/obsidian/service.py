@@ -130,27 +130,40 @@ class ObsidianService:
           3. Glob fallback {item} - *.md (note créée manuellement, nom légèrement différent)
         """
         # 1. Propriété Notion déjà remplie → note confirmée sans toucher le disque
-        if getattr(course, "obsidian_uri", None):
-            return True
+        return self.find_course_note(course) is not None
 
-        # 2 & 3. Vérification disque
-        path = self.get_course_note_path(course)
-        if path is None:
-            return False
-        if path.exists():
-            return True
+    def _find_note_in_vault(self, course) -> Optional[Path]:
+        """Cherche la note canonique, y compris dans un autre collège Obsidian."""
+        vault = self._vault_path()
+        if vault is None:
+            return None
+        root = vault / "01 - Cours EDN"
+        if not root.exists():
+            return None
 
-        # Glob : note avec item number (titre légèrement différent)
-        item = getattr(course, "display_item_number", "") or ""
-        if item and path.parent.exists():
-            return bool(list(path.parent.glob(f"{item} - *.md")))
-
-        # Glob : note sans item number (titre seul, comme dans ce vault)
+        item = str(getattr(course, "display_item_number", "") or "").strip()
         title = self.sanitize_filename(course.title or "")
-        if title and path.parent.exists():
-            return bool(list(path.parent.glob(f"{title}*.md")))
+        candidates: list[Path] = []
+        if item:
+            candidates.extend(root.glob(f"*/Cours/{item} - *.md"))
+        if title:
+            candidates.extend(root.glob(f"*/Cours/{title}*.md"))
 
-        return False
+        seen: set[Path] = set()
+        valid: list[Path] = []
+        for candidate in candidates:
+            if candidate in seen:
+                continue
+            seen.add(candidate)
+            frontmatter = self.read_frontmatter(candidate)
+            fm_item = str(frontmatter.get("item", "") or "").strip()
+            if item and fm_item and fm_item != item:
+                continue
+            valid.append(candidate)
+
+        # Un item canonique ne doit pas être attribué arbitrairement si
+        # plusieurs notes concurrentes portent le même numéro.
+        return valid[0] if len(valid) == 1 else None
 
     def find_course_note(self, course) -> Optional[Path]:
         """
@@ -171,21 +184,23 @@ class ObsidianService:
         title = self.sanitize_filename(course.title or "")
         if title and path.parent.exists():
             matches = list(path.parent.glob(f"{title}*.md"))
-            return matches[0] if matches else None
-        return None
+            if matches:
+                return matches[0]
+        return self._find_note_in_vault(course)
 
     def get_note_info(self, course) -> Optional[ObsidianNote]:
         """Retourne un ObsidianNote décrivant l'état de la note."""
-        path = self.get_course_note_path(course)
-        if path is None:
+        canonical_path = self.get_course_note_path(course)
+        if canonical_path is None:
             return None
+        path = self.find_course_note(course)
         return ObsidianNote(
             course_id=course.id,
             college=(course.college[0] if course.college else ""),
             item_number=getattr(course, "display_item_number", "") or "",
             title=course.title or "",
-            path=path,
-            exists=path.exists(),
+            path=path or canonical_path,
+            exists=path is not None,
         )
 
     # ── URI Obsidian ──────────────────────────────────────────────────────────

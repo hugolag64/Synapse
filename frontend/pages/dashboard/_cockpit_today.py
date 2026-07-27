@@ -88,6 +88,12 @@ _CSS = """
 .ct-qh-due { flex:0 0 74px; }
 .ct-empty { padding:24px 10px; color:var(--text-dim); font-size:13px; }
 .ct-panel-empty { color:var(--text-dim); font-size:12.5px; padding:20px 4px; }
+@media (max-width: 760px) {
+  .cockpit-today { flex-direction:column; }
+  .ct-center { max-width:none; width:100%; }
+  .ct-resizer { display:none; }
+  .ct-panel { width:100%; flex-basis:auto; margin:16px 0 0; padding:16px 0; border-top:1px solid var(--border); min-height:0; }
+}
 """
 
 

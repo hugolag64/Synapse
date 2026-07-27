@@ -131,3 +131,19 @@ def test_refresh_keeps_attempts_for_existing_oic_code():
     assert refreshed["mastered"] == 1
     assert refreshed["oic_level"] == 3
     assert local_store.get_oic_attempts(refreshed["id"])[0]["session_score"] == 85
+
+
+def test_evaluation_level_propagates_to_all_alias_rows(monkeypatch):
+    from backend.core.reviews import local_store
+
+    monkeypatch.setattr(
+        local_store,
+        "get_lisa_oic",
+        lambda course_id: [{"id": 101 if course_id == "mg" else 102, "oic_code": "OIC-75-01-A"}],
+    )
+    calls = []
+    monkeypatch.setattr(local_store, "update_oic_level", lambda oid, level: calls.append((oid, level)))
+
+    item_service.set_item_oic_level(["mg", "psy"], "OIC-75-01-A", 4)
+
+    assert calls == [(101, 4), (102, 4)]

@@ -123,7 +123,12 @@ class OICPanelController:
                                             ui.label(level_text).classes(f"text-[8px] font-bold px-1.5 py-0.5 rounded {level_cls}")
                                         ui.button(icon="school").props("flat dense round size=xs").classes("text-violet-400 hover:text-violet-600").on(
                                             "click.stop",
-                                            lambda row=oic: open_oic_eval_dialog(row, self.course, refresh_fn=lambda: asyncio.ensure_future(_refresh_after_eval())),
+                                            lambda row=oic: open_oic_eval_dialog(
+                                                row,
+                                                self.course,
+                                                refresh_fn=lambda: asyncio.ensure_future(_refresh_after_eval()),
+                                                course_ids=self.course_ids,
+                                            ),
                                         ).tooltip("Évaluer cet OIC")
 
     async def load_cached(self) -> None:

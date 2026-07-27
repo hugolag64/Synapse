@@ -12,7 +12,6 @@ import json
 
 from nicegui import ui
 
-from backend.core.reviews import local_store as ls
 from backend.core.lisa import evaluator
 from backend.core.lisa.anythingllm_client import (
     resolve_workspace_slug,
@@ -24,7 +23,7 @@ _VERDICT_COLORS = {"correct": "green-600", "partial": "orange-500", "incorrect":
 _VERDICT_LABELS = {"correct": "ACQUIS", "partial": "PARTIEL", "incorrect": "ÉCHEC"}
 
 
-def open_oic_eval_dialog(oic, course, refresh_fn=None) -> None:
+def open_oic_eval_dialog(oic, course, refresh_fn=None, course_ids=None) -> None:
     """Ouvre la dialog de quiz IA pour valider un OIC via AnythingLLM."""
     item_number = str(getattr(course, "display_item_number", "") or "")
     course_title = f"ITEM {item_number} - {course.title}" if item_number else (course.title or "")
@@ -135,11 +134,23 @@ def open_oic_eval_dialog(oic, course, refresh_fn=None) -> None:
     def _render_recap() -> None:
         content_area.clear()
         session_score = evaluator.aggregate_session_score(state["results"])
-        previous = [row["session_score"] for row in ls.get_oic_attempts(oic["id"], limit=2)]
+        from backend.core.lisa import item_service
+        alias_ids = tuple(course_ids or [course.id])
+        previous = [
+            row["session_score"]
+            for row in item_service.get_item_oic_attempts(
+                alias_ids, oic["oic_code"], limit=2
+            )
+        ]
         old_level = state["level"]
         new_level = evaluator.next_oic_level(old_level, session_score, previous)
-        ls.save_oic_attempt(oic["id"], session_score, json.dumps(state["records"], ensure_ascii=False))
-        ls.update_oic_level(oic["id"], new_level)
+        item_service.save_item_oic_attempt(
+            alias_ids,
+            oic["oic_code"],
+            session_score,
+            json.dumps(state["records"], ensure_ascii=False),
+        )
+        item_service.set_item_oic_level(alias_ids, oic["oic_code"], new_level)
         state["level"] = new_level
 
         with content_area:

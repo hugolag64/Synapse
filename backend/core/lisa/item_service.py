@@ -124,3 +124,11 @@ def save_item_oic_attempt(course_ids: Sequence[str], oic_code: str, session_scor
     if session_score >= 70:
         set_item_oic_mastery(course_ids, oic_code, True)
     return attempt_id
+
+
+def set_item_oic_level(course_ids: Sequence[str], oic_code: str, new_level: int) -> None:
+    """Propagate the evaluator level to every alias row of the item OIC."""
+    for course_id in dict.fromkeys(course_ids):
+        for row in local_store.get_lisa_oic(course_id) or []:
+            if _value(row, "oic_code") == oic_code:
+                local_store.update_oic_level(_value(row, "id"), new_level)

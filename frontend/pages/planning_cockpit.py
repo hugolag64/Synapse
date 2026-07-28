@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import asyncio
 import datetime
+from zoneinfo import ZoneInfo
 
 from nicegui import ui
 
@@ -39,10 +40,19 @@ from backend.core.planning.policy import (
     vacation_payload,
 )
 from backend.core.planning.focus import build_focus_rows, focus_row_label
+from backend.core.planning.calendar_actions import event_duration_minutes
 from backend.core.reviews.service import review_service
-from backend.core.reviews.local_store import get_all_history, get_all_weak_points_table
+from backend.core.reviews.local_store import (
+    create_manual_planning_entry,
+    get_all_history,
+    get_all_weak_points_table,
+    get_manual_planning_entries,
+)
+from frontend.components.item_search_palette import search_items
 from backend.core.google.calendar_service import calendar_service
 from backend.state.store import data_store
+
+_PLANNING_TZ = ZoneInfo("Indian/Reunion")
 
 _DAYS_ABBR = ["LUN", "MAR", "MER", "JEU", "VEN", "SAM", "DIM"]
 _MONTHS_FR = ["jan", "fév", "mar", "avr", "mai", "juin",
@@ -164,6 +174,7 @@ async def render_planning_cockpit() -> None:
 
     state = {"anchor": datetime.date.today(), "days": 7}
     day_refs: list[dict] = []
+    _manual_entries_by_day: dict[str, list[dict]] = {}
 
     with ui.column().classes("pl-wrap gap-0"):
         topbar = ui.element("div").classes("pl-topbar")
@@ -377,9 +388,12 @@ async def render_planning_cockpit() -> None:
                 is_today = d == today
                 card = ui.element("div").classes("pl-day today" if is_today else "pl-day")
                 with card:
-                    with ui.element("div").classes("pl-day-head"):
+                    head = ui.element("div").classes("pl-day-head cursor-pointer")
+                    head.on("click", lambda day=d: _open_day_actions(day))
+                    with head:
                         ui.label(_DAYS_ABBR[d.weekday()]).classes("pl-day-dow")
                         ui.label(str(d.day)).classes("pl-day-date")
+                        ui.icon("add", size="xs").classes("float-right text-slate-400")
                     body = ui.column().classes("pl-day-body gap-1.5 w-full")
                     with body:
                         ui.label("Chargement…").classes("pl-day-empty")
@@ -391,13 +405,19 @@ async def render_planning_cockpit() -> None:
         body = ref["body"]
         body.clear()
         with body:
-            if not plan.slots and not events:
+            manual_entries = _manual_entries_by_day.get(d.isoformat(), [])
+            if not plan.slots and not events and not manual_entries:
                 ui.label("Rien de prévu").classes("pl-day-empty")
             for slot in plan.slots:
                 with ui.element("div").classes("pl-block pl-block-task").tooltip(slot.label):
                     ui.label(slot.label).classes("pl-block-title")
                     if slot.subtitle:
                         ui.label(f"{slot.subtitle} · {slot.duration_min} min").classes("pl-block-sub")
+            for entry in manual_entries:
+                with ui.element("div").classes("pl-block pl-block-task"):
+                    title = f"{entry['course_title']} · {entry['activity_type']}"
+                    ui.label(title).classes("pl-block-title")
+                    ui.label(f"Planifié manuellement · {entry['duration_minutes']} min").classes("pl-block-sub")
             for ev in events:
                 summary = ev.get("summary") or "Événement"
                 dur = _event_duration_min(ev)
@@ -406,9 +426,190 @@ async def render_planning_cockpit() -> None:
                     if dur:
                         h, m = divmod(dur, 60)
                         ui.label(f"{h}h{m:02d}" if h else f"{dur} min").classes("pl-block-sub")
-        ref["foot"].set_text(_load_label(plan.total_min))
+        manual_total = sum(entry["duration_minutes"] for entry in _manual_entries_by_day.get(d.isoformat(), []))
+        ref["foot"].set_text(_load_label(plan.total_min + manual_total))
+
+    def _open_day_actions(day: datetime.date) -> None:
+        with ui.dialog() as dialog:
+            with ui.card().classes("w-full max-w-sm p-5"):
+                ui.label(f"{_DAYS_ABBR[day.weekday()]} {day.day} {_MONTHS_FR[day.month - 1]}").classes(
+                    "text-base font-semibold"
+                )
+                ui.label("Que veux-tu ajouter ?").classes("text-xs text-slate-500 mt-1")
+                with ui.column().classes("w-full gap-2 mt-5"):
+                    ui.button(
+                        "Planifier un item Synapse",
+                        icon="school",
+                        on_click=lambda: (_close_and_open(dialog, _open_manual_item_form, day)),
+                    ).props("outline no-caps unelevated").classes("w-full justify-start")
+                    ui.button(
+                        "Créer un événement Google Calendar",
+                        icon="event",
+                        on_click=lambda: (_close_and_open(dialog, _open_calendar_event_form, day)),
+                    ).props("outline no-caps unelevated").classes("w-full justify-start")
+                ui.button("Annuler", on_click=dialog.close).props("flat no-caps color=slate").classes("mt-3")
+        dialog.open()
+
+    def _close_and_open(dialog, callback, day: datetime.date) -> None:
+        dialog.close()
+        callback(day)
+
+    def _open_manual_item_form(day: datetime.date) -> None:
+        state = {"query": "", "results": [], "selected": None}
+        with ui.dialog() as dialog:
+            with ui.card().classes("w-full max-w-lg p-0 overflow-hidden"):
+                with ui.row().classes("w-full items-center justify-between px-5 py-4 border-b"):
+                    ui.label("Planifier un item Synapse").classes("text-base font-semibold")
+                    ui.button(icon="close", on_click=dialog.close).props("flat round dense color=grey")
+                with ui.column().classes("w-full p-5 gap-3"):
+                    ui.label(f"Le {day.day} {_MONTHS_FR[day.month - 1]}").classes("text-xs text-slate-500")
+                    search = ui.input(placeholder="Rechercher un numéro ou un titre…").props(
+                        "outlined dense autofocus"
+                    ).classes("w-full")
+                    results = ui.column().classes("w-full gap-1 max-h-48 overflow-y-auto")
+                    selected_label = ui.label("Aucun item sélectionné").classes("text-xs text-slate-500")
+                    activity = ui.select(
+                        {"revision": "Révision", "lecture": "Lecture", "qcm": "QCM", "lacune": "Lacune"},
+                        value="revision", label="Activité",
+                    ).props("outlined dense").classes("w-full")
+                    durations = planning_service.get_durations()
+                    duration = ui.number(
+                        "Durée (min)", value=durations.get("revision", 20), min=5, max=240, step=5
+                    ).props("outlined dense").classes("w-full")
+                    add_calendar = ui.switch("Ajouter aussi à Google Calendar").props("dense")
+                    with ui.row().classes("w-full justify-end gap-2 mt-2"):
+                        ui.button("Annuler", on_click=dialog.close).props("flat no-caps color=slate")
+
+                        async def _save() -> None:
+                            selected = state["selected"]
+                            if selected is None:
+                                ui.notify("Sélectionne un item.", type="warning")
+                                return
+                            try:
+                                entry = create_manual_planning_entry(
+                                    day,
+                                    selected.id,
+                                    selected.title,
+                                    selected.display_item_number or selected.item_number or "",
+                                    activity.value,
+                                    int(duration.value or 0),
+                                )
+                                if add_calendar.value:
+                                    await _create_calendar_event_for_entry(day, entry)
+                            except Exception as exc:
+                                ui.notify(f"Impossible d’enregistrer : {exc}", type="negative")
+                                return
+                            dialog.close()
+                            asyncio.create_task(_load_and_render())
+                            ui.notify("Item ajouté à la journée", type="positive")
+
+                        ui.button("Ajouter", on_click=_save).props("unelevated color=indigo no-caps")
+
+        def _render_results() -> None:
+            results.clear()
+            state["results"] = search_items(state["query"], data_store.cours)
+            with results:
+                for course in state["results"]:
+                    row = ui.element("div").classes(
+                        "w-full px-3 py-2 rounded cursor-pointer hover:bg-slate-50"
+                    )
+                    row.on("click", lambda c=course: _select_course(c))
+                    with row:
+                        ui.label(f"ITEM {course.display_item_number or course.item_number or '—'} · {course.title}").classes(
+                            "text-xs font-semibold"
+                        )
+                        ui.label(" · ".join(course.college or [])).classes("text-[11px] text-slate-400")
+
+        def _select_course(course) -> None:
+            state["selected"] = course
+            selected_label.set_text(f"Sélectionné : ITEM {course.display_item_number or course.item_number or '—'} · {course.title}")
+
+        search.on_value_change(lambda event: (state.update(query=event.value or ""), _render_results()))
+        _render_results()
+        dialog.open()
+
+    def _default_event_start(day: datetime.date) -> datetime.datetime:
+        now = datetime.datetime.now(_PLANNING_TZ)
+        if day != now.date():
+            return datetime.datetime.combine(day, datetime.time(9, 0), tzinfo=_PLANNING_TZ)
+        return (now + datetime.timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
+
+    async def _create_calendar_event(
+        summary: str,
+        start_time: datetime.datetime,
+        end_time: datetime.datetime,
+        description: str = "",
+    ) -> bool:
+        try:
+            duration = event_duration_minutes(start_time, end_time)
+            result = await calendar_service.create_event(
+                summary,
+                start_time.isoformat(),
+                duration_minutes=duration,
+                description=description,
+            )
+        except Exception as exc:
+            ui.notify(f"Impossible de créer l’événement : {exc}", type="negative")
+            return False
+        if not result:
+            ui.notify("Google Calendar n’a pas pu créer l’événement.", type="negative")
+            return False
+        return True
+
+    async def _create_calendar_event_for_entry(day: datetime.date, entry: dict) -> bool:
+        start = _default_event_start(day)
+        end = start + datetime.timedelta(minutes=int(entry["duration_minutes"]))
+        item_number = entry.get("item_number", "")
+        prefix = f"ITEM {item_number} – " if item_number else ""
+        return await _create_calendar_event(
+            f"{prefix}{entry['course_title']}",
+            start,
+            end,
+            f"Planification manuelle Synapse · {entry['activity_type']}",
+        )
+
+    def _open_calendar_event_form(day: datetime.date) -> None:
+        default_start = _default_event_start(day)
+        default_end = default_start + datetime.timedelta(hours=1)
+        with ui.dialog() as dialog:
+            with ui.card().classes("w-full max-w-md p-0 overflow-hidden"):
+                with ui.row().classes("w-full items-center justify-between px-5 py-4 border-b"):
+                    ui.label("Créer un événement").classes("text-base font-semibold")
+                    ui.button(icon="close", on_click=dialog.close).props("flat round dense color=grey")
+                with ui.column().classes("w-full p-5 gap-3"):
+                    ui.label(f"Le {day.day} {_MONTHS_FR[day.month - 1]}").classes("text-xs text-slate-500")
+                    title = ui.input("Titre", placeholder="Ex. Sport, rendez-vous…").props("outlined dense autofocus").classes("w-full")
+                    start = ui.input("Début", value=default_start.strftime("%H:%M")).props("outlined dense type=time").classes("w-full")
+                    end = ui.input("Fin", value=default_end.strftime("%H:%M")).props("outlined dense type=time").classes("w-full")
+                    description = ui.textarea("Description (facultatif)").props("outlined dense rows=2").classes("w-full")
+                    with ui.row().classes("w-full justify-end gap-2 mt-2"):
+                        ui.button("Annuler", on_click=dialog.close).props("flat no-caps color=slate")
+
+                        async def _save_event() -> None:
+                            summary = (title.value or "").strip()
+                            if not summary:
+                                ui.notify("Ajoute un titre à l’événement.", type="warning")
+                                return
+                            try:
+                                start_time = datetime.datetime.combine(
+                                    day, datetime.time.fromisoformat(str(start.value)), tzinfo=_PLANNING_TZ
+                                )
+                                end_time = datetime.datetime.combine(
+                                    day, datetime.time.fromisoformat(str(end.value)), tzinfo=_PLANNING_TZ
+                                )
+                            except ValueError:
+                                ui.notify("Vérifie les horaires.", type="warning")
+                                return
+                            if await _create_calendar_event(summary, start_time, end_time, description.value or ""):
+                                dialog.close()
+                                asyncio.create_task(_load_and_render())
+                                ui.notify("Événement ajouté à Google Calendar", type="positive")
+
+                        ui.button("Créer", on_click=_save_event).props("unelevated color=indigo no-caps")
+        dialog.open()
 
     async def _load_and_render() -> None:
+        nonlocal _manual_entries_by_day
         week = _week_dates()
         _draw_topbar(week, None, None)
         _draw_skeleton(week)
@@ -428,6 +629,10 @@ async def render_planning_cockpit() -> None:
         # lacunes uniquement sur la vraie date du jour, jamais sur les autres
         # colonnes, y compris quand "aujourd'hui" n'est pas la 1re colonne).
         today = datetime.date.today()
+        _manual_entries_by_day = {}
+        manual_entries = get_manual_planning_entries(week[0], week[-1])
+        for entry in manual_entries:
+            _manual_entries_by_day.setdefault(entry["entry_date"], []).append(entry)
         plans = []
         for d in week:
             if d == today:

@@ -36,6 +36,9 @@ from frontend.components.context_panel import (
     context_panel, ensure_styles as _panel_styles,
 )
 from frontend.components.mastery_indicator import ensure_styles as _mastery_styles
+from frontend.components.responsive_drawer import (
+    responsive_drawer, close_drawer, open_drawer, ensure_styles as _drawer_styles,
+)
 
 _DAYS_FR = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
 _MONTHS_FR = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet",
@@ -89,6 +92,14 @@ _CSS = """
 .ct-qh-due { flex:0 0 74px; }
 .ct-empty { padding:24px 10px; color:var(--text-dim); font-size:13px; }
 .ct-panel-empty { color:var(--text-dim); font-size:12.5px; padding:20px 4px; }
+.ct-context-open { display:none; margin-left:auto; color:var(--accent); cursor:pointer; font-size:12px; }
+@media (min-width: 900px) and (max-width: 1199.98px) {
+  .cockpit-today { display:block; }
+  .ct-resizer, .ct-panel-empty { display:none; }
+  .ct-panel { width:0; min-height:0; padding:0; }
+  .ct-context-open { display:block; }
+  .ct-panel > .synapse-responsive-drawer { display:contents; }
+}
 @media (max-width: 760px) {
   .cockpit-today { display:flex; flex-direction:column; }
   .ct-center { max-width:none; width:100%; }
@@ -148,9 +159,11 @@ async def render_today_cockpit() -> None:
     _row_styles()
     _panel_styles()
     _mastery_styles()
+    _drawer_styles()
 
     state = DashboardState()
     sel: dict = {"task": None}
+    drawer_state: dict = {"root": None}
     _data: dict = {"urgent": [], "today": [], "load": {}, "qcm": {}, "lac": {}, "crit": 0, "target": {}}
 
     # ── Pipeline données (réplique de rebuild_all, partie data) ────────────────
@@ -352,6 +365,8 @@ async def render_today_cockpit() -> None:
             with ui.element("div").classes("ct-topbar"):
                 ui.label("Aujourd'hui").classes("ct-title")
                 ui.label(f"{_DAYS_FR[now.weekday()]} {now.day} {_MONTHS_FR[now.month - 1]}").classes("ct-date")
+                _context_open = ui.label("Contexte").classes("ct-context-open")
+                _context_open.on("click", lambda: open_drawer(drawer_state["root"]) if drawer_state["root"] else None)
                 with ui.element("div").classes("ct-toggle"):
                     ui.label("Jour").classes("ct-seg active")
                     ui.label("Semaine").classes("ct-seg").tooltip("Bientôt (vue Planning)")
@@ -381,18 +396,24 @@ async def render_today_cockpit() -> None:
                 ui.label("Rien à réviser aujourd'hui ✓").classes("ct-empty")
 
         with panel:
-            if sel["task"] is not None:
-                context_panel(
-                    sel["task"],
-                    on_done=lambda t: asyncio.create_task(_on_done(t)),
-                    on_postpone=lambda t: _open_focus(t),
-                    on_focus=lambda t: _open_focus(t),
-                    on_close=lambda: (sel.update(task=None), _render()),
-                )
-            else:
-                with ui.element("div"):
-                    ui.label("Contexte").classes("cp-label")
-                    ui.label("Sélectionne une tâche pour voir le détail, la maîtrise et les ressources.").classes("ct-panel-empty")
+            def _close_context() -> None:
+                if drawer_state["root"] is not None:
+                    close_drawer(drawer_state["root"])
+
+            with responsive_drawer(on_close=_close_context, include_close=False) as drawer_root:
+                drawer_state["root"] = drawer_root
+                if sel["task"] is not None:
+                    context_panel(
+                        sel["task"],
+                        on_done=lambda t: asyncio.create_task(_on_done(t)),
+                        on_postpone=lambda t: _open_focus(t),
+                        on_focus=lambda t: _open_focus(t),
+                        on_close=_close_context,
+                    )
+                else:
+                    with ui.element("div"):
+                        ui.label("Contexte").classes("cp-label")
+                        ui.label("Sélectionne une tâche pour voir le détail, la maîtrise et les ressources.").classes("ct-panel-empty")
 
     def _full_rebuild() -> None:
         _fetch()

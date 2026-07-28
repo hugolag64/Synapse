@@ -55,7 +55,8 @@ def ensure_styles() -> None:
 
 
 @contextmanager
-def responsive_drawer(*, on_close=None, aria_label: str = "Panneau contextuel") -> Iterator[Any]:
+def responsive_drawer(*, on_close=None, aria_label: str = "Panneau contextuel",
+                      include_close: bool = True) -> Iterator[Any]:
     """Render a panel that becomes an overlay drawer at the session breakpoint."""
     ensure_styles()
     with ui.element("div").classes(_CONTRACT["root"]) as root:
@@ -68,7 +69,7 @@ def responsive_drawer(*, on_close=None, aria_label: str = "Panneau contextuel") 
             f'role="dialog" aria-modal="true" aria-label="{aria_label}"'
         )
         with panel:
-            if on_close is not None:
+            if on_close is not None and include_close:
                 ui.button("×", on_click=on_close).classes(_CONTRACT["close"]).props(
                     'aria-label="Fermer" flat'
                 )

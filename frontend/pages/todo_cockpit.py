@@ -37,7 +37,25 @@ from frontend.components.mastery_indicator import mastery_indicator, ensure_styl
 _CYCLES = ["J3", "J7", "J14", "J30"]
 
 _CSS = """
-.rv-wrap { max-width:1200px; width:100%; }
+.rv-wrap { max-width:none; width:100%; }
+.rv-layout { display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:28px; align-items:start; width:100%; }
+.rv-queue { min-width:0; }
+.rv-panel { border:1px solid var(--border); border-radius:10px; background:var(--surface); padding:16px; position:sticky; top:16px; }
+.rv-panel-title { font-size:13px; font-weight:600; color:var(--text); }
+.rv-panel-subtitle { font-size:11px; color:var(--text-muted); margin-top:3px; }
+.rv-panel-section { margin-top:18px; }
+.rv-panel-section-title { font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-dim); font-weight:600; margin-bottom:9px; }
+.rv-kpis { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.rv-kpi { padding:10px; border:1px solid var(--border); border-radius:8px; background:var(--bg); }
+.rv-kpi-value { font-family:var(--font-mono); font-size:18px; font-weight:600; color:var(--text); }
+.rv-kpi-label { font-size:10px; color:var(--text-muted); margin-top:2px; }
+.rv-cycle-row { display:flex; align-items:center; gap:8px; margin-top:7px; font-size:11px; color:var(--text-muted); }
+.rv-cycle-row span:first-child { width:38px; }
+.rv-cycle-track { flex:1; height:6px; border-radius:3px; background:var(--surface-hover); overflow:hidden; }
+.rv-cycle-fill { height:100%; border-radius:3px; background:var(--accent); }
+.rv-cycle-count { width:24px; text-align:right; font-family:var(--font-mono); font-size:10px; }
+@media (max-width: 900px) { .rv-layout { grid-template-columns:minmax(0,1fr) 260px; gap:18px; } }
+@media (max-width: 760px) { .rv-layout { display:block; } .rv-panel { position:static; margin-top:24px; } }
 .rv-topbar { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:4px 0 18px; }
 .rv-title { font-size:20px; font-weight:600; color:var(--text); letter-spacing:-0.01em; }
 .rv-subtitle { display:flex; align-items:center; gap:4px; flex-wrap:wrap; font-size:12.5px;
@@ -50,28 +68,24 @@ _CSS = """
               border-color var(--duration-fast) var(--ease-standard); }
 .rv-chip:hover { background:var(--surface); }
 .rv-chip.active { background:var(--accent); border-color:var(--accent); color:var(--accent-text); }
-.rv-head { display:flex; align-items:center; gap:12px; padding:0 10px 8px; font-size:10px;
+.rv-head, .rv-row { display:grid; grid-template-columns:40px 46px minmax(180px,1fr) 140px 84px 84px; align-items:center; column-gap:12px; }
+.rv-head { padding:0 10px 8px; font-size:10px;
   text-transform:uppercase; letter-spacing:.04em; color:var(--text-dim); font-weight:600;
   border-bottom:1px solid var(--border); }
-.rv-h-cycle { flex:0 0 40px; }
-.rv-h-id { flex:0 0 46px; }
-.rv-h-main { flex:1 1 auto; }
-.rv-h-mastery { flex:0 0 140px; }
-.rv-h-due { flex:0 0 84px; }
-.rv-h-action { flex:0 0 84px; }
-.rv-row { display:flex; align-items:center; gap:12px; min-height:44px; padding:8px 10px;
+.rv-h-cycle, .rv-h-id, .rv-h-main, .rv-h-mastery, .rv-h-due, .rv-h-action { min-width:0; }
+.rv-row { min-height:44px; padding:8px 10px;
   border-bottom:1px solid var(--border); }
 .rv-row:last-child { border-bottom:none; }
-.rv-cycle { font-family:var(--font-mono); font-size:11px; color:var(--text-muted); flex:0 0 40px; }
-.rv-id { font-family:var(--font-mono); font-size:11.5px; color:var(--text-muted); flex:0 0 46px; }
-.rv-main { flex:1 1 auto; min-width:0; }
+.rv-cycle { font-family:var(--font-mono); font-size:11px; color:var(--text-muted); }
+.rv-id { font-family:var(--font-mono); font-size:11.5px; color:var(--text-muted); }
+.rv-main { min-width:0; }
 .rv-course-title { font-size:13.5px; color:var(--text); line-height:1.3; }
 .rv-course-sub { font-size:11.5px; color:var(--text-dim); margin-top:2px;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.rv-mastery { flex:0 0 140px; }
-.rv-due { display:flex; align-items:center; gap:5px; flex:0 0 84px; font-size:11.5px; color:var(--text-muted); }
+.rv-mastery { min-width:0; }
+.rv-due { display:flex; align-items:center; gap:5px; min-width:0; font-size:11.5px; color:var(--text-muted); }
 .rv-due-dot { width:6px; height:6px; border-radius:50%; flex:0 0 6px; }
-.rv-action { flex:0 0 84px; display:flex; justify-content:flex-end; }
+.rv-action { display:flex; justify-content:flex-end; min-width:0; }
 .rv-btn-primary { background:var(--accent); color:var(--accent-text); border-radius:6px; padding:9px 16px;
   font-size:13px; font-weight:500; cursor:pointer; white-space:nowrap; }
 .rv-btn-primary:hover { background:var(--accent-hover); }
@@ -84,6 +98,20 @@ _CSS = """
 
 def _type_tag(t) -> str:
     return "PDF" if (t.url_pdf or t.url_pdf_ue) else "NOTE"
+
+
+def _revision_summary(tasks: list, overdue: int) -> dict:
+    today = datetime.date.today()
+    today_count = sum(1 for task in tasks if task.due_date == today)
+    upcoming_count = sum(1 for task in tasks if task.due_date > today)
+    cycle_counts = {cycle: sum(1 for task in tasks if task.review_type == cycle) for cycle in _CYCLES}
+    return {
+        "overdue": overdue,
+        "today": today_count,
+        "upcoming": upcoming_count,
+        "cycle_counts": cycle_counts,
+        "estimated_minutes": len(tasks) * 20,
+    }
 
 
 async def render_revisions_cockpit() -> None:
@@ -150,9 +178,12 @@ async def render_revisions_cockpit() -> None:
 
     # ── Layout ──────────────────────────────────────────────────────────────
     with ui.column().classes("rv-wrap gap-0"):
-        topbar = ui.element("div").classes("rv-topbar")
-        chips_row = ui.element("div").classes("rv-chips")
-        list_col = ui.column().classes("w-full gap-0")
+        with ui.element("div").classes("rv-layout"):
+            with ui.column().classes("rv-queue gap-0"):
+                topbar = ui.element("div").classes("rv-topbar")
+                chips_row = ui.element("div").classes("rv-chips")
+                list_col = ui.column().classes("w-full gap-0")
+            panel = ui.element("aside").classes("rv-panel")
 
     def _visible_tasks() -> list:
         if filt["cycle"] is None:
@@ -200,6 +231,37 @@ async def render_revisions_cockpit() -> None:
                 with el:
                     ui.label(label)
                 el.on("click", lambda v=value: _select_cycle(v))
+
+    def _draw_pilotage() -> None:
+        panel.clear()
+        summary = _revision_summary(data["tasks"], data["overdue"])
+        with panel:
+            ui.label("Pilotage des révisions").classes("rv-panel-title")
+            ui.label("La file à traiter maintenant").classes("rv-panel-subtitle")
+
+            with ui.element("div").classes("rv-kpis rv-panel-section"):
+                for value, label in [
+                    (summary["overdue"], "en retard"),
+                    (summary["today"], "aujourd’hui"),
+                    (summary["upcoming"], "à venir"),
+                    (f"{summary['estimated_minutes'] // 60} h", "charge estimée"),
+                ]:
+                    with ui.element("div").classes("rv-kpi"):
+                        ui.label(str(value)).classes("rv-kpi-value")
+                        ui.label(label).classes("rv-kpi-label")
+
+            with ui.element("div").classes("rv-panel-section"):
+                ui.label("Répartition par cycle").classes("rv-panel-section-title")
+                maximum = max(summary["cycle_counts"].values(), default=0)
+                for cycle in _CYCLES:
+                    count = summary["cycle_counts"][cycle]
+                    with ui.element("div").classes("rv-cycle-row"):
+                        ui.label(cycle)
+                        with ui.element("div").classes("rv-cycle-track"):
+                            ui.element("div").classes("rv-cycle-fill").style(
+                                f"width:{int(count / maximum * 100) if maximum else 0}%"
+                            )
+                        ui.label(str(count)).classes("rv-cycle-count")
 
             _chip("Toutes", None)
             for c in _CYCLES:
@@ -255,6 +317,7 @@ async def render_revisions_cockpit() -> None:
         data["overdue"] = len(urgent)
         _draw_topbar()
         _draw_chips()
+        _draw_pilotage()
         _draw_list()
 
     _load_and_render()

@@ -15,12 +15,28 @@ from nicegui import ui
 from backend.state.store import data_store
 from frontend.components.command_palette import open_command_palette
 
+
+def _revision_badge() -> tuple[str, str]:
+    """Retourne le nombre de révisions réellement en retard pour la sidebar."""
+    try:
+        from backend.core.reviews.local_store import get_all_history
+        from backend.core.reviews.service import review_service
+
+        tasks = review_service.generate_reviews(
+            context="college", history=get_all_history()
+        )
+        overdue = len(review_service.get_urgent_tasks(tasks))
+    except Exception:
+        overdue = 0
+    return ("count", str(overdue))
+
+
 # (glyphe, label, route|None, badge)  badge: None | ('count', '2') | ('dot', 'warning')
 _NAV_GROUPS = [
     ("Pilotage", [
         ("◉", "Aujourd'hui", "/",         None),
         ("▦", "Planning",    "/planning", None),
-        ("↻", "Révisions",   "/todo",     ("count", "2")),
+        ("↻", "Révisions",   "/todo",     ("dynamic_count", "revisions")),
     ]),
     ("Connaissance", [
         ("▤", "Collèges",  "/colleges",  None),
@@ -116,6 +132,8 @@ def _nav_item(glyph: str, label: str, route, badge, active: str) -> None:
             ui.label("bientôt").classes("lbl").style(
                 "flex:0 0 auto;font-size:10px;color:var(--text-dim)"
             )
+        elif badge and badge[0] == "dynamic_count":
+            ui.label(_revision_badge()[1]).classes("cockpit-badge-count")
         elif badge and badge[0] == "count":
             ui.label(badge[1]).classes("cockpit-badge-count")
         elif badge and badge[0] == "dot":

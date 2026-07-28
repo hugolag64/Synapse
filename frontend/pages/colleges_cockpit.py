@@ -99,16 +99,50 @@ _CSS = """
 .cg-next-dot { width:6px; height:6px; border-radius:50%; flex:0 0 6px; }
 .cg-qcm { flex:0 0 52px; text-align:right; font-family:var(--font-mono); font-size:12px; font-weight:600; }
 .cg-empty { padding:32px 10px; text-align:center; color:var(--text-dim); font-size:13px; }
-.cg-items { padding:8px 12px 12px 34px; background:var(--surface); border-bottom:1px solid var(--border); }
-.cg-item { display:flex; align-items:center; gap:10px; min-height:32px; padding:4px 0; }
-.cg-item-title { flex:1 1 auto; min-width:0; font-size:12px; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer; }
-.cg-item-meta { flex:0 0 auto; font-size:10px; color:var(--text-dim); }
+.cg-items { padding:8px 12px 12px 34px; background:var(--surface); border-bottom:1px solid var(--border); overflow-x:auto; }
+.cg-items-grid { min-width:760px; }
+.cg-item-head, .cg-item { display:grid; grid-template-columns:minmax(180px,2fr) 76px 88px 86px 78px 100px 56px auto; align-items:center; column-gap:10px; }
+.cg-item-head { min-height:24px; padding:0 0 5px; color:var(--text-dim); font-size:9px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; }
+.cg-item { min-height:36px; padding:5px 0; border-top:1px solid var(--border); }
+.cg-item-title { min-width:0; font-size:12px; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer; }
+.cg-item-cell { min-width:0; font-size:10.5px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cg-item-cell.center { text-align:center; }
+.cg-item-cell.mono { font-family:var(--font-mono); font-size:11px; }
+.cg-item-progress { display:flex; align-items:center; gap:6px; min-width:0; }
+.cg-item-progress-track { flex:1; min-width:24px; height:5px; border-radius:3px; background:var(--surface-hover); overflow:hidden; }
+.cg-item-progress-fill { height:100%; border-radius:3px; }
+.cg-item-status { font-size:10px; font-weight:500; }
+.cg-item-status.non-commence { color:var(--text-muted); }
+.cg-item-status.correct { color:var(--text-muted); }
+.cg-item-status.solide { color:var(--success); }
+.cg-item-status.fragile { color:var(--warning); }
+.cg-item-status.critique { color:var(--danger); }
+.cg-item-late { color:var(--danger); font-weight:500; }
+.cg-item-fragile { color:var(--warning); font-weight:500; }
+.cg-item-muted { color:var(--text-muted); }
+.cg-item-meta { font-size:10px; color:var(--text-muted); }
+.cg-item-action { justify-self:end; }
+.cg-item-empty { padding:20px 0; color:var(--text-muted); font-size:12px; }
+@media (max-width: 820px) { .cg-items { padding-left:12px; } }
 """
 
 
-def _college_item_rows(courses: list, tasks: list) -> list[dict]:
+def _college_item_rows(
+    courses: list,
+    tasks: list,
+    mastery_by_course: dict[str, tuple] | None = None,
+    urgent_ids: set[str] | None = None,
+    qcm_map: dict[str, dict] | None = None,
+) -> list[dict]:
     """Construit la vue simplifiée d'un collège, triée par numéro d'item."""
-    task_by_course = {task.course_id: task for task in tasks}
+    mastery_by_course = mastery_by_course or {}
+    urgent_ids = urgent_ids or set()
+    qcm_map = qcm_map or {}
+    task_by_course: dict[str, object] = {}
+    for task in tasks:
+        previous = task_by_course.get(task.course_id)
+        if previous is None or task.due_date < previous.due_date:
+            task_by_course[task.course_id] = task
 
     def sort_key(course):
         raw = str(getattr(course, "item_number", "") or "")
@@ -117,10 +151,24 @@ def _college_item_rows(courses: list, tasks: list) -> list[dict]:
         except ValueError:
             return (1, raw, str(getattr(course, "title", "")))
 
-    return [
-        {"course": course, "task": task_by_course.get(course.id)}
-        for course in sorted(courses, key=sort_key)
-    ]
+    rows = []
+    for course in sorted(courses, key=sort_key):
+        task = task_by_course.get(course.id)
+        score, level = mastery_by_course.get(course.id, (None, None))
+        started = bool(getattr(course, "date_1ere_lecture", None))
+        if level is None:
+            level = "correct" if started else "non_commence"
+        rows.append({
+            "course": course,
+            "task": task,
+            "pct": score if score is not None else (100 if started else 0),
+            "score": score,
+            "level": level,
+            "urgent": course.id in urgent_ids,
+            "next_task": task,
+            "qcm_score": qcm_map.get(course.id, {}).get("last_score"),
+        })
+    return rows
 
 
 def _pilotage_summary(rows: list[dict]) -> dict:
@@ -198,6 +246,9 @@ def render_colleges_cockpit() -> None:
                 "next_task": next_task, "qcm_avg": qcm_avg, "unread": started == 0,
                 "no_pdf": no_pdf, "courses": courses,
                 "tasks": college_tasks,
+                "mastery_by_course": mastery_by_course,
+                "urgent_ids": urgent_ids,
+                "qcm_map": qcm_map,
             })
         return rows
 
@@ -365,9 +416,16 @@ def render_colleges_cockpit() -> None:
 
         if r["name"] in expanded:
             with ui.element("div").classes("cg-items"):
-                item_rows = _college_item_rows(r["courses"], r["tasks"])
+                with ui.element("div").classes("cg-items-grid"):
+                    with ui.element("div").classes("cg-item-head"):
+                        for label in ("Item", "Progression", "Statut", "Retard", "Fragile", "Prochaine", "QCM", ""):
+                            ui.label(label)
+                    item_rows = _college_item_rows(
+                        r["courses"], r["tasks"], r["mastery_by_course"],
+                        r["urgent_ids"], r["qcm_map"],
+                    )
                 if not item_rows:
-                    ui.label("Aucun item dans ce collège.").classes("cg-item-meta")
+                    ui.label("Aucun item dans ce collège.").classes("cg-item-empty")
                 for item in item_rows:
                     course = item["course"]
                     task = item["task"]
@@ -375,13 +433,57 @@ def render_colleges_cockpit() -> None:
                         number = getattr(course, "item_number", None) or "—"
                         title_el = ui.label(f"Item {number} · {course.title}").classes("cg-item-title")
                         title_el.on("click", lambda cid=course.id: ui.navigate.to(f"/cours/{cid}"))
+                        with ui.element("div").classes("cg-item-progress"):
+                            with ui.element("div").classes("cg-item-progress-track"):
+                                ui.element("div").classes("cg-item-progress-fill").style(
+                                    f"width:{max(0, min(100, item['pct']))}%;"
+                                    f"background:{_LEVEL_COLOR.get(item['level'], 'var(--text-muted)')}"
+                                )
+                            ui.label(f"{item['pct']}%").classes("cg-item-cell mono")
+
+                        status_label = {
+                            "non_commence": "Non commencé",
+                            "solide": "Solide",
+                            "correct": "Correct",
+                            "fragile": "Fragile",
+                            "critique": "Critique",
+                        }.get(item["level"], "—")
+                        ui.label(status_label).classes(
+                            f"cg-item-cell cg-item-status {item['level'].replace('_', '-')}")
+
+                        if item["urgent"]:
+                            late = ui.label("En retard").classes("cg-item-cell cg-item-late")
+                            late.on("click", lambda name=r["name"]: _open_items(name))
+                        else:
+                            ui.label("À jour").classes("cg-item-cell cg-item-muted")
+
+                        fragile = item["level"] in ("fragile", "critique")
+                        ui.label("Oui" if fragile else "—").classes(
+                            "cg-item-cell cg-item-fragile" if fragile else "cg-item-cell cg-item-muted")
+
+                        next_task = item["next_task"]
+                        if next_task is None:
+                            ui.label("—").classes("cg-item-cell cg-item-muted")
+                        else:
+                            due_color, due_label = due_info(next_task)
+                            with ui.row().classes("items-center gap-1 cg-item-cell"):
+                                ui.element("span").classes("cg-next-dot").style(f"background:{due_color}")
+                                ui.label(due_label)
+
+                        qcm_score = item["qcm_score"]
+                        if qcm_score is None:
+                            ui.label("—").classes("cg-item-cell cg-item-muted")
+                        else:
+                            qcm_color = _LEVEL_COLOR.get(_level_from_score(qcm_score), "var(--text-muted)")
+                            ui.label(f"{qcm_score}%").classes("cg-item-cell mono").style(f"color:{qcm_color}")
+
                         if task is not None:
                             ui.button(
                                 "Valider", icon="check",
                                 on_click=lambda t=task, el=item_el: _open_feedback(t, el),
-                            ).props("unelevated dense size=sm color=positive")
+                            ).props("unelevated dense size=sm color=positive").classes("cg-item-action")
                         else:
-                            ui.label("aucune révision prévue").classes("cg-item-meta")
+                            ui.label("—").classes("cg-item-cell cg-item-muted cg-item-action")
 
     async def _validate(task, _card=None, activity_types=None, duration_minutes=None,
                         confidence=None, difficulty=None, qcm_result=None,

@@ -39,6 +39,7 @@ from frontend.components.mastery_indicator import ensure_styles as _mastery_styl
 from frontend.components.responsive_drawer import (
     responsive_drawer, close_drawer, open_drawer, ensure_styles as _drawer_styles,
 )
+from frontend.pages.dashboard._dialogs import open_session_feedback_dialog
 
 _DAYS_FR = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
 _MONTHS_FR = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet",
@@ -243,6 +244,12 @@ async def render_today_cockpit() -> None:
                     data_store.save_to_disk()
             asyncio.create_task(_sync())
 
+    def _open_feedback(task: ReviewTask) -> None:
+        """Open the shared end-of-session self-evaluation before validation."""
+        card = ui.element("div")
+        card.set_visibility(False)
+        open_session_feedback_dialog(task, card, validate_fn=_on_done)
+
     async def _on_postpone(task, card=None, days: int = 1) -> None:
         new_date = task.due_date + datetime.timedelta(days=days)
         local_store.postpone(
@@ -405,7 +412,7 @@ async def render_today_cockpit() -> None:
                 if sel["task"] is not None:
                     context_panel(
                         sel["task"],
-                        on_done=lambda t: asyncio.create_task(_on_done(t)),
+                        on_done=_open_feedback,
                         on_postpone=lambda t: _open_focus(t),
                         on_focus=lambda t: _open_focus(t),
                         on_close=_close_context,

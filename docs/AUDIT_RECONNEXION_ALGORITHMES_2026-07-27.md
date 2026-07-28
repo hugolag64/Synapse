@@ -63,6 +63,7 @@ Les échecs sont tous dans `tests/test_lisa_scraper.py` (lignes 48, 59, 70 et 94
 - Autorisons-nous un événement métier unique (`learning_event` ou équivalent) comme interface commune des vues ?
 - Pour les OIC, quelle règle humaine prévaut sur LiSA/IA et comment l’échec doit-il affecter le niveau dans le temps ?
 - La maîtrise doit-elle rester un score simple visible, ou afficher plusieurs dimensions indépendantes ?
+- Faut-il créer un onglet dédié ECOS et LCA ? Pas de socle métier identifié pour l'un ou l'autre à ce jour (cf. ligne « Planning manuel / vacances / ECOS / UNESS conforme » ci-dessus) — à rediscuter plus tard, hors périmètre de la reconnexion en cours.
 
 ## Risques à traiter avant l’extension des algorithmes
 

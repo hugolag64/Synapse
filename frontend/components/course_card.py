@@ -150,6 +150,10 @@ def CourseCard(
                                 "Ouvrir le PDF",
                                 on_click=lambda c=course: ui.navigate.to(f"/pdf/{c.id}", new_tab=True),
                             ).props("dense").classes("text-[13px]")
+                            ui.menu_item(
+                                "Modifier le PDF",
+                                on_click=lambda c=course: open_pdf_wizard(c, context, refresh_fn, client),
+                            ).props("dense").classes("text-[13px]")
                         else:
                             ui.menu_item(
                                 "Chercher un PDF…",

@@ -461,6 +461,15 @@ def render_item_cockpit(course_id: str) -> None:
 
             if has_pdf:
                 ui.link("↗ PDF", f"/pdf/{course.id}", new_tab=True).classes("ci-btn")
+            _edit_pdf = ui.element("div").classes("ci-btn")
+            with _edit_pdf:
+                ui.label("Modifier le PDF")
+            _edit_pdf.on(
+                "click",
+                lambda c=course: open_pdf_wizard(
+                    c, "college", lambda: ui.navigate.reload(), ui.context.client
+                ),
+            )
             if obs_path is not None:
                 _obs = ui.element("div").classes("ci-btn")
                 with _obs:

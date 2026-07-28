@@ -16,6 +16,8 @@ from loguru import logger
 from frontend.components.mastery_indicator import mastery_indicator
 from frontend.components.relation_graph import neighbors_of
 from frontend.components.study_task_row import _ring_glyph
+from backend.state.store import data_store
+from frontend.components.course_quick_actions import open_pdf_wizard
 
 NOTE_EXCERPT_CHARS = 220
 MAX_RELATED = 4
@@ -165,6 +167,17 @@ def context_panel(task, *, on_done=None, on_postpone=None, on_focus=None,
             ui.label("Ressources").classes("cp-label")
             if task.has_pdf:
                 ui.link("↗ PDF officiel", f"/pdf/{task.course_id}", new_tab=True).classes("cp-res")
+            course = next((c for c in data_store.cours if c.id == task.course_id), None)
+            if course is not None:
+                _edit_pdf = ui.element("div").classes("cp-res")
+                with _edit_pdf:
+                    ui.label("↻ Modifier le PDF")
+                _edit_pdf.on(
+                    "click",
+                    lambda c=course: open_pdf_wizard(
+                        c, task.context, lambda: ui.navigate.reload(), ui.context.client
+                    ),
+                )
             if task.agregation_fiche_edn:
                 ui.link("↗ Fiche EDN / Obsidian", task.agregation_fiche_edn, new_tab=True).classes("cp-res")
             if not task.has_pdf and not task.agregation_fiche_edn:

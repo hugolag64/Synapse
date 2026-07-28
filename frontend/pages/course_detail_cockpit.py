@@ -359,6 +359,7 @@ def render_item_cockpit(course_id: str) -> None:
         except Exception:
             obs_path = None
     has_pdf = bool(getattr(course, "url_pdf", None))
+    has_first_read = bool(getattr(course, "date_1ere_lecture", None))
 
     item_label = course.display_item_number or course.item_number or "—"
     college = (course.college or [""])[0] if course.college else ""
@@ -428,15 +429,32 @@ def render_item_cockpit(course_id: str) -> None:
 
         # Actions
         with ui.element("div").classes("ci-actions"):
-            _rev = ui.element("div").classes(
-                "ci-btn primary" + ("" if task else " disabled")
-            )
-            with _rev:
-                ui.label("Réviser maintenant")
             if task:
+                _rev = ui.element("div").classes("ci-btn primary")
+                with _rev:
+                    ui.label("Réviser maintenant")
                 _rev.on("click", _open_focus)
+            elif not has_first_read:
+                _start = ui.element("div").classes("ci-btn primary")
+                with _start:
+                    ui.label("Commencer l'étude")
+                _start.on(
+                    "click",
+                    lambda c=course: open_start_tracking_dialog(
+                        c, "college", lambda: ui.navigate.reload(), ui.context.client,
+                        is_restart=False,
+                    ),
+                )
+                if not has_pdf:
+                    _start.tooltip("Liez d'abord un PDF pour démarrer le suivi")
+            elif has_pdf:
+                ui.link("↗ Ouvrir le cours", f"/pdf/{course.id}", new_tab=True).classes(
+                    "ci-btn primary"
+                )
             else:
-                _rev.tooltip("Aucune révision planifiée pour cet item")
+                _rev = ui.element("div").classes("ci-btn disabled")
+                with _rev:
+                    ui.label("Révision non planifiée")
 
             _anki = ui.element("div").classes("ci-btn")
             with _anki:

@@ -190,52 +190,71 @@ async def render_planning_cockpit() -> None:
             "end_date", (datetime.date.today() + datetime.timedelta(days=2)).isoformat()
         )
         with ui.dialog() as dialog:
-            with ui.card().classes("w-full max-w-md p-5"):
+            with ui.card().classes("w-full max-w-sm p-4 gap-0"):
                 ui.label("Ma charge").classes("text-base font-semibold")
-                ui.label("Ajuste ton rythme sans exposer les réglages techniques du planning.").classes(
+                ui.label("Ton rythme quotidien et tes périodes de vacances.").classes(
                     "text-xs text-slate-500 mt-1"
                 )
-                ui.label("Capacité quotidienne").classes("text-xs font-semibold mt-4")
+                ui.label("Capacité quotidienne").classes("text-xs font-semibold mt-5")
                 capacity = ui.toggle(
                     {3: "3 h", 6: "6 h", 9: "9 h", 12: "12 h"}, value=current_hours
-                ).props("dense unelevated").classes("w-full")
+                ).props("dense unelevated no-caps").classes("w-full mt-2")
                 custom = ui.number(
-                    "Personnalisé (h)", value=current_hours, min=3, max=12, step=1
+                    "Autre capacité (h)", value=current_hours, min=3, max=12, step=1
                 ).props("outlined dense").classes("w-full mt-2")
-                capacity.on_value_change(lambda e: custom.set_value(e.value))
+                custom.set_visibility(current_hours not in {3, 6, 9, 12})
+                with ui.row().classes("w-full justify-end mt-1"):
+                    custom_btn = ui.button(
+                        "Autre…", on_click=lambda: custom.set_visibility(True)
+                    ).props("flat dense no-caps color=slate")
 
                 enabled = ui.switch("Mode vacances", value=bool(current_vacation.get("enabled"))).classes("mt-4")
                 strategy = ui.toggle(
                     {"reduced": "Charge réduite", "diagnostic_only": "Coupure complète"},
                     value=current_vacation.get("strategy", "reduced"),
-                ).props("dense unelevated").classes("w-full mt-2")
-                with ui.row().classes("w-full gap-2 mt-3"):
-                    start_picker = ui.date(value=initial_start).props("outlined dense").classes("flex-1")
-                    end_picker = ui.date(value=initial_end).props(
-                        "outlined dense"
-                    ).classes("flex-1")
-                with ui.row().classes("gap-2 mt-3"):
+                ).props("dense unelevated no-caps").classes("w-full mt-3")
+                strategy.set_visibility(bool(current_vacation.get("enabled")))
+
+                with ui.row().classes("gap-2 mt-3") as vacation_presets:
                     ui.label("Durée").classes("text-xs font-semibold self-center")
                     for days, label in ((1, "1 jour"), (3, "3 jours"), (5, "5 jours")):
                         def _select_duration(days=days) -> None:
                             selected_duration["value"] = days
-                            start = _parse_ui_date(start_picker.value) or datetime.date.today()
-                            end_picker.set_value((start + datetime.timedelta(days=days - 1)).isoformat())
+                            start = _parse_ui_date(initial_start) or datetime.date.today()
+                            date_range.set_value({
+                                "from": start.isoformat(),
+                                "to": (start + datetime.timedelta(days=days - 1)).isoformat(),
+                            })
 
-                        btn = ui.button(label, on_click=_select_duration)
-                        btn.props("outline dense no-caps")
-                    ui.label("Dates personnalisées").classes("text-xs text-slate-500 self-center")
-                ui.label("Les vacances commencent aujourd’hui. Tu peux ensuite modifier la période exacte.").classes(
-                    "text-xs text-slate-500 mt-2"
-                )
+                        ui.button(label, on_click=_select_duration).props("outline dense no-caps")
+
+                with ui.row().classes("w-full justify-end mt-1"):
+                    dates_trigger = ui.button("Dates personnalisées", on_click=lambda: custom_dates.set_visibility(True)).props(
+                        "flat dense no-caps color=slate"
+                    )
+                with ui.column().classes("w-full gap-2 mt-1") as custom_dates:
+                    date_range = ui.date(
+                        value={"from": initial_start, "to": initial_end}
+                    ).props("outlined dense range")
+                custom_dates.set_visibility(False)
+                vacation_presets.set_visibility(bool(current_vacation.get("enabled")))
+
+                def _toggle_vacation(e) -> None:
+                    active = bool(e.value)
+                    strategy.set_visibility(active)
+                    vacation_presets.set_visibility(active)
+                    custom_dates.set_visibility(False)
+
+                enabled.on_value_change(_toggle_vacation)
 
                 with ui.row().classes("w-full justify-end gap-2 mt-5"):
                     ui.button("Annuler", on_click=dialog.close).props("flat no-caps color=slate")
 
                     def _save_capacity() -> None:
                         hours = int(custom.value or capacity.value or current_hours)
-                        start = _parse_ui_date(start_picker.value) or datetime.date.today()
-                        end = _parse_ui_date(end_picker.value) or start
+                        range_value = date_range.value if isinstance(date_range.value, dict) else {}
+                        start = _parse_ui_date(range_value.get("from")) or datetime.date.today()
+                        end = _parse_ui_date(range_value.get("to")) or start
                         end = max(start, end)
                         vacation = {"enabled": False}
                         if enabled.value:

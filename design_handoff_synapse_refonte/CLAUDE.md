@@ -181,3 +181,6 @@ Command palette (fuzzy + ⌘K + clavier) = custom. Planning dense = grille CSS c
   - **Primitive partagée** : scrim, drawer droit, `role=dialog`, fermeture par `×`/`Escape`/clic extérieur et bouton de réouverture, activés uniquement entre 900 et 1199,98 px. Les pages gardent leurs callbacks métier et leur contenu rendu.
   - **Écrans adaptés** : Aujourd'hui (`context_panel`), Détail item (`ci-panel`), Révisions (`rv-panel`) et Collèges (`cg-panel`). QCM et Items n'ont pas de panneau secondaire cockpit et restent inchangés.
   - **Classic/backend inchangés.** Validation automatisée : 19 tests ciblés passés ; rendu navigateur aux breakpoints exacts restant à confirmer dans une session avec onglet composité.
+- **2026-07-28 — Reconnexion auto-évaluation Aujourd'hui cockpit.** Modifié : `frontend/pages/dashboard/_cockpit_today.py`. Nouveau test : `tests/test_cockpit_today_session_feedback.py`.
+  - Le bouton **Terminer** du panneau contextuel ouvre désormais `open_session_feedback_dialog` avant validation. Le callback transmet les champs complets à `complete_review`, puis `record_evaluation(source="auto_eval")` alimente la persistance de session et l'algorithme de maîtrise existant.
+  - Aucun changement de wizard, d'algorithme, de seuil de lacune, de backend ou de chemin classic. Suite complète : **620 tests passés**, 2 warnings préexistants.

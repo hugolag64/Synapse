@@ -2,6 +2,18 @@
 
 Date : 28 juillet 2026
 
+## Dernière clôture — action de première lecture
+
+La fiche cours expose maintenant **Commencer l’étude** quand la date de première
+lecture est absente. Le bouton réutilise le suivi existant et conserve le calcul
+J3/J7/J14/J30. Les états **Ouvrir le cours** et **Réviser maintenant** restent
+pilotés par l’état de la révision.
+
+La QA locale a confirmé le démarrage du suivi, l’ouverture du mode focus et
+l’ouverture du drawer **Retour de séance** après **Terminer**. Validation finale
+: **625 tests passés, 2 warnings**. Voir le compte-rendu détaillé dans
+[`PROGRESSION_SESSION_2026-07-28-FIN.md`](PROGRESSION_SESSION_2026-07-28-FIN.md).
+
 ## Clôture finale de session — Planning et runtime
 
 - Planning cockpit finalisé : Focus de la semaine, titres multi-lignes avec

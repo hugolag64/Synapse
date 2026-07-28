@@ -187,3 +187,6 @@ Command palette (fuzzy + ⌘K + clavier) = custom. Planning dense = grille CSS c
 - **2026-07-28 — Réparation des chemins PDF.** Modifiés : `frontend/pages/course_detail_cockpit.py`, `frontend/components/context_panel.py`, `frontend/components/course_card.py`. Nouveau test : `tests/test_pdf_path_repair_ui.py`.
   - L’action **Modifier le PDF** est désormais disponible même lorsqu’un chemin est déjà renseigné, notamment pour les cours de dermatologie. Elle réutilise `open_pdf_wizard` et remplace le lien local après sélection.
   - Le bouton global **Forcer rescan auto-link** dans Paramètres reste le parcours de réparation en masse. Suite complète : **623 tests passés**, 2 warnings préexistants.
+- **2026-07-28 — Action première lecture dans le détail cockpit.** Modifié : `frontend/pages/course_detail_cockpit.py`. Nouveau test : `tests/test_course_detail_first_reading_action.py`.
+  - CTA d’état : **Commencer l’étude** si `date_1ere_lecture` est absente, **Ouvrir le cours** si le suivi existe sans révision due, **Réviser maintenant** si une tâche est due. Le démarrage réutilise `open_start_tracking_dialog` et conserve le calcul J3/J7/J14/J30.
+  - `Modifier les dates` reste secondaire. Suite complète : **625 tests passés**, 2 warnings préexistants.

@@ -19,6 +19,7 @@ from typing import Optional
 SLOT_META: dict[str, dict] = {
     "review":       {"color": "blue",   "icon": "menu_book"},
     "review_urgent":{"color": "red",    "icon": "emergency"},
+    "consolidation":{"color": "cyan",  "icon": "history_edu"},
     "anki":         {"color": "teal",   "icon": "style"},
     "qcm":          {"color": "indigo", "icon": "quiz"},
     "lacune":       {"color": "orange", "icon": "report_problem"},

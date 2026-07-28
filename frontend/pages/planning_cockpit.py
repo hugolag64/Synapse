@@ -41,7 +41,9 @@ from backend.core.planning.policy import (
 )
 from backend.core.planning.focus import build_focus_rows, focus_row_label
 from backend.core.planning.calendar_actions import event_duration_minutes
+from backend.core.planning.cockpit_schedule import tasks_for_day
 from backend.core.reviews.service import review_service
+from backend.core.reviews import consolidation
 from backend.core.reviews.local_store import (
     create_manual_planning_entry,
     get_all_history,
@@ -81,6 +83,7 @@ _CSS = """
 .pl-day-body { flex:1; padding:7px 7px; display:flex; flex-direction:column; gap:5px; }
 .pl-block { border-radius:4px; padding:5px 6px; font-size:11px; line-height:1.3; }
 .pl-block-task { border-left:3px solid var(--accent); background:var(--bg); color:var(--text); }
+.pl-block-consolidation { border-left-color:#06b6d4; }
 .pl-day.today .pl-block-task { background:var(--bg); }
 .pl-block-event { border-left:3px dashed var(--text-dim); background:transparent; color:var(--text-muted); }
 .pl-block-title { overflow:hidden; display:-webkit-box; -webkit-box-orient:vertical; }
@@ -409,7 +412,10 @@ async def render_planning_cockpit() -> None:
             if not plan.slots and not events and not manual_entries:
                 ui.label("Rien de prévu").classes("pl-day-empty")
             for slot in plan.slots:
-                with ui.element("div").classes("pl-block pl-block-task").tooltip(slot.label):
+                slot_classes = "pl-block pl-block-task"
+                if slot.slot_type == "consolidation":
+                    slot_classes += " pl-block-consolidation"
+                with ui.element("div").classes(slot_classes).tooltip(slot.label):
                     ui.label(slot.label).classes("pl-block-title")
                     if slot.subtitle:
                         ui.label(f"{slot.subtitle} · {slot.duration_min} min").classes("pl-block-sub")
@@ -629,20 +635,22 @@ async def render_planning_cockpit() -> None:
         # lacunes uniquement sur la vraie date du jour, jamais sur les autres
         # colonnes, y compris quand "aujourd'hui" n'est pas la 1re colonne).
         today = datetime.date.today()
+        consolidation_tasks = consolidation.get_due_consolidation_tasks(
+            context="college", today=today, horizon_days=max(0, len(week) - 1)
+        )
         _manual_entries_by_day = {}
         manual_entries = get_manual_planning_entries(week[0], week[-1])
         for entry in manual_entries:
             _manual_entries_by_day.setdefault(entry["entry_date"], []).append(entry)
         plans = []
         for d in week:
-            if d == today:
-                urgent = [t for t in all_tasks if t.days_overdue > 0]
-                due = [t for t in all_tasks if t.days_overdue == 0 and t.due_date == d]
-                lacunes_day = active_lacunes
-            else:
-                urgent = []
-                due = [t for t in all_tasks if t.due_date == d]
-                lacunes_day = []
+            urgent, due = tasks_for_day(all_tasks, d, today)
+            consolidation_for_day = [
+                task for task in consolidation_tasks
+                if (d == today and task.due_date <= today) or task.due_date == d
+            ]
+            due = due + consolidation_for_day
+            lacunes_day = active_lacunes if d == today else []
             target_minutes = target_for_day(d, data_store.preferences)
             if target_minutes == 0 and is_vacation_day(d, vacation_for_preferences(data_store.preferences)):
                 urgent, due, lacunes_day = [], [], []

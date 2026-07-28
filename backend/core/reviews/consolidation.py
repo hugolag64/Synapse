@@ -68,6 +68,7 @@ def _bootstrap_at_date(
 def get_due_consolidation_tasks(
     context: str = "college",
     today: Optional[datetime.date] = None,
+    horizon_days: int = 0,
 ) -> list[ReviewTask]:
     """
     Construit les ReviewTask virtuelles 'consolidation' dues aujourd'hui ou
@@ -111,7 +112,7 @@ def get_due_consolidation_tasks(
         else:
             effective = due
 
-        if effective > today:
+        if effective > today + datetime.timedelta(days=max(0, horizon_days)):
             continue
 
         days_overdue = (today - effective).days

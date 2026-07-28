@@ -54,6 +54,9 @@ from frontend.components.course_quick_actions import (
     open_start_tracking_dialog,
 )
 from frontend.components.anki_review_session import open_anki_review_session
+from frontend.components.responsive_drawer import (
+    responsive_drawer, close_drawer, open_drawer, ensure_styles as _drawer_styles,
+)
 from frontend.pages.dashboard._dialogs import open_session_feedback_dialog
 from frontend.components.study_task_row import _ring_glyph
 
@@ -71,6 +74,17 @@ _CSS = """
 .ci-center { flex:1 1 auto; min-width:0; max-width:900px; }
 .ci-panel { flex:0 0 270px; width:270px; align-self:stretch; border-left:1px solid var(--border);
   padding:8px 8px 16px 20px; margin-left:24px; min-height:calc(100vh - 60px); }
+.ci-context-open { display:none; color:var(--accent); cursor:pointer; font-size:12px; }
+.ci-panel > .synapse-responsive-drawer__panel { padding:0; border:0; box-shadow:none; position:static; display:block; }
+@media (min-width: 900px) and (max-width: 1199.98px) {
+  .ci-wrap { display:block; }
+  .ci-panel { width:0; flex:0 0 0; margin-left:0; padding:0; min-height:0; }
+  .ci-panel > .synapse-responsive-drawer { display:contents; }
+  .ci-panel > .synapse-responsive-drawer .synapse-responsive-drawer__panel {
+    display:flex; position:fixed; padding:16px; border-left:1px solid var(--border);
+    box-shadow:var(--shadow-popover); }
+  .ci-context-open { display:inline-flex; align-items:center; }
+}
 
 .ci-crumb { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-dim);
   height:34px; flex-wrap:wrap; }
@@ -274,6 +288,7 @@ def render_item_cockpit(course_id: str) -> None:
     _curve_styles()
     _graph_styles()
     _timeline_styles()
+    _drawer_styles()
 
     course = next((c for c in data_store.cours if c.id == course_id), None)
     if not course:
@@ -367,6 +382,8 @@ def render_item_cockpit(course_id: str) -> None:
         open_focus_mode(st)
 
     # ── Layout ────────────────────────────────────────────────────────────────
+    drawer_state: dict = {"root": None}
+
     with ui.element("div").classes("ci-wrap"):
         center = ui.element("div").classes("ci-center")
         panel = ui.element("aside").classes("ci-panel")
@@ -450,6 +467,9 @@ def render_item_cockpit(course_id: str) -> None:
                     ui.label("↗ Obsidian")
                 _obs.on("click", lambda: obsidian_service.open_course_note(course))
 
+            _context_open = ui.label("Contexte").classes("ci-context-open")
+            _context_open.on("click", lambda: open_drawer(drawer_state["root"]) if drawer_state["root"] else None)
+
         # ── Onglets ───────────────────────────────────────────────────────────
         with ui.tabs().props("no-caps align=left dense indicator-color=transparent").classes("ci-tabs") as tabs:
             t_over = ui.tab("Vue d'ensemble")
@@ -499,7 +519,13 @@ def render_item_cockpit(course_id: str) -> None:
         tabs.on_value_change(lambda event: asyncio.ensure_future(_on_tab_change(event)))
 
     with panel:
-        _render_panel(course, lacunes, has_pdf, obs_path)
+        def _close_context() -> None:
+            if drawer_state["root"] is not None:
+                close_drawer(drawer_state["root"])
+
+        with responsive_drawer(on_close=_close_context, aria_label="Contexte de l'item") as drawer_root:
+            drawer_state["root"] = drawer_root
+            _render_panel(course, lacunes, has_pdf, obs_path)
 
 
 # ── Onglets ───────────────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 # Synapse — Audit fonctionnel, reconnexion et évolution des algorithmes
 
-> **Mise à jour — 27/07/2026 :** les éléments réalisés sont récapitulés en fin de document, section 23.
+> **Mise à jour — 28/07/2026 :** les éléments réalisés sont récapitulés en fin de document, sections 23 et 24.
 
 ## 1. Contexte
 
@@ -785,3 +785,67 @@ Ce changement est une amélioration de présentation : il doit rester séparé d
 ### État de la feuille de route
 
 Ces éléments sont considérés comme **implémentés et vérifiés**. Les chantiers de conception restant à traiter sont notamment l’algorithme de maîtrise, l’onglet Évaluation central, les intégrations QCM/Anki/UNESS, le mode Vacances et le prototype ECOS.
+
+## 24. État consolidé — 28/07/2026
+
+La section 23 conserve le journal historique de la session du 27/07. Depuis cette
+session, plusieurs chantiers initialement indiqués comme restant à traiter ont
+été implémentés et vérifiés dans le dépôt.
+
+### Réalisé et vérifié
+
+- reconnexion du cockpit, des vues Collèges et Items, du mode Focus et des
+  principaux parcours de validation ;
+- réutilisation du wizard commun de retour de séance, avec persistance de
+  l’auto-évaluation ;
+- façade métier commune `record_evaluation()` pour les résultats d’évaluation ;
+- onglet OIC dans la fiche item, avec réutilisation du service LiSA/AnythingLLM
+  existant ;
+- QCM, propositions de lacunes et ancrage des lacunes récurrentes ;
+- intégration technique Anki : client, mapping du paquet, déduplication des
+  preuves, session de révision et bridge du scheduler natif ;
+- maîtrise adaptative fondée sur des preuves datées et projection de rétention ;
+- planning cockpit, planification manuelle, objectifs de charge et
+  consolidations ;
+- liaison canonique des notes Obsidian au niveau de l’item ;
+- action explicite de première lecture et rappels J3/J7/J14/J30.
+
+Validation actuelle : `pytest -q` donne **630 tests passés, 1 avertissement**.
+
+La validation des workflows est compensatoire : si la transition métier échoue
+après la création de session, la session est supprimée, ainsi que les
+références de proposition de lacune qui la concernent. Cette garantie couvre
+les parcours révision, consolidation et lacune. Une transaction SQLite native
+reste à envisager pour couvrir les cas d’écriture partielle interne.
+
+### Partiel ou à consolider
+
+- l’architecture métier commune n’est pas encore appliquée à tous les parcours :
+  certains chemins historiques conservent des écritures ou rafraîchissements
+  spécifiques ;
+- les QCM et lacunes disposent encore de plusieurs formats historiques ;
+- l’onglet Évaluation central reste à structurer comme vue transverse complète ;
+- le mode Vacances existe dans la conception et le planning, mais sa gestion
+  complète des interruptions, reprises et reports doit encore être validée ;
+- l’intégration Anki est couverte par les tests, mais nécessite une vérification
+  manuelle avec AnkiConnect et un paquet réel ;
+- l’évaluation OIC repose sur LiSA/AnythingLLM : elle n’est pas une intégration
+  Ollama directe telle que formulée dans certaines parties historiques de cette
+  feuille de route.
+
+### Non commencé ou exploratoire
+
+- récupération/import de QCM UNESS dans un cadre conforme ;
+- connecteurs de sources QCM externes ;
+- planning universitaire automatisé et génération semi-automatique de notes ;
+- prototype et modèle de données ECOS ;
+- validation pédagogique avec Hugo des dimensions finales de la maîtrise et
+  des règles spécifiques EDN/ECOS.
+
+### Prochain ordre de travail recommandé
+
+1. mesurer et réduire les divergences restantes entre les points d’entrée ;
+2. finaliser l’onglet Évaluation transverse ;
+3. terminer la validation réelle du mode Vacances et d’Anki ;
+4. décider explicitement du périmètre UNESS et du planning universitaire ;
+5. concevoir un prototype ECOS limité avant toute intégration dans la maîtrise.

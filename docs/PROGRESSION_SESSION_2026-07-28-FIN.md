@@ -58,3 +58,13 @@ Commits concernés :
 Reprendre par une QA responsive écran par écran du panneau contextuel/drawer
 900–1200 px, puis vérifier le parcours complet de validation d’une séance avec
 écriture de l’auto-évaluation dans les preuves de maîtrise.
+
+## Addendum de clôture — robustesse des workflows
+
+Après cette QA, les workflows de validation ont reçu une compensation explicite
+pour les échecs de transition métier. Les parcours révision, consolidation et
+lacune ne laissent plus leur session nouvellement créée lorsque leur écriture
+finale échoue ; les références de propositions de lacunes sont nettoyées dans
+le même cas.
+
+Dernière vérification : `pytest -q` → **630 passed, 1 warning**.

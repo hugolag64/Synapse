@@ -142,5 +142,28 @@ terminé les tests de caractérisation et validé les comportements de panne.
   - `python -m compileall backend frontend tests -q` → succès
 - Warnings conservés et signalés tels quels :
   - `RequestsDependencyWarning` dans `requests`
-  - `DeprecationWarning: There is no current event loop` dans
+- `DeprecationWarning: There is no current event loop` dans
     `tests/test_delete_course_action.py`
+
+## Clôture finale — robustesse des validations
+
+La session a ensuite traité l’atomicité observable de `complete_review()` :
+
+- l’évaluation est persistée avant le passage de la tâche à `done` ;
+- si `mark_done()`, `mark_consolidation_done()` ou `resolve_weak_point()` échoue,
+  la session nouvellement créée est compensée ;
+- les références `study:<id>` des propositions de lacunes récurrentes sont
+  également retirées lors de la compensation ;
+- des tests couvrent les échecs de persistance pour les trois types de parcours.
+
+Vérification finale de la session : `pytest -q` → **630 passed, 1 warning**.
+`git diff --check` est propre pour les changements de cette session. Le seul
+avertissement restant est la dépréciation de la boucle asyncio dans un test
+historique.
+
+### État de reprise
+
+La prochaine évolution structurante serait une transaction SQLite native
+commune, capable de couvrir une écriture partielle interne à une transition.
+Elle n’est pas nécessaire pour la clôture actuelle et ne doit pas être ajoutée
+sans test de contrat dédié.

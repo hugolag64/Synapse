@@ -40,36 +40,10 @@ def complete_review(
         weak_detail=weak_detail,
     )
 
-    if task.review_type == "consolidation":
-        local_store.mark_consolidation_done(
-            course_id=task.course_id,
-            context=task.context,
-            theoretical_due_date=task.theoretical_due_date,
-            course_title=task.course_title,
-            item_number=task.item_number or "",
-            confidence=confidence or 3,
-            difficulty=difficulty,
-        )
-    elif task.review_type == "lacune":
-        try:
-            weak_point_id = int(task.id.removeprefix("lacune_"))
-        except (AttributeError, ValueError) as exc:
-            raise ValueError(f"Identifiant de lacune invalide: {task.id!r}") from exc
-        local_store.resolve_weak_point(weak_point_id)
-    else:
-        local_store.mark_done(
-            task_id=task.id,
-            course_id=task.course_id,
-            context=task.context,
-            review_type=task.review_type,
-            theoretical_due_date=task.theoretical_due_date,
-            course_title=task.course_title,
-            item_number=task.item_number or "",
-            difficulty=difficulty,
-            confidence=confidence,
-        )
-
-    record_evaluation(EvaluationInput(
+    # Persist the session before changing the review state. If SQLite is
+    # unavailable here, the task remains pending instead of becoming "done"
+    # without the evidence that should explain that completion.
+    evaluation_outcome = record_evaluation(EvaluationInput(
         source="auto_eval",
         course_id=common["course_id"],
         course_title=common["course_title"],
@@ -83,4 +57,43 @@ def complete_review(
         error_types=(common["weak_category"],) if common["weak_category"] else (),
         detail=common["weak_detail"],
     ))
+
+    try:
+        if task.review_type == "consolidation":
+            local_store.mark_consolidation_done(
+                course_id=task.course_id,
+                context=task.context,
+                theoretical_due_date=task.theoretical_due_date,
+                course_title=task.course_title,
+                item_number=task.item_number or "",
+                confidence=confidence or 3,
+                difficulty=difficulty,
+            )
+        elif task.review_type == "lacune":
+            try:
+                weak_point_id = int(task.id.removeprefix("lacune_"))
+            except (AttributeError, ValueError) as exc:
+                raise ValueError(f"Identifiant de lacune invalide: {task.id!r}") from exc
+            local_store.resolve_weak_point(weak_point_id)
+        else:
+            local_store.mark_done(
+                task_id=task.id,
+                course_id=task.course_id,
+                context=task.context,
+                review_type=task.review_type,
+                theoretical_due_date=task.theoretical_due_date,
+                course_title=task.course_title,
+                item_number=task.item_number or "",
+                difficulty=difficulty,
+                confidence=confidence,
+            )
+    except Exception:
+        # The session is the first durable side effect. Remove it if the
+        # task-specific state transition fails, so a failed completion cannot
+        # leave an orphaned learning record behind.
+        persisted_id = getattr(evaluation_outcome, "persisted_id", None)
+        if persisted_id is not None:
+            local_store.delete_study_session(persisted_id)
+        raise
+
     return task

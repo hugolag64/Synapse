@@ -828,6 +828,33 @@ def add_study_session(
     return session_id
 
 
+def delete_study_session(session_id: int) -> None:
+    """Supprime une session créée par un workflow qui doit être compensé."""
+    import json as _json
+
+    with _conn() as con:
+        token = f"study:{int(session_id)}"
+        proposals = con.execute(
+            "SELECT id, session_ids FROM pending_gap_proposals WHERE status = 'pending'"
+        ).fetchall()
+        for proposal in proposals:
+            try:
+                session_ids = _json.loads(proposal["session_ids"] or "[]")
+            except (TypeError, ValueError):
+                continue
+            if token not in session_ids:
+                continue
+            remaining = [sid for sid in session_ids if sid != token]
+            if len(remaining) < RECURRENCE_THRESHOLD:
+                con.execute("DELETE FROM pending_gap_proposals WHERE id = ?", (proposal["id"],))
+            else:
+                con.execute(
+                    "UPDATE pending_gap_proposals SET session_ids = ?, occurrence_count = ? WHERE id = ?",
+                    (_json.dumps(remaining), len(remaining), proposal["id"]),
+                )
+        con.execute("DELETE FROM study_sessions WHERE id = ?", (int(session_id),))
+
+
 def record_manual_review(
     course_id: str,
     course_title: str,

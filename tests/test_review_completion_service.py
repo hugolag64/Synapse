@@ -83,6 +83,91 @@ def test_complete_review_routes_session_persistence_through_evaluation_facade(mo
     assert calls[0].duration_minutes == 25
 
 
+def test_complete_review_does_not_mark_task_done_when_evaluation_persistence_fails(monkeypatch):
+    import backend.core.reviews.validation as validation
+
+    def fail_record(_evaluation):
+        raise RuntimeError("SQLite indisponible")
+
+    monkeypatch.setattr(validation, "record_evaluation", fail_record)
+
+    with pytest.raises(RuntimeError, match="SQLite indisponible"):
+        complete_review(_task())
+
+    assert local_store.get_history("task-1") is None
+    assert _sessions("course-1") == []
+
+
+def test_complete_review_compensates_session_when_review_state_persistence_fails(monkeypatch):
+    import backend.core.reviews.validation as validation
+
+    def fail_mark_done(**_kwargs):
+        raise RuntimeError("review history indisponible")
+
+    monkeypatch.setattr(validation.local_store, "mark_done", fail_mark_done)
+
+    with pytest.raises(RuntimeError, match="review history indisponible"):
+        complete_review(_task())
+
+    assert local_store.get_history("task-1") is None
+    assert _sessions("course-1") == []
+
+
+def test_compensation_removes_pending_gap_reference_for_deleted_session(monkeypatch):
+    import backend.core.reviews.validation as validation
+
+    local_store.add_study_session(
+        course_id="course-0",
+        course_title="Cardiologie",
+        item_number="75",
+        weak_category="raisonnement",
+    )
+
+    def fail_mark_done(**_kwargs):
+        raise RuntimeError("review history indisponible")
+
+    monkeypatch.setattr(validation.local_store, "mark_done", fail_mark_done)
+
+    with pytest.raises(RuntimeError, match="review history indisponible"):
+        complete_review(_task(), weak_category="raisonnement")
+
+    assert local_store.get_pending_proposals() == []
+    assert _sessions("course-1") == []
+
+
+def test_complete_consolidation_compensates_session_when_state_persistence_fails(monkeypatch):
+    import backend.core.reviews.validation as validation
+
+    def fail_consolidation(**_kwargs):
+        raise RuntimeError("consolidation indisponible")
+
+    monkeypatch.setattr(validation.local_store, "mark_consolidation_done", fail_consolidation)
+
+    with pytest.raises(RuntimeError, match="consolidation indisponible"):
+        complete_review(_task("consolidation", "course-1_college_consolidation_2026-07-27"))
+
+    assert _sessions("course-1") == []
+
+
+def test_complete_lacune_compensates_session_when_resolution_fails(monkeypatch):
+    import backend.core.reviews.validation as validation
+
+    weak_id = local_store.add_weak_point("course-1", "Revoir le traitement", item_number="75")
+
+    def fail_resolve(_weak_point_id):
+        raise RuntimeError("résolution indisponible")
+
+    monkeypatch.setattr(validation.local_store, "resolve_weak_point", fail_resolve)
+
+    with pytest.raises(RuntimeError, match="résolution indisponible"):
+        complete_review(_task("lacune", f"lacune_{weak_id}"))
+
+    assert _sessions("course-1") == []
+    with local_store._conn() as con:
+        status = con.execute("SELECT status FROM weak_points WHERE id = ?", (weak_id,)).fetchone()[0]
+    assert status == "active"
+
+
 def test_complete_review_records_feedback_without_creating_immediate_weak_point():
     complete_review(
         _task(),

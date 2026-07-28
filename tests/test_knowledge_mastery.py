@@ -100,6 +100,59 @@ def test_sans_declaration_le_score_calcule_est_inchange():
     assert snap.declared_level is None
 
 
+def test_anki_sans_revision_ne_penalise_pas_la_maitrise():
+    course = _course(first_read=datetime.date.today(), nb_lectures=3)
+    snap = get_course_mastery(course)
+
+    assert snap.anki_review_count == 0
+    assert snap.score == 56  # lecture progress minus the QCM absence, no Anki penalty
+
+
+def test_anki_good_avec_intervalle_alimente_la_maitrise_sans_remplacer_qcm():
+    import backend.core.reviews.local_store as ls
+
+    course = _course(first_read=datetime.date.today(), nb_lectures=1)
+    course.item_number = "221"
+    ls.record_anki_review(
+        42,
+        99,
+        ("221",),
+        "good",
+        datetime.datetime.now(datetime.timezone.utc),
+        7,
+        "review-1",
+    )
+
+    snap = get_course_mastery(course)
+
+    assert snap.anki_review_count == 1
+    assert snap.anki_knowledge_score >= 70
+    assert snap.qcm_done is False
+    assert snap.score > 45
+
+
+def test_manual_revision_date_changes_current_mastery():
+    today = datetime.date(2026, 7, 28)
+    course = _course(first_read=today, nb_lectures=1)
+    old = [{"session_date": "2026-04-29", "confidence": 4, "difficulty": "facile", "qcm_result": "réussi"}]
+    current = [{"session_date": "2026-07-28", "confidence": 4, "difficulty": "facile", "qcm_result": "réussi"}]
+
+    assert get_course_mastery(course, sessions=current).score > get_course_mastery(course, sessions=old).score
+
+
+def test_good_qcm_and_anki_evidence_stabilize_more_than_a_single_reading():
+    today = datetime.date(2026, 7, 28)
+    course = _course(first_read=today - datetime.timedelta(days=90), nb_lectures=1)
+    reading = [{"session_date": "2026-04-29", "confidence": 2, "difficulty": "moyen", "qcm_result": None}]
+    repeated = [
+        {"session_date": "2026-04-29", "confidence": 2, "difficulty": "moyen", "qcm_result": None},
+        {"session_date": "2026-05-29", "confidence": 4, "difficulty": "facile", "qcm_result": "réussi"},
+        {"session_date": "2026-07-28", "confidence": 4, "difficulty": "facile", "qcm_result": "réussi"},
+    ]
+
+    assert get_course_mastery(course, sessions=repeated).score > get_course_mastery(course, sessions=reading).score
+
+
 # ── Couverture OIC exposée dans le snapshot ───────────────────────────────────
 
 def test_le_snapshot_expose_la_couverture_oic_et_le_badge():

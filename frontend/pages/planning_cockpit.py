@@ -27,6 +27,17 @@ import datetime
 from nicegui import ui
 
 from backend.core.planning.service import planning_service
+from backend.core.planning.policy import (
+    capacity_from_preferences,
+    capacity_hours_to_minutes,
+    effective_capacity_minutes,
+    is_vacation_day,
+    return_diagnostic_tasks,
+    target_for_day,
+    vacation_for_preferences,
+    vacation_is_expired,
+    vacation_payload,
+)
 from backend.core.reviews.service import review_service
 from backend.core.reviews.local_store import get_all_history, get_all_weak_points_table
 from backend.core.google.calendar_service import calendar_service
@@ -75,20 +86,7 @@ _CSS = """
 .pl-view-btn { border:0; background:transparent; color:var(--text-muted); border-radius:5px; padding:5px 9px; font-size:11px; cursor:pointer; }
 .pl-view-btn:hover { background:var(--surface); }
 .pl-view-btn.active { color:var(--accent); background:var(--accent-wash); font-weight:600; }
-.pl-bottom { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(280px,.8fr); gap:16px; margin-top:24px; }
-.pl-bottom-card { border:1px solid var(--border); border-radius:10px; background:var(--surface); padding:16px; }
-.pl-bottom-title { font-size:13px; font-weight:600; color:var(--text); }
-.pl-bottom-subtitle { font-size:11px; color:var(--text-muted); margin-top:3px; }
-.pl-stat-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:14px; }
-.pl-stat { padding:10px; border-radius:8px; background:var(--bg); border:1px solid var(--border); }
-.pl-stat-value { font-family:var(--font-mono); font-size:17px; font-weight:600; color:var(--text); }
-.pl-stat-label { font-size:10px; color:var(--text-muted); margin-top:2px; }
-.pl-queue-item { display:flex; align-items:center; gap:8px; padding:9px 0; border-bottom:1px solid var(--border); }
-.pl-queue-item:last-child { border-bottom:0; }
-.pl-queue-title { flex:1; min-width:0; font-size:11.5px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.pl-queue-meta { font-size:10px; color:var(--text-muted); white-space:nowrap; }
-@media (max-width: 820px) { .pl-bottom { grid-template-columns:1fr; } }
-@media (max-width: 600px) { .pl-stat-grid { grid-template-columns:1fr 1fr; } }
+@media (max-width: 600px) { .pl-topbar { gap:10px; } }
 """
 
 
@@ -128,6 +126,25 @@ def _target_for(day: datetime.date) -> dict:
     return value if isinstance(value, dict) else {}
 
 
+def _capacity_label(minutes: int) -> str:
+    hours = int(minutes) // 60
+    return f"{hours} h"
+
+
+def _parse_ui_date(value: object) -> datetime.date | None:
+    try:
+        return datetime.date.fromisoformat(str(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def _vacation_label(vacation: dict) -> str:
+    if not vacation.get("enabled"):
+        return ""
+    end = vacation.get("end_date", "")
+    return "diagnostic au retour" if vacation.get("strategy") == "diagnostic_only" else f"charge réduite jusqu’au {end}"
+
+
 async def render_planning_cockpit() -> None:
     ui.add_head_html(f"<style>{_CSS}</style>", shared=True)
 
@@ -136,6 +153,7 @@ async def render_planning_cockpit() -> None:
 
     with ui.column().classes("pl-wrap gap-0"):
         topbar = ui.element("div").classes("pl-topbar")
+        return_notice = ui.element("div").classes("mb-4")
         grid = ui.element("div").classes("pl-grid")
         with ui.element("div").classes("pl-legend"):
             with ui.element("div").classes("pl-legend-item"):
@@ -145,7 +163,6 @@ async def render_planning_cockpit() -> None:
                 ui.element("div").classes("pl-legend-line event")
                 ui.label("Événement calendrier")
 
-        bottom = ui.element("div").classes("pl-bottom")
 
     def _week_dates() -> list[datetime.date]:
         anchor = state["anchor"]
@@ -162,51 +179,77 @@ async def render_planning_cockpit() -> None:
         asyncio.create_task(_load_and_render())
 
     def _open_capacity_dialog() -> None:
-        fields: dict[str, tuple] = {}
-        dates = _week_dates()
+        prefs = data_store.preferences
+        current_minutes = capacity_from_preferences(prefs)
+        current_hours = current_minutes // 60
+        current_vacation = vacation_for_preferences(prefs)
+        selected_duration = {"value": 3}
+        today_iso = datetime.date.today().isoformat()
+        initial_start = current_vacation.get("start_date", today_iso)
+        initial_end = current_vacation.get(
+            "end_date", (datetime.date.today() + datetime.timedelta(days=2)).isoformat()
+        )
         with ui.dialog() as dialog:
-            with ui.card().classes("w-full max-w-xl p-5"):
-                ui.label("Définir ma charge").classes("text-lg font-semibold")
-                ui.label("Choisis une durée ou un nombre d’items par jour. Les urgences restent prioritaires.").classes(
+            with ui.card().classes("w-full max-w-md p-5"):
+                ui.label("Ma charge").classes("text-base font-semibold")
+                ui.label("Ajuste ton rythme sans exposer les réglages techniques du planning.").classes(
                     "text-xs text-slate-500 mt-1"
                 )
-                with ui.column().classes("w-full gap-2 mt-4"):
-                    for day in dates:
-                        target = _target_for(day)
-                        with ui.row().classes("w-full items-center gap-2"):
-                            ui.label(f"{_DAYS_ABBR[day.weekday()]} {day.day} {_MONTHS_FR[day.month - 1]}").classes(
-                                "w-28 text-xs font-semibold"
-                            )
-                            mode = ui.select(
-                                {"minutes": "Durée", "items": "Items"},
-                                value=target.get("mode", "minutes"),
-                            ).props("outlined dense").classes("w-28")
-                            value = ui.number(
-                                value=target.get("value", 0), min=0, step=5,
-                            ).props("outlined dense").classes("w-28")
-                            ui.label("min" if target.get("mode", "minutes") == "minutes" else "items").classes(
-                                "text-xs text-slate-400"
-                            )
-                            fields[day.isoformat()] = (mode, value)
+                ui.label("Capacité quotidienne").classes("text-xs font-semibold mt-4")
+                capacity = ui.toggle(
+                    {3: "3 h", 6: "6 h", 9: "9 h", 12: "12 h"}, value=current_hours
+                ).props("dense unelevated").classes("w-full")
+                custom = ui.number(
+                    "Personnalisé (h)", value=current_hours, min=3, max=12, step=1
+                ).props("outlined dense").classes("w-full mt-2")
+                capacity.on_value_change(lambda e: custom.set_value(e.value))
+
+                enabled = ui.switch("Mode vacances", value=bool(current_vacation.get("enabled"))).classes("mt-4")
+                strategy = ui.toggle(
+                    {"reduced": "Charge réduite", "diagnostic_only": "Coupure complète"},
+                    value=current_vacation.get("strategy", "reduced"),
+                ).props("dense unelevated").classes("w-full mt-2")
+                with ui.row().classes("w-full gap-2 mt-3"):
+                    start_picker = ui.date(value=initial_start).props("outlined dense").classes("flex-1")
+                    end_picker = ui.date(value=initial_end).props(
+                        "outlined dense"
+                    ).classes("flex-1")
+                with ui.row().classes("gap-2 mt-3"):
+                    ui.label("Durée").classes("text-xs font-semibold self-center")
+                    for days, label in ((1, "1 jour"), (3, "3 jours"), (5, "5 jours")):
+                        def _select_duration(days=days) -> None:
+                            selected_duration["value"] = days
+                            start = _parse_ui_date(start_picker.value) or datetime.date.today()
+                            end_picker.set_value((start + datetime.timedelta(days=days - 1)).isoformat())
+
+                        btn = ui.button(label, on_click=_select_duration)
+                        btn.props("outline dense no-caps")
+                    ui.label("Dates personnalisées").classes("text-xs text-slate-500 self-center")
+                ui.label("Les vacances commencent aujourd’hui. Tu peux ensuite modifier la période exacte.").classes(
+                    "text-xs text-slate-500 mt-2"
+                )
 
                 with ui.row().classes("w-full justify-end gap-2 mt-5"):
-                    ui.button("Annuler", on_click=dialog.close).props("flat color=slate")
+                    ui.button("Annuler", on_click=dialog.close).props("flat no-caps color=slate")
 
                     def _save_capacity() -> None:
-                        targets = data_store.preferences.get("planning_targets", {})
-                        targets = dict(targets) if isinstance(targets, dict) else {}
-                        for iso, (mode, value) in fields.items():
-                            amount = int(value.value or 0)
-                            if amount > 0:
-                                targets[iso] = {"mode": mode.value, "value": amount}
-                            else:
-                                targets.pop(iso, None)
-                        data_store.set_preference("planning_targets", targets)
+                        hours = int(custom.value or capacity.value or current_hours)
+                        start = _parse_ui_date(start_picker.value) or datetime.date.today()
+                        end = _parse_ui_date(end_picker.value) or start
+                        end = max(start, end)
+                        vacation = {"enabled": False}
+                        if enabled.value:
+                            vacation = {
+                                **vacation_payload(start, max(1, (end - start).days + 1), strategy.value),
+                                "end_date": end.isoformat(),
+                            }
+                        data_store.set_preference("planning_capacity_minutes", capacity_hours_to_minutes(hours))
+                        data_store.set_preference("planning_vacation", vacation)
                         dialog.close()
                         asyncio.create_task(_load_and_render())
-                        ui.notify("Objectifs de charge enregistrés", type="positive")
+                        ui.notify("Ma charge a été enregistrée", type="positive")
 
-                    ui.button("Enregistrer", on_click=_save_capacity).props("unelevated color=indigo")
+                    ui.button("Enregistrer", on_click=_save_capacity).props("unelevated color=indigo no-caps")
         dialog.open()
 
     def _draw_topbar(week: list[datetime.date], total_min: int | None, free_days: int | None) -> None:
@@ -217,14 +260,18 @@ async def render_planning_cockpit() -> None:
                 if total_min is None:
                     ui.label(f"Semaine du {_month_day(week[0])} · chargement…").classes("pl-subtitle")
                 else:
-                    ui.label(
+                    subtitle = (
                         f"Semaine du {_month_day(week[0])} · "
                         f"charge restante {_load_label(total_min)} · "
                         f"{free_days} créneau{'x' if free_days != 1 else ''} libre{'s' if free_days != 1 else ''}"
-                    ).classes("pl-subtitle")
+                    )
+                    vacation = vacation_for_preferences(data_store.preferences)
+                    if vacation.get("enabled") and not vacation_is_expired(vacation, datetime.date.today()):
+                        subtitle += f" · vacances · {_vacation_label(vacation)}"
+                    ui.label(subtitle).classes("pl-subtitle")
             with ui.element("div").classes("pl-nav"):
-                ui.button("Ma charge", icon="tune", on_click=_open_capacity_dialog).props(
-                    "flat dense no-caps"
+                ui.button("Ma charge", on_click=_open_capacity_dialog).props(
+                    "outline dense no-caps"
                 )
                 prev_btn = ui.element("div").classes("pl-nav-arrow")
                 with prev_btn:
@@ -244,6 +291,21 @@ async def render_planning_cockpit() -> None:
                         with view_btn:
                             ui.label(label)
                         view_btn.on("click", lambda d=days: _set_view(d))
+
+    def _draw_return_notice(all_tasks: list) -> None:
+        return_notice.clear()
+        vacation = vacation_for_preferences(data_store.preferences)
+        diagnostic = return_diagnostic_tasks(all_tasks, vacation, datetime.date.today())
+        if not diagnostic:
+            return
+        with return_notice:
+            with ui.element("div").classes(
+                "rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900"
+            ):
+                ui.label("État des lieux après vacances").classes("font-semibold")
+                ui.label(
+                    f"{len(diagnostic)} connaissance{'s' if len(diagnostic) != 1 else ''} à tester depuis la période de coupure."
+                ).classes("text-xs mt-1")
 
     def _draw_skeleton(week: list[datetime.date]) -> None:
         grid.clear()
@@ -289,49 +351,6 @@ async def render_planning_cockpit() -> None:
                         ui.label(f"{h}h{m:02d}" if h else f"{dur} min").classes("pl-block-sub")
         ref["foot"].set_text(_load_label(plan.total_min))
 
-    def _draw_bottom(plans: list, active_lacunes: list[dict], all_tasks: list) -> None:
-        bottom.clear()
-        total_min = sum(p.total_min for p in plans)
-        active_days = sum(1 for p in plans if p.total_min > 0)
-        overdue = sum(1 for task in all_tasks if task.days_overdue > 0)
-        with bottom:
-            with ui.element("div").classes("pl-bottom-card"):
-                ui.label("Pilotage de la période").classes("pl-bottom-title")
-                ui.label("Répartir l’effort sans surcharger une journée.").classes("pl-bottom-subtitle")
-                with ui.element("div").classes("pl-stat-grid"):
-                    for value, label in (
-                        (_load_label(total_min), "charge planifiée"),
-                        (f"{active_days}/{len(plans)}", "jours actifs"),
-                        (str(overdue), "révisions en retard"),
-                    ):
-                        with ui.element("div").classes("pl-stat"):
-                            ui.label(value).classes("pl-stat-value")
-                            ui.label(label).classes("pl-stat-label")
-                if plans and max(p.total_min for p in plans) > 120:
-                    ui.label("Une journée dépasse 2 h : envisage de déplacer une session.").classes(
-                        "pl-bottom-subtitle mt-3 text-amber-600"
-                    )
-                else:
-                    ui.label("La charge est répartie de façon raisonnable.").classes(
-                        "pl-bottom-subtitle mt-3"
-                    )
-
-            with ui.element("div").classes("pl-bottom-card"):
-                ui.label("À placer").classes("pl-bottom-title")
-                ui.label("Lacunes actives à intégrer dans une prochaine session.").classes(
-                    "pl-bottom-subtitle"
-                )
-                queue = active_lacunes[:4]
-                if not queue:
-                    ui.label("Rien à placer pour le moment.").classes("pl-bottom-subtitle mt-4")
-                for lacune in queue:
-                    with ui.element("div").classes("pl-queue-item"):
-                        ui.icon("flag", size="xs").classes("text-amber-500")
-                        ui.label(
-                            lacune.get("title") or lacune.get("description") or "Point faible"
-                        ).classes("pl-queue-title")
-                        ui.label("lacune").classes("pl-queue-meta")
-
     async def _load_and_render() -> None:
         week = _week_dates()
         _draw_topbar(week, None, None)
@@ -362,13 +381,14 @@ async def render_planning_cockpit() -> None:
                 urgent = []
                 due = [t for t in all_tasks if t.due_date == d]
                 lacunes_day = []
-            target = _target_for(d)
+            target_minutes = target_for_day(d, data_store.preferences)
+            if target_minutes == 0 and is_vacation_day(d, vacation_for_preferences(data_store.preferences)):
+                urgent, due, lacunes_day = [], [], []
             plan = planning_service.plan_day(
                 urgent,
                 due,
                 lacunes_day,
-                target_minutes=target.get("value") if target.get("mode") == "minutes" else None,
-                target_items=target.get("value") if target.get("mode") == "items" else None,
+                target_minutes=target_minutes,
             )
             plan.date = d
             plans.append(plan)
@@ -386,6 +406,6 @@ async def render_planning_cockpit() -> None:
         total_min = sum(p.total_min for p in plans)
         free_days = sum(1 for p in plans if p.total_min <= 0)
         _draw_topbar(week, total_min, free_days)
-        _draw_bottom(plans, active_lacunes, all_tasks)
+        _draw_return_notice(all_tasks)
 
     asyncio.create_task(_load_and_render())

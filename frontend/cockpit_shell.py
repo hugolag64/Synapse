@@ -112,6 +112,43 @@ _SIDEBAR_CSS = """
 .cockpit-sidebar.mini .cockpit-wordmark { display:none !important; }
 .cockpit-sidebar.mini .cockpit-search { justify-content:center; }
 .cockpit-sidebar.mini .cockpit-chevron { transform:rotate(180deg); }
+
+/* ── Topbar + bottom nav mobile (masqués par défaut, activés <768px) ── */
+.cockpit-topbar-mobile { display:none; position:fixed; top:0; left:0; right:0; height:52px; z-index:1000;
+  align-items:center; justify-content:space-between; gap:10px; padding:0 16px;
+  background:var(--bg-alt); border-bottom:1px solid var(--border); }
+.cockpit-search-icon { display:flex; align-items:center; justify-content:center;
+  width:32px; height:32px; border-radius:6px; color:var(--text-muted); cursor:pointer; font-size:16px; }
+.cockpit-search-icon:hover { background:var(--surface); color:var(--text); }
+
+.cockpit-bottomnav { display:none; position:fixed; bottom:0; left:0; right:0; height:56px; z-index:1000;
+  align-items:stretch; justify-content:space-around; background:var(--bg-alt); border-top:1px solid var(--border); }
+.cockpit-bottomnav-item { flex:1 1 0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:2px; color:var(--text-muted) !important; text-decoration:none !important; font-size:9.5px; cursor:pointer; }
+.cockpit-bottomnav-item .glyph { font-size:17px; }
+.cockpit-bottomnav-item.active { color:var(--accent) !important; }
+
+/* ── Palier 768–900px : icônes forcées, indépendant du toggle manuel ── */
+@media (min-width: 768px) and (max-width: 899.98px) {
+  .cockpit-sidebar { width:56px; }
+  .cockpit-main { margin-left:56px; }
+  .cockpit-sidebar .cockpit-group-label,
+  .cockpit-sidebar .cockpit-nav-item .lbl,
+  .cockpit-sidebar .cockpit-badge-count,
+  .cockpit-sidebar .cockpit-search .lbl,
+  .cockpit-sidebar .cockpit-search kbd,
+  .cockpit-sidebar .cockpit-wordmark { display:none !important; }
+  .cockpit-sidebar .cockpit-search { justify-content:center; }
+  .cockpit-chevron { display:none; }
+}
+
+/* ── Palier <768px : sidebar remplacée par topbar + bottom nav ── */
+@media (max-width: 767.98px) {
+  .cockpit-sidebar { display:none; }
+  .cockpit-main { margin-left:0; padding:68px 16px 76px; }
+  .cockpit-topbar-mobile { display:flex; }
+  .cockpit-bottomnav { display:flex; }
+}
 """
 
 
@@ -140,6 +177,22 @@ def _nav_item(glyph: str, label: str, route, badge, active: str) -> None:
             ui.element("span").classes("cockpit-badge-dot")
 
 
+_BOTTOM_NAV = [
+    ("◉", "Aujourd'hui", "/", "Aujourd'hui"),
+    ("▦", "Planning", "/planning", "Planning"),
+    ("↻", "Révisions", "/todo", "Révisions"),
+    ("≡", "Items", "/items", "Items"),
+    ("⚑", "Lacunes", "/lacunes", "Points faibles"),
+]
+
+
+def _bottom_nav_item(glyph: str, label: str, route: str, active_key: str, active: str) -> None:
+    cls = "cockpit-bottomnav-item" + (" active" if active_key == active else "")
+    with ui.link(target=route).classes(cls):
+        ui.label(glyph).classes("glyph")
+        ui.label(label)
+
+
 @contextmanager
 def cockpit_frame(page_title: str):
     ui.add_head_html(f"<style>{_SIDEBAR_CSS}</style>", shared=True)
@@ -152,6 +205,8 @@ def cockpit_frame(page_title: str):
     active = _TITLE_TO_NAV.get(page_title, page_title)
 
     side = ui.element("aside").classes("cockpit-sidebar")
+    topbar_mobile = ui.element("div").classes("cockpit-topbar-mobile")
+    bottomnav = ui.element("nav").classes("cockpit-bottomnav")
     main = ui.element("div").classes("cockpit-main")
     state = {"mini": False}
 
@@ -198,6 +253,16 @@ def cockpit_frame(page_title: str):
         with ui.element("div").classes("cockpit-nav-item").on("click", _back_classic):
             ui.label("◐").classes("glyph")
             ui.label("Vue classic").classes("lbl")
+
+    with topbar_mobile:
+        with ui.row().classes("items-center gap-2"):
+            ui.label("S").classes("cockpit-logo")
+            ui.label("Synapse").classes("cockpit-wordmark")
+        ui.label("⌕").classes("cockpit-search-icon").on("click", open_command_palette)
+
+    with bottomnav:
+        for glyph, label, route, active_key in _BOTTOM_NAV:
+            _bottom_nav_item(glyph, label, route, active_key, active)
 
     with main:
         yield

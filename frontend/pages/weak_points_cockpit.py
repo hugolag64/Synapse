@@ -34,7 +34,7 @@ from loguru import logger
 from backend.core.reviews import local_store
 from backend.core.reviews.anchors import anchor_priority, anchor_status, is_anchor_due
 from backend.config.settings import settings
-from frontend.components.weak_point_card import _get
+from frontend.components.weak_point_card import WeakPointCard, _get
 from frontend.pages.weak_points import open_add_dialog
 
 _MONTHS_FR = ["jan", "fév", "mar", "avr", "mai", "juin",
@@ -50,7 +50,22 @@ _CSS = """
 .wp-nav.active { background:var(--surface); color:var(--text); font-weight:600; }
 .wp-nav .material-icons { font-size:16px; color:var(--text-dim); }
 .wp-nav.active .material-icons { color:var(--accent); }
-.wp-content { min-width:0; max-width:1180px; }
+.wp-content { min-width:0; max-width:none; width:100%; }
+.wp-content-body { display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:24px; align-items:start; width:100%; }
+.wp-pilotage { border:1px solid var(--border); border-radius:10px; background:var(--surface); padding:16px; position:sticky; top:16px; }
+.wp-pilotage-title { font-size:13px; font-weight:600; color:var(--text); }
+.wp-pilotage-subtitle { font-size:11px; color:var(--text-muted); margin-top:3px; }
+.wp-pilotage-section { margin-top:18px; }
+.wp-pilotage-section-title { font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-dim); font-weight:600; margin-bottom:9px; }
+.wp-kpis { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.wp-kpi { padding:10px; border:1px solid var(--border); border-radius:8px; background:var(--bg); }
+.wp-kpi-value { font-family:var(--font-mono); font-size:18px; font-weight:600; color:var(--text); }
+.wp-kpi-label { font-size:10px; color:var(--text-muted); margin-top:2px; }
+.wp-source-row { display:flex; align-items:center; gap:8px; margin-top:7px; font-size:11px; color:var(--text-muted); }
+.wp-source-row span:first-child { width:58px; }
+.wp-source-track { flex:1; height:6px; border-radius:3px; background:var(--surface-hover); overflow:hidden; }
+.wp-source-fill { height:100%; border-radius:3px; background:var(--accent); }
+.wp-source-count { width:24px; text-align:right; font-family:var(--font-mono); font-size:10px; }
 .wp-topbar { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:4px 0 18px; flex-wrap:wrap; }
 .wp-title { font-size:20px; font-weight:600; color:var(--text); letter-spacing:-0.01em; }
 .wp-subtitle { font-size:12.5px; color:var(--text-muted); margin-top:4px; }
@@ -79,6 +94,8 @@ _CSS = """
 .wp-empty { padding:32px 10px; text-align:center; color:var(--text-dim); font-size:13px; }
 @media (max-width: 760px) {
   .wp-layout { grid-template-columns:1fr; gap:16px; }
+  .wp-content-body { grid-template-columns:1fr; }
+  .wp-pilotage { position:static; }
   .wp-sidebar { border-right:0; border-bottom:1px solid var(--border); min-height:0; padding:0 0 10px; display:flex; gap:4px; overflow-x:auto; }
   .wp-sidebar-title { display:none; }
   .wp-nav { flex:0 0 auto; width:auto; }
@@ -157,6 +174,29 @@ def filter_weak_points_view(rows: list, view: str) -> list:
     return active
 
 
+def _weak_point_summary(rows: list) -> dict:
+    statuses = ("active", "à revoir", "récurrente", "résolue")
+    status_counts = {status: 0 for status in statuses}
+    source_counts: dict[str, int] = {}
+    for row in rows:
+        status = _get(row, "status", "active") or "active"
+        status_counts[status] = status_counts.get(status, 0) + 1
+        source = _get(row, "source_type", "manuel") or "manuel"
+        source_counts[source] = source_counts.get(source, 0) + 1
+    critical = sum(
+        1 for row in rows
+        if int(_get(row, "severity", 2) or 2) >= 4
+        and _get(row, "status", "active") != "résolue"
+    )
+    return {
+        "total": len(rows),
+        "open": sum(count for status, count in status_counts.items() if status != "résolue"),
+        "critical": critical,
+        "status_counts": status_counts,
+        "source_counts": source_counts,
+    }
+
+
 def render_weak_points_cockpit() -> None:
     ui.add_head_html(f"<style>{_CSS}</style>", shared=True)
 
@@ -166,7 +206,9 @@ def render_weak_points_cockpit() -> None:
             sidebar = ui.element("nav").classes("wp-sidebar")
             with ui.element("main").classes("wp-content"):
                 topbar = ui.element("div").classes("wp-topbar")
-                list_col = ui.element("div").classes("wp-list")
+                with ui.element("div").classes("wp-content-body"):
+                    list_col = ui.element("div").classes("wp-list")
+                    pilotage = ui.element("aside").classes("wp-pilotage")
 
     def _draw_sidebar(rows: list) -> None:
         sidebar.clear()
@@ -234,7 +276,7 @@ def render_weak_points_cockpit() -> None:
 
                 add_btn = ui.element("div").classes("wp-btn primary")
                 with add_btn:
-                    ui.label("+ Ajouter")
+                    ui.label("Créer une lacune")
                 add_btn.on("click", lambda: open_add_dialog(_render))
 
     async def _run_sync(btn) -> None:
@@ -264,34 +306,46 @@ def render_weak_points_cockpit() -> None:
                 _draw_card(w)
 
     def _draw_card(w) -> None:
-        resolved = _get(w, "status", "active") == "résolue"
-        is_anchor = anchor_status(w) == "actif"
-        due = is_anchor and is_anchor_due(w)
-        classes = "wp-card"
-        if resolved:
-            classes += " resolved"
-        if is_anchor:
-            classes += " anchor"
-        if due:
-            classes += " due"
-        card = ui.element("div").classes(classes)
-        with card:
-            ui.element("span").classes("wp-dot").style(f"background:{_dot_color(w)}")
-            with ui.element("div").classes("wp-main"):
-                ui.label(_get(w, "detail", "Lacune") or "Lacune").classes("wp-card-title")
-                ui.label(_status_line(w)).classes("wp-card-sub")
-                if is_anchor:
-                    ui.label(
-                        "Ancrage" + (" · à revoir" if due else "")
-                    ).classes("wp-card-sub")
-            with ui.element("div").classes("wp-meta"):
-                ui.label(_get(w, "college", "") or "—")
-                ui.label(_get(w, "item_number", "") or "—").classes("wp-meta-id")
+        WeakPointCard(w, on_refresh=_render)
+
+    def _draw_pilotage(rows: list) -> None:
+        pilotage.clear()
+        summary = _weak_point_summary(rows)
+        with pilotage:
+            ui.label("Pilotage des lacunes").classes("wp-pilotage-title")
+            ui.label("Les points à traiter en priorité").classes("wp-pilotage-subtitle")
+
+            with ui.element("div").classes("wp-kpis wp-pilotage-section"):
+                for value, label in [
+                    (summary["critical"], "critiques"),
+                    (summary["open"], "ouvertes"),
+                    (summary["status_counts"]["à revoir"], "à revoir"),
+                    (summary["status_counts"]["résolue"], "résolues"),
+                ]:
+                    with ui.element("div").classes("wp-kpi"):
+                        ui.label(str(value)).classes("wp-kpi-value")
+                        ui.label(label).classes("wp-kpi-label")
+
+            with ui.element("div").classes("wp-pilotage-section"):
+                ui.label("Sources").classes("wp-pilotage-section-title")
+                source_items = sorted(
+                    summary["source_counts"].items(), key=lambda item: (-item[1], item[0])
+                )
+                maximum = max((count for _, count in source_items), default=0)
+                for source, count in source_items:
+                    with ui.element("div").classes("wp-source-row"):
+                        ui.label(source.capitalize())
+                        with ui.element("div").classes("wp-source-track"):
+                            ui.element("div").classes("wp-source-fill").style(
+                                f"width:{int(count / maximum * 100) if maximum else 0}%"
+                            )
+                        ui.label(str(count)).classes("wp-source-count")
 
     def _render() -> None:
         rows = local_store.get_all_weak_points_table(limit=300)
         _draw_sidebar(rows)
         _draw_topbar(rows)
+        _draw_pilotage(rows)
         _draw_list(filter_weak_points_view(rows, state["view"]))
 
     _render()

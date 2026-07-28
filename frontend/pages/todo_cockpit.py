@@ -231,6 +231,9 @@ async def render_revisions_cockpit() -> None:
                 with el:
                     ui.label(label)
                 el.on("click", lambda v=value: _select_cycle(v))
+            _chip("Toutes", None)
+            for c in _CYCLES:
+                _chip(c, c)
 
     def _draw_pilotage() -> None:
         panel.clear()
@@ -262,10 +265,6 @@ async def render_revisions_cockpit() -> None:
                                 f"width:{int(count / maximum * 100) if maximum else 0}%"
                             )
                         ui.label(str(count)).classes("rv-cycle-count")
-
-            _chip("Toutes", None)
-            for c in _CYCLES:
-                _chip(c, c)
 
     def _draw_list() -> None:
         list_col.clear()

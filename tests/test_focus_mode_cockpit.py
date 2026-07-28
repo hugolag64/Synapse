@@ -25,3 +25,14 @@ def test_focus_dialog_uses_maximized_persistent_prop():
 
     assert '.props("maximized persistent")' in source
     assert "full-width full-height" not in source
+
+
+def test_focus_dialog_reimplements_escape_to_close():
+    # `persistent` désactive la fermeture native de Quasar par Échap (et par
+    # clic sur le fond, volontairement conservé) — il faut donc un
+    # gestionnaire explicite qui ferme le dialogue sur Échap.
+    source = open("frontend/components/focus_mode_cockpit.py", encoding="utf-8").read()
+
+    assert "ui.keyboard(" in source
+    assert 'e.key.name == "Escape"' in source
+    assert "fdlg.close()" in source

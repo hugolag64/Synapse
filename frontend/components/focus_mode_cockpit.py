@@ -116,6 +116,15 @@ def open_focus_mode_cockpit(state) -> None:
                     quit_btn.on("click", fdlg.close)
             center = ui.column().classes("fm-center")
 
+            # `persistent` (ci-dessus) désactive la fermeture native de Quasar
+            # par clic sur le fond ET par Échap. On ne veut garder que la
+            # première (éviter une perte accidentelle de session en focus) ;
+            # Échap est donc ré-implémenté explicitement ici, même pattern que
+            # le raccourci Espace du Pomodoro (frontend/pages/dashboard/__init__.py).
+            ui.keyboard(
+                on_key=lambda e: fdlg.close() if e.action.keydown and e.key.name == "Escape" else None,
+            )
+
     refs: dict = {}
 
     def _reset_timer() -> None:

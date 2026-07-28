@@ -138,6 +138,11 @@ def create_lacune(
     detail = (detail_override or candidate.detail).strip() or "Lacune sans titre"
     severity = max(1, min(5, severity))
 
+    if candidate.is_recurrence and candidate.existing_wp_id:
+        local_store.increment_recurrence(candidate.existing_wp_id)
+        local_store.update_weak_point_severity(candidate.existing_wp_id, severity)
+        return candidate.existing_wp_id
+
     wp_id = local_store.add_weak_point_full(
         course_id=candidate.course_id or "—",
         detail=detail,

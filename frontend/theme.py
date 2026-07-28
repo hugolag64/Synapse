@@ -70,7 +70,7 @@ def frame(page_title: str):
 
     # ── Refonte : shell cockpit si ui_mode == 'cockpit' (classic sinon) ────────
     if data_store.preferences.get('ui_mode', 'classic') == 'cockpit':
-        from frontend.cockpit_shell import cockpit_frame
+        from .cockpit_shell import cockpit_frame
         with cockpit_frame(page_title):
             yield
         return

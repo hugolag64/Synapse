@@ -5,7 +5,7 @@ Instructions persistantes pour l'implémentation de la refonte. **Lis ce fichier
 > ## ▶ REPRISE — commencer ici
 > **Fait : étapes 0 → 15** (Fondations · App shell · Composants · Aujourd'hui · Détail item · Révisions · Planning · Collèges · Semestres · Items · QCM · Lacunes · Statistiques · Revue hebdo · Externat · Paramètres). Commits `b9d169a`, `7cec4ce`, `0f62b5a` sur `master`.
 > **Le cockpit est désormais le mode par défaut** (`ui_mode` = `cockpit`) ; « ◐ Vue classic » en bas de sidebar pour repasser en classic.
-> **Prochaine session = ÉTAPE 17 · Responsive** — 3 col ≥1200px ; panneau → drawer 900–1200px ; sidebar icônes 768–900px ; bottom nav <768px.
+> **Prochaine session = ÉTAPE 17 · Responsive, session 2/3 · Panneau contextuel → drawer 900–1200px, écran par écran** (Aujourd'hui, Détail item, Révisions, QCM, Items…). Session 1/3 (shell : icônes 768–900px, topbar+bottom nav <768px) faite le 28/07 — voir Journal. Session 3/3 (mobile dédié Aujourd'hui, README §16) restera après.
 > Rappels avant de coder : relire le README (section de l'écran) + comparer à la capture correspondante ; suivre les Règles d'or (Quasar d'abord, tokens, grammaire de statut, **`ui.add_head_html` au build synchrone uniquement**, **accès aux lignes SQLite via un helper tolérant — `local_store` renvoie des `sqlite3.Row`, pas des `dict`**, diff avant d'écrire, 1 écran/session, commit atomique) ; brancher sur le flag `ui_mode` sans toucher au chemin classic.
 > Pour lancer/vérifier : `SYNAPSE_ENV=prod ./.venv/Scripts/python.exe main.py` (port 8082).
 
@@ -49,7 +49,7 @@ Suivre cet ordre — les fondations d'abord (tout en dépend).
 - [x] **14. Externat** (`pages/externat.py` early-return → `pages/externat_cockpit.py`, nouveau) — cartes de stage (statut, dates, items rattachés). Lecture seule ; gestion complète (créer/éditer/supprimer) reste classic-only.
 - [x] **15. Paramètres** (`pages/settings.py` early-return → `pages/settings_cockpit.py`, nouveau) — liste de connexions (statuts synchrones, pas de ping live) + bascule apparence. Le reste (Pomodoro, durées, examen, LiSA, AnythingLLM…) reste classic-only.
 - [x] **16. Mode focus** (`focus_bar`, `q-dialog` maximized) — tâche + minuteur + ressource + noter une lacune. Composant déjà présent (`frontend/components/focus_mode_cockpit.py`), dialogue corrigé et testé le 28/07 (voir Journal).
-- [ ] **17. Responsive** — 3 col ≥1200px ; panneau → drawer 900–1200px ; sidebar icônes 768–900px ; bottom nav <768px.
+- [ ] **17. Responsive** — 3 col ≥1200px ; panneau → drawer 900–1200px ; sidebar icônes 768–900px ; bottom nav <768px. **1/3 fait** (shell : icônes 768–900px + topbar/bottom nav <768px, 28/07) ; reste 2/3 (panneau → drawer, par écran) et 3/3 (mobile dédié Aujourd'hui, §16).
 - [ ] **18. Passe finale** — vérifier chaque critère d'acceptation du README, contraste AA, cohérence clair/sombre.
 
 > Coche les cases au fur et à mesure (édite ce fichier) pour tracer la progression. Note les écarts/décisions dans « Journal » ci-dessous.

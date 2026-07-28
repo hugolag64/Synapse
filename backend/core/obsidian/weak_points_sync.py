@@ -331,6 +331,9 @@ class WeakPointsSyncService:
                 logger.debug(f"synapse_id écrit dans {path.name}")
             except Exception as exc:
                 logger.warning(f"Impossible d'écrire synapse_id dans {path.name}: {exc}")
+                result.errors.append(
+                    f"{path.name}: écriture du lien Obsidian impossible ({exc})"
+                )
 
     # ── Extraction du titre ───────────────────────────────────────────────────
 

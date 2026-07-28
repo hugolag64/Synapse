@@ -147,6 +147,8 @@ class PlanningService:
         max_urgent: int = 8,
         max_today:  int = 5,
         max_lacunes: int = 3,
+        target_minutes: int | None = None,
+        target_items: int | None = None,
     ) -> DailyPlan:
         """
         Génère le planning d'une journée.
@@ -180,6 +182,22 @@ class PlanningService:
             slots.append(self._slot_from_lacune(lc, durations))
 
         # ── Totaux ────────────────────────────────────────────────────────────
+        skipped: list[PlannedSlot] = []
+        if target_minutes is not None or target_items is not None:
+            kept: list[PlannedSlot] = []
+            used_minutes = 0
+            used_items = 0
+            for slot in slots:
+                over_minutes = target_minutes is not None and used_minutes + slot.duration_min > target_minutes
+                over_items = target_items is not None and used_items >= target_items
+                if slot.is_urgent or (not over_minutes and not over_items):
+                    kept.append(slot)
+                    used_minutes += slot.duration_min
+                    used_items += 1
+                else:
+                    skipped.append(slot)
+            slots = kept
+
         total_min = sum(s.duration_min for s in slots)
         cal_busy  = self._calendar_busy_min(calendar_events)
         free_min  = max(0, DEFAULT_STUDY_DAY_MIN - cal_busy)
@@ -192,7 +210,7 @@ class PlanningService:
         return DailyPlan(
             date=datetime.date.today(),
             slots=slots,
-            skipped=[],
+            skipped=skipped,
             total_min=total_min,
             is_heavy=total_min > HEAVY_THRESHOLD_MIN,
             calendar_busy_min=cal_busy,

@@ -477,3 +477,28 @@ def _scan_single(path: Path) -> "WeakPointSyncResult":
         return result
     finally:
         pass
+
+
+def test_sqlite_upsert_with_obsidian_writeback_failure_is_reported(monkeypatch, tmp_path):
+    from backend.core.obsidian.weak_points_sync import WeakPointsSyncService
+
+    note = _write_note(
+        tmp_path,
+        "partial.md",
+        "---\n"
+        "type: lacune\n"
+        "statut: active\n"
+        "gravite: moyenne\n"
+        "---\n"
+        "# Erreur de test\n",
+    )
+
+    def fail_writeback(*args, **kwargs):
+        raise OSError("vault devenu indisponible")
+
+    monkeypatch.setattr(WeakPointsSyncService, "_write_fm_fields", fail_writeback)
+
+    result = _scan_single(note)
+
+    assert result.created == 1
+    assert any("écriture" in error.lower() or "write" in error.lower() for error in result.errors)

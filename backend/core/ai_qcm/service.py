@@ -25,6 +25,8 @@ from backend.core.qcm.items_mapping import item_title
 from backend.core.ai_qcm.parser import parse_file, ParseError, AIQCMFile
 from backend.core.reviews import local_store
 from backend.core.qcm.service import QCM_PASS_THRESHOLD
+from backend.core.evaluation.models import EvaluationInput
+from backend.core.evaluation.service import record_evaluation
 
 _ROOT = Path(__file__).parent.parent.parent.parent
 INBOX_DIR    = _ROOT / "data" / "ai_qcm"
@@ -155,7 +157,8 @@ def import_file(file_path: Path, courses: Optional[list] = None) -> dict:
             final_title  = resolved_title or session.course_title
             final_item   = resolved_item or session.item_number
 
-            session_id = local_store.add_qcm_session_full(
+            session_id = record_evaluation(EvaluationInput(
+                source="qcm",
                 platform=qcm_file.platform,
                 session_date=qcm_file.date,
                 course_id=course_id,
@@ -168,9 +171,9 @@ def import_file(file_path: Path, courses: Optional[list] = None) -> dict:
                 correct_answers=session.correct_answers,
                 wrong_answers=session.wrong_answers,
                 difficulty=session.difficulty,
-                error_types=session.error_types,
-                comments=session.comments,
-            )
+                error_types=tuple(session.error_types),
+                detail=session.comments,
+            )).persisted_id
             result["imported"] += 1
 
             pct = session.score_percent

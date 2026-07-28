@@ -136,7 +136,7 @@ def _open_calendar_export_dialog(slots: list[PlannedSlot], selected: dict[str, b
 
     to_export = [s for i, s in enumerate(slots) if selected.get(f"slot_{i}", True)]
 
-    with ui.dialog().props("persistent") as dlg:
+    with ui.dialog() as dlg:
         with ui.card().classes("w-full max-w-xl p-0 rounded-2xl overflow-hidden"):
 
             # ── Header ────────────────────────────────────────────────────────

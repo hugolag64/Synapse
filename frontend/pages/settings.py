@@ -13,7 +13,7 @@ def _show_uncertain_dialog(uncertain_matches: list) -> None:
     from backend.core.obsidian.sync import vault_sync_service
     selected: dict[str, bool] = {str(m.path): True for m in uncertain_matches}
 
-    with ui.dialog().props("persistent") as dlg:
+    with ui.dialog() as dlg:
         with ui.card().classes("w-full max-w-2xl p-0 rounded-2xl overflow-hidden"):
             with ui.row().classes(
                 "items-center gap-3 px-5 py-4 "

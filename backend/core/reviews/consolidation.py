@@ -19,6 +19,8 @@ from typing import Optional
 from backend.core.reviews import local_store
 from backend.core.reviews.models import ReviewTask
 from backend.core.reviews.mastery import get_course_mastery
+from backend.core.evaluation.models import EvaluationInput
+from backend.core.evaluation.service import record_evaluation
 
 # Intervalle initial (jours) selon le niveau de maîtrise au moment de l'amorçage.
 INITIAL_INTERVAL_BY_LEVEL: dict[str, int] = {
@@ -269,16 +271,17 @@ def complete_consolidation_task(
         confidence=confidence or 3,
         difficulty=difficulty,
     )
-    local_store.add_study_session(
+    record_evaluation(EvaluationInput(
+        source="auto_eval",
         course_id=task.course_id,
         course_title=task.course_title,
         item_number=task.item_number or "",
         context=task.context,
-        activity_types=activity_types or ["révision"],
+        activity_types=tuple(activity_types or ["révision"]),
         duration_minutes=duration_minutes,
         confidence=confidence,
         difficulty=difficulty,
         qcm_result=qcm_result,
-        weak_category=weak_category,
-        weak_detail=weak_detail,
-    )
+        error_types=(weak_category,) if weak_category else (),
+        detail=weak_detail,
+    ))

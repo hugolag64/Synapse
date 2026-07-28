@@ -149,7 +149,11 @@ async def update_course_action(c, properties: dict, refresh_fn=None, client=None
         return False
 
     # Sync Notion
-    success = await notion_service.update_course(c.id, properties)
+    try:
+        success = await notion_service.update_course(c.id, properties)
+    except Exception as exc:
+        logger.error(f"[utils] Échec Notion après mise à jour optimiste : {exc}")
+        success = False
 
     if success:
         data_store.save_to_disk()

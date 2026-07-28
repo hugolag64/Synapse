@@ -24,8 +24,12 @@ from nicegui import ui
 
 from backend.core.reviews import local_store
 from backend.core.qcm.service import QCM_PASS_THRESHOLD
-from frontend.pages.qcm import _compute_groups, _build_item_college_map, _open_add_dialog
+from frontend.pages.qcm import (
+    _compute_groups, _build_item_college_map, _open_add_dialog, _ADD_DIALOG_CSS,
+)
 from frontend.components.mastery_indicator import _LEVEL_COLOR, _level_from_score
+
+QCM_ENTRY_LABEL = "Saisir un résultat"
 
 _CSS = """
 .qc-wrap { max-width:1100px; width:100%; }
@@ -66,9 +70,11 @@ _CSS = """
 .qc-empty { padding:32px 10px; text-align:center; color:var(--text-dim); font-size:13px; }
 """
 
+QCM_COCKPIT_CSS = _CSS + _ADD_DIALOG_CSS
+
 
 def render_qcm_cockpit() -> None:
-    ui.add_head_html(f"<style>{_CSS}</style>", shared=True)
+    ui.add_head_html(f"<style>{QCM_COCKPIT_CSS}</style>", shared=True)
 
     college_map = _build_item_college_map()
 
@@ -87,7 +93,7 @@ def render_qcm_cockpit() -> None:
                 ui.label("Analytique · cours à retravailler · EDNpro & Hypocampus").classes("qc-subtitle")
             btn = ui.element("div").classes("qc-btn-primary")
             with btn:
-                ui.label("+ Saisir un résultat")
+                ui.label(QCM_ENTRY_LABEL)
             btn.on("click", lambda: _open_add_dialog(_render))
 
     def _draw_summary(rows: list, groups: list) -> None:

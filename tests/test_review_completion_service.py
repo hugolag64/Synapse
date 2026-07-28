@@ -61,6 +61,28 @@ def test_complete_review_records_history_and_session_with_feedback():
     assert sessions[0]["qcm_result"] == "réussi"
 
 
+def test_complete_review_routes_session_persistence_through_evaluation_facade(monkeypatch):
+    import backend.core.reviews.validation as validation
+
+    calls = []
+
+    def fake_record(evaluation):
+        calls.append(evaluation)
+        return None
+
+    monkeypatch.setattr(validation, "record_evaluation", fake_record)
+    complete_review(
+        _task(), activity_types=["révision", "qcm"], duration_minutes=25,
+        confidence=4, difficulty="moyen", qcm_result="réussi",
+        weak_category="raisonnement", weak_detail="Piège",
+    )
+
+    assert len(calls) == 1
+    assert calls[0].source == "auto_eval"
+    assert calls[0].activity_types == ("révision", "qcm")
+    assert calls[0].duration_minutes == 25
+
+
 def test_complete_review_records_feedback_without_creating_immediate_weak_point():
     complete_review(
         _task(),

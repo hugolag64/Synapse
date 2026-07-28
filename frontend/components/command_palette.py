@@ -62,7 +62,7 @@ def open_command_palette() -> None:
 
     # ── Dialog principal ──────────────────────────────────────────────────────
 
-    with ui.dialog().props("persistent") as dlg:
+    with ui.dialog() as dlg:
         with ui.card().classes(
             "w-[580px] max-w-[95vw] p-0 rounded-2xl overflow-hidden "
             "bg-white dark:bg-slate-900 shadow-2xl"
@@ -238,7 +238,7 @@ def open_command_palette() -> None:
         )
         _CATEGORIES = {None: "— Aucune"} | {c: c for c in local_store.WEAK_POINT_CATEGORIES}
 
-        with ui.dialog().props("persistent") as dlg2:
+        with ui.dialog() as dlg2:
             with ui.card().classes(
                 "w-[520px] max-w-[92vw] rounded-3xl p-0 overflow-hidden "
                 "bg-white dark:bg-slate-900 shadow-2xl"

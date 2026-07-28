@@ -627,7 +627,7 @@ def _render_semaine_tab() -> None:
     content_sem = ui.column().classes("w-full gap-5")
 
     def _open_goals_dialog():
-        with ui.dialog().props("persistent") as dlg_goals:
+        with ui.dialog() as dlg_goals:
             with ui.card().classes("w-[440px] max-w-[92vw] rounded-2xl p-0 overflow-hidden"):
                 with ui.element("div").classes("px-5 py-4 border-b border-slate-100 dark:border-slate-800"):
                     with ui.row().classes("items-center justify-between"):

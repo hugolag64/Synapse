@@ -14,7 +14,10 @@ from __future__ import annotations
 
 import sqlite3
 import datetime
+import hashlib
 import os
+import threading
+import uuid
 from pathlib import Path
 from typing import Optional
 from zoneinfo import ZoneInfo
@@ -31,17 +34,61 @@ DB_PATH = _ROOT / "data" / "synapse_local.db"
 # ── Connexion ─────────────────────────────────────────────────────────────────
 
 _DB: sqlite3.Connection | None = None
+_DB_LOCK = threading.RLock()
 
 
-def _conn() -> sqlite3.Connection:
+class _LockedConnection:
+    """Proxy qui sérialise les transactions de la connexion SQLite partagée."""
+
+    def __init__(self, connection: sqlite3.Connection):
+        self._connection = connection
+
+    def __enter__(self):
+        _DB_LOCK.acquire()
+        try:
+            self._connection.__enter__()
+        except Exception:
+            _DB_LOCK.release()
+            raise
+        return self._connection
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        try:
+            return self._connection.__exit__(exc_type, exc_value, traceback)
+        finally:
+            _DB_LOCK.release()
+
+    def execute(self, *args, **kwargs):
+        with _DB_LOCK:
+            return self._connection.execute(*args, **kwargs)
+
+    def executescript(self, *args, **kwargs):
+        with _DB_LOCK:
+            return self._connection.executescript(*args, **kwargs)
+
+    def commit(self):
+        with _DB_LOCK:
+            return self._connection.commit()
+
+    def rollback(self):
+        with _DB_LOCK:
+            return self._connection.rollback()
+
+    def close(self):
+        with _DB_LOCK:
+            return self._connection.close()
+
+
+def _conn() -> _LockedConnection:
     global _DB
-    if _DB is None:
-        DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-        _DB = sqlite3.connect(DB_PATH, check_same_thread=False)
-        _DB.row_factory = sqlite3.Row
-        _DB.execute("PRAGMA journal_mode=WAL")
-        _DB.execute("PRAGMA foreign_keys=ON")
-    return _DB
+    with _DB_LOCK:
+        if _DB is None:
+            DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+            _DB = sqlite3.connect(DB_PATH, check_same_thread=False)
+            _DB.row_factory = sqlite3.Row
+            _DB.execute("PRAGMA journal_mode=WAL")
+            _DB.execute("PRAGMA foreign_keys=ON")
+        return _LockedConnection(_DB)
 
 
 # ── Initialisation ────────────────────────────────────────────────────────────
@@ -132,6 +179,22 @@ def init_db() -> None:
             created_at       TEXT    NOT NULL,
             updated_at       TEXT    NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS anki_review_evidence (
+            id               INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_key        TEXT    NOT NULL,
+            card_id          INTEGER NOT NULL,
+            note_id          INTEGER,
+            item_number      TEXT    NOT NULL,
+            rating           TEXT    NOT NULL,
+            reviewed_at      TEXT    NOT NULL,
+            interval         INTEGER,
+            source_review_id TEXT,
+            created_at       TEXT    NOT NULL,
+            UNIQUE(event_key, item_number)
+        );
+        CREATE INDEX IF NOT EXISTS idx_anki_evidence_item_date
+            ON anki_review_evidence(item_number, reviewed_at DESC);
 
         -- Index pour les requêtes courantes
         CREATE INDEX IF NOT EXISTS idx_rh_course  ON review_history(course_id);
@@ -750,6 +813,127 @@ def add_study_session(
             logger.warning(f"Recurring study feedback gap (non-bloquant): {exc}")
 
     return session_id
+
+
+def record_manual_review(
+    course_id: str,
+    course_title: str,
+    item_number: str,
+    context: str,
+    review_date: datetime.date,
+    activity_types: list[str],
+    duration_minutes: Optional[int],
+    confidence: Optional[int],
+    difficulty: Optional[str],
+    qcm_result: Optional[str] = None,
+    weak_category: Optional[str] = None,
+    weak_detail: Optional[str] = None,
+    notes: Optional[str] = None,
+) -> str:
+    """Ajoute une séance manuelle dans la timeline et les sessions d'étude."""
+    import json as _json
+
+    if not isinstance(review_date, datetime.date):
+        raise TypeError("review_date must be a date")
+    if confidence is not None and not 1 <= int(confidence) <= 5:
+        raise ValueError("confidence must be between 1 and 5")
+    types = list(dict.fromkeys(activity_types or ["révision"]))
+    session_type = types[0]
+    date_str = review_date.isoformat()
+    now = _now()
+    task_id = f"manual_{course_id}_{date_str}_{uuid.uuid4().hex[:10]}"
+    with _conn() as con:
+        con.execute(
+            """
+            INSERT INTO review_history
+                (task_id, course_id, course_title, item_number, context, review_type,
+                 theoretical_due_date, effective_due_date, status, completed_at,
+                 difficulty, confidence, notes, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, 'manuel', ?, ?, 'done', ?, ?, ?, ?, ?, ?)
+            """,
+            (task_id, course_id, course_title, item_number, context,
+             date_str, date_str, date_str, difficulty, confidence, notes, now, now),
+        )
+        con.execute(
+            """
+            INSERT INTO study_sessions
+                (course_id, course_title, item_number, context, session_date,
+                 duration_minutes, session_type, activity_types, confidence,
+                 difficulty, qcm_result, weak_category, weak_detail, notes,
+                 created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (course_id, course_title, item_number, context, date_str,
+             duration_minutes, session_type, _json.dumps(types, ensure_ascii=False),
+             confidence, difficulty, qcm_result, weak_category, weak_detail,
+             notes, now, now),
+        )
+    return task_id
+
+
+def get_manual_review_count(course_id: str) -> int:
+    with _conn() as con:
+        row = con.execute(
+            "SELECT COUNT(*) FROM review_history WHERE course_id = ? "
+            "AND review_type = 'manuel' AND status = 'done'",
+            (course_id,),
+        ).fetchone()
+    return int(row[0] if row else 0)
+
+
+def get_manual_reviews_by_course(course_id: str) -> list[sqlite3.Row]:
+    with _conn() as con:
+        return con.execute(
+            "SELECT * FROM review_history WHERE course_id = ? "
+            "AND review_type = 'manuel' AND status = 'done' "
+            "ORDER BY completed_at DESC, id DESC",
+            (course_id,),
+        ).fetchall()
+
+
+def record_anki_review(
+    card_id: int,
+    note_id: Optional[int],
+    item_numbers: tuple[str, ...],
+    rating: str,
+    reviewed_at: datetime.datetime,
+    interval: Optional[int],
+    source_review_id: Optional[str],
+) -> str:
+    """Enregistre une réponse Anki une seule fois pour chaque item associé."""
+    if rating not in {"again", "hard", "good", "easy"}:
+        raise ValueError(f"Invalid Anki rating: {rating}")
+    timestamp = reviewed_at.isoformat()
+    identity = source_review_id or f"{card_id}|{timestamp}|{rating}|{interval or 0}"
+    event_key = hashlib.sha256(identity.encode("utf-8")).hexdigest()
+    now = _now()
+    normalized_items = tuple(dict.fromkeys(str(item).strip() for item in item_numbers if str(item).strip()))
+    with _conn() as con:
+        for item_number in normalized_items:
+            con.execute(
+                """
+                INSERT OR IGNORE INTO anki_review_evidence
+                    (event_key, card_id, note_id, item_number, rating,
+                     reviewed_at, interval, source_review_id, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (event_key, int(card_id), note_id, item_number, rating,
+                 timestamp, interval, source_review_id, now),
+            )
+    return event_key
+
+
+def get_anki_review_evidence(item_number: Optional[str] = None) -> list[sqlite3.Row]:
+    with _conn() as con:
+        if item_number is None:
+            return con.execute(
+                "SELECT * FROM anki_review_evidence ORDER BY reviewed_at DESC, id DESC"
+            ).fetchall()
+        return con.execute(
+            "SELECT * FROM anki_review_evidence WHERE item_number = ? "
+            "ORDER BY reviewed_at DESC, id DESC",
+            (str(item_number),),
+        ).fetchall()
 
 
 # ── Migration depuis l'ancien système JSON ────────────────────────────────────

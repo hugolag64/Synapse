@@ -1,0 +1,9 @@
+{
+  "name": "Synapse native review bridge",
+  "version": "0.1.0",
+  "action": "synapseAnswerCard",
+  "payload": {
+    "cardId": "integer",
+    "ease": "1..4"
+  }
+}

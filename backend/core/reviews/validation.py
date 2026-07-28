@@ -5,6 +5,8 @@ from __future__ import annotations
 from typing import Optional
 
 from backend.core.reviews import local_store
+from backend.core.evaluation.models import EvaluationInput
+from backend.core.evaluation.service import record_evaluation
 from backend.core.reviews.models import ReviewTask
 
 
@@ -67,5 +69,18 @@ def complete_review(
             confidence=confidence,
         )
 
-    local_store.add_study_session(**common)
+    record_evaluation(EvaluationInput(
+        source="auto_eval",
+        course_id=common["course_id"],
+        course_title=common["course_title"],
+        item_number=common["item_number"],
+        context=common["context"],
+        activity_types=tuple(common["activity_types"]),
+        duration_minutes=common["duration_minutes"],
+        confidence=common["confidence"],
+        difficulty=common["difficulty"],
+        qcm_result=common["qcm_result"],
+        error_types=(common["weak_category"],) if common["weak_category"] else (),
+        detail=common["weak_detail"],
+    ))
     return task

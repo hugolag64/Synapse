@@ -42,13 +42,14 @@ _MONTHS_FR = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet",
               "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
 
 _CSS = """
-.cockpit-today { display:flex; gap:0; align-items:stretch; width:100%; }
-.ct-center { flex:1 1 auto; min-width:0; max-width:900px; }
+.cockpit-today { display:grid; grid-template-columns:minmax(0, 1fr) 8px var(--ct-panel-width,296px);
+  gap:0; align-items:stretch; width:100%; box-sizing:border-box; }
+.ct-center { min-width:0; max-width:none; }
 .ct-resizer { flex:0 0 8px; width:8px; cursor:col-resize; position:relative; }
 .ct-resizer::after { content:""; position:absolute; top:0; bottom:0; left:3px; width:1px; background:var(--border); }
 .ct-resizer:hover::after { width:2px; left:2px; background:var(--accent); }
-.ct-panel { flex:0 0 var(--ct-panel-width,296px); width:var(--ct-panel-width,296px); align-self:stretch; border-left:0;
-  padding:8px 8px 16px 20px; margin-left:24px; min-height:calc(100vh - 60px); }
+.ct-panel { width:100%; min-width:0; box-sizing:border-box; align-self:stretch; border-left:0;
+  padding:8px 8px 16px 20px; min-height:calc(100vh - 60px); }
 .ct-topbar { display:flex; align-items:center; gap:12px; height:46px; }
 .ct-title { font-size:15px; font-weight:600; color:var(--text); }
 .ct-date { font-size:12.5px; color:var(--text-dim); flex:1; }
@@ -89,7 +90,7 @@ _CSS = """
 .ct-empty { padding:24px 10px; color:var(--text-dim); font-size:13px; }
 .ct-panel-empty { color:var(--text-dim); font-size:12.5px; padding:20px 4px; }
 @media (max-width: 760px) {
-  .cockpit-today { flex-direction:column; }
+  .cockpit-today { display:flex; flex-direction:column; }
   .ct-center { max-width:none; width:100%; }
   .ct-resizer { display:none; }
   .ct-panel { width:100%; flex-basis:auto; margin:16px 0 0; padding:16px 0; border-top:1px solid var(--border); min-height:0; }
@@ -110,14 +111,19 @@ _RESIZER_JS = r"""
   const handle = layout?.querySelector('.ct-resizer');
   if (!layout || !handle || handle.dataset.ready) return;
   handle.dataset.ready = '1';
-  const clamp = value => Math.max(220, Math.min(Math.min(520, innerWidth - 360), value));
+  const clamp = value => {
+    const layoutWidth = layout.getBoundingClientRect().width;
+    const maxWidth = Math.max(220, Math.min(520, layoutWidth - 360));
+    return Math.max(220, Math.min(maxWidth, value));
+  };
   const saved = Number(localStorage.getItem(key));
   if (saved) layout.style.setProperty('--ct-panel-width', `${clamp(saved)}px`);
   handle.addEventListener('pointerdown', event => {
     event.preventDefault();
     handle.setPointerCapture(event.pointerId);
     const move = moveEvent => {
-      const width = clamp(innerWidth - moveEvent.clientX - 24);
+      const layoutRect = layout.getBoundingClientRect();
+      const width = clamp(layoutRect.right - moveEvent.clientX);
       layout.style.setProperty('--ct-panel-width', `${width}px`);
       localStorage.setItem(key, String(width));
     };
@@ -145,7 +151,7 @@ async def render_today_cockpit() -> None:
 
     state = DashboardState()
     sel: dict = {"task": None}
-    _data: dict = {"urgent": [], "today": [], "load": {}, "qcm": {}, "lac": {}, "crit": 0}
+    _data: dict = {"urgent": [], "today": [], "load": {}, "qcm": {}, "lac": {}, "crit": 0, "target": {}}
 
     # ── Pipeline données (réplique de rebuild_all, partie data) ────────────────
     def _fetch() -> None:
@@ -163,9 +169,13 @@ async def render_today_cockpit() -> None:
         today = review_service.get_today_tasks(all_tasks)
         state.focus_tasks = urgent + today
 
-        budget = data_store.preferences.get("daily_budget_min", 0)
+        targets = data_store.preferences.get("planning_targets", {})
+        target = targets.get(datetime.date.today().isoformat(), {}) if isinstance(targets, dict) else {}
+        budget = target.get("value", 0) if target.get("mode") == "minutes" else data_store.preferences.get("daily_budget_min", 0)
         load = compute_daily_load(urgent, today, heavy_threshold_min=budget if budget > 0 else 120)
         urgent, today, _overflow = apply_daily_budget(urgent, today, budget)
+        if target.get("mode") == "items":
+            today = today[:max(0, int(target.get("value", 0)) - len(urgent))]
 
         try:
             qcm = local_store.get_qcm_last_scores_by_course()
@@ -177,7 +187,7 @@ async def render_today_cockpit() -> None:
         except Exception:
             crit = 0
 
-        _data.update(urgent=urgent, today=today, load=load, qcm=qcm, lac=lac, crit=crit)
+        _data.update(urgent=urgent, today=today, load=load, qcm=qcm, lac=lac, crit=crit, target=target)
 
     # ── Focus (réutilise open_focus_mode existant) ────────────────────────────
     def _open_focus(task: ReviewTask | None = None) -> None:
@@ -259,7 +269,10 @@ async def render_today_cockpit() -> None:
     # ── Layout : conteneurs ───────────────────────────────────────────────────
     with ui.element("div").classes("cockpit-today"):
         center = ui.element("div").classes("ct-center")
-        resizer = ui.element("div").classes("ct-resizer").props('aria-label="Redimensionner le panneau contexte"')
+        resizer = ui.element("div").classes("ct-resizer").props(
+            'role="separator" aria-orientation="vertical" tabindex="0" '
+            'aria-label="Redimensionner le panneau contexte"'
+        )
         panel = ui.element("aside").classes("ct-panel")
     ui.timer(0.1, lambda: ui.run_javascript(_RESIZER_JS), once=True)
 
@@ -271,6 +284,12 @@ async def render_today_cockpit() -> None:
             with ui.element("div").classes("ct-metric"):
                 ui.label(time_txt).classes("ct-metric-strong")
                 ui.label("recommandé").classes("ct-metric-sub")
+            target = _data.get("target", {})
+            if target.get("value"):
+                ui.element("div").classes("ct-vsep")
+                with ui.element("div").classes("ct-metric"):
+                    ui.label(str(target["value"])).classes("ct-metric-strong")
+                    ui.label("min objectif" if target.get("mode") == "minutes" else "items objectif").classes("ct-metric-sub")
             ui.element("div").classes("ct-vsep")
             with ui.element("div").classes("ct-metric"):
                 ui.label(str(total)).classes("ct-metric-strong")

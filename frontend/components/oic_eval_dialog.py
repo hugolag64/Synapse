@@ -18,6 +18,8 @@ from backend.core.lisa.anythingllm_client import (
     AnythingLLMUnavailableError,
     WorkspaceNotFoundError,
 )
+from backend.core.evaluation.models import EvaluationInput
+from backend.core.evaluation.service import record_evaluation
 
 _VERDICT_COLORS = {"correct": "green-600", "partial": "orange-500", "incorrect": "red-600"}
 _VERDICT_LABELS = {"correct": "ACQUIS", "partial": "PARTIEL", "incorrect": "ÉCHEC"}
@@ -144,12 +146,16 @@ def open_oic_eval_dialog(oic, course, refresh_fn=None, course_ids=None) -> None:
         ]
         old_level = state["level"]
         new_level = evaluator.next_oic_level(old_level, session_score, previous)
-        item_service.save_item_oic_attempt(
-            alias_ids,
-            oic["oic_code"],
-            session_score,
-            json.dumps(state["records"], ensure_ascii=False),
-        )
+        record_evaluation(EvaluationInput(
+            source="oic",
+            course_id=course.id,
+            course_title=course_title,
+            item_number=item_number,
+            course_ids=alias_ids,
+            oic_code=oic["oic_code"],
+            score_percent=session_score,
+            questions_json=json.dumps(state["records"], ensure_ascii=False),
+        ))
         item_service.set_item_oic_level(alias_ids, oic["oic_code"], new_level)
         state["level"] = new_level
 

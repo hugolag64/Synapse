@@ -207,6 +207,7 @@ def open_session_feedback_dialog(
     card,
     validate_fn,
     initial_duration_minutes: int | None = None,
+    manual_date: datetime.date | None = None,
 ) -> None:
     """Modale 'Retour de séance' avec chips multi-sélection."""
     if task.review_type == "bonus":
@@ -229,6 +230,7 @@ def open_session_feedback_dialog(
         qcm_result=_qcm,
         weak_category=None,
         weak_detail="",
+        session_date=manual_date or datetime.date.today(),
     )
 
     # ── Socle « état des connaissances » ──────────────────────────────────────
@@ -249,7 +251,7 @@ def open_session_feedback_dialog(
     def _chip_on(col): return f"unelevated rounded size=sm color={col}"
     def _chip_off():   return "outline rounded size=sm color=grey"
 
-    with ui.dialog().props("persistent") as dialog:
+    with ui.dialog() as dialog:
         with ui.card().classes(
             "w-[560px] max-w-[92vw] rounded-3xl p-0 overflow-hidden "
             "bg-white dark:bg-slate-900 shadow-2xl"
@@ -271,6 +273,23 @@ def open_session_feedback_dialog(
                     )
 
             with ui.element("div").classes("px-6 py-5 flex flex-col gap-5"):
+
+                if manual_date is not None:
+                    ui.label("DATE DE SÉANCE").classes(
+                        "text-[11px] font-bold tracking-widest text-slate-400 uppercase"
+                    )
+                    with ui.input(
+                        value=state_fb.session_date.strftime("%d/%m/%Y"),
+                        placeholder="JJ/MM/AAAA",
+                    ).props("outlined dense mask='##/##/####'").classes("w-full") as date_field:
+                        def _set_session_date(event):
+                            try:
+                                state_fb.session_date = datetime.datetime.strptime(
+                                    event.value, "%d/%m/%Y"
+                                ).date()
+                            except (TypeError, ValueError):
+                                pass
+                        date_field.on_value_change(_set_session_date)
 
                 def _section(label: str):
                     ui.label(label).classes(
@@ -490,6 +509,7 @@ def open_session_feedback_dialog(
                         qcm_result=state_fb.qcm_result,
                         weak_category=state_fb.weak_category,
                         weak_detail=state_fb.weak_detail or None,
+                        **({"session_date": state_fb.session_date} if manual_date is not None else {}),
                     )
 
                 ui.button("Valider ✓", on_click=_submit).props(

@@ -26,8 +26,10 @@ from loguru import logger
 from backend.state.store import data_store
 from backend.core.reviews import local_store
 from backend.core.reviews.mastery import get_course_mastery
+from backend.core.reviews.anchors import anchor_priority, anchor_status, is_anchor_due
 from backend.core.reviews.recommendation_service import get_next_action
 from backend.core.reviews.service import review_service
+from backend.core.reviews.models import ReviewTask
 from backend.core.obsidian.service import obsidian_service
 from backend.config.settings import settings as _settings
 
@@ -46,6 +48,13 @@ from frontend.components.review_timeline import (
 from frontend.components.oic_panel import (
     render_oic_panel, should_load_on_tab_activation,
 )
+from frontend.components.course_quick_actions import (
+    _open_quick_qcm_dialog,
+    open_pdf_wizard,
+    open_start_tracking_dialog,
+)
+from frontend.components.anki_review_session import open_anki_review_session
+from frontend.pages.dashboard._dialogs import open_session_feedback_dialog
 from frontend.components.study_task_row import _ring_glyph
 
 _MONTHS_FR = ["jan", "fév", "mar", "avr", "mai", "juin",
@@ -280,6 +289,7 @@ def render_item_cockpit(course_id: str) -> None:
     qcm_sessions = local_store.get_qcm_sessions_all(limit=20, course_id=course_id)
     lacunes = list(local_store.get_weak_points_for_course(course_id))
     review_hist = local_store.get_review_history_by_course(course_id)
+    manual_reviews = local_store.get_manual_reviews_by_course(course_id)
 
     try:
         # Signature complète : (course, context, sessions, total_postpone, …).
@@ -411,6 +421,27 @@ def render_item_cockpit(course_id: str) -> None:
             else:
                 _rev.tooltip("Aucune révision planifiée pour cet item")
 
+            _anki = ui.element("div").classes("ci-btn")
+            with _anki:
+                ui.label("Réviser avec Anki")
+            _anki.on(
+                "click",
+                lambda c=course: open_anki_review_session(
+                    str(c.display_item_number or c.item_number or "") or None
+                ),
+            )
+
+            if not has_pdf:
+                _link_pdf = ui.element("div").classes("ci-btn warning")
+                with _link_pdf:
+                    ui.label("Lier un PDF")
+                _link_pdf.on(
+                    "click",
+                    lambda c=course: open_pdf_wizard(
+                        c, "college", lambda: ui.navigate.reload(), ui.context.client
+                    ),
+                )
+
             if has_pdf:
                 ui.link("↗ PDF", f"/pdf/{course.id}", new_tab=True).classes("ci-btn")
             if obs_path is not None:
@@ -424,7 +455,7 @@ def render_item_cockpit(course_id: str) -> None:
             t_over = ui.tab("Vue d'ensemble")
             t_note = ui.tab("Note")
             t_rev = ui.tab("Révisions")
-            t_qcm = ui.tab("QCM")
+            t_qcm = ui.tab("Entraînement")
             t_lac = ui.tab("Lacunes")
             t_oic = ui.tab("OIC")
             t_hist = ui.tab("Historique")
@@ -437,9 +468,9 @@ def render_item_cockpit(course_id: str) -> None:
             with ui.tab_panel(t_note):
                 _tab_note(course, obs_path, obs_configured, item_label)
             with ui.tab_panel(t_rev):
-                review_timeline(stages, on_review=lambda _s: _open_focus())
+                _tab_revisions(course, stages, manual_reviews, review_hist, _open_focus)
             with ui.tab_panel(t_qcm):
-                _tab_qcm(qcm_summary, qcm_sessions, lacunes)
+                _tab_qcm(course, qcm_summary, qcm_sessions, lacunes)
             with ui.tab_panel(t_lac):
                 _tab_lacunes(lacunes)
             with ui.tab_panel(t_oic):
@@ -655,7 +686,108 @@ def _tab_note(course, obs_path, obs_configured: bool, item_label: str) -> None:
             btn.on("click", _create_lacune)
 
 
-def _tab_qcm(qcm_summary, qcm_sessions, lacunes) -> None:
+def _tab_revisions(course, stages, manual_reviews, review_hist, on_planned_review) -> None:
+    count = sum(1 for row in review_hist if _row_get(row, "status") == "done")
+    with ui.row().classes("w-full items-center justify-between mb-4"):
+        with ui.column().classes("gap-0"):
+            ui.label("Cycle de révision").classes("ci-section-title")
+            ui.label(f"{count} révision{'s' if count != 1 else ''} enregistrée{'s' if count != 1 else ''}").classes(
+                "text-xs text-slate-400"
+            )
+        with ui.row().classes("gap-2"):
+            add_btn = ui.element("div").classes("ci-btn primary")
+            with add_btn:
+                ui.label("Ajouter une révision")
+            add_btn.on("click", lambda c=course: _open_manual_review_dialog(c))
+            dates_btn = ui.element("div").classes("ci-btn")
+            with dates_btn:
+                ui.label("Modifier les dates")
+            dates_btn.on(
+                "click",
+                lambda c=course: open_start_tracking_dialog(
+                    c, "college", lambda: ui.navigate.reload(), ui.context.client, is_restart=True
+                ),
+            )
+
+    review_timeline(stages, on_review=on_planned_review)
+
+    if manual_reviews:
+        ui.label("Révisions manuelles").classes("ci-section-title mt-5")
+        for row in manual_reviews[:12]:
+            date_txt = str(_row_get(row, "completed_at", "—"))[:10]
+            confidence = _row_get(row, "confidence")
+            difficulty = _row_get(row, "difficulty")
+            meta = " · ".join(
+                part for part in (
+                    f"confiance {confidence}/5" if confidence else None,
+                    difficulty,
+                    f"{_row_get(row, 'notes')}" if _row_get(row, "notes") else None,
+                ) if part
+            )
+            with ui.element("div").classes("ci-hist"):
+                ui.label(_fmt_date(date_txt)).classes("ci-hist-date")
+                ui.label("MANUELLE").classes("ci-hist-badge")
+                ui.label(meta or "Révision enregistrée").classes("ci-hist-detail")
+
+
+def _open_manual_review_dialog(course) -> None:
+    today = datetime.date.today()
+    task = ReviewTask(
+        id=f"manual_{course.id}",
+        course_id=course.id,
+        course_title=course.title,
+        item_number=str(course.display_item_number or course.item_number or "") or None,
+        college=list(course.college or []),
+        context="college",
+        url_pdf=course.url_pdf,
+        theoretical_due_date=today,
+        due_date=today,
+        review_type="manuel",
+        nb_lectures=int(getattr(course, "nb_lectures", 0) or 0),
+        qcm_done=bool(getattr(course, "qcm_done", False)),
+    )
+
+    async def _save_manual(_task, _card=None, activity_types=None,
+                           duration_minutes=None, confidence=None,
+                           difficulty=None, qcm_result=None,
+                           weak_category=None, weak_detail=None,
+                           session_date=None, **_kwargs):
+        local_store.record_manual_review(
+            course_id=course.id,
+            course_title=course.title,
+            item_number=str(course.display_item_number or course.item_number or ""),
+            context="college",
+            review_date=session_date or today,
+            activity_types=activity_types or ["révision"],
+            duration_minutes=duration_minutes,
+            confidence=confidence,
+            difficulty=difficulty,
+            qcm_result=qcm_result,
+            weak_category=weak_category,
+            weak_detail=weak_detail,
+        )
+        ui.notify("Révision ajoutée à la timeline et à l’historique", type="positive")
+        ui.navigate.reload()
+
+    open_session_feedback_dialog(
+        task,
+        ui.element("div"),
+        _save_manual,
+        manual_date=today,
+    )
+
+
+def _tab_qcm(course, qcm_summary, qcm_sessions, lacunes) -> None:
+    anki_btn = ui.element("div").classes("ci-btn")
+    with anki_btn:
+        ui.label("Réviser avec Anki")
+    anki_btn.on("click", lambda c=course: open_anki_review_session(str(c.item_number or "") or None))
+
+    btn = ui.element("div").classes("ci-btn primary")
+    with btn:
+        ui.label("Enregistrer un résultat")
+    btn.on("click", lambda c=course: _open_quick_qcm_dialog(c, lambda: ui.navigate.reload()))
+
     if not qcm_summary.get("count"):
         ui.label("Aucune session QCM enregistrée pour cet item.").classes("ci-empty")
     else:
@@ -714,6 +846,33 @@ def _tab_lacunes(lacunes) -> None:
         ui.label("Aucune lacune enregistrée sur cet item.").classes("ci-empty")
         return
 
+    anchors = [
+        row for row in lacunes
+        if anchor_status(row) == "actif"
+    ]
+    anchors.sort(key=lambda row: (-anchor_priority(row), not is_anchor_due(row)))
+    if anchors:
+        with ui.element("div").classes("ci-section ci-anchor-section"):
+            with ui.element("div").classes("ci-card-head"):
+                ui.label(f"⚓ ANCRAGES · {len(anchors)}").classes("ci-card-title")
+                ui.label("erreurs persistantes à revoir jusqu’à résolution").classes("ci-card-sub")
+            for anchor in anchors:
+                due = is_anchor_due(anchor)
+                with ui.element("div").classes("ci-lac ci-anchor" + (" due" if due else "")):
+                    ui.element("span").classes("ci-dot").style(
+                        f"background:{'var(--danger)' if due else 'var(--warning)'};margin-top:5px"
+                    )
+                    with ui.element("div").classes("ci-lac-body"):
+                        ui.label(str(_row_get(anchor, "detail", "") or "—")).classes("ci-lac-title")
+                        count = int(_row_get(anchor, "recurrence_count", 0) or 0)
+                        ui.label(
+                            f"Ancrage · {count} récurrence(s) · "
+                            f"{'à revoir maintenant' if due else 'stable'}"
+                        ).classes("ci-lac-sub")
+                    if due:
+                        act = ui.label("Marquer revu").classes("ci-lac-action")
+                        act.on("click", lambda row=anchor: _review_anchor(row))
+
     for l in lacunes:
         status = str(_row_get(l, "status", "active") or "active")
         resolved = status == "résolue"
@@ -743,6 +902,16 @@ def _tab_lacunes(lacunes) -> None:
             if not resolved:
                 act = ui.label("Revoir").classes("ci-lac-action")
                 act.on("click", lambda: ui.navigate.to("/lacunes"))
+
+
+def _review_anchor(row) -> None:
+    """Repousse l'ancrage après un rappel volontaire."""
+    weak_point_id = _row_get(row, "id")
+    if weak_point_id is None:
+        return
+    local_store.mark_weak_point_reviewed(int(weak_point_id))
+    ui.notify("Ancrage marqué comme revu", type="positive")
+    ui.navigate.reload()
 
 
 def _tab_history(sessions, qcm_sessions, lacunes, review_hist) -> None:

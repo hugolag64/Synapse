@@ -19,6 +19,8 @@ from nicegui import ui
 from backend.config.settings import settings, NOTION_PROPS as P
 from backend.core.notion.payloads import number, checkbox
 from backend.core.reviews import local_store
+from backend.core.evaluation.models import EvaluationInput
+from backend.core.evaluation.service import record_evaluation
 from backend.core.tracking.service import tracking_service
 from frontend.utils import update_course_action
 from backend.core.files import file_service
@@ -34,6 +36,7 @@ import asyncio
 from zoneinfo import ZoneInfo
 
 _TZ_REUNION = ZoneInfo("Indian/Reunion")
+_IN_FLIGHT_ACTIONS: set[tuple[str, str, str]] = set()
 
 
 # ── Configuration des actions ─────────────────────────────────────────────────
@@ -113,6 +116,11 @@ async def quick_mark_course_action(
         logger.warning(f"quick_mark_course_action: action inconnue '{action}'")
         return
 
+    action_key = (str(course.id), action, context)
+    if action_key in _IN_FLIGHT_ACTIONS:
+        return
+    _IN_FLIGHT_ACTIONS.add(action_key)
+
     # ── Construire le payload Notion ──────────────────────────────────────────
     properties: dict = {}
 
@@ -137,20 +145,26 @@ async def quick_mark_course_action(
     )
 
     if not success:
+        _IN_FLIGHT_ACTIONS.discard(action_key)
         return  # rollback + notification déjà gérés dans update_course_action
 
     # ── SQLite : enregistrer la session uniquement si Notion a confirmé ───────
     try:
-        local_store.add_study_session(
+        record_evaluation(EvaluationInput(
+            source="auto_eval",
             course_id=course.id,
             course_title=getattr(course, "title", ""),
             item_number=getattr(course, "item_number", "") or "",
             context="college",
-            activity_types=cfg["activity_types"],
+            activity_types=tuple(cfg["activity_types"]),
             duration_minutes=cfg["duration"],
-        )
+        ))
     except Exception as exc:
         logger.warning(f"quick_action SQLite (non-bloquant): {exc}")
+        ui.notify(
+            "Action Notion enregistrée, mais la session n’a pas pu être sauvegardée.",
+            type="warning",
+        )
 
     # Refresh final (inclut maintenant les nouvelles données de session SQLite)
     if refresh_fn:
@@ -159,6 +173,7 @@ async def quick_mark_course_action(
                 refresh_fn()
         else:
             refresh_fn()
+    _IN_FLIGHT_ACTIONS.discard(action_key)
 
 
 def open_quick_session_dialog(course, refresh_fn=None, client=None) -> None:
@@ -246,17 +261,18 @@ def open_quick_session_dialog(course, refresh_fn=None, client=None) -> None:
 
             async def on_validate():
                 try:
-                    local_store.add_study_session(
+                    record_evaluation(EvaluationInput(
+                        source="auto_eval",
                         course_id=course.id,
                         course_title=getattr(course, "title", ""),
                         item_number=getattr(course, "item_number", "") or "",
                         context="college",
-                        activity_types=s.activity_types,
+                        activity_types=tuple(s.activity_types),
                         duration_minutes=s.duration,
                         confidence=s.confidence,
                         difficulty=s.difficulty,
                         notes=s.notes or None,
-                    )
+                    ))
                     # +1 lecture sur Notion si activité "lecture" ou "révision"
                     if any(a in s.activity_types for a in ("lecture", "révision")):
                         new_count = (getattr(course, "nb_lectures", 0) or 0) + 1
@@ -284,13 +300,36 @@ def open_quick_session_dialog(course, refresh_fn=None, client=None) -> None:
 
 # ── Quick log QCM ────────────────────────────────────────────────────────────
 
+def record_quick_qcm_result(course, platform: str, score_raw: str):
+    """Normalise puis persiste une saisie QCM via la façade commune."""
+    from backend.core.evaluation import EvaluationInput, record_evaluation
+    from backend.core.qcm.service import parse_score
+
+    pct, display = parse_score(score_raw)
+    if pct is None:
+        raise ValueError("Score QCM invalide (ex : 14/20 ou 70%)")
+
+    outcome = record_evaluation(
+        EvaluationInput(
+            source="qcm",
+            course_id=getattr(course, "id", ""),
+            course_title=getattr(course, "title", ""),
+            item_number=getattr(course, "item_number", "") or "",
+            platform=platform,
+            session_date=datetime.datetime.now(_TZ_REUNION).date().isoformat(),
+            score_percent=pct,
+            score_raw=score_raw,
+        )
+    )
+    return outcome, display
+
+
 def _open_quick_qcm_dialog(course, refresh_fn) -> None:
     """
     Popup minimaliste pour logger un résultat QCM en 3 clics :
     plateforme → score → valider.
     """
-    from backend.core.reviews.local_store import add_qcm_session_full, add_weak_point_full
-    from backend.core.qcm.service import parse_score, is_failed, suggested_severity, QCM_PASS_THRESHOLD
+    from backend.core.qcm.service import parse_score, QCM_PASS_THRESHOLD
 
     state = {"platform": "EDNpro", "score_raw": ""}
 
@@ -359,39 +398,20 @@ def _open_quick_qcm_dialog(course, refresh_fn) -> None:
 
                 def _submit():
                     try:
-                        pct, display = parse_score(state["score_raw"])
-                    except Exception:
-                        pct = None
-                    if pct is None:
+                        outcome, display = record_quick_qcm_result(
+                            course, state["platform"], state["score_raw"]
+                        )
+                    except ValueError:
+                        outcome = None
+                    if outcome is None:
                         ui.notify("Score invalide (ex : 14/20 ou 70%)", type="warning")
                         return
 
-                    today = datetime.datetime.now(_TZ_REUNION).date().isoformat()
-                    add_qcm_session_full(
-                        platform=state["platform"],
-                        session_date=today,
-                        course_id=getattr(course, "id", ""),
-                        course_title=getattr(course, "title", ""),
-                        item_number=getattr(course, "item_number", "") or "",
-                        session_type="QCM",
-                        score_percent=pct,
-                        score_raw=state["score_raw"],
-                    )
-
                     dlg.close()
 
-                    if is_failed(pct):
-                        sev = suggested_severity(pct)
-                        add_weak_point_full(
-                            course_id=getattr(course, "id", ""),
-                            detail=f"QCM {state['platform']} : {display}",
-                            course_title=getattr(course, "title", ""),
-                            item_number=getattr(course, "item_number", "") or "",
-                            severity=sev,
-                            source_type="qcm",
-                        )
+                    if outcome.recommendation == "review_errors":
                         ui.notify(
-                            f"QCM enregistré · {display} — lacune créée",
+                            f"QCM enregistré · {display} — à revoir",
                             type="warning", icon="quiz",
                         )
                     else:
@@ -465,7 +485,7 @@ def _open_link_note_dialog(course, refresh_fn) -> None:
 
     notes = obsidian_service.list_available_notes(course)
 
-    with ui.dialog().props("persistent") as dlg:
+    with ui.dialog() as dlg:
         with ui.card().classes(
             "w-[520px] max-w-[92vw] rounded-2xl p-0 overflow-hidden"
         ):
@@ -876,7 +896,7 @@ def open_start_tracking_dialog(
     }
 
     # ── Dialog ───────────────────────────────────────────────────────────────
-    with ui.dialog().props("persistent") as dlg:
+    with ui.dialog() as dlg:
         with ui.card().classes(
             "w-[460px] max-w-[94vw] rounded-2xl p-0 overflow-hidden "
             "bg-white dark:bg-slate-900 shadow-2xl"

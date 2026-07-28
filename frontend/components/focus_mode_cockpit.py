@@ -76,7 +76,11 @@ def open_focus_mode_cockpit(state) -> None:
         ui.notify("Aucune révision à faire !", type="info")
         return
 
+    # Le mode focus est ouvert après le chargement de la page (clic utilisateur).
+    # add_head_html(shared=True) ne pousse pas toujours ce CSS au client déjà
+    # connecté ; add_css l'envoie immédiatement dans la page active.
     ui.add_head_html(f"<style>{_CSS}</style>", shared=True)
+    ui.add_css(_CSS)
 
     _on_done = getattr(state, "_on_done", None)
     _on_postpone = getattr(state, "_on_postpone", None)

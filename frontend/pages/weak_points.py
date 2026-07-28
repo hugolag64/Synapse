@@ -82,7 +82,7 @@ def weak_points_page(item_filter: str | None = None):
         shared=True,
     )
 
-    with frame("Lacunes"):
+    with frame("Points faibles"):
         logger.info("ENTERING WEAK POINTS PAGE")
 
         # ── Refonte : liste de cartes cockpit (feature-flag ui_mode) ───────────
@@ -474,7 +474,7 @@ def open_add_dialog(refresh_fn):
         source_type="manuel",
     )
 
-    with ui.dialog().props("persistent") as dialog:
+    with ui.dialog() as dialog:
         with ui.card().classes(
             "w-[520px] max-w-[92vw] rounded-3xl p-0 overflow-hidden "
             "bg-white dark:bg-slate-900 shadow-2xl"

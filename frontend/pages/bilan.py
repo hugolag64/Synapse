@@ -175,7 +175,7 @@ def bilan_page() -> None:
             # ── Dialog Objectifs ──────────────────────────────────────────────
 
             def _open_goals_dialog():
-                with ui.dialog().props("persistent") as dlg_goals:
+                with ui.dialog() as dlg_goals:
                     with ui.card().classes(
                         "w-[440px] max-w-[92vw] rounded-2xl p-0 overflow-hidden"
                     ):

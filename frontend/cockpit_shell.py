@@ -27,7 +27,7 @@ _NAV_GROUPS = [
         ("◫", "Semestres", "/semestres", None),
         ("≡", "Items",     "/items",     None),
         ("✓", "QCM",       "/qcm",       None),
-        ("⚑", "Lacunes",   "/lacunes",   ("dot", "warning")),
+        ("⚑", "Points faibles", "/lacunes", ("dot", "warning")),
     ]),
     ("Analyse", [
         ("◈", "Revue hebdo",   "/revue",    None),
@@ -45,7 +45,7 @@ _TITLE_TO_NAV = {
     "Planning": "Planning",
     "Suivi Quotidien": "Révisions",
     "Collèges": "Collèges", "Semestres": "Semestres", "QCM": "QCM",
-    "Lacunes": "Lacunes", "Fiche cours": "Aujourd'hui",
+    "Lacunes": "Points faibles", "Points faibles": "Points faibles", "Fiche cours": "Aujourd'hui",
     "Ma Progression": "Statistiques", "Stats": "Statistiques",
     "Statistiques": "Statistiques", "Externat": "Externat",
     "Paramètres": "Paramètres", "Settings": "Paramètres",

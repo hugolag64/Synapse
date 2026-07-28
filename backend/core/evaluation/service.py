@@ -26,6 +26,12 @@ def record_evaluation(evaluation: EvaluationInput) -> EvaluationOutcome:
             session_date=evaluation.session_date or datetime.date.today().isoformat(),
             course_id=evaluation.course_id, course_title=evaluation.course_title,
             item_number=evaluation.item_number, score_percent=evaluation.score_percent,
+            score_raw=evaluation.score_raw,
+            session_type=evaluation.session_type,
+            difficulty=evaluation.difficulty,
+            total_questions=evaluation.total_questions,
+            correct_answers=evaluation.correct_answers,
+            wrong_answers=evaluation.wrong_answers,
             error_types=list(evaluation.error_types), comments=evaluation.detail,
         )
         gap_proposal_ids = _pending_gap_ids(evaluation.item_number, evaluation.error_types)
@@ -33,9 +39,14 @@ def record_evaluation(evaluation: EvaluationInput) -> EvaluationOutcome:
         persisted_id = local_store.add_study_session(
             course_id=evaluation.course_id, course_title=evaluation.course_title,
             item_number=evaluation.item_number, context=evaluation.context,
+            activity_types=list(evaluation.activity_types) or ["révision"],
+            duration_minutes=evaluation.duration_minutes,
             confidence=evaluation.confidence,
+            difficulty=evaluation.difficulty,
+            qcm_result=evaluation.qcm_result,
             weak_category=evaluation.error_types[0] if evaluation.error_types else None,
             weak_detail=evaluation.detail,
+            notes=evaluation.notes,
         )
         gap_proposal_ids = _pending_gap_ids(evaluation.item_number, evaluation.error_types)
     elif evaluation.source == "oic":

@@ -22,6 +22,8 @@ from backend.core.google.calendar_service import calendar_service
 from backend.core.reviews.service import review_service
 from backend.core.reviews.models import ReviewTask
 from backend.core.reviews import local_store
+from backend.core.evaluation.models import EvaluationInput
+from backend.core.evaluation.service import record_evaluation
 from backend.core.reviews.mastery import PROGRESSION_COLORS
 from backend.core.reviews.recommendation_service import get_next_action, compute_daily_load
 from frontend.components.course_quick_actions import CourseQuickActions
@@ -1565,19 +1567,20 @@ async def dashboard_page():
             )
             _done_today_ref["count"] += 1  # UX-06
 
-            local_store.add_study_session(
+            record_evaluation(EvaluationInput(
+                source="auto_eval",
                 course_id=task.course_id,
                 course_title=task.course_title,
                 item_number=task.item_number or "",
                 context=task.context,
-                activity_types=activity_types or ["révision"],
+                activity_types=tuple(activity_types or ["révision"]),
                 duration_minutes=duration_minutes,
                 confidence=confidence,
                 difficulty=difficulty,
                 qcm_result=qcm_result,
                 weak_category=weak_category,
                 weak_detail=weak_detail,
-            )
+            ))
 
             _rebuild_all()
             ui.notify(f"✓ Révisé : {task.course_title}", type="positive")
@@ -1642,7 +1645,7 @@ async def dashboard_page():
             def _chip_on(col): return f"unelevated rounded size=sm color={col}"
             def _chip_off():   return "outline rounded size=sm color=grey"
 
-            with ui.dialog().props("persistent") as dialog:
+            with ui.dialog() as dialog:
                 with ui.card().classes(
                     "w-[560px] max-w-[92vw] rounded-3xl p-0 overflow-hidden "
                     "bg-white dark:bg-slate-900 shadow-2xl"

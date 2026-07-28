@@ -25,6 +25,8 @@ from backend.core.qcm.service import (
 )
 from backend.core.qcm.items_mapping import college_full, item_college_abbr
 from backend.state.store import data_store
+from backend.core.evaluation.models import EvaluationInput
+from backend.core.evaluation.service import record_evaluation
 
 
 # Sprint 1 — couleurs par type d'erreur (cohérent avec la palette Synapse)
@@ -36,12 +38,68 @@ ERROR_TYPE_HEX: dict[str, str] = {
 }
 _ET_HEX_FALLBACK = "#94a3b8"
 
+_ADD_DIALOG_CSS = """
+.qcm-add-dialog-card { width:min(720px, calc(100vw - 32px)); max-height:calc(100vh - 32px);
+  display:flex; flex-direction:column; min-width:0; background:var(--bg); color:var(--text);
+  border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-popover); }
+.qcm-add-dialog-header { padding:16px 20px 14px; border-bottom:1px solid var(--border);
+  background:var(--bg); }
+.qcm-add-dialog-title { font-size:15px; font-weight:600; color:var(--text); letter-spacing:-.01em; }
+.qcm-add-dialog-subtitle { margin-top:3px; font-size:11.5px; color:var(--text-muted); }
+.qcm-add-dialog-body { padding:18px 20px; display:flex; flex-direction:column; gap:18px;
+  overflow-y:auto; overflow-x:hidden; }
+.qcm-add-dialog-section { display:flex; flex-direction:column; gap:8px; min-width:0; }
+.qcm-add-dialog-label { font-size:10px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--text-dim); }
+.qcm-choice { min-height:30px; padding:0 10px; border:1px solid var(--border); border-radius:var(--radius-md);
+  background:var(--bg); color:var(--text-muted); font-size:12px; font-weight:500; cursor:pointer;
+  transition:background var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard); }
+.qcm-choice:hover { border-color:var(--border-strong); color:var(--text); background:var(--surface); }
+.qcm-choice.active { border-color:var(--accent); background:var(--accent-wash); color:var(--accent); font-weight:600; }
+.qcm-search-results { display:flex; flex-direction:column; gap:2px; max-height:180px; overflow-y:auto; }
+.qcm-search-result { display:flex; align-items:center; gap:10px; width:100%; padding:8px 10px;
+  border:1px solid transparent; border-radius:var(--radius-md); cursor:pointer; }
+.qcm-search-result:hover { background:var(--surface); border-color:var(--border); }
+.qcm-search-result-id { flex:0 0 auto; font-family:var(--font-mono); font-size:10.5px; color:var(--text-muted); }
+.qcm-search-result-main { min-width:0; flex:1; }
+.qcm-search-result-title { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; color:var(--text); }
+.qcm-search-result-meta { margin-top:2px; font-size:10.5px; color:var(--text-dim); }
+.qcm-search-hint { padding:4px 2px; font-size:11px; color:var(--text-dim); }
+.qcm-add-dialog-footer { padding:12px 20px; border-top:1px solid var(--border); background:var(--bg-alt);
+  display:flex; justify-content:flex-end; gap:8px; flex-shrink:0; }
+.qcm-add-dialog-primary { min-height:32px; padding:0 14px; border:0; border-radius:var(--radius-md);
+  background:var(--accent); color:var(--accent-text); font-size:12.5px; font-weight:600; cursor:pointer; }
+.qcm-add-dialog-primary:hover { background:var(--accent-hover); }
+@media (max-width: 640px) {
+  .qcm-add-dialog-body { padding:16px; gap:16px; }
+  .qcm-add-dialog-header, .qcm-add-dialog-footer { padding-left:16px; padding-right:16px; }
+}
+"""
+
 
 class CollegeWrapper:
     def __init__(self, name: str):
         self.id = f"college_{name}"
         self.title = f"{name} (Matière complète)"
         self.item_number = ""
+
+
+def record_classic_qcm_result(state, courses_to_save: list[dict]):
+    """Enregistre chaque cours du formulaire classique via la façade commune."""
+    return [record_evaluation(EvaluationInput(
+        source="qcm",
+        course_id=course.get("id", ""),
+        course_title=course.get("title", ""),
+        item_number=course.get("item_number", ""),
+        platform=state.platform,
+        session_date=state.session_date,
+        session_type=state.session_type,
+        score_raw=state.score_raw,
+        score_percent=state.score_percent,
+        difficulty=state.difficulty,
+        error_types=tuple(state.error_types),
+        detail=state.comments or None,
+    )) for course in courses_to_save]
 
 
 # ── Agrégation par cours ──────────────────────────────────────────────────────
@@ -993,6 +1051,7 @@ def qcm_page():
 # ── Dialog : Ajouter résultat QCM ─────────────────────────────────────────────
 
 def _open_add_dialog(refresh_fn):
+    ui.add_head_html(f"<style>{_ADD_DIALOG_CSS}</style>", shared=True)
     today_str = datetime.date.today().isoformat()
 
     state = SimpleNamespace(
@@ -1009,6 +1068,73 @@ def _open_add_dialog(refresh_fn):
         if not item_number:
             return ""
         return college_full(item_college_abbr(item_number)) or ""
+
+    def _render_course_search(on_select, *, allow_colleges: bool = False):
+        """Recherche inline enrichie par item, titre et collège."""
+        search_input = ui.input(
+            placeholder="Rechercher un item, un cours ou une matière…",
+        ).props("outlined dense clearable").classes("w-full")
+        with search_input.add_slot("prepend"):
+            ui.icon("search", size="xs").style("color:var(--text-dim)")
+        results = ui.column().classes("qcm-search-results w-full")
+
+        def _search(query):
+            query = (query or "").strip().casefold()
+            results.clear()
+            with results:
+                if len(query) < 2:
+                    ui.label("Tape au moins 2 caractères pour rechercher.").classes("qcm-search-hint")
+                    return
+
+                matched_colleges = []
+                if allow_colleges:
+                    matched_colleges = [
+                        col for col in (data_store.get_colleges() or [])
+                        if col and query in str(col).casefold()
+                    ][:3]
+
+                matched_courses = []
+                for candidate in (data_store.cours or []):
+                    title = str(getattr(candidate, "title", "") or "")
+                    item = str(getattr(candidate, "item_number", "") or "")
+                    college_names = " ".join(getattr(candidate, "college", []) or [])
+                    haystack = f"{title} {item} {college_names}".casefold()
+                    if query in haystack:
+                        matched_courses.append(candidate)
+                    if len(matched_courses) >= 8:
+                        break
+
+                if not matched_colleges and not matched_courses:
+                    ui.label("Aucun résultat pour cette recherche.").classes("qcm-search-hint")
+                    return
+
+                if matched_colleges:
+                    ui.label("MATIÈRES").classes("qcm-add-dialog-label")
+                    for college_name in matched_colleges:
+                        college = CollegeWrapper(college_name)
+                        with ui.element("div").classes("qcm-search-result") as result:
+                            ui.label("MATIÈRE").classes("qcm-search-result-id")
+                            with ui.element("div").classes("qcm-search-result-main"):
+                                ui.label(college_name).classes("qcm-search-result-title")
+                                ui.label("Session globale de matière").classes("qcm-search-result-meta")
+                        result.on("click", lambda c=college: on_select(c))
+
+                if matched_courses:
+                    ui.label("COURS").classes("qcm-add-dialog-label")
+                    for candidate in matched_courses:
+                        item = str(getattr(candidate, "item_number", "") or "")
+                        title = getattr(candidate, "title", None) or "Sans titre"
+                        college = _derive_college(item)
+                        with ui.element("div").classes("qcm-search-result") as result:
+                            ui.label(f"ITEM {item}" if item else "COURS").classes("qcm-search-result-id")
+                            with ui.element("div").classes("qcm-search-result-main"):
+                                ui.label(title).classes("qcm-search-result-title")
+                                ui.label(college or "Matière non renseignée").classes("qcm-search-result-meta")
+                        result.on("click", lambda c=candidate: on_select(c))
+
+        search_input.on_value_change(lambda event: _search(event.value))
+        ui.label("Recherche par numéro d’item, titre ou collège.").classes("qcm-search-hint")
+        return search_input, results
 
     def _open_course_picker(on_select):
         with ui.dialog() as picker:
@@ -1100,56 +1226,54 @@ def _open_add_dialog(refresh_fn):
                 search_inp.on_value_change(lambda e: _do_search(e.value))
         picker.open()
 
-    with ui.dialog().props("persistent maximized=false").style("align-items:center") as dialog:
+    with ui.dialog().style("align-items:center") as dialog:
         with ui.card().classes(
-            "w-full max-w-2xl rounded-3xl p-0 overflow-hidden "
-            "bg-white dark:bg-slate-900 shadow-2xl"
-        ).style("width:680px;max-height:92vh;display:flex;flex-direction:column;min-width:0"):
+            "qcm-add-dialog-card p-0 overflow-hidden"
+        ):
 
             with ui.element("div").classes(
-                "px-6 pt-5 pb-4 border-b border-slate-100 dark:border-slate-800 shrink-0"
+                "qcm-add-dialog-header shrink-0"
             ):
                 with ui.row().classes("items-center justify-between w-full"):
-                    ui.label("Ajouter un résultat").classes(
-                        "text-base font-bold text-slate-900 dark:text-slate-50"
-                    )
+                    with ui.column().classes("gap-0 min-w-0"):
+                        ui.label("Saisir un résultat QCM").classes("qcm-add-dialog-title")
+                        ui.label("Enregistre une session dans l’historique d’évaluation.").classes(
+                            "qcm-add-dialog-subtitle"
+                        )
                     ui.button(icon="close", on_click=dialog.close).props(
                         "flat round dense size=sm color=grey-7"
                     )
 
             with ui.element("div").classes(
-                "px-6 py-4 flex flex-col gap-4 flex-1 overflow-y-auto"
-            ).style("overflow-x:hidden"):
+                "qcm-add-dialog-body flex-1"
+            ):
 
                 def _lbl(text):
-                    ui.label(text).classes(
-                        "text-[11px] font-bold tracking-widest text-slate-400 uppercase"
-                    )
+                    ui.label(text).classes("qcm-add-dialog-label")
 
                 # Plateforme + Type
                 with ui.row().classes("gap-5 w-full"):
-                    with ui.column().classes("gap-1.5 min-w-0"):
+                    with ui.column().classes("qcm-add-dialog-section min-w-0 flex-1"):
                         _lbl("Plateforme")
                         plat_container = ui.row().classes("gap-1.5 flex-wrap")
                         def _rebuild_plat():
                             plat_container.clear()
                             with plat_container:
                                 for p in local_store.QCM_PLATFORMS:
-                                    col = PLATFORM_COLORS.get(p, "primary")
                                     active = p == state.platform
                                     def _click_p(pv=p):
                                         state.platform = pv
                                         _rebuild_plat()
                                     ui.button(p, on_click=_click_p).props(
-                                        f"{'unelevated' if active else 'outline'} rounded size=sm color={col}"
-                                    )
+                                        "flat no-caps dense"
+                                    ).classes("qcm-choice" + (" active" if active else ""))
                         _rebuild_plat()
 
                     ui.element("div").classes(
                         "w-px bg-slate-100 dark:bg-slate-700 self-stretch mx-1"
                     )
 
-                    with ui.column().classes("gap-1.5 flex-1 min-w-0"):
+                    with ui.column().classes("qcm-add-dialog-section min-w-0 flex-1"):
                         _lbl("Type")
                         type_container = ui.row().classes("gap-1.5 flex-wrap")
                         def _rebuild_type():
@@ -1162,8 +1286,8 @@ def _open_add_dialog(refresh_fn):
                                         _rebuild_type()
                                         _rebuild_course_section()
                                     ui.button(t, on_click=_click_t).props(
-                                        f"{'unelevated' if active else 'outline'} rounded size=sm color=primary"
-                                    )
+                                        "flat no-caps dense"
+                                    ).classes("qcm-choice" + (" active" if active else ""))
                         _rebuild_type()
 
                 # Cours
@@ -1217,33 +1341,7 @@ def _open_add_dialog(refresh_fn):
                             state.college = ""
                         _rebuild_course_section()
 
-                    with ui.row().classes("items-center gap-2 flex-wrap mt-0.5"):
-                        ui.button(
-                            "Choisir un cours…", icon="search",
-                            on_click=lambda: _open_course_picker(_on_select),
-                        ).props("outline dense rounded size=sm color=primary").classes("text-xs")
-
-                        # Chips collège rapides (si aucun cours sélectionné)
-                        if not state.course_title:
-                            all_colleges = sorted({
-                                college_full(item_college_abbr(str(getattr(c, "item_number", "") or "")))
-                                for c in (data_store.cours or [])
-                                if getattr(c, "item_number", "")
-                            } - {""})
-                            college_container = ui.row().classes("gap-1 flex-wrap items-center")
-                            with college_container:
-                                for col in all_colleges:
-                                    active = col == state.college
-                                    def _pick_col(cv=col):
-                                        state.college      = cv
-                                        state.course_id    = f"college_{cv}"
-                                        state.course_title = cv
-                                        state.item_number  = ""
-                                        _rebuild_course_section()
-                                    ui.button(col, on_click=_pick_col).props(
-                                        f"{'unelevated' if active else 'outline'} "
-                                        "rounded size=xs color=violet dense"
-                                    ).classes("text-[10px]")
+                    _render_course_search(_on_select, allow_colleges=True)
 
                 def _build_multi_course():
                     _lbl(f"Cours du {state.session_type}")
@@ -1281,10 +1379,7 @@ def _open_add_dialog(refresh_fn):
                             })
                         _refresh_chips()
 
-                    ui.button(
-                        "+ Ajouter cours", icon="add",
-                        on_click=lambda: _open_course_picker(_add_course),
-                    ).props("outline dense rounded size=sm color=primary").classes("self-start text-xs mt-0.5")
+                    _render_course_search(_add_course, allow_colleges=True)
 
                 _rebuild_course_section()
 
@@ -1340,7 +1435,7 @@ def _open_add_dialog(refresh_fn):
 
                 # Erreurs + Difficulté
                 with ui.row().classes("gap-5 w-full"):
-                    with ui.column().classes("gap-1.5 flex-1 min-w-0"):
+                    with ui.column().classes("qcm-add-dialog-section flex-1 min-w-0"):
                         _lbl("Types d'erreur")
                         err_container = ui.row().classes("gap-1.5 flex-wrap")
                         def _rebuild_err():
@@ -1355,11 +1450,11 @@ def _open_add_dialog(refresh_fn):
                                             state.error_types.append(ev)
                                         _rebuild_err()
                                     ui.button(et, on_click=_click_e).props(
-                                        f"{'unelevated' if active else 'outline'} rounded size=xs color=red"
-                                    )
+                                        "flat no-caps dense"
+                                    ).classes("qcm-choice" + (" active" if active else ""))
                         _rebuild_err()
 
-                    with ui.column().classes("gap-1.5 shrink-0"):
+                    with ui.column().classes("qcm-add-dialog-section shrink-0"):
                         _lbl("Difficulté")
                         diff_container = ui.row().classes("gap-1.5")
                         def _rebuild_diff():
@@ -1375,8 +1470,8 @@ def _open_add_dialog(refresh_fn):
                                         state.difficulty = dv
                                         _rebuild_diff()
                                     ui.button(d_lbl, on_click=_click_d).props(
-                                        f"{'unelevated' if active else 'outline'} rounded size=xs color={d_col}"
-                                    )
+                                        "flat no-caps dense"
+                                    ).classes("qcm-choice" + (" active" if active else ""))
                         _rebuild_diff()
 
                 # Commentaires
@@ -1388,11 +1483,8 @@ def _open_add_dialog(refresh_fn):
                 )
 
             # Footer
-            with ui.element("div").classes(
-                "px-6 py-4 bg-slate-50 dark:bg-slate-800/50 "
-                "border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2 shrink-0"
-            ):
-                ui.button("Annuler", on_click=dialog.close).props("flat color=grey-8")
+            with ui.element("div").classes("qcm-add-dialog-footer"):
+                ui.button("Annuler", on_click=dialog.close).props("flat no-caps color=grey-8")
 
                 def _submit():
                     if state.score_percent is None:
@@ -1404,40 +1496,16 @@ def _open_add_dialog(refresh_fn):
                         else [{"id": state.course_id, "title": state.course_title,
                                "item_number": state.item_number}]
                     )
-                    last_sid = None
-                    for c in courses_to_save:
-                        last_sid = local_store.add_qcm_session_full(
-                            platform=state.platform,
-                            session_date=state.session_date,
-                            course_id=c.get("id", ""),
-                            course_title=c.get("title", ""),
-                            item_number=c.get("item_number", ""),
-                            session_type=state.session_type,
-                            score_raw=state.score_raw,
-                            score_percent=state.score_percent,
-                            difficulty=state.difficulty,
-                            error_types=state.error_types,
-                            comments=state.comments or None,
-                        )
+                    outcomes = record_classic_qcm_result(state, courses_to_save)
+                    last_sid = outcomes[-1].persisted_id if outcomes else None
                     dialog.close()
                     pct = state.score_percent
                     n   = len(courses_to_save)
                     if is_failed(pct):
                         if is_multi and n > 1:
-                            sev = suggested_severity(pct)
-                            for c in courses_to_save:
-                                if c.get("id"):
-                                    local_store.add_weak_point_full(
-                                        course_id=c["id"],
-                                        detail=f"{state.session_type} raté — {state.score_raw}"
-                                               + (f" ({state.platform})" if state.platform else ""),
-                                        course_title=c.get("title",""),
-                                        item_number=c.get("item_number",""),
-                                        severity=sev, source_type="qcm",
-                                        source_session_id=last_sid,
-                                    )
                             ui.notify(
-                                f"{n} sessions + {n} lacunes créées", type="warning", icon="report_problem"
+                                f"{n} sessions enregistrées — erreurs à revoir dans les propositions",
+                                type="warning", icon="report_problem"
                             )
                             refresh_fn()
                         else:
@@ -1461,9 +1529,9 @@ def _open_add_dialog(refresh_fn):
                                 return
                         refresh_fn()
 
-                ui.button("Enregistrer ✓", on_click=_submit).props(
-                    "unelevated color=primary rounded"
-                ).classes("px-5 font-semibold")
+                ui.button("Enregistrer", on_click=_submit).props(
+                    "flat no-caps"
+                ).classes("qcm-add-dialog-primary")
 
     dialog.open()
 
@@ -1474,7 +1542,7 @@ def _propose_resolve_lacune(state, lacunes, refresh_fn):
     n = len(lacunes)
     selected = {lc["id"]: True for lc in lacunes}
 
-    with ui.dialog().props("persistent") as dlg:
+    with ui.dialog() as dlg:
         with ui.card().classes(
             "rounded-2xl p-0 overflow-hidden bg-white dark:bg-slate-900 shadow-2xl"
         ).style("width:440px;max-width:90vw"):
@@ -1549,7 +1617,7 @@ def _propose_lacune(state, session_id, refresh_fn):
         "create_obsidian":  obsidian_ok,
     }
 
-    with ui.dialog().props("persistent") as dlg:
+    with ui.dialog() as dlg:
         with ui.card().classes(
             "rounded-2xl p-0 overflow-hidden bg-white dark:bg-slate-900 shadow-2xl"
         ).style("width:440px;max-width:90vw"):
@@ -1704,7 +1772,7 @@ def _open_session_wizard(sessions: list, refresh_fn) -> None:
         "created": 0,
     }
 
-    with ui.dialog().props("persistent") as dlg:
+    with ui.dialog() as dlg:
         with ui.card().classes(
             "rounded-2xl p-0 overflow-hidden bg-white dark:bg-slate-900 shadow-2xl"
         ).style("width:540px;max-width:95vw"):

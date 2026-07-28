@@ -67,7 +67,7 @@ def _open_stage_dialog(
     init_gardes     = existing.gardes      if is_edit else ""
     init_contraintes= existing.contraintes if is_edit else ""
 
-    with ui.dialog().props("persistent") as dlg:
+    with ui.dialog() as dlg:
         with ui.card().classes("w-full max-w-2xl p-0 rounded-2xl overflow-hidden"):
 
             # ── Header ────────────────────────────────────────────────────────

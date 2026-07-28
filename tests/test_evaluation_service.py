@@ -73,6 +73,24 @@ def test_record_qcm_evaluation_persists_and_returns_recommendation():
     assert local_store.get_qcm_sessions_all(course_id="course-1")[0]["score_percent"] == 55
 
 
+def test_record_qcm_evaluation_preserves_dialog_fields():
+    record_evaluation(
+        EvaluationInput(
+            source="qcm",
+            course_id="course-1",
+            session_type="DP",
+            difficulty="difficile",
+            score_raw="7/10",
+            score_percent=70,
+        )
+    )
+
+    row = local_store.get_qcm_sessions_all(course_id="course-1")[0]
+    assert row["session_type"] == "DP"
+    assert row["difficulty"] == "difficile"
+    assert row["score_raw"] == "7/10"
+
+
 def test_record_auto_evaluation_persists_without_immediate_weak_point():
     result = record_evaluation(
         EvaluationInput(
@@ -90,6 +108,31 @@ def test_record_auto_evaluation_persists_without_immediate_weak_point():
     assert result.recommendation == "review_errors"
     assert result.persisted_id > 0
     assert weak_points == 0
+
+
+def test_record_auto_evaluation_preserves_session_feedback_fields():
+    record_evaluation(
+        EvaluationInput(
+            source="auto_eval",
+            course_id="course-1",
+            activity_types=("révision", "qcm"),
+            duration_minutes=25,
+            confidence=4,
+            difficulty="moyen",
+            qcm_result="réussi",
+            detail="Bonne correction",
+            notes="À reprendre dans une semaine",
+        )
+    )
+
+    with local_store._conn() as con:
+        row = con.execute(
+            "SELECT * FROM study_sessions WHERE course_id = ?", ("course-1",)
+        ).fetchone()
+    assert row["duration_minutes"] == 25
+    assert row["difficulty"] == "moyen"
+    assert row["qcm_result"] == "réussi"
+    assert row["notes"] == "À reprendre dans une semaine"
 
 
 def test_record_oic_evaluation_requires_canonical_aliases():

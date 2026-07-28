@@ -29,7 +29,33 @@ from frontend.components.study_task_row import due_info
 from frontend.components.mastery_indicator import _LEVEL_COLOR, _level_from_score
 
 _CSS = """
-.cg-wrap { max-width:1200px; width:100%; }
+.cg-wrap { max-width:none; width:100%; }
+.cg-layout { display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:28px; align-items:start; width:100%; }
+.cg-main { min-width:0; }
+.cg-panel { border:1px solid var(--border); border-radius:10px; background:var(--surface); padding:16px; position:sticky; top:16px; }
+.cg-panel-title { font-size:13px; font-weight:600; color:var(--text); }
+.cg-panel-subtitle { font-size:11px; color:var(--text-muted); margin-top:3px; }
+.cg-panel-section { margin-top:18px; }
+.cg-panel-section-title { font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-dim); font-weight:600; margin-bottom:9px; }
+.cg-kpis { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.cg-kpi { padding:10px; border:1px solid var(--border); border-radius:8px; background:var(--bg); }
+.cg-kpi-value { font-family:var(--font-mono); font-size:18px; font-weight:600; color:var(--text); }
+.cg-kpi-label { font-size:10px; color:var(--text-muted); margin-top:2px; }
+.cg-progress-track { height:6px; border-radius:3px; background:var(--surface-hover); overflow:hidden; }
+.cg-progress-fill { height:100%; border-radius:3px; background:var(--accent); }
+.cg-priority { display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--border); cursor:pointer; }
+.cg-priority:last-child { border-bottom:none; }
+.cg-priority:hover { color:var(--accent); }
+.cg-priority-dot { width:7px; height:7px; border-radius:50%; flex:0 0 7px; }
+.cg-priority-name { flex:1; min-width:0; font-size:11.5px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cg-priority-meta { font-size:10px; color:var(--text-muted); white-space:nowrap; }
+.cg-mastery-row { display:flex; align-items:center; gap:8px; margin-top:7px; font-size:11px; color:var(--text-muted); }
+.cg-mastery-row span:first-child { width:72px; }
+.cg-mastery-row .cg-progress-track { flex:1; }
+.cg-mastery-count { width:24px; text-align:right; font-family:var(--font-mono); font-size:10px; }
+.cg-panel-action { width:100%; margin-top:8px; }
+@media (max-width: 1100px) { .cg-layout { grid-template-columns:minmax(0,1fr) 260px; gap:18px; } }
+@media (max-width: 820px) { .cg-layout { display:block; } .cg-panel { position:static; margin-top:24px; } }
 .cg-topbar { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:4px 0 18px; flex-wrap:wrap; }
 .cg-title { font-size:20px; font-weight:600; color:var(--text); letter-spacing:-0.01em; }
 .cg-subtitle { font-size:12.5px; color:var(--text-muted); margin-top:4px; }
@@ -97,6 +123,26 @@ def _college_item_rows(courses: list, tasks: list) -> list[dict]:
     ]
 
 
+def _pilotage_summary(rows: list[dict]) -> dict:
+    """Agrégats légers pour le panneau de pilotage, sans nouvelle requête."""
+    total_courses = sum(r["total"] for r in rows)
+    started = sum(r["started"] for r in rows)
+    level_counts = {"solide": 0, "correct": 0, "fragile": 0, "non_commence": 0}
+    for row in rows:
+        level = _level_from_score(int(row["pct"] * 100) if row["total"] else None)
+        level_counts[level if level in level_counts else "non_commence"] += 1
+    return {
+        "total_courses": total_courses,
+        "started": started,
+        "pct": (started / total_courses) if total_courses else 0.0,
+        "overdue": sum(r["retard"] for r in rows),
+        "fragile": sum(r["fragile"] for r in rows),
+        "no_pdf": sum(1 for r in rows if r["no_pdf"]),
+        "level_counts": level_counts,
+        "estimated_minutes": max(0, total_courses - started) * 20,
+    }
+
+
 def render_colleges_cockpit() -> None:
     ui.add_head_html(f"<style>{_CSS}</style>", shared=True)
 
@@ -104,9 +150,12 @@ def render_colleges_cockpit() -> None:
     expanded: set[str] = set()
 
     with ui.column().classes("cg-wrap gap-0"):
-        topbar = ui.element("div").classes("cg-topbar")
-        head = ui.element("div").classes("cg-head")
-        list_col = ui.column().classes("w-full gap-0")
+        with ui.element("div").classes("cg-layout"):
+            with ui.column().classes("cg-main gap-0"):
+                topbar = ui.element("div").classes("cg-topbar")
+                head = ui.element("div").classes("cg-head")
+                list_col = ui.column().classes("w-full gap-0")
+            panel = ui.element("aside").classes("cg-panel")
 
     def _compute() -> list[dict]:
         history = get_all_history()
@@ -182,6 +231,78 @@ def render_colleges_cockpit() -> None:
                 _chip("Jamais lus", "unread")
                 _chip("En retard", "overdue")
                 _chip("Sans PDF", "no_pdf")
+
+    def _draw_pilotage(rows: list[dict]) -> None:
+        panel.clear()
+        summary = _pilotage_summary(rows)
+        with panel:
+            ui.label("Pilotage global").classes("cg-panel-title")
+            ui.label("Les prochaines actions utiles").classes("cg-panel-subtitle")
+
+            with ui.element("div").classes("cg-panel-section"):
+                ui.label("Progression").classes("cg-panel-section-title")
+                with ui.row().classes("w-full items-end justify-between gap-2"):
+                    ui.label(f"{int(summary['pct'] * 100)}%").classes("cg-kpi-value")
+                    ui.label(f"{summary['started']} / {summary['total_courses']} cours lus").classes("cg-panel-subtitle")
+                with ui.element("div").classes("cg-progress-track mt-2"):
+                    ui.element("div").classes("cg-progress-fill").style(
+                        f"width:{int(summary['pct'] * 100)}%"
+                    )
+
+            with ui.element("div").classes("cg-kpis cg-panel-section"):
+                for value, label in [
+                    (summary["overdue"], "révisions en retard"),
+                    (summary["fragile"], "collèges fragiles"),
+                    (summary["no_pdf"], "sans PDF"),
+                    (f"{summary['estimated_minutes'] // 60} h", "charge estimée"),
+                ]:
+                    with ui.element("div").classes("cg-kpi"):
+                        ui.label(str(value)).classes("cg-kpi-value")
+                        ui.label(label).classes("cg-kpi-label")
+
+            with ui.element("div").classes("cg-panel-section"):
+                ui.label("Répartition des collèges").classes("cg-panel-section-title")
+                for key, label, color in [
+                    ("solide", "Solides", "var(--success)"),
+                    ("correct", "Corrects", "var(--info)"),
+                    ("fragile", "Fragiles", "var(--warning)"),
+                    ("non_commence", "Non commencés", "var(--text-dim)"),
+                ]:
+                    count = summary["level_counts"][key]
+                    ratio = count / len(rows) if rows else 0
+                    with ui.element("div").classes("cg-mastery-row"):
+                        ui.label(label)
+                        with ui.element("div").classes("cg-progress-track"):
+                            ui.element("div").style(
+                                f"width:{int(ratio * 100)}%;background:{color}"
+                            )
+                        ui.label(str(count)).classes("cg-mastery-count")
+
+            priorities = sorted(
+                rows,
+                key=lambda r: (-r["retard"], -r["fragile"], r["started"] == 0, r["pct"]),
+            )[:3]
+            with ui.element("div").classes("cg-panel-section"):
+                ui.label("À traiter en priorité").classes("cg-panel-section-title")
+                if not priorities:
+                    ui.label("Aucun collège à afficher.").classes("cg-panel-subtitle")
+                for row in priorities:
+                    reason = (
+                        f"{row['retard']} retard" if row["retard"]
+                        else f"{row['fragile']} fragile" if row["fragile"]
+                        else "à commencer"
+                    )
+                    priority = ui.element("div").classes("cg-priority")
+                    with priority:
+                        color = "var(--danger)" if row["retard"] else "var(--warning)" if row["fragile"] else "var(--text-dim)"
+                        ui.element("span").classes("cg-priority-dot").style(f"background:{color}")
+                        ui.label(row["name"]).classes("cg-priority-name")
+                        ui.label(reason).classes("cg-priority-meta")
+                    priority.on("click", lambda name=row["name"]: _open_items(name))
+
+                ui.button("Voir les items prioritaires", icon="arrow_forward", on_click=lambda: ui.navigate.to("/items")).props(
+                    "flat dense no-caps"
+                ).classes("cg-panel-action")
 
     def _draw_head() -> None:
         head.clear()
@@ -307,6 +428,7 @@ def render_colleges_cockpit() -> None:
     def _render() -> None:
         rows = _compute()
         _draw_topbar(len(rows))
+        _draw_pilotage(rows)
         _draw_head()
         _draw_list(rows)
 

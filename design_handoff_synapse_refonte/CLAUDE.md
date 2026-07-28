@@ -184,3 +184,6 @@ Command palette (fuzzy + ⌘K + clavier) = custom. Planning dense = grille CSS c
 - **2026-07-28 — Reconnexion auto-évaluation Aujourd'hui cockpit.** Modifié : `frontend/pages/dashboard/_cockpit_today.py`. Nouveau test : `tests/test_cockpit_today_session_feedback.py`.
   - Le bouton **Terminer** du panneau contextuel ouvre désormais `open_session_feedback_dialog` avant validation. Le callback transmet les champs complets à `complete_review`, puis `record_evaluation(source="auto_eval")` alimente la persistance de session et l'algorithme de maîtrise existant.
   - Aucun changement de wizard, d'algorithme, de seuil de lacune, de backend ou de chemin classic. Suite complète : **620 tests passés**, 2 warnings préexistants.
+- **2026-07-28 — Réparation des chemins PDF.** Modifiés : `frontend/pages/course_detail_cockpit.py`, `frontend/components/context_panel.py`, `frontend/components/course_card.py`. Nouveau test : `tests/test_pdf_path_repair_ui.py`.
+  - L’action **Modifier le PDF** est désormais disponible même lorsqu’un chemin est déjà renseigné, notamment pour les cours de dermatologie. Elle réutilise `open_pdf_wizard` et remplace le lien local après sélection.
+  - Le bouton global **Forcer rescan auto-link** dans Paramètres reste le parcours de réparation en masse. Suite complète : **623 tests passés**, 2 warnings préexistants.

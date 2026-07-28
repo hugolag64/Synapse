@@ -2,6 +2,23 @@
 
 Date : 28 juillet 2026
 
+## Clôture finale de session — Planning et runtime
+
+- Planning cockpit finalisé : Focus de la semaine, titres multi-lignes avec
+  tooltip, actions par journée, planification manuelle locale et création
+  d'événements Google Calendar.
+- Les tâches échues ne sont plus réaffichées dans les colonnes des jours passés.
+- Les consolidations sont intégrées à la fenêtre 1/3/7 jours, avec un rendu
+  cyan distinct et leur propre échéance.
+- Le package `frontend` est explicite et l'import du shell est stable avec le
+  `.venv`.
+- Le lancement normal désactive le reloader NiceGUI instable ; le script d'arrêt
+  cible uniquement les PID en écoute sur 8082.
+- Vérification finale : `pytest -q` → **582 passed, 1 warning** avec le `.venv`.
+
+La session est clôturée. Les prochaines évolutions peuvent reprendre sur une
+base `master` propre.
+
 ## Clôture de session — cockpit, maîtrise, Anki et planning
 
 ### Terminé

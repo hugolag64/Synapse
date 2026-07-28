@@ -8,6 +8,13 @@
 
 **Tech Stack:** Python 3, NiceGUI, existing `PlanningService`, `data_store` preference persistence, pytest.
 
+## Statut de livraison — 28 juillet 2026
+
+Plan exécuté et intégré dans `master`. La capacité 3–12 h, le mode vacances
+réduit ou coupure complète avec diagnostic au retour, les raccourcis 1/3/5
+jours, le centrage de la grille et la suppression des anciennes cartes basses
+sont livrés. Vérification finale de session : **582 tests passés**.
+
 ## Global Constraints
 
 - The Planning UI must expose capacity as hours, never as minutes.

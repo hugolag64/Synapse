@@ -1,5 +1,13 @@
 # Etat robustesse — 28 juillet 2026
 
+## Mise à jour de clôture
+
+- Le cockpit Planning et son lancement local ont été stabilisés après
+  intégration des actions par journée et des consolidations futures.
+- Le reloader NiceGUI est désactivé dans `launch_synapse.bat` afin de conserver
+  le même interpréteur `.venv` entre le processus parent et le serveur.
+- Vérification finale de la session : **582 tests passés, 1 avertissement**.
+
 ## Termine
 
 - Les ecritures SQLite concurrentes sont serialisees par verrou reentrant.

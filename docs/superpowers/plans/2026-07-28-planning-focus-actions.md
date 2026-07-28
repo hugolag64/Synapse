@@ -8,6 +8,14 @@
 
 **Tech Stack:** Python 3, NiceGUI, SQLite via `backend.core.reviews.local_store`, existing Google Calendar API wrapper, pytest.
 
+## Statut de livraison — 28 juillet 2026
+
+Plan exécuté et intégré dans `master`. Les tâches manuelles locales, le Focus
+de la semaine, les actions par journée, Google Calendar, la lisibilité des
+titres et les tests de validation sont livrés. Les correctifs ultérieurs sur
+les doublons historiques et l'intégration des consolidations futures sont
+également inclus. Vérification finale : **582 tests passés**.
+
 ## Global Constraints
 
 - The main Planning grid remains the primary visual surface.

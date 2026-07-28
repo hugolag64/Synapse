@@ -70,6 +70,17 @@ _CSS = """
 """
 
 
+def _fmt_timer(seconds: int) -> str:
+    m, s = divmod(max(0, seconds), 60)
+    return f"{m:02d}:{s:02d}"
+
+
+def _elapsed_minutes(remaining: int, total: int) -> int | None:
+    if remaining == total:
+        return None
+    return max(1, (total - remaining) // 60)
+
+
 def open_focus_mode_cockpit(state) -> None:
     tasks = list(state.focus_tasks)
     if not tasks:
@@ -90,7 +101,7 @@ def open_focus_mode_cockpit(state) -> None:
     work_minutes = int(data_store.preferences.get("pomo_1_work", 25))
     timer_state = {"remaining": work_minutes * 60, "total": work_minutes * 60, "running": False}
 
-    with ui.dialog(value=True).props("full-width full-height") as fdlg:  # noqa: SIM117
+    with ui.dialog(value=True).props("maximized persistent") as fdlg:  # noqa: SIM117
         with ui.element("div").classes("fm-overlay"):
             with ui.element("div").classes("fm-header"):
                 with ui.element("div").classes("fm-header-left"):
@@ -111,10 +122,6 @@ def open_focus_mode_cockpit(state) -> None:
         timer_state["remaining"] = work_minutes * 60
         timer_state["total"] = work_minutes * 60
         timer_state["running"] = False
-
-    def _fmt_timer(seconds: int) -> str:
-        m, s = divmod(max(0, seconds), 60)
-        return f"{m:02d}:{s:02d}"
 
     def _render() -> None:
         center.clear()
@@ -187,11 +194,6 @@ def open_focus_mode_cockpit(state) -> None:
 
     ticker = ui.timer(1.0, _tick, active=False)
 
-    def _elapsed_minutes() -> int | None:
-        if timer_state["remaining"] == timer_state["total"]:
-            return None
-        return max(1, (timer_state["total"] - timer_state["remaining"]) // 60)
-
     def _note_lacune(task) -> None:
         from frontend.pages.dashboard._dialogs import open_lacune_inline_dialog
         open_lacune_inline_dialog(task, on_save=getattr(state, "rebuild_all", None))
@@ -202,7 +204,7 @@ def open_focus_mode_cockpit(state) -> None:
         dummy_card.set_visibility(False)
         open_session_feedback_dialog(
             task, dummy_card, _cockpit_on_done,
-            initial_duration_minutes=_elapsed_minutes(),
+            initial_duration_minutes=_elapsed_minutes(timer_state["remaining"], timer_state["total"]),
         )
 
     async def _cockpit_on_done(

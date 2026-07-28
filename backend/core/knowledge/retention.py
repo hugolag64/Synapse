@@ -65,7 +65,7 @@ def evaluate_retention(
     age_days = max(0.0, float((as_of - last_evidence).days))
     projected = project_retention(score, stability_days, age_days)
     return RetentionSnapshot(
-        score=int(math.ceil(projected)),
+        score=max(0, min(100, int(math.floor(projected)))),
         stability_days=min(MAX_STABILITY_DAYS, stability_days),
         last_evidence=last_evidence,
     )
@@ -74,21 +74,26 @@ def evaluate_retention(
 def _initial_stability(item: Evidence) -> float:
     base = _source_base_stability(item.source)
     quality = _clamp_quality(item.quality)
-    return _bounded_stability(base + base * quality)
+    return _bounded_stability(base * (2.0 + quality))
 
 
 def _update_stability(current: float, item: Evidence) -> float:
     base = _source_base_stability(item.source)
     quality = _clamp_quality(item.quality)
     if quality >= 0.5:
-        current += base * quality
+        growth = 1.0 + (base / 60.0) * quality
+        current *= growth
     else:
-        current -= base * (0.5 - quality) * 2.0
+        contraction = 1.0 - (base / 40.0) * (0.5 - quality)
+        current *= max(0.1, contraction)
     return _bounded_stability(current)
 
 
 def _source_base_stability(source: str) -> float:
-    return SOURCE_BASE_STABILITY.get(source.strip().lower(), 14.0)
+    key = source.strip().lower()
+    if key not in SOURCE_BASE_STABILITY:
+        raise ValueError(f"Unknown evidence source: {source!r}")
+    return SOURCE_BASE_STABILITY[key]
 
 
 def _clamp_quality(quality: float) -> float:

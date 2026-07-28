@@ -40,3 +40,33 @@ def test_current_evidence_resets_age():
     result = evaluate_retention(80, [Evidence(today, "qcm", .9)], today)
     assert result.last_evidence == today
     assert result.score == 80
+
+
+def test_age_produces_a_real_decline_without_rounding_up():
+    today = datetime.date(2026, 7, 28)
+    result = evaluate_retention(
+        26,
+        [Evidence(today - datetime.timedelta(days=1), "manual", 1.0)],
+        today,
+    )
+    assert result.score < 26
+
+
+def test_unknown_source_raises_value_error():
+    today = datetime.date(2026, 7, 28)
+    try:
+        evaluate_retention(80, [Evidence(today, "mystery", .8)], today)
+    except ValueError as exc:
+        assert "mystery" in str(exc)
+    else:
+        raise AssertionError("expected ValueError for unknown evidence source")
+
+
+def test_score_is_bounded_and_stability_is_capped():
+    today = datetime.date(2026, 7, 28)
+    evidence = [Evidence(today - datetime.timedelta(days=i), "qcm", .9) for i in range(80)]
+
+    result = evaluate_retention(150, evidence, today)
+
+    assert 0 <= result.score <= 100
+    assert result.stability_days <= 730

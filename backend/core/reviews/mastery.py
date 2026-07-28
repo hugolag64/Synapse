@@ -212,10 +212,8 @@ def get_course_mastery(
         level = "maîtrisé"
     else:
         # Score entre 60 et 80, ou >= 80 sans QCM
-        if not qcm_done and not anki_review_count:
+        if not qcm_done:
             level = "en construction" if nb_lectures < 2 else "à consolider"
-        elif not qcm_done and anki_review_count:
-            level = "à entraîner"
         else:
             level = "à consolider" if score < 70 else "maîtrisé"
 

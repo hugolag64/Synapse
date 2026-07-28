@@ -38,6 +38,7 @@ from backend.core.planning.policy import (
     vacation_is_expired,
     vacation_payload,
 )
+from backend.core.planning.focus import build_focus_rows, focus_row_label
 from backend.core.reviews.service import review_service
 from backend.core.reviews.local_store import get_all_history, get_all_weak_points_table
 from backend.core.google.calendar_service import calendar_service
@@ -72,7 +73,20 @@ _CSS = """
 .pl-block-task { border-left:3px solid var(--accent); background:var(--bg); color:var(--text); }
 .pl-day.today .pl-block-task { background:var(--bg); }
 .pl-block-event { border-left:3px dashed var(--text-dim); background:transparent; color:var(--text-muted); }
-.pl-block-title { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pl-block-title { overflow:hidden; display:-webkit-box; -webkit-box-orient:vertical; }
+.pl-grid[data-days="7"] .pl-block-title { -webkit-line-clamp:2; }
+.pl-grid[data-days="3"] .pl-block-title { -webkit-line-clamp:3; }
+.pl-grid[data-days="1"] .pl-block-title { white-space:normal; }
+.pl-block { transition:background .14s ease, transform .14s ease; }
+.pl-block:hover { background:var(--surface); transform:translateY(-1px); }
+.pl-focus { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:18px; }
+.pl-focus-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:11px 12px;
+  border:1px solid var(--border); border-radius:8px; background:var(--surface); cursor:pointer;
+  transition:background .14s ease, border-color .14s ease, transform .14s ease; }
+.pl-focus-row:hover { background:var(--bg); border-color:var(--accent); transform:translateY(-1px); }
+.pl-focus-label { font-size:11px; color:var(--text); }
+.pl-focus-action { font-size:10px; color:var(--accent); white-space:nowrap; }
+@media (max-width: 820px) { .pl-focus { grid-template-columns:1fr; } }
 .pl-block-sub { font-size:10px; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .pl-day-empty { padding:10px 4px; color:var(--text-dim); font-size:11px; font-style:italic; }
 .pl-day-foot { padding:7px 10px; border-top:1px solid var(--border); font-family:var(--font-mono); font-size:11px;
@@ -162,6 +176,7 @@ async def render_planning_cockpit() -> None:
             with ui.element("div").classes("pl-legend-item"):
                 ui.element("div").classes("pl-legend-line event")
                 ui.label("Événement calendrier")
+        focus_block = ui.element("div").classes("pl-focus")
 
 
     def _week_dates() -> list[datetime.date]:
@@ -326,11 +341,34 @@ async def render_planning_cockpit() -> None:
                     f"{len(diagnostic)} connaissance{'s' if len(diagnostic) != 1 else ''} à tester depuis la période de coupure."
                 ).classes("text-xs mt-1")
 
+    def _focus_action(kind: str) -> None:
+        if kind == "overdue":
+            ui.navigate.to("/todo")
+            return
+        if kind == "next_session":
+            target = next((d for d in _week_dates() if _target_for(d)), _week_dates()[0])
+        else:
+            target = next((d for d in _week_dates() if d != datetime.date.today()), _week_dates()[0])
+        _open_day_actions(target)
+
+
+    def _draw_focus(plans: list, all_tasks: list) -> None:
+        focus_block.clear()
+        rows = build_focus_rows(plans, all_tasks)
+        with focus_block:
+            for row in rows:
+                element = ui.element("div").classes("pl-focus-row")
+                element.on("click", lambda kind=row["kind"]: _focus_action(kind))
+                with element:
+                    ui.label(focus_row_label(row)).classes("pl-focus-label")
+                    ui.label("Voir" if row["kind"] == "overdue" else "Planifier").classes("pl-focus-action")
+
     def _draw_skeleton(week: list[datetime.date]) -> None:
         grid.clear()
         day_refs.clear()
         today = datetime.date.today()
         with grid:
+            grid.props(f'data-days="{state["days"]}"')
             grid.style(
                 f"grid-template-columns:repeat({len(week)}, minmax(0,1fr));"
                 f"max-width:{'100%' if len(week) == 7 else '960px'};margin:0 auto;"
@@ -356,14 +394,14 @@ async def render_planning_cockpit() -> None:
             if not plan.slots and not events:
                 ui.label("Rien de prévu").classes("pl-day-empty")
             for slot in plan.slots:
-                with ui.element("div").classes("pl-block pl-block-task"):
+                with ui.element("div").classes("pl-block pl-block-task").tooltip(slot.label):
                     ui.label(slot.label).classes("pl-block-title")
                     if slot.subtitle:
                         ui.label(f"{slot.subtitle} · {slot.duration_min} min").classes("pl-block-sub")
             for ev in events:
                 summary = ev.get("summary") or "Événement"
                 dur = _event_duration_min(ev)
-                with ui.element("div").classes("pl-block pl-block-event"):
+                with ui.element("div").classes("pl-block pl-block-event").tooltip(summary):
                     ui.label(summary).classes("pl-block-title")
                     if dur:
                         h, m = divmod(dur, 60)
@@ -426,5 +464,6 @@ async def render_planning_cockpit() -> None:
         free_days = sum(1 for p in plans if p.total_min <= 0)
         _draw_topbar(week, total_min, free_days)
         _draw_return_notice(all_tasks)
+        _draw_focus(plans, all_tasks)
 
     asyncio.create_task(_load_and_render())

@@ -71,7 +71,7 @@ class PlanningService:
         na = get_next_action(task)
         item_txt = f"ITEM {task.item_number} – " if task.item_number else ""
         label = f"{item_txt}{task.course_title}"
-        subtitle = f"{na.label}"
+        subtitle = "À consolider" if task.review_type == "consolidation" else f"{na.label}"
         if na.reason:
             subtitle += f" · {na.reason}"
 
@@ -79,8 +79,11 @@ class PlanningService:
         icon = na.icon
         urgent = task.days_overdue > 0
 
+        slot_type = "consolidation" if task.review_type == "consolidation" else (
+            "review_urgent" if urgent else "review"
+        )
         return PlannedSlot(
-            slot_type="review_urgent" if urgent else "review",
+            slot_type=slot_type,
             label=label,
             subtitle=subtitle,
             duration_min=na.duration_min,
@@ -91,7 +94,7 @@ class PlanningService:
             course_title=task.course_title,
             item_number=task.item_number,
             url_pdf=task.best_pdf_url,
-            source_ref=source_ref,
+            source_ref="consolidation" if task.review_type == "consolidation" else source_ref,
         )
 
     # ── Conversion lacune → PlannedSlot ───────────────────────────────────────

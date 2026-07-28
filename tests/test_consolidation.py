@@ -382,6 +382,23 @@ def test_pool_exclut_item_pas_encore_du(mock_data_store):
     assert tasks == []
 
 
+@patch('backend.state.store.data_store')
+def test_pool_peut_inclure_les_consolidations_des_prochains_jours(mock_data_store):
+    import backend.core.knowledge.store as ks
+    from backend.core.reviews import consolidation
+
+    ks.set_item_state("course-future", "solide", context="college", source="triage")
+    c = _mock_cours("course-future", "Cours futur", ["Nutrition ðŸ”"])
+    mock_data_store.cours = [c]
+
+    tasks = consolidation.get_due_consolidation_tasks(
+        context="college", today=date.today(), horizon_days=31,
+    )
+
+    assert len(tasks) == 1
+    assert tasks[0].due_date > date.today()
+
+
 # ── select_daily : diversité + pondération semestre/niveau ─────────────────
 
 def _task(course_id, college, days_overdue, mastery_level="fragile", semestre="Semestre 4"):

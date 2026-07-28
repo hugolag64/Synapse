@@ -70,3 +70,20 @@ def test_score_is_bounded_and_stability_is_capped():
 
     assert 0 <= result.score <= 100
     assert result.stability_days <= 730
+
+
+def test_lower_bound_respects_floor_and_never_goes_negative():
+    today = datetime.date(2026, 7, 28)
+    very_low = evaluate_retention(
+        5,
+        [Evidence(today - datetime.timedelta(days=365), "manual", .1)],
+        today,
+    )
+    floor_applicable = evaluate_retention(
+        40,
+        [Evidence(today - datetime.timedelta(days=365), "manual", .1)],
+        today,
+    )
+
+    assert very_low.score >= 0
+    assert floor_applicable.score >= 25

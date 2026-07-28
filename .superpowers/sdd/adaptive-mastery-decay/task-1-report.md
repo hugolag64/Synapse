@@ -15,3 +15,12 @@
 - Test command: `pytest tests/test_knowledge_retention.py -q`
 - Test output: `7 passed in 0.16s`
 - Concerns: none
+
+## Fix round 2
+
+- Changed files:
+  - `tests/test_knowledge_retention.py`
+  - `.superpowers/sdd/adaptive-mastery-decay/task-1-report.md`
+- Test command: `pytest tests/test_knowledge_retention.py -q`
+- Test output: `8 passed in 0.19s`
+- Concerns: none

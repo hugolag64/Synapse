@@ -33,6 +33,9 @@ from frontend.pages.dashboard._state import DashboardState
 from frontend.pages.dashboard._reviews import open_focus_mode
 from frontend.components.study_task_row import due_info, ensure_styles as _row_styles
 from frontend.components.mastery_indicator import mastery_indicator, ensure_styles as _mastery_styles
+from frontend.components.responsive_drawer import (
+    responsive_drawer, close_drawer, open_drawer, ensure_styles as _drawer_styles,
+)
 
 _CYCLES = ["J3", "J7", "J14", "J30"]
 
@@ -93,6 +96,13 @@ _CSS = """
   font-size:12px; font-weight:500; cursor:pointer; white-space:nowrap; }
 .rv-btn-sm:hover { background:var(--accent-hover); }
 .rv-empty { padding:32px 10px; text-align:center; color:var(--text-dim); font-size:13px; }
+.rv-context-open { display:none; color:var(--accent); cursor:pointer; font-size:12px; }
+@media (min-width: 900px) and (max-width: 1199.98px) {
+  .rv-layout { display:block; }
+  .rv-panel { width:0; min-height:0; padding:0; border:0; }
+  .rv-panel > .synapse-responsive-drawer { display:contents; }
+  .rv-context-open { display:inline-flex; }
+}
 """
 
 
@@ -118,10 +128,12 @@ async def render_revisions_cockpit() -> None:
     ui.add_head_html(f"<style>{_CSS}</style>", shared=True)
     _row_styles()
     _mastery_styles()
+    _drawer_styles()
 
     state = DashboardState()
     data: dict = {"tasks": [], "overdue": 0}
     filt: dict = {"cycle": None}  # None = Toutes
+    drawer_state: dict = {"root": None}
 
     # ── Callbacks Mode Focus (copiés depuis _cockpit_today.py — voir Journal) ──
     async def _on_done(task, card=None, activity_types=None, duration_minutes=None,
@@ -184,6 +196,13 @@ async def render_revisions_cockpit() -> None:
                 chips_row = ui.element("div").classes("rv-chips")
                 list_col = ui.column().classes("w-full gap-0")
             panel = ui.element("aside").classes("rv-panel")
+    with panel:
+        def _close_context() -> None:
+            if drawer_state["root"] is not None:
+                close_drawer(drawer_state["root"])
+        with responsive_drawer(on_close=_close_context, aria_label="Pilotage des révisions") as drawer_root:
+            drawer_state["root"] = drawer_root
+            panel_content = ui.element("div")
 
     def _visible_tasks() -> list:
         if filt["cycle"] is None:
@@ -212,6 +231,8 @@ async def render_revisions_cockpit() -> None:
                     ui.label(f"{data['overdue']} en retard").style(
                         "color:var(--danger); font-weight:500;")
                     ui.label("· répétition espacée J3/J7/J14/J30")
+            context = ui.label("Pilotage").classes("rv-context-open")
+            context.on("click", lambda: open_drawer(drawer_state["root"]) if drawer_state["root"] else None)
             btn = ui.element("div").classes("rv-btn-primary")
             with btn:
                 ui.label("Démarrer la file")
@@ -236,9 +257,9 @@ async def render_revisions_cockpit() -> None:
                 _chip(c, c)
 
     def _draw_pilotage() -> None:
-        panel.clear()
+        panel_content.clear()
         summary = _revision_summary(data["tasks"], data["overdue"])
-        with panel:
+        with panel_content:
             ui.label("Pilotage des révisions").classes("rv-panel-title")
             ui.label("La file à traiter maintenant").classes("rv-panel-subtitle")
 

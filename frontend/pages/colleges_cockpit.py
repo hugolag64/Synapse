@@ -27,6 +27,9 @@ from backend.core.reviews.validation import complete_review
 from backend.core.reviews.service import review_service
 from frontend.components.study_task_row import due_info
 from frontend.components.mastery_indicator import _LEVEL_COLOR, _level_from_score
+from frontend.components.responsive_drawer import (
+    responsive_drawer, close_drawer, open_drawer, ensure_styles as _drawer_styles,
+)
 
 _CSS = """
 .cg-wrap { max-width:none; width:100%; }
@@ -100,6 +103,13 @@ _CSS = """
 .cg-qcm { flex:0 0 52px; text-align:right; font-family:var(--font-mono); font-size:12px; font-weight:600; }
 .cg-empty { padding:32px 10px; text-align:center; color:var(--text-dim); font-size:13px; }
 .cg-items { padding:8px 12px 12px 34px; background:var(--surface); border-bottom:1px solid var(--border); overflow-x:auto; }
+.cg-context-open { display:none; color:var(--accent); cursor:pointer; font-size:12px; }
+@media (min-width: 900px) and (max-width: 1199.98px) {
+  .cg-layout { display:block; }
+  .cg-panel { width:0; min-height:0; padding:0; border:0; }
+  .cg-panel > .synapse-responsive-drawer { display:contents; }
+  .cg-context-open { display:inline-flex; }
+}
 .cg-items-grid { min-width:760px; }
 .cg-item-head, .cg-item { display:grid; grid-template-columns:minmax(180px,2fr) 76px 88px 86px 78px 100px 56px auto; align-items:center; column-gap:10px; }
 .cg-item-head { min-height:24px; padding:0 0 5px; color:var(--text-dim); font-size:9px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; }
@@ -193,9 +203,11 @@ def _pilotage_summary(rows: list[dict]) -> dict:
 
 def render_colleges_cockpit() -> None:
     ui.add_head_html(f"<style>{_CSS}</style>", shared=True)
+    _drawer_styles()
 
     filt = {"unread": False, "overdue": False, "no_pdf": False}
     expanded: set[str] = set()
+    drawer_state: dict = {"root": None}
 
     with ui.column().classes("cg-wrap gap-0"):
         with ui.element("div").classes("cg-layout"):
@@ -204,6 +216,13 @@ def render_colleges_cockpit() -> None:
                 head = ui.element("div").classes("cg-head")
                 list_col = ui.column().classes("w-full gap-0")
             panel = ui.element("aside").classes("cg-panel")
+    with panel:
+        def _close_context() -> None:
+            if drawer_state["root"] is not None:
+                close_drawer(drawer_state["root"])
+        with responsive_drawer(on_close=_close_context, aria_label="Pilotage global") as drawer_root:
+            drawer_state["root"] = drawer_root
+            panel_content = ui.element("div")
 
     def _compute() -> list[dict]:
         history = get_all_history()
@@ -282,11 +301,13 @@ def render_colleges_cockpit() -> None:
                 _chip("Jamais lus", "unread")
                 _chip("En retard", "overdue")
                 _chip("Sans PDF", "no_pdf")
+            context = ui.label("Pilotage").classes("cg-context-open")
+            context.on("click", lambda: open_drawer(drawer_state["root"]) if drawer_state["root"] else None)
 
     def _draw_pilotage(rows: list[dict]) -> None:
-        panel.clear()
+        panel_content.clear()
         summary = _pilotage_summary(rows)
-        with panel:
+        with panel_content:
             ui.label("Pilotage global").classes("cg-panel-title")
             ui.label("Les prochaines actions utiles").classes("cg-panel-subtitle")
 

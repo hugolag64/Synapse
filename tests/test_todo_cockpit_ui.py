@@ -26,5 +26,7 @@ def test_revision_page_uses_shared_grid_and_full_width_layout():
 
     assert ".rv-head, .rv-row { display:grid;" in source
     assert "grid-template-columns:40px 46px minmax(180px,1fr) 140px 84px 84px" in source
+    assert ".rv-queue { min-width:0; width:100%; }" in source
+    assert "width:100%; box-sizing:border-box;" in source
     assert 'classes("rv-layout")' in source
     assert "Pilotage des révisions" in source

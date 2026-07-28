@@ -39,7 +39,7 @@ _CYCLES = ["J3", "J7", "J14", "J30"]
 _CSS = """
 .rv-wrap { max-width:none; width:100%; }
 .rv-layout { display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:28px; align-items:start; width:100%; }
-.rv-queue { min-width:0; }
+.rv-queue { min-width:0; width:100%; }
 .rv-panel { border:1px solid var(--border); border-radius:10px; background:var(--surface); padding:16px; position:sticky; top:16px; }
 .rv-panel-title { font-size:13px; font-weight:600; color:var(--text); }
 .rv-panel-subtitle { font-size:11px; color:var(--text-muted); margin-top:3px; }
@@ -68,7 +68,7 @@ _CSS = """
               border-color var(--duration-fast) var(--ease-standard); }
 .rv-chip:hover { background:var(--surface); }
 .rv-chip.active { background:var(--accent); border-color:var(--accent); color:var(--accent-text); }
-.rv-head, .rv-row { display:grid; grid-template-columns:40px 46px minmax(180px,1fr) 140px 84px 84px; align-items:center; column-gap:12px; }
+.rv-head, .rv-row { display:grid; width:100%; box-sizing:border-box; grid-template-columns:40px 46px minmax(180px,1fr) 140px 84px 84px; align-items:center; column-gap:12px; }
 .rv-head { padding:0 10px 8px; font-size:10px;
   text-transform:uppercase; letter-spacing:.04em; color:var(--text-dim); font-weight:600;
   border-bottom:1px solid var(--border); }

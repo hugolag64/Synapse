@@ -4,7 +4,7 @@
 
 **Goal:** Make the displayed mastery score and its prediction curve use one adaptive, date-aware retention model.
 
-**Architecture:** Add a pure retention module that turns dated evidence into a current score and stability. Keep the existing evidence/base-score rules in `mastery.py`, then apply retention once at the end. Make the SVG curve call the same pure projection function rather than maintaining a second decay formula.
+**Architecture:** Add a pure retention module that turns dated evidence into a current score and stability. Keep the existing non-Anki evidence/base-score rules in `mastery.py`, treat Anki outcomes as mastery evidence without letting “Anki fait” validate EDN preparation, then apply retention once at the end. Make the SVG curve call the same pure projection function rather than maintaining a second decay formula.
 
 **Tech Stack:** Python 3, dataclasses, existing SQLite rows, pytest, NiceGUI SVG component.
 
@@ -14,6 +14,7 @@
 - Reading alone is weak evidence; objective EDN evaluations and Anki outcomes are stronger evidence.
 - Historical evidence uses its recorded session/review date.
 - Anki’s scheduler remains authoritative for card scheduling; Synapse only consumes its outcomes.
+- Anki outcomes may raise or lower mastery, but Anki presence/completion never substitutes for a QCM/DP/KFP EDN evaluation or changes the EDN-preparation level by itself.
 - Existing database rows remain readable without migration when a date is missing.
 
 ---

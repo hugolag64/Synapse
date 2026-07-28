@@ -49,6 +49,8 @@ def test_item_non_declare_et_jamais_lu_reste_sans_score():
     snap = get_course_mastery(_course())
     assert snap.score is None
     assert snap.level == "à lire"
+    assert snap.retention_stability_days == 0.0
+    assert snap.retention_last_evidence is None
 
 
 def test_item_declare_et_jamais_lu_recoit_la_graine_comme_score():
@@ -185,6 +187,21 @@ def test_good_qcm_and_anki_evidence_stabilize_more_than_a_single_reading():
     ]
 
     assert get_course_mastery(course, sessions=repeated).score > get_course_mastery(course, sessions=reading).score
+
+
+def test_snapshot_exposes_retention_stability_and_last_evidence_for_started_items():
+    today = datetime.date(2026, 7, 28)
+    course = _course(first_read=today - datetime.timedelta(days=90), nb_lectures=1)
+    sessions = [
+        {"session_date": "2026-04-29", "confidence": 2, "difficulty": "moyen", "qcm_result": None},
+        {"session_date": "2026-06-29", "activity_types": ["qcm"], "confidence": 4, "difficulty": "facile", "qcm_result": "réussi"},
+        {"session_date": "2026-07-28", "activity_types": ["oic"], "confidence": 4, "difficulty": "facile", "qcm_result": None, "perceived_mastery": 80},
+    ]
+
+    snap = get_course_mastery(course, sessions=sessions)
+
+    assert snap.retention_stability_days > 0.0
+    assert snap.retention_last_evidence == today
 
 
 def test_invalid_session_date_falls_back_to_first_read_for_retention_evidence():

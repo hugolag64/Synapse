@@ -35,6 +35,8 @@ class CourseProgressSnapshot:
     has_rang_a_badge: bool = False
     anki_review_count: int = 0
     anki_knowledge_score: int | None = None
+    retention_stability_days: float = 0.0
+    retention_last_evidence: datetime.date | None = None
 
 
 # ── Couleurs UI par niveau ─────────────────────────────────────────────────────
@@ -93,6 +95,10 @@ def get_course_mastery(
         "oic_coverage_a":   _oic_coverage_a,
         "has_rang_a_badge": _has_rang_a_badge,
     }
+    _retention_defaults = {
+        "retention_stability_days": 0.0,
+        "retention_last_evidence": None,
+    }
 
     # 1. Extraction des propriétés du cours selon le contexte
     has_pdf = bool(course.url_pdf if context == "college" else course.url_pdf_ue)
@@ -115,7 +121,7 @@ def get_course_mastery(
             course_id=course.id, context=context, level="à préparer", score=None,
             has_pdf=has_pdf, has_first_read=has_first_read, nb_lectures=nb_lectures,
             qcm_done=qcm_done, anki_done=anki_done, reasons=["Pas de PDF lié"],
-            next_action="Lier PDF", **_extra,
+            next_action="Lier PDF", **_extra, **_retention_defaults,
         )
 
     if not has_first_read:
@@ -128,7 +134,7 @@ def get_course_mastery(
                 has_pdf=has_pdf, has_first_read=has_first_read, nb_lectures=nb_lectures,
                 qcm_done=qcm_done, anki_done=anki_done,
                 reasons=[f"Niveau déclaré : {seed.declared_level}"],
-                next_action="Réviser", **_extra,
+                next_action="Réviser", **_extra, **_retention_defaults,
             )
         if seed.seed_score is None:
             return CourseProgressSnapshot(
@@ -136,7 +142,7 @@ def get_course_mastery(
                 has_pdf=has_pdf, has_first_read=has_first_read, nb_lectures=nb_lectures,
                 qcm_done=qcm_done, anki_done=anki_done,
                 reasons=["Première lecture manquante"], next_action="1ère lecture",
-                **_extra,
+                **_extra, **_retention_defaults,
             )
         # Item déclaré ET porteur de preuves : on poursuit vers le calcul normal.
 
@@ -200,8 +206,8 @@ def get_course_mastery(
         reasons.append(f"Anki : {anki_review_count} révision(s)")
 
     retention_evidence = _build_retention_evidence(course, sessions, anki_rows)
-    if retention_evidence:
-        score = evaluate_retention(score, retention_evidence, datetime.date.today()).score
+    retention_snapshot = evaluate_retention(score, retention_evidence, datetime.date.today())
+    score = retention_snapshot.score
 
     # 4. Détermination du niveau
     if score < 40:
@@ -240,6 +246,8 @@ def get_course_mastery(
         next_action=next_action,
         anki_review_count=anki_review_count,
         anki_knowledge_score=anki_knowledge_score,
+        retention_stability_days=retention_snapshot.stability_days,
+        retention_last_evidence=retention_snapshot.last_evidence,
         **_extra,
     )
 

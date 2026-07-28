@@ -3,20 +3,17 @@
 Projette le score de maîtrise dans les 30 prochains jours *sans révision*, avec
 un repère sur l'échéance à venir (« J+7 · 42 ») et le point de départ (« auj. 48 »).
 
-⚠ Modèle de PRÉSENTATION, pas une vérité backend.
-Synapse n'expose aucun modèle d'oubli : `knowledge.models.decayed_seed` décrit la
-péremption d'une *auto-évaluation déclarée* (2 pts / 30 j), pas la rétention d'un
-item travaillé — l'utiliser ici donnerait une courbe plate. On applique donc une
-décroissance exponentielle vers un plancher, de demi-vie proportionnelle à
-l'intervalle de révision courant (un item au stade J30 s'oublie plus lentement
-qu'un item au stade J3). Les constantes ci-dessous sont les seuls paramètres ;
-si le backend gagne un vrai modèle de rétention, brancher `project_score` dessus.
+La projection réutilise le modèle adaptatif partagé quand une stabilité de
+rétention est disponible ; sinon elle garde le fallback historique piloté par le
+cycle de révision courant.
 """
 from __future__ import annotations
 
 import math
 
 from nicegui import ui
+
+from backend.core.knowledge.retention import MASTERY_FLOOR, project_retention
 
 # ── Paramètres du modèle (présentation) ───────────────────────────────────────
 HALF_LIFE_FACTOR = 2.0      # demi-vie = facteur × intervalle du cycle courant
@@ -47,13 +44,25 @@ def cycle_interval(review_type: str | None) -> int:
     return _CYCLE_INTERVAL.get(review_type or "", DEFAULT_INTERVAL_D)
 
 
-def project_score(score0: int, days: float, interval_d: int) -> float:
+def project_score(
+    score0: int,
+    days: float,
+    interval_d: int,
+    stability_days: float | None = None,
+) -> float:
     """Score projeté après `days` jours sans révision (décroissance vers le plancher)."""
-    if score0 <= SCORE_FLOOR:
-        return float(score0)
+    if stability_days is not None and stability_days > 0:
+        return project_retention(score0, stability_days, days)
+
+    score = max(0.0, min(100.0, float(score0)))
+    if days <= 0:
+        return score
+    if score <= MASTERY_FLOOR:
+        return score
     half_life = max(1.0, HALF_LIFE_FACTOR * interval_d)
-    decayed = (score0 - SCORE_FLOOR) * math.exp(-days * math.log(2) / half_life)
-    return SCORE_FLOOR + decayed
+    decayed = (score - MASTERY_FLOOR) * math.exp(-days * math.log(2) / half_life)
+    projected = MASTERY_FLOOR + decayed
+    return max(0.0, min(100.0, projected))
 
 
 def _health(score: float) -> str:
@@ -66,9 +75,10 @@ def _health(score: float) -> str:
     return "critique"
 
 
-def forgetting_curve(score0, *, review_type: str | None = None,
+def forgetting_curve(score0, review_type: str | None = None,
                      horizon_days: int = HORIZON_D,
-                     marker_days: int | None = None) -> None:
+                     marker_days: int | None = None,
+                     *, stability_days: float | None = None) -> None:
     """Courbe d'oubli + phrase de synthèse.
 
     score0       : maîtrise actuelle (None → composant vide, pas de fausse courbe).
@@ -97,18 +107,18 @@ def forgetting_curve(score0, *, review_type: str | None = None,
     def _y(score: float) -> float:
         return pad_t + plot_h * (1 - max(0.0, min(100.0, score)) / 100.0)
 
-    pts = [(_x(d), _y(project_score(score0, d, interval)))
+    pts = [(_x(d), _y(project_score(score0, d, interval, stability_days=stability_days)))
            for d in range(0, horizon_days + 1)]
     line = " ".join(f"{x:.1f},{y:.1f}" for x, y in pts)
     area = f"{pts[0][0]:.1f},{pad_t + plot_h:.1f} {line} {pts[-1][0]:.1f},{pad_t + plot_h:.1f}"
 
-    mark_score = project_score(score0, mark_d, interval)
+    mark_score = project_score(score0, mark_d, interval, stability_days=stability_days)
     mx, my = _x(mark_d), _y(mark_score)
 
     svg = f"""
 <svg class="fc-svg" viewBox="0 0 {w:.0f} {h:.0f}" role="img"
-     aria-label="Projection de la maîtrise : {int(round(score0))} aujourd'hui,
-     {int(round(mark_score))} dans {mark_d} jours sans révision">
+     aria-label="Projection adaptative actuelle sans révision : {int(round(score0))} aujourd'hui,
+     {int(round(mark_score))} dans {mark_d} jours">
   <line x1="{pad_l}" y1="{pad_t + plot_h:.1f}" x2="{w - pad_r:.1f}" y2="{pad_t + plot_h:.1f}"
         stroke="var(--border)" stroke-width="1"/>
   <polygon points="{area}" fill="var(--accent)" opacity="0.08"/>
@@ -131,11 +141,12 @@ def forgetting_curve(score0, *, review_type: str | None = None,
         with ui.element("div").classes("fc-caption"):
             if drop <= 0:
                 ui.html(
-                    f"Maîtrise stable sur {mark_d} j — <b>{int(round(mark_score))}</b> "
-                    f"({_health(mark_score)}). Estimation."
+                    f"Projection adaptative actuelle sans révision : stable sur {mark_d} j — "
+                    f"<b>{int(round(mark_score))}</b> ({_health(mark_score)})."
                 )
             else:
                 ui.html(
-                    f"Sans révision → <b>{int(round(mark_score))}</b> dans {mark_d} j "
-                    f"({_health(mark_score)}), soit −{drop}. Estimation."
+                    f"Projection adaptative actuelle sans révision → "
+                    f"<b>{int(round(mark_score))}</b> dans {mark_d} j "
+                    f"({_health(mark_score)}), soit −{drop}."
                 )

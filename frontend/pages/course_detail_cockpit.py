@@ -514,7 +514,12 @@ def _tab_overview(course, task, score, level, next_due, next_cycle,
             rtype = task.review_type if task else next_cycle
             remaining = (next_due - datetime.date.today()).days if next_due else None
             marker = remaining if (remaining or 0) >= 3 else None
-            forgetting_curve(score, review_type=rtype, marker_days=marker)
+            forgetting_curve(
+                score,
+                review_type=rtype,
+                marker_days=marker,
+                stability_days=mastery.retention_stability_days if mastery else None,
+            )
 
         with ui.element("div").classes("ci-card"):
             neighbor_ids = neighbors_of(course.id)

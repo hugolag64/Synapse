@@ -110,7 +110,9 @@ def get_course_mastery(
     anki_rows = []
     if item_number:
         from backend.core.reviews import local_store
-        anki_rows = local_store.get_anki_review_evidence(item_number)
+        get_anki_evidence = getattr(local_store, "get_anki_review_evidence", None)
+        if callable(get_anki_evidence):
+            anki_rows = get_anki_evidence(item_number)
     anki_knowledge_score = _anki_knowledge_score(anki_rows)
     anki_review_count = len(anki_rows)
 
@@ -229,9 +231,6 @@ def get_course_mastery(
         next_action = "Ficher/Résumer"
     elif level == "à consolider":
         next_action = "Faire Anki"
-    elif level == "à entraîner":
-        next_action = "Faire des QCM"
-
     return CourseProgressSnapshot(
         course_id=course.id,
         context=context,
@@ -264,12 +263,14 @@ def _safe_get(row, key: str, default=None):
 def _build_retention_evidence(course, sessions: list, anki_rows: list) -> list[Evidence]:
     fallback_date = _fallback_evidence_date(course)
     evidence: list[Evidence] = []
+    study_evidence_keys: set[tuple[str, datetime.date]] = set()
 
     for session in sessions:
         session_date = _coerce_evidence_date(_safe_get(session, "session_date"), fallback_date)
         primary = _session_primary_evidence(session, session_date)
         if primary is not None:
             evidence.append(primary)
+            study_evidence_keys.add((primary.source, primary.date))
 
         confidence_quality = _confidence_quality(
             _safe_get(session, "confidence"),
@@ -284,6 +285,44 @@ def _build_retention_evidence(course, sessions: list, anki_rows: list) -> list[E
             continue
         reviewed_at = _coerce_evidence_date(_safe_get(row, "reviewed_at"), fallback_date)
         evidence.append(Evidence(reviewed_at, "anki", quality))
+
+    evidence.extend(_canonical_retention_evidence(course, fallback_date, study_evidence_keys))
+
+    if not sessions and getattr(course, "date_1ere_lecture", None):
+        evidence.append(Evidence(fallback_date, "lecture", 0.5))
+
+    return evidence
+
+
+def _canonical_retention_evidence(
+    course,
+    fallback_date: datetime.date,
+    study_evidence_keys: set[tuple[str, datetime.date]],
+) -> list[Evidence]:
+    from backend.core.reviews import local_store
+
+    evidence: list[Evidence] = []
+    for row in local_store.get_qcm_sessions_by_course(course.id):
+        source = _qcm_source(_safe_get(row, "session_type"))
+        if source is None:
+            continue
+        session_date = _coerce_evidence_date(_safe_get(row, "session_date"), fallback_date)
+        if (source, session_date) not in study_evidence_keys:
+            evidence.append(Evidence(
+                session_date,
+                source,
+                _qcm_score_quality(_safe_get(row, "score_percent"), _safe_get(row, "score_raw")),
+            ))
+
+    for oic_row in local_store.get_lisa_oic(course.id) or []:
+        for attempt in local_store.get_oic_attempts(_safe_get(oic_row, "id")):
+            attempted_at = _coerce_evidence_date(_safe_get(attempt, "attempted_at"), fallback_date)
+            if ("oic", attempted_at) not in study_evidence_keys:
+                evidence.append(Evidence(
+                    attempted_at,
+                    "oic",
+                    _oic_quality(_safe_get(attempt, "session_score")),
+                ))
 
     return evidence
 
@@ -374,6 +413,33 @@ def _qcm_quality(result) -> float:
     if normalized in {"raté", "rate"}:
         return 0.15
     return 0.5
+
+
+def _qcm_source(session_type) -> str | None:
+    return {
+        "qcm": "qcm",
+        "dp": "dp",
+        "kfp": "kfp",
+    }.get(str(session_type or "").strip().lower())
+
+
+def _qcm_score_quality(score_percent, score_raw) -> float:
+    try:
+        return max(0.0, min(1.0, float(score_percent) / 100.0))
+    except (TypeError, ValueError):
+        pass
+
+    raw = str(score_raw or "").strip().replace("%", "")
+    if "/" in raw:
+        numerator, denominator = raw.split("/", 1)
+        try:
+            return max(0.0, min(1.0, float(numerator) / float(denominator)))
+        except (TypeError, ValueError, ZeroDivisionError):
+            return 0.5
+    try:
+        return max(0.0, min(1.0, float(raw) / 100.0))
+    except (TypeError, ValueError):
+        return 0.5
 
 
 def _oic_quality(score) -> float:

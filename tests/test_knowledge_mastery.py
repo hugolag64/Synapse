@@ -111,6 +111,19 @@ def test_anki_sans_revision_ne_penalise_pas_la_maitrise():
     assert snap.score == 56  # lecture progress minus the QCM absence, no Anki penalty
 
 
+def test_mastery_supports_clean_checkout_without_anki_evidence_api(monkeypatch):
+    import backend.core.reviews.local_store as ls
+
+    course = _course(first_read=datetime.date.today(), nb_lectures=1)
+    course.item_number = "221"
+    monkeypatch.delattr(ls, "get_anki_review_evidence")
+
+    snapshot = get_course_mastery(course)
+
+    assert snapshot.anki_review_count == 0
+    assert snapshot.score is not None
+
+
 def test_anki_presence_seule_ne_promeut_pas_le_niveau_de_preparation_edn():
     import backend.core.reviews.local_store as ls
 
@@ -187,6 +200,89 @@ def test_good_qcm_and_anki_evidence_stabilize_more_than_a_single_reading():
     ]
 
     assert get_course_mastery(course, sessions=repeated).score > get_course_mastery(course, sessions=reading).score
+
+
+def test_first_read_without_study_session_is_dated_retention_evidence():
+    today = datetime.date.today()
+    course = _course(first_read=today - datetime.timedelta(days=90), nb_lectures=1)
+
+    snapshot = get_course_mastery(course)
+
+    assert snapshot.retention_stability_days > 0.0
+    assert snapshot.retention_last_evidence == course.date_1ere_lecture
+    assert snapshot.score < 45
+
+
+def test_canonical_qcm_evidence_improves_retention_stability_and_score():
+    import backend.core.reviews.local_store as ls
+
+    today = datetime.date.today()
+    course = _course(first_read=today - datetime.timedelta(days=90), nb_lectures=1)
+    baseline = get_course_mastery(course)
+    ls.add_qcm_session_full(
+        platform="EDNpro",
+        session_date=today.isoformat(),
+        course_id=course.id,
+        session_type="DP",
+        score_raw="18/20",
+        score_percent=90,
+    )
+
+    refreshed = get_course_mastery(course)
+
+    assert refreshed.retention_stability_days > baseline.retention_stability_days
+    assert refreshed.score > baseline.score
+    assert refreshed.retention_last_evidence == today
+
+
+def test_canonical_oic_attempt_improves_retention_stability_and_score():
+    import backend.core.reviews.local_store as ls
+
+    today = datetime.date.today()
+    course = _course(first_read=today - datetime.timedelta(days=90), nb_lectures=1)
+    baseline = get_course_mastery(course)
+    ls.upsert_lisa_oic(course.id, [
+        {"oic_code": "OIC-1", "intitule": "O1", "rang": "A", "rubrique": "Def", "ordre": 1},
+    ])
+    oic_id = ls.get_lisa_oic(course.id)[0]["id"]
+    attempt_id = ls.save_oic_attempt(oic_id, 90, "[]")
+    with ls._conn() as con:
+        con.execute(
+            "UPDATE oic_attempts SET attempted_at = ? WHERE id = ?",
+            (today.isoformat(), attempt_id),
+        )
+
+    refreshed = get_course_mastery(course)
+
+    assert refreshed.retention_stability_days > baseline.retention_stability_days
+    assert refreshed.score > baseline.score
+    assert refreshed.retention_last_evidence == today
+
+
+def test_canonical_qcm_does_not_duplicate_study_session_evidence():
+    import backend.core.reviews.local_store as ls
+
+    today = datetime.date.today()
+    course = _course(first_read=today - datetime.timedelta(days=90), nb_lectures=1)
+    ls.add_study_session(
+        course_id=course.id,
+        course_title=course.title,
+        activity_types=["qcm"],
+        qcm_result="r\u00e9ussi",
+    )
+    sessions = ls.get_sessions_by_course()[course.id]
+    ls.add_qcm_session_full(
+        platform="EDNpro",
+        session_date=today.isoformat(),
+        course_id=course.id,
+        session_type="QCM",
+        score_raw="18/20",
+        score_percent=90,
+    )
+
+    snapshot = get_course_mastery(course, sessions=sessions)
+
+    assert snapshot.retention_stability_days == 63.0
 
 
 def test_snapshot_exposes_retention_stability_and_last_evidence_for_started_items():

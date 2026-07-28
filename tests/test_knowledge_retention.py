@@ -1,6 +1,6 @@
 import datetime
 
-from backend.core.knowledge.retention import Evidence, evaluate_retention
+from backend.core.knowledge.retention import Evidence, evaluate_retention, project_retention
 
 
 def test_score_declines_with_age_but_not_to_zero():
@@ -87,3 +87,18 @@ def test_lower_bound_respects_floor_and_never_goes_negative():
 
     assert very_low.score >= 0
     assert floor_applicable.score >= 25
+
+
+def test_floor_applies_to_current_and_aged_scores_below_the_floor():
+    today = datetime.date(2026, 7, 28)
+
+    current = evaluate_retention(5, [Evidence(today, "lecture", .5)], today)
+    aged = evaluate_retention(
+        5,
+        [Evidence(today - datetime.timedelta(days=365), "lecture", .5)],
+        today,
+    )
+
+    assert current.score == 25
+    assert aged.score == 25
+    assert project_retention(5, 14, 0) == 25

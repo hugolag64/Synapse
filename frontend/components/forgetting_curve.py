@@ -54,15 +54,13 @@ def project_score(
     if stability_days is not None and stability_days > 0:
         return project_retention(score0, stability_days, days)
 
-    score = max(0.0, min(100.0, float(score0)))
+    score = max(float(MASTERY_FLOOR), min(100.0, float(score0)))
     if days <= 0:
-        return score
-    if score <= MASTERY_FLOOR:
         return score
     half_life = max(1.0, HALF_LIFE_FACTOR * interval_d)
     decayed = (score - MASTERY_FLOOR) * math.exp(-days * math.log(2) / half_life)
     projected = MASTERY_FLOOR + decayed
-    return max(0.0, min(100.0, projected))
+    return max(float(MASTERY_FLOOR), min(100.0, projected))
 
 
 def _health(score: float) -> str:

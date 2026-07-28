@@ -35,7 +35,7 @@ class RetentionSnapshot:
 
 
 def project_retention(score: int, stability_days: float, days: float) -> float:
-    score = max(0, min(100, score))
+    score = max(MASTERY_FLOOR, min(100, score))
     if days <= 0:
         return float(score)
     if stability_days <= 0:
@@ -43,7 +43,7 @@ def project_retention(score: int, stability_days: float, days: float) -> float:
 
     stability = min(MAX_STABILITY_DAYS, max(1.0, stability_days))
     projected = MASTERY_FLOOR + (score - MASTERY_FLOOR) * (2 ** (-days / stability))
-    return max(0.0, min(100.0, projected))
+    return max(float(MASTERY_FLOOR), min(100.0, projected))
 
 
 def evaluate_retention(
@@ -51,7 +51,7 @@ def evaluate_retention(
     evidence: Sequence[Evidence],
     as_of: datetime.date,
 ) -> RetentionSnapshot:
-    score = max(0, min(100, base_score))
+    score = max(MASTERY_FLOOR, min(100, base_score))
     if not evidence:
         return RetentionSnapshot(score=score, stability_days=0.0, last_evidence=None)
 
@@ -65,7 +65,7 @@ def evaluate_retention(
     age_days = max(0.0, float((as_of - last_evidence).days))
     projected = project_retention(score, stability_days, age_days)
     return RetentionSnapshot(
-        score=max(0, min(100, int(math.floor(projected)))),
+        score=max(MASTERY_FLOOR, min(100, int(math.floor(projected)))),
         stability_days=min(MAX_STABILITY_DAYS, stability_days),
         last_evidence=last_evidence,
     )

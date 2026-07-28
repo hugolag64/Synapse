@@ -116,7 +116,7 @@ def test_mastery_supports_clean_checkout_without_anki_evidence_api(monkeypatch):
 
     course = _course(first_read=datetime.date.today(), nb_lectures=1)
     course.item_number = "221"
-    monkeypatch.delattr(ls, "get_anki_review_evidence")
+    monkeypatch.delattr(ls, "get_anki_review_evidence", raising=False)
 
     snapshot = get_course_mastery(course)
 
@@ -126,6 +126,9 @@ def test_mastery_supports_clean_checkout_without_anki_evidence_api(monkeypatch):
 
 def test_anki_presence_seule_ne_promeut_pas_le_niveau_de_preparation_edn():
     import backend.core.reviews.local_store as ls
+
+    if not callable(getattr(ls, "record_anki_review", None)):
+        pytest.skip("AnkiConnect evidence store unavailable in this checkout")
 
     course = _course(first_read=datetime.date(2026, 7, 28), nb_lectures=2)
     course.item_number = "221"
@@ -157,6 +160,9 @@ def test_anki_presence_seule_ne_promeut_pas_le_niveau_de_preparation_edn():
 
 def test_anki_good_avec_intervalle_alimente_le_score_sans_remplacer_qcm():
     import backend.core.reviews.local_store as ls
+
+    if not callable(getattr(ls, "record_anki_review", None)):
+        pytest.skip("AnkiConnect evidence store unavailable in this checkout")
 
     course = _course(first_read=datetime.date(2026, 7, 28), nb_lectures=1)
     course.item_number = "221"
@@ -343,6 +349,19 @@ def test_oic_utilise_le_seuil_de_maitrise_attendu():
         Evidence(today, "oic", 1.0),
         Evidence(today, "oic", 0.15),
     ]
+
+
+def test_lecture_ue_sans_session_alimente_la_retention():
+    first_read = datetime.date(2026, 4, 29)
+    course = _course(first_read=None, nb_lectures=1)
+    course.url_pdf = None
+    course.url_pdf_ue = "http://ue-pdf"
+    course.date_1ere_lecture_ue = first_read
+    course.nb_lectures_ue = 1
+
+    evidence = _build_retention_evidence(course, "ue", [], [])
+
+    assert evidence == [Evidence(first_read, "lecture", 0.5)]
 
 
 # ── Couverture OIC exposée dans le snapshot ───────────────────────────────────

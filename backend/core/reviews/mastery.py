@@ -207,7 +207,7 @@ def get_course_mastery(
         score = round(score * 0.75 + anki_knowledge_score * 0.25)
         reasons.append(f"Anki : {anki_review_count} révision(s)")
 
-    retention_evidence = _build_retention_evidence(course, sessions, anki_rows)
+    retention_evidence = _build_retention_evidence(course, context, sessions, anki_rows)
     retention_snapshot = evaluate_retention(score, retention_evidence, datetime.date.today())
     score = retention_snapshot.score
 
@@ -260,8 +260,19 @@ def _safe_get(row, key: str, default=None):
         return default
 
 
-def _build_retention_evidence(course, sessions: list, anki_rows: list) -> list[Evidence]:
-    fallback_date = _fallback_evidence_date(course)
+def _build_retention_evidence(
+    course,
+    context: str | list = "college",
+    sessions: list | None = None,
+    anki_rows: list | None = None,
+) -> list[Evidence]:
+    # Compatibilité avec les tests/consommateurs historiques :
+    # _build_retention_evidence(course, sessions, anki_rows).
+    if not isinstance(context, str):
+        context, sessions, anki_rows = "college", context, sessions
+    sessions = sessions or []
+    anki_rows = anki_rows or []
+    fallback_date = _fallback_evidence_date(course, context)
     evidence: list[Evidence] = []
     study_evidence_keys: set[tuple[str, datetime.date]] = set()
 
@@ -288,7 +299,8 @@ def _build_retention_evidence(course, sessions: list, anki_rows: list) -> list[E
 
     evidence.extend(_canonical_retention_evidence(course, fallback_date, study_evidence_keys))
 
-    if not sessions and getattr(course, "date_1ere_lecture", None):
+    first_read = getattr(course, "date_1ere_lecture" if context == "college" else "date_1ere_lecture_ue", None)
+    if not sessions and first_read:
         evidence.append(Evidence(fallback_date, "lecture", 0.5))
 
     return evidence
@@ -378,8 +390,8 @@ def _activity_types_for_evidence(session) -> list[str]:
     return [str(value).strip().lower() for value in values if str(value).strip()]
 
 
-def _fallback_evidence_date(course) -> datetime.date:
-    fallback = getattr(course, "date_1ere_lecture", None)
+def _fallback_evidence_date(course, context: str = "college") -> datetime.date:
+    fallback = getattr(course, "date_1ere_lecture" if context == "college" else "date_1ere_lecture_ue", None)
     if isinstance(fallback, datetime.datetime):
         return fallback.date()
     if isinstance(fallback, datetime.date):

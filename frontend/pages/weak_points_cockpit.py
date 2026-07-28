@@ -23,7 +23,7 @@ from frontend.components.weak_point_row import weak_point_row
 from frontend.pages.weak_points import open_add_dialog
 
 _CSS = """
-.wp-wrap { max-width:860px; width:100%; margin:0 auto; display:flex; flex-direction:column; gap:18px; }
+.wp-wrap { width:860px; max-width:100%; margin:0 auto; display:flex; flex-direction:column; gap:18px; }
 .wp-topbar { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:4px 0 0; flex-wrap:wrap; }
 .wp-title { font-size:20px; font-weight:600; color:var(--text); letter-spacing:-0.01em; }
 .wp-subtitle { font-size:12.5px; color:var(--text-muted); margin-top:4px; }

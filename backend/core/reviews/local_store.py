@@ -256,6 +256,19 @@ def init_db() -> None:
             PRIMARY KEY (date, item_name)
         );
 
+        CREATE TABLE IF NOT EXISTS manual_planning_entries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            entry_date TEXT NOT NULL,
+            course_id TEXT NOT NULL,
+            course_title TEXT NOT NULL DEFAULT '',
+            item_number TEXT NOT NULL DEFAULT '',
+            activity_type TEXT NOT NULL,
+            duration_minutes INTEGER NOT NULL,
+            created_at TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_manual_planning_date
+            ON manual_planning_entries(entry_date);
+
         -- ── Cache fetch LiSA ─────────────────────────────────────────────
         -- Trace les cours dont les OIC ont déjà été scrapés (même si 0 OIC).
         CREATE TABLE IF NOT EXISTS lisa_oic_cache (
@@ -1080,6 +1093,64 @@ def get_recent_study_sessions(limit: int = 50) -> list:
             "SELECT * FROM study_sessions ORDER BY session_date DESC, created_at DESC LIMIT ?",
             (limit,),
         ).fetchall()
+
+
+# ── Planifications manuelles du cockpit Planning ─────────────────────────────
+
+_MANUAL_PLANNING_ACTIVITY_TYPES = {"revision", "lecture", "qcm", "lacune"}
+
+
+def create_manual_planning_entry(
+    entry_date: datetime.date,
+    course_id: str,
+    course_title: str,
+    item_number: str,
+    activity_type: str,
+    duration_minutes: int,
+) -> dict:
+    """Persist a local planning intention without touching review state."""
+    if activity_type not in _MANUAL_PLANNING_ACTIVITY_TYPES:
+        raise ValueError(f"Type d'activité invalide: {activity_type}")
+    duration = int(duration_minutes)
+    if duration <= 0:
+        raise ValueError("La durée doit être positive")
+    date_iso = entry_date.isoformat() if isinstance(entry_date, datetime.date) else str(entry_date)
+    created_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    with _conn() as con:
+        cursor = con.execute(
+            """INSERT INTO manual_planning_entries
+               (entry_date, course_id, course_title, item_number, activity_type,
+                duration_minutes, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (date_iso, str(course_id), course_title or "", item_number or "",
+             activity_type, duration, created_at),
+        )
+        row = con.execute(
+            "SELECT * FROM manual_planning_entries WHERE id = ?", (cursor.lastrowid,)
+        ).fetchone()
+    return dict(row)
+
+
+def get_manual_planning_entries(
+    start_date: datetime.date,
+    end_date: datetime.date,
+) -> list[dict]:
+    start_iso = start_date.isoformat() if isinstance(start_date, datetime.date) else str(start_date)
+    end_iso = end_date.isoformat() if isinstance(end_date, datetime.date) else str(end_date)
+    with _conn() as con:
+        rows = con.execute(
+            """SELECT * FROM manual_planning_entries
+               WHERE entry_date >= ? AND entry_date <= ?
+               ORDER BY entry_date, created_at, id""",
+            (start_iso, end_iso),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def delete_manual_planning_entry(entry_id: int) -> bool:
+    with _conn() as con:
+        cursor = con.execute("DELETE FROM manual_planning_entries WHERE id = ?", (int(entry_id),))
+    return cursor.rowcount > 0
 
 
 def get_weekly_study_stats(days: int = 7) -> dict:

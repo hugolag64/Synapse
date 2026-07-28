@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 echo Arret de Synapse (port 8082)...
 
 set "killed="
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8082 "') do (
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8082 .*LISTENING"') do (
     echo "%%a" | findstr /x "!killed!" >nul 2>&1 || (
         taskkill /PID %%a /F >nul 2>&1 && echo Killed PID %%a
         set "killed=!killed! %%a"

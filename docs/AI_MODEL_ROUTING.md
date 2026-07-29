@@ -50,6 +50,13 @@ au service d'évaluation commun. Il alimente alors la maîtrise de l'ITEM comme 
 évaluation QCM/DP/KFP classique. Les réponses ouvertes restent historisées mais
 ne sont intégrées à la maîtrise qu'après validation.
 
+## Banques DP/KFP importées
+
+La vue QCM et le Cockpit ITEM proposent aussi l'import d'une banque JSON de DP/KFP
+préparée en amont. L'import est local, dédupliqué et sans appel API. Les cas sont
+rattachés aux ITEM déclarés dans le fichier ; les associations introuvables sont
+placées dans une file de vérification.
+
 ## OIC et AnythingLLM
 
 Le dialogue OIC conserve le workspace AnythingLLM afin de garder la recherche

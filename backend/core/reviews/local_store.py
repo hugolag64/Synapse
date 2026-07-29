@@ -222,6 +222,36 @@ def init_db() -> None:
         CREATE INDEX IF NOT EXISTS idx_ai_practice_attempt_question
             ON ai_practice_attempts(question_id, answered_at DESC);
 
+        CREATE TABLE IF NOT EXISTS imported_practice_cases (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            fingerprint   TEXT NOT NULL UNIQUE,
+            external_id   TEXT NOT NULL DEFAULT '',
+            kind          TEXT NOT NULL,
+            title         TEXT NOT NULL,
+            stem          TEXT NOT NULL,
+            item_numbers  TEXT NOT NULL DEFAULT '[]',
+            source        TEXT NOT NULL DEFAULT '',
+            status        TEXT NOT NULL DEFAULT 'ready',
+            review_reason TEXT NOT NULL DEFAULT '',
+            imported_at   TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_imported_cases_status
+            ON imported_practice_cases(status);
+        CREATE INDEX IF NOT EXISTS idx_imported_cases_items
+            ON imported_practice_cases(item_numbers);
+
+        CREATE TABLE IF NOT EXISTS imported_practice_questions (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            case_id     INTEGER NOT NULL,
+            position    INTEGER NOT NULL,
+            prompt      TEXT NOT NULL,
+            choices     TEXT NOT NULL DEFAULT '[]',
+            answer      TEXT NOT NULL,
+            explanation TEXT NOT NULL,
+            FOREIGN KEY (case_id) REFERENCES imported_practice_cases(id) ON DELETE CASCADE,
+            UNIQUE (case_id, position)
+        );
+
         -- ── Table sessions de travail ─────────────────────────────────────
         CREATE TABLE IF NOT EXISTS study_sessions (
             id               INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -3456,6 +3486,91 @@ def update_oic_level(oic_id: int, new_level: int) -> None:
     """Met à jour le niveau de maîtrise progressif d'un OIC."""
     with _conn() as con:
         con.execute("UPDATE lisa_oic SET oic_level = ? WHERE id = ?", (new_level, oic_id))
+
+
+def import_practice_batch(batch) -> dict[str, int]:
+    """Importe une banque DP/KFP et ignore les cas déjà présents."""
+    import json
+
+    inserted = duplicates = needs_review = 0
+    with _conn() as con:
+        for case in batch.cases:
+            existing = con.execute(
+                "SELECT id FROM imported_practice_cases WHERE fingerprint = ?",
+                (case.fingerprint,),
+            ).fetchone()
+            if existing:
+                duplicates += 1
+                continue
+            cur = con.execute(
+                """INSERT INTO imported_practice_cases
+                   (fingerprint, external_id, kind, title, stem, item_numbers,
+                    source, status, review_reason, imported_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (case.fingerprint, case.external_id, case.kind, case.title, case.stem,
+                 json.dumps(case.item_numbers), batch.source, case.status,
+                 case.review_reason, _now()),
+            )
+            for position, question in enumerate(case.questions, start=1):
+                con.execute(
+                    """INSERT INTO imported_practice_questions
+                       (case_id, position, prompt, choices, answer, explanation)
+                       VALUES (?, ?, ?, ?, ?, ?)""",
+                    (cur.lastrowid, position, question.prompt,
+                     json.dumps(question.choices, ensure_ascii=False), question.answer,
+                     question.explanation),
+                )
+            inserted += 1
+            needs_review += case.status == "needs_review"
+    return {"inserted": inserted, "duplicates": duplicates, "needs_review": needs_review}
+
+
+def _imported_case_rows(rows):
+    import json
+
+    result = []
+    for row in rows:
+        item = dict(row)
+        item["item_numbers"] = json.loads(item["item_numbers"] or "[]")
+        result.append(item)
+    return result
+
+
+def get_imported_practice_cases(*, item_number: str | None = None, limit: int = 100) -> list:
+    import json
+
+    with _conn() as con:
+        if item_number:
+            rows = con.execute(
+                "SELECT * FROM imported_practice_cases WHERE item_numbers LIKE ? "
+                "ORDER BY imported_at DESC LIMIT ?",
+                (f'%"{item_number}"%', limit),
+            ).fetchall()
+        else:
+            rows = con.execute(
+                "SELECT * FROM imported_practice_cases ORDER BY imported_at DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        result = _imported_case_rows(rows)
+        for case in result:
+            questions = con.execute(
+                "SELECT * FROM imported_practice_questions WHERE case_id = ? ORDER BY position",
+                (case["id"],),
+            ).fetchall()
+            for question in questions:
+                item = dict(question)
+                item["choices"] = json.loads(item["choices"] or "[]")
+                case.setdefault("questions", []).append(item)
+        return result
+
+
+def get_import_review_queue(limit: int = 100) -> list:
+    with _conn() as con:
+        rows = con.execute(
+            "SELECT * FROM imported_practice_cases WHERE status = 'needs_review' "
+            "ORDER BY imported_at DESC LIMIT ?", (limit,),
+        ).fetchall()
+        return _imported_case_rows(rows)
 
 
 # ── Auto-init à l'import ──────────────────────────────────────────────────────

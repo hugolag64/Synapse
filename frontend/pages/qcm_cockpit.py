@@ -24,10 +24,11 @@ from nicegui import ui
 
 from backend.core.reviews import local_store
 from backend.core.qcm.service import QCM_PASS_THRESHOLD
+from frontend.components.mastery_indicator import _LEVEL_COLOR, _level_from_score
+from frontend.components.practice_import_panel import open_practice_import_dialog
 from frontend.pages.qcm import (
     _compute_groups, _build_item_college_map, _open_add_dialog, _ADD_DIALOG_CSS,
 )
-from frontend.components.mastery_indicator import _LEVEL_COLOR, _level_from_score
 
 QCM_ENTRY_LABEL = "Saisir un résultat"
 
@@ -91,10 +92,15 @@ def render_qcm_cockpit() -> None:
             with ui.column().classes("gap-0"):
                 ui.label("QCM").classes("qc-title")
                 ui.label("Analytique · cours à retravailler · EDNpro & Hypocampus").classes("qc-subtitle")
-            btn = ui.element("div").classes("qc-btn-primary")
-            with btn:
-                ui.label(QCM_ENTRY_LABEL)
-            btn.on("click", lambda: _open_add_dialog(_render))
+            with ui.row().classes("gap-2"):
+                import_btn = ui.element("div").classes("qc-btn-primary")
+                with import_btn:
+                    ui.label("Importer DP/KFP")
+                import_btn.on("click", lambda: open_practice_import_dialog(_render))
+                btn = ui.element("div").classes("qc-btn-primary")
+                with btn:
+                    ui.label(QCM_ENTRY_LABEL)
+                btn.on("click", lambda: _open_add_dialog(_render))
 
     def _draw_summary(rows: list, groups: list) -> None:
         summary.clear()

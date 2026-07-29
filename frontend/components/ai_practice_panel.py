@@ -11,6 +11,7 @@ from backend.core.practice.mastery import record_ai_practice_mastery
 from backend.core.practice.models import PracticeKind, PracticeSessionSpec, QuestionKind
 from backend.core.practice.service import PracticeService
 from backend.core.reviews import local_store
+from frontend.components.practice_import_panel import open_practice_import_dialog
 
 
 def _item_number(course) -> str:
@@ -236,10 +237,23 @@ def render_ai_practice_panel(course) -> None:
                 ui.label("Questions conservées, rejouables et comparables dans le temps.").classes(
                     "text-xs text-slate-400"
                 )
-            ui.button("Nouvelle session", icon="add", on_click=lambda: _open_generation_dialog(course, refresh)).props(
-                "color=primary unelevated"
-            )
+            with ui.row().classes("gap-2"):
+                ui.button("Importer DP/KFP", icon="upload_file", on_click=lambda: open_practice_import_dialog(
+                    refresh, item_number
+                )).props("flat color=primary")
+                ui.button("Nouvelle session", icon="add", on_click=lambda: _open_generation_dialog(course, refresh)).props(
+                    "color=primary unelevated"
+                )
         _render_history(item_number, refresh)
+        imported = local_store.get_imported_practice_cases(item_number=item_number, limit=20)
+        if imported:
+            ui.label("Banque locale DP/KFP").classes("ci-section-title mt-4")
+            for case in imported:
+                ui.label(
+                    f"{case['kind'].upper()} · {case['title']} · {len(case.get('questions', []))} questions"
+                ).classes("text-sm")
+                if case["status"] == "needs_review":
+                    ui.label(f"À vérifier : {case['review_reason']}").classes("text-xs text-amber-600")
 
     with container:
         _render_content()

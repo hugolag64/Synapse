@@ -45,18 +45,38 @@ def _open_generation_dialog(course, refresh) -> None:
         ui.label("Les questions seront conservées et rejouables à l’identique.").classes(
             "text-xs text-slate-500 mb-4"
         )
-        kind = ui.select(
+        kind = ui.toggle(
             {"OIC": "OIC", "QCM": "QCM", "DP": "DP", "KFP": "KFP"},
-            value="QCM", label="Type de session",
-        ).classes("w-full")
-        with ui.row().classes("w-full gap-3"):
-            total = ui.number("Nombre total", value=10, min=1, max=50, step=1).classes("flex-1")
-            opened = ui.number("Questions ouvertes", value=3, min=0, max=50, step=1).classes("flex-1")
-            closed = ui.number("Questions fermées", value=7, min=0, max=50, step=1).classes("flex-1")
-        ui.label("La somme des ouvertes et fermées doit égaler le total.").classes(
-            "text-xs text-slate-400"
-        )
+            value="QCM",
+        ).props("spread no-caps")
+
+        total_label = ui.label().classes("text-sm font-medium")
+        total = ui.slider(min=1, max=50, step=1, value=10).props("label-always color=primary")
+        total.props("aria-label='Nombre total de questions'")
+
+        open_label = ui.label().classes("text-sm font-medium")
+        opened = ui.slider(min=0, max=10, step=1, value=3).props("label-always color=deep-purple")
+        opened.props("aria-label='Nombre de questions ouvertes'")
+
+        distribution = ui.label().classes("text-xs text-slate-500")
         status = ui.label().classes("text-xs text-red-500")
+
+        def _sync_sliders(_event=None) -> None:
+            total_value = int(total.value or 1)
+            opened.props(f"max={total_value}")
+            opened.value = min(int(opened.value or 0), total_value)
+            total_label.set_text(f"Nombre total · {total_value} question{'s' if total_value != 1 else ''}")
+            open_value = int(opened.value or 0)
+            open_label.set_text(f"Questions ouvertes · {open_value}")
+            closed_value = total_value - open_value
+            distribution.set_text(
+                f"{open_value} ouverte{'s' if open_value != 1 else ''} · "
+                f"{closed_value} fermée{'s' if closed_value != 1 else ''}"
+            )
+
+        total.on_value_change(_sync_sliders)
+        opened.on_value_change(_sync_sliders)
+        _sync_sliders()
 
         async def _generate() -> None:
             try:
@@ -64,7 +84,7 @@ def _open_generation_dialog(course, refresh) -> None:
                     practice_kind=PracticeKind(str(kind.value).lower()),
                     total_questions=int(total.value or 0),
                     open_questions=int(opened.value or 0),
-                    closed_questions=int(closed.value or 0),
+                    closed_questions=int(total.value or 0) - int(opened.value or 0),
                     item_number=_item_number(course),
                     course_id=str(getattr(course, "id", "") or ""),
                     course_title=str(getattr(course, "title", "") or ""),

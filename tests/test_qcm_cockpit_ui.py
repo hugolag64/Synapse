@@ -32,7 +32,8 @@ def test_qcm_cockpit_renders_a_start_action_for_pending_ai_sessions():
     assert "get_ai_practice_sessions" in source
     assert "SESSIONS À FAIRE" in source
     assert "Commencer" in source
-    assert "_open_answer_dialog" in source
+    assert "open_qcm_session(" in source
+    assert "_open_selected_session(sid)" in source
     assert "white-space:normal" in qcm_cockpit.QCM_COCKPIT_CSS
     assert ".qc-pending-action" in qcm_cockpit.QCM_COCKPIT_CSS
 

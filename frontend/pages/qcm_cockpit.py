@@ -244,18 +244,24 @@ _CSS = """
 .qc-pending .qc-course-title { white-space:normal; overflow:visible; text-overflow:clip; overflow-wrap:anywhere; line-height:1.4; }
 .qc-pending-state { flex:0 0 64px; padding-top:2px; font-size:11px; color:var(--warning); }
 .qc-pending-action { flex:0 0 110px; justify-content:flex-start; padding-left:0; padding-right:0; }
-.qc-workspace { display:flex; gap:20px; margin:24px 0 8px; align-items:stretch; }
-.qc-history { flex:0 1 350px; min-width:280px; max-height:620px; overflow:auto; padding:14px; border:1px solid var(--border); border-radius:8px; background:var(--surface); }
+.qc-workspace { display:grid; grid-template-columns:minmax(0, 1.1fr) minmax(320px, .9fr); gap:20px; width:100%; margin:24px 0 8px; align-items:stretch; }
+.qc-history { min-width:0; max-height:620px; overflow:auto; padding:14px; border:1px solid var(--border); border-radius:8px; background:var(--surface); }
 .qc-history-list { margin-top:10px; }
 .qc-history-row { width:100%; justify-content:flex-start; text-align:left; padding:10px; border-radius:6px; }
 .qc-history-row-active { background:var(--surface-hover); }
 .qc-history-meta { font-size:11px; color:var(--text-dim); margin-top:3px; }
-.qc-selected { flex:1 1 0; min-width:0; padding:18px; border:1px solid var(--border); border-radius:8px; background:var(--surface); }
+.qc-selected { min-width:0; width:100%; padding:18px; border:1px solid var(--border); border-radius:8px; background:var(--surface); }
 .qc-selected-title { font-size:17px; font-weight:600; color:var(--text); }
 .qc-selected-meta { font-size:12px; color:var(--text-muted); margin-top:4px; }
+.qc-pending { width:100%; }
+.qc-pending .qc-row { display:grid; grid-template-columns:46px minmax(0, 1fr) 64px 130px 40px; align-items:center; width:100%; }
+.qc-pending-state { width:64px; }
+.qc-pending-action { width:130px; }
 @media (max-width:760px) {
-  .qc-workspace { flex-direction:column; }
-  .qc-history { flex-basis:auto; min-width:0; max-height:360px; }
+  .qc-workspace { grid-template-columns:1fr; }
+  .qc-history { max-height:360px; }
+  .qc-pending .qc-row { grid-template-columns:42px minmax(0, 1fr) 36px; }
+  .qc-pending-state, .qc-pending-action { grid-column:2; width:auto; }
 }
 """
 

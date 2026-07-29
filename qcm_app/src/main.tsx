@@ -6,8 +6,8 @@ import './styles.css'
 
 const sessionId = Number(new URLSearchParams(window.location.search).get('session'))
 
-function Header() {
-  return <header className="brand"><span className="brand-mark">S</span><strong>Synapse</strong><span className="brand-slash">/</span><span>QCM</span></header>
+function Header({ onExit = false }: { onExit?: boolean }) {
+  return <header className="brand"><div className="brand-lockup"><span className="brand-mark">S</span><strong>Synapse</strong><span className="brand-slash">/</span><span>QCM</span></div>{onExit && <button className="exit-session" onClick={() => { window.location.href = '/qcm' }}>Quitter la session</button>}</header>
 }
 
 class RenderBoundary extends Component<React.PropsWithChildren, { error: Error | null }> {
@@ -48,7 +48,7 @@ function Reader({ payload, onCorrection }: { payload: SessionPayload; onCorrecti
   }
 
   return <main className="reader-page">
-    <Header />
+    <Header onExit />
     <div className="reader-kicker">SESSION QCM · ITEM {payload.session.item_number || '—'}</div>
     <h1>{payload.session.course_title || 'Session QCM'}</h1>
     <p className="reader-subtitle">Réponds aux questions, puis consulte ta correction détaillée.</p>
@@ -72,7 +72,7 @@ function Correction({ payload, onReplay }: { payload: CorrectionPayload; onRepla
   const rows = errorsOnly ? payload.rows.filter((row) => row.status !== 'correct') : payload.rows
   const score = payload.session.score_percent == null ? '—' : `${payload.session.score_percent}%`
   return <main className="correction-page">
-    <Header />
+    <Header onExit />
     <div className="reader-kicker">CORRECTION TERMINÉE · {new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}</div>
     <h1>{payload.session.course_title || 'QCM'}</h1>
     <p className="reader-subtitle">Tu peux parcourir les erreurs, relire les explications et relancer ce QCM quand tu veux.</p>

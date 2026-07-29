@@ -16,7 +16,7 @@ Ajouter ces variables dans `.env` :
 ```dotenv
 GEMINI_API_KEY=...
 GEMINI_LITE_MODEL=gemini-3.1-flash-lite
-GEMINI_FLASH_MODEL=gemini-2.5-flash
+GEMINI_FLASH_MODEL=gemini-3-flash-preview
 GEMINI_TIMEOUT_SECONDS=60
 ```
 

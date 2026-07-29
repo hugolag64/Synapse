@@ -86,7 +86,7 @@ class Settings(BaseSettings):
     anythingllm_api_key: str = Field("", alias='ANYTHINGLLM_API_KEY')
     gemini_api_key: str = Field("", alias='GEMINI_API_KEY')
     gemini_lite_model: str = Field("gemini-3.1-flash-lite", alias='GEMINI_LITE_MODEL')
-    gemini_flash_model: str = Field("gemini-2.5-flash", alias='GEMINI_FLASH_MODEL')
+    gemini_flash_model: str = Field("gemini-3-flash-preview", alias='GEMINI_FLASH_MODEL')
     gemini_timeout_seconds: float = Field(60.0, alias='GEMINI_TIMEOUT_SECONDS')
 
     model_config = SettingsConfigDict(env_file='.env', extra='ignore')

@@ -31,6 +31,9 @@ data_cache.json
 # Dossiers de test temporaires
 synapse_edn_test/
 
+# Node QCM frontend
+qcm_app/node_modules/
+
 # Backup venv
 .venv_backup*/
 

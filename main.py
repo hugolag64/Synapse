@@ -37,10 +37,19 @@ from frontend.pages.triage import triage_page
 from frontend.pages.course_detail import course_detail_page
 from frontend.theme import frame
 from backend.state.store import data_store
+from backend.api.qcm import router as qcm_api_router
+
+app.include_router(qcm_api_router)
 
 # Load environment variables
 load_dotenv()
 from fastapi.responses import FileResponse, JSONResponse
+from pathlib import Path
+from starlette.staticfiles import StaticFiles
+
+_QCM_NODE_DIST = Path(__file__).parent / "qcm_app" / "dist"
+if (_QCM_NODE_DIST / "index.html").exists():
+    app.mount("/qcm-app", StaticFiles(directory=_QCM_NODE_DIST, html=True), name="qcm_app")
 
 def _resolve_pdf_path(raw: str) -> str | None:
     """Normalise un chemin PDF et vérifie qu'il est sûr (extension + répertoire autorisé)."""

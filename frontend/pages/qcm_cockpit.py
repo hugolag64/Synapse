@@ -20,6 +20,8 @@ groupées par collège + assistants de saisie) reste strictement inchangé.
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 from nicegui import ui
 
 from backend.core.qcm.service import QCM_PASS_THRESHOLD
@@ -45,6 +47,7 @@ from frontend.pages.qcm import (
 )
 
 QCM_ENTRY_LABEL = "Saisir un résultat"
+QCM_NODE_DIST = Path(__file__).parents[2] / "qcm_app" / "dist" / "index.html"
 HISTORY_STATUS_OPTIONS = {
     "all": "Toutes",
     "pending": "À faire",
@@ -113,6 +116,14 @@ def _get_replayable_history(
         )
         if session.get("has_questions")
     ]
+
+
+def _open_node_qcm(session_id: int) -> bool:
+    """Open the approved Node reader when its production bundle is available."""
+    if not QCM_NODE_DIST.exists():
+        return False
+    ui.navigate.to(f"/qcm-app/?session={int(session_id)}")
+    return True
 
 
 def _open_ai_generation_picker(refresh) -> None:
@@ -362,6 +373,8 @@ def render_qcm_cockpit() -> None:
                 _draw_row(g)
 
     def _show_session(session_id: int) -> None:
+        if _open_node_qcm(session_id):
+            return
         open_qcm_session(
             session_id,
             on_complete=_after_session_completion,
@@ -369,6 +382,8 @@ def render_qcm_cockpit() -> None:
         )
 
     def _show_correction(session_id: int) -> None:
+        if _open_node_qcm(session_id):
+            return
         open_qcm_correction(
             session_id,
             on_back=lambda: open_chained_dialog(page_slot, _render),

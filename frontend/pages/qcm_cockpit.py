@@ -25,7 +25,7 @@ from nicegui import ui
 from backend.core.qcm.service import QCM_PASS_THRESHOLD
 from backend.core.reviews import local_store
 from backend.state.store import data_store
-from frontend.components.ai_practice_panel import _open_generation_dialog
+from frontend.components.ai_practice_panel import _open_answer_dialog, _open_generation_dialog
 from frontend.components.mastery_indicator import _LEVEL_COLOR, _level_from_score
 from frontend.components.practice_import_panel import open_practice_import_dialog
 from frontend.pages.qcm import (
@@ -36,6 +36,11 @@ from frontend.pages.qcm import (
 )
 
 QCM_ENTRY_LABEL = "Saisir un résultat"
+
+
+def _pending_ai_sessions(rows: list) -> list:
+    """Retourne les sessions IA encore à faire, avant leur premier score."""
+    return [row for row in rows if row["score_percent"] is None]
 
 
 def _filter_item_picker_options(courses, query: str = "", limit: int = 8):
@@ -155,6 +160,9 @@ _CSS = """
 .qc-badge { font-size:10.5px; font-weight:500; padding:2px 7px; border-radius:4px;
   background:rgba(229,72,77,0.1); color:var(--danger); white-space:nowrap; }
 .qc-empty { padding:32px 10px; text-align:center; color:var(--text-dim); font-size:13px; }
+.qc-pending { margin-top:24px; }
+.qc-pending-action { flex:0 0 auto; }
+.qc-pending-state { flex:0 0 auto; font-size:11px; color:var(--warning); }
 """
 
 QCM_COCKPIT_CSS = _CSS + _ADD_DIALOG_CSS
@@ -171,6 +179,7 @@ def render_qcm_cockpit() -> None:
         ui.label("PAR COURS").classes("qc-label")
         head = ui.element("div").classes("qc-head")
         list_col = ui.column().classes("w-full gap-0")
+        pending_col = ui.column().classes("w-full gap-0 qc-pending")
 
     # Handoff action model: one primary entry point, secondary flows in a menu.
     def _draw_topbar() -> None:
@@ -257,12 +266,38 @@ def render_qcm_cockpit() -> None:
             for g in groups:
                 _draw_row(g)
 
+    def _draw_pending(sessions: list) -> None:
+        pending_col.clear()
+        if not sessions:
+            return
+        with pending_col:
+            ui.label("SESSIONS À FAIRE").classes("qc-label")
+            for session in sessions:
+                item_number = session["item_number"] or "—"
+                course_title = session["course_title"] or "Session IA"
+                kind = str(session["practice_kind"] or "QCM").upper()
+                total = session["total_questions"] or 0
+                with ui.element("div").classes("qc-row"):
+                    ui.label(item_number).classes("qc-id")
+                    with ui.element("div").classes("qc-main"):
+                        ui.label(course_title).classes("qc-course-title")
+                        ui.label(f"{kind} · {total} question{'s' if total != 1 else ''}").classes(
+                            "qc-course-sub"
+                        )
+                    ui.label("à faire").classes("qc-pending-state")
+                    ui.button(
+                        "Commencer",
+                        on_click=lambda _e=None, sid=session["id"]: _open_answer_dialog(sid, _render),
+                    ).props("flat dense color=primary").classes("qc-pending-action")
+
     def _render() -> None:
         rows = local_store.get_qcm_sessions_all(limit=300)
+        pending = _pending_ai_sessions(local_store.get_ai_practice_sessions(limit=100))
         groups = _compute_groups(rows)
         _draw_topbar()
         _draw_summary(rows, groups)
         _draw_head()
         _draw_list(groups)
+        _draw_pending(pending)
 
     _render()

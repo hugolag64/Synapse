@@ -17,6 +17,24 @@ def test_qcm_cockpit_exposes_ai_generation_entry():
     assert "_open_ai_generation_picker" in source
 
 
+def test_qcm_cockpit_keeps_generated_sessions_visible_before_scoring():
+    pending = qcm_cockpit._pending_ai_sessions([
+        {"id": 1, "score_percent": None},
+        {"id": 2, "score_percent": 82},
+    ])
+
+    assert [row["id"] for row in pending] == [1]
+
+
+def test_qcm_cockpit_renders_a_start_action_for_pending_ai_sessions():
+    source = inspect.getsource(qcm_cockpit.render_qcm_cockpit)
+
+    assert "get_ai_practice_sessions" in source
+    assert "SESSIONS À FAIRE" in source
+    assert "Commencer" in source
+    assert "_open_answer_dialog" in source
+
+
 def test_item_picker_filters_and_limits_results():
     courses = [
         ("118", type("Course", (), {"title": "Évaluation fonctionnelle"})()),

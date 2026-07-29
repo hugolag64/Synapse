@@ -94,6 +94,17 @@ def test_generation_dialog_exposes_edn_difficulty_by_default():
     assert "difficulty=PracticeDifficulty(str(difficulty.value))" in source
 
 
+def test_generation_dialog_can_open_or_only_conserve_the_session():
+    import inspect
+
+    from frontend.components import ai_practice_panel
+
+    source = inspect.getsource(ai_practice_panel._open_generation_dialog)
+    assert "open_after_generation" in source
+    assert "Ouvrir directement la session pour répondre" in source
+    assert "if open_after_generation.value" in source
+
+
 def test_closed_qcm_accepts_multiple_correct_choices_in_any_order():
     choices = ["HTA", "Tabac", "Âge"]
     assert _same_closed_answer("Tabac, HTA", "A, B", choices)

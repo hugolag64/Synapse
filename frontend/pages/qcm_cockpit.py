@@ -166,8 +166,10 @@ _CSS = """
   background:rgba(229,72,77,0.1); color:var(--danger); white-space:nowrap; }
 .qc-empty { padding:32px 10px; text-align:center; color:var(--text-dim); font-size:13px; }
 .qc-pending { margin-top:24px; }
-.qc-pending-action { flex:0 0 auto; }
-.qc-pending-state { flex:0 0 auto; font-size:11px; color:var(--warning); }
+.qc-pending .qc-row { align-items:flex-start; }
+.qc-pending .qc-course-title { white-space:normal; overflow:visible; text-overflow:clip; overflow-wrap:anywhere; line-height:1.4; }
+.qc-pending-state { flex:0 0 64px; padding-top:2px; font-size:11px; color:var(--warning); }
+.qc-pending-action { flex:0 0 110px; justify-content:flex-start; padding-left:0; padding-right:0; }
 """
 
 QCM_COCKPIT_CSS = _CSS + _ADD_DIALOG_CSS

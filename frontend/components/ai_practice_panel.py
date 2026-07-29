@@ -100,6 +100,10 @@ def _open_generation_dialog(course, refresh) -> None:
 
         distribution = ui.label().classes("text-xs text-slate-500 mt-2")
         status = ui.label().classes("text-xs text-red-500 mt-2")
+        open_after_generation = ui.checkbox(
+            "Ouvrir directement la session pour répondre",
+            value=True,
+        ).props("dense").classes("mt-4")
 
         def _sync_sliders(_event=None) -> None:
             total_value = int(total.value or 1)
@@ -144,7 +148,8 @@ def _open_generation_dialog(course, refresh) -> None:
                 status.set_text(f"Échec de génération : {exc}")
                 return
             dialog.close()
-            _open_answer_dialog(session_id, refresh)
+            if open_after_generation.value:
+                _open_answer_dialog(session_id, refresh)
             ui.notify(f"Session IA #{session_id} enregistrée", type="positive")
 
         with ui.row().classes("justify-end gap-2 mt-5"):

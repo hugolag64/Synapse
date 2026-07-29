@@ -1,6 +1,7 @@
 import pytest
 
 from backend.core.ai.routing import AIModel, AIResponse, AITask, model_for_task
+from backend.core.practice.models import PracticeDifficulty
 
 
 @pytest.mark.parametrize(
@@ -17,6 +18,11 @@ from backend.core.ai.routing import AIModel, AIResponse, AITask, model_for_task
 )
 def test_model_for_task_uses_the_expected_quality_tier(task, expected):
     assert model_for_task(task) is expected
+
+
+@pytest.mark.parametrize("difficulty", [PracticeDifficulty.DIFFICULT, PracticeDifficulty.CONCOURS])
+def test_advanced_practice_difficulty_uses_flash(difficulty):
+    assert model_for_task(AITask.QCM, difficulty) is AIModel.FLASH
 
 
 def test_score_task_is_rejected_because_scores_are_deterministic():

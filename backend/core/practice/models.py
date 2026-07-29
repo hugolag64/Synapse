@@ -13,6 +13,13 @@ class PracticeKind(StrEnum):
     KFP = "KFP"
 
 
+class PracticeDifficulty(StrEnum):
+    STANDARD = "standard"
+    EDN = "edn"
+    DIFFICULT = "difficile"
+    CONCOURS = "concours"
+
+
 class QuestionKind(StrEnum):
     OPEN = "open"
     CLOSED = "closed"
@@ -30,6 +37,7 @@ class PracticeSessionSpec:
     course_id: str = ""
     course_title: str = ""
     objective_code: str = ""
+    difficulty: PracticeDifficulty = PracticeDifficulty.EDN
 
     def __post_init__(self) -> None:
         if self.total_questions <= 0:
@@ -42,6 +50,8 @@ class PracticeSessionSpec:
             )
         if not isinstance(self.practice_kind, PracticeKind):
             raise ValueError("Type de session inconnu")
+        if not isinstance(self.difficulty, PracticeDifficulty):
+            raise ValueError("Niveau de difficulté inconnu")
 
 
 @dataclass(frozen=True)
@@ -62,4 +72,3 @@ class GeneratedQuestion:
             raise ValueError("Une question doit avoir une explication")
         if self.kind is QuestionKind.CLOSED and len(self.choices) < 2:
             raise ValueError("Une question fermée doit avoir au moins deux choix")
-

@@ -10,7 +10,7 @@ from typing import Any
 from backend.core.ai.routing import AITask, model_for_task
 from backend.core.ai.service import AIService
 
-from .models import GeneratedQuestion, PracticeKind, PracticeSessionSpec, QuestionKind
+from .models import GeneratedQuestion, PracticeDifficulty, PracticeKind, PracticeSessionSpec, QuestionKind
 
 
 class PracticeGenerationError(ValueError):
@@ -30,9 +30,16 @@ def _prompt_for(spec: PracticeSessionSpec, context: str = "") -> str:
     distribution = (
         f"{spec.open_questions} ouverte(s) et {spec.closed_questions} fermée(s)"
     )
+    difficulty_instructions = {
+        PracticeDifficulty.STANDARD: "niveau Standard : vérifier les connaissances et les applications directes du cours",
+        PracticeDifficulty.EDN: "niveau EDN : mobiliser le raisonnement clinique, des distracteurs plausibles et des pièges classiques",
+        PracticeDifficulty.DIFFICULT: "niveau Difficile : ajouter des données parasites, des distracteurs plausibles et des décisions moins évidentes",
+        PracticeDifficulty.CONCOURS: "niveau Concours : proposer des cas intégratifs, une hiérarchisation fine, de l'incertitude et des distracteurs très proches",
+    }[spec.difficulty]
     return f"""
 Génère une session médicale fiable pour l'ITEM {spec.item_number or 'non précisé'}.
 Type : {spec.practice_kind.value}. Total : {spec.total_questions} questions ({distribution}).
+Niveau de difficulté : {difficulty_instructions}.
 Objectif OIC : {spec.objective_code or 'non précisé'}.
 Contexte de cours : {context or 'aucun contexte supplémentaire'}
 
@@ -124,7 +131,7 @@ class PracticeService:
         return self.store.create_ai_practice_session(
             spec=spec,
             questions=questions,
-            model=model_for_task(_task_for(spec.practice_kind)).value,
+            model=model_for_task(_task_for(spec.practice_kind), spec.difficulty).value,
         )
 
     def replay_session(self, session_id: int) -> int:

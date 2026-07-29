@@ -7,6 +7,7 @@ from backend.core.ai.routing import AIModel, AIResponse
 from backend.core.practice.mastery import record_ai_practice_mastery
 from backend.core.practice.models import (
     GeneratedQuestion,
+    PracticeDifficulty,
     PracticeKind,
     PracticeSessionSpec,
     QuestionKind,
@@ -46,6 +47,16 @@ def test_spec_requires_exact_open_closed_distribution():
         spec(total_questions=4)
 
 
+def test_practice_spec_defaults_to_edn_difficulty():
+    session = spec()
+    assert session.difficulty is PracticeDifficulty.EDN
+
+
+def test_practice_spec_rejects_unknown_difficulty():
+    with pytest.raises(ValueError, match="difficulté"):
+        spec(difficulty="unknown")
+
+
 def test_generation_dialog_uses_compact_centered_linear_controls():
     import inspect
 
@@ -67,6 +78,20 @@ def test_generation_dialog_normalizes_qcm_toggle_value_to_enum():
 
     source = inspect.getsource(ai_practice_panel._open_generation_dialog)
     assert "PracticeKind(str(kind.value).upper())" in source
+
+
+def test_generation_dialog_exposes_edn_difficulty_by_default():
+    import inspect
+
+    from frontend.components import ai_practice_panel
+
+    source = inspect.getsource(ai_practice_panel._open_generation_dialog)
+    assert '"Standard": PracticeDifficulty.STANDARD.value' in source
+    assert '"EDN": PracticeDifficulty.EDN.value' in source
+    assert '"Difficile": PracticeDifficulty.DIFFICULT.value' in source
+    assert '"Concours": PracticeDifficulty.CONCOURS.value' in source
+    assert "value=PracticeDifficulty.EDN.value" in source
+    assert "difficulty=PracticeDifficulty(str(difficulty.value))" in source
 
 
 def test_closed_qcm_accepts_multiple_correct_choices_in_any_order():
@@ -123,7 +148,12 @@ def test_create_replay_and_attempt_history(practice_db):
         {"prompt": "Question fermée", "kind": QuestionKind.CLOSED, "choices": ["A", "B"], "answer": "A", "explanation": "Correction"},
         {"prompt": "Question fermée 2", "kind": QuestionKind.CLOSED, "choices": ["A", "B"], "answer": "B", "explanation": "Correction 2"},
     ]
-    first = local_store.create_ai_practice_session(spec=spec(), questions=questions, model="gemini-3.1-flash-lite")
+    first = local_store.create_ai_practice_session(
+        spec=spec(difficulty=PracticeDifficulty.CONCOURS),
+        questions=questions,
+        model="gemini-3.1-flash-lite",
+    )
+    assert local_store.get_ai_practice_sessions(limit=1)[0]["difficulty"] == "concours"
     first_rows = local_store.get_ai_practice_session(first)
     assert [row["prompt"] for row in first_rows] == [q["prompt"] for q in questions]
 
@@ -132,12 +162,14 @@ def test_create_replay_and_attempt_history(practice_db):
         is_correct=True, score_percent=100,
     )
     replay = local_store.replay_ai_practice_session(first)
+    assert local_store.get_ai_practice_sessions(limit=1)[0]["difficulty"] == "concours"
     replay_rows = local_store.get_ai_practice_session(replay)
     assert [row["id"] for row in replay_rows] == [row["id"] for row in first_rows]
     assert replay_rows[0]["attempts"] == []
 
     history = local_store.get_ai_practice_history(item_number="115")
     assert len(history) == 2
+    assert history[0]["session"]["difficulty"] == "concours"
     assert history[1]["questions"][0]["attempts"][0]["response"] == "Réponse"
 
 
@@ -166,6 +198,32 @@ def test_practice_service_routes_dp_to_flash_and_persists():
     assert result == 1
     assert fake.calls[0][0].value == "dp"
     assert fake.calls[0][1] == "json"
+
+
+def test_practice_service_prompt_mentions_concours_difficulty():
+    class FakeAI:
+        def __init__(self):
+            self.prompt = ""
+
+        def generate(self, task, prompt, *, response_format):
+            self.prompt = prompt
+            payload = {"questions": [
+                {"kind": "closed", "prompt": "P", "choices": ["A", "B"], "answer": "A", "explanation": "E"},
+            ]}
+            return AIResponse(json.dumps(payload), AIModel.FLASH, 10, 10)
+
+    fake = FakeAI()
+    service = PracticeService(ai_service=fake, store=SimpleNamespace(
+        create_ai_practice_session=lambda **kwargs: 1,
+    ))
+    service.create_new_session(spec(
+        total_questions=1,
+        open_questions=0,
+        closed_questions=1,
+        difficulty=PracticeDifficulty.CONCOURS,
+    ))
+    assert "niveau Concours" in fake.prompt
+    assert "distracteurs très proches" in fake.prompt
 
 
 def test_scored_ai_session_updates_mastery_evaluation_once(practice_db):

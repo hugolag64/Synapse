@@ -44,6 +44,14 @@ def test_ai_generation_opens_the_session_and_defaults_to_closed_questions():
     assert '_open_answer_dialog(session_id, refresh)' in source
 
 
+def test_ai_history_exposes_the_session_difficulty():
+    from frontend.components import ai_practice_panel
+
+    source = inspect.getsource(ai_practice_panel._render_history)
+    assert "difficulty_labels" in source
+    assert "difficulty_label" in source
+
+
 def test_item_picker_filters_and_limits_results():
     courses = [
         ("118", type("Course", (), {"title": "Évaluation fonctionnelle"})()),

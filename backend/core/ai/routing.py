@@ -33,7 +33,7 @@ class AIResponse:
     output_tokens: int | None = None
 
 
-def model_for_task(task: AITask | str) -> AIModel:
+def model_for_task(task: AITask | str, difficulty=None) -> AIModel:
     try:
         normalized = task if isinstance(task, AITask) else AITask(task)
     except (TypeError, ValueError) as exc:
@@ -41,6 +41,9 @@ def model_for_task(task: AITask | str) -> AIModel:
 
     if normalized is AITask.SCORE:
         raise ValueError("Le calcul d'un score ne passe pas par le service IA")
+    difficulty_value = getattr(difficulty, "value", difficulty)
+    if difficulty_value in {"difficile", "concours"}:
+        return AIModel.FLASH
     if normalized in (AITask.OIC, AITask.QCM, AITask.ECOS_SIMPLE):
         return AIModel.FLASH_LITE
     return AIModel.FLASH

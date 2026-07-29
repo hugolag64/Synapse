@@ -169,6 +169,7 @@ def init_db() -> None:
             total_questions     INTEGER NOT NULL,
             open_questions      INTEGER NOT NULL DEFAULT 0,
             closed_questions    INTEGER NOT NULL DEFAULT 0,
+            difficulty          TEXT NOT NULL DEFAULT 'standard',
             model               TEXT NOT NULL DEFAULT '',
             replay_of_session_id INTEGER,
             created_at          TEXT NOT NULL,
@@ -420,6 +421,8 @@ def _migrate_ai_practice_v1() -> None:
         columns = {row[1] for row in con.execute("PRAGMA table_info(ai_practice_sessions)").fetchall()}
         if "mastery_recorded_at" not in columns:
             con.execute("ALTER TABLE ai_practice_sessions ADD COLUMN mastery_recorded_at TEXT")
+        if "difficulty" not in columns:
+            con.execute("ALTER TABLE ai_practice_sessions ADD COLUMN difficulty TEXT NOT NULL DEFAULT 'standard'")
 
 
 # ── API publique — task_id ────────────────────────────────────────────────────
@@ -1213,12 +1216,12 @@ def create_ai_practice_session(*, spec, questions: list[dict], model: str) -> in
         cur = con.execute(
             """INSERT INTO ai_practice_sessions
                (course_id, course_title, item_number, objective_code, practice_kind,
-                total_questions, open_questions, closed_questions, model, created_at)
-               VALUES (?,?,?,?,?,?,?,?,?,?)""",
+               total_questions, open_questions, closed_questions, difficulty, model, created_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 spec.course_id, spec.course_title, spec.item_number, spec.objective_code,
                 spec.practice_kind.value, spec.total_questions, spec.open_questions,
-                spec.closed_questions, model, now,
+                spec.closed_questions, spec.difficulty.value, model, now,
             ),
         )
         session_id = int(cur.lastrowid)
@@ -1258,13 +1261,13 @@ def replay_ai_practice_session(session_id: int) -> int:
         cur = con.execute(
             """INSERT INTO ai_practice_sessions
                (course_id, course_title, item_number, objective_code, practice_kind,
-                total_questions, open_questions, closed_questions, model,
+                total_questions, open_questions, closed_questions, difficulty, model,
                 replay_of_session_id, created_at)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
             tuple(source[key] for key in (
                 "course_id", "course_title", "item_number", "objective_code",
                 "practice_kind", "total_questions", "open_questions", "closed_questions",
-                "model",
+                "difficulty", "model",
             )) + (session_id, now),
         )
         new_id = int(cur.lastrowid)
@@ -1325,7 +1328,7 @@ def get_ai_practice_history(*, item_number: str, limit: int = 100) -> list:
     """Historique consultable d'un ITEM, questions et réponses incluses."""
     with _conn() as con:
         sessions = con.execute(
-            "SELECT id, created_at, practice_kind, model, score_percent FROM ai_practice_sessions WHERE item_number = ? ORDER BY id DESC LIMIT ?",
+            "SELECT id, created_at, practice_kind, model, difficulty, score_percent FROM ai_practice_sessions WHERE item_number = ? ORDER BY id DESC LIMIT ?",
             (item_number, limit),
         ).fetchall()
     history = []

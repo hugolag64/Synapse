@@ -8,7 +8,7 @@ import re
 from nicegui import ui
 
 from backend.core.practice.mastery import record_ai_practice_mastery
-from backend.core.practice.models import PracticeKind, PracticeSessionSpec, QuestionKind
+from backend.core.practice.models import PracticeDifficulty, PracticeKind, PracticeSessionSpec, QuestionKind
 from backend.core.practice.service import PracticeService
 from backend.core.reviews import local_store
 from frontend.components.practice_import_panel import open_practice_import_dialog
@@ -72,6 +72,15 @@ def _open_generation_dialog(course, refresh) -> None:
             {"OIC": "OIC", "QCM": "QCM", "DP": "DP", "KFP": "KFP"},
             value="QCM",
         ).props("spread no-caps unelevated").classes("w-full ai-practice-kind-toggle")
+        difficulty = ui.toggle(
+            {
+                "Standard": PracticeDifficulty.STANDARD.value,
+                "EDN": PracticeDifficulty.EDN.value,
+                "Difficile": PracticeDifficulty.DIFFICULT.value,
+                "Concours": PracticeDifficulty.CONCOURS.value,
+            },
+            value=PracticeDifficulty.EDN.value,
+        ).props("spread no-caps unelevated").classes("w-full ai-practice-kind-toggle mt-2")
 
         with ui.row().classes("w-full items-center justify-between mt-5"):
             total_label = ui.label().classes("text-sm font-medium")
@@ -121,6 +130,7 @@ def _open_generation_dialog(course, refresh) -> None:
                     item_number=_item_number(course),
                     course_id=str(getattr(course, "id", "") or ""),
                     course_title=str(getattr(course, "title", "") or ""),
+                    difficulty=PracticeDifficulty(str(difficulty.value)),
                 )
             except (TypeError, ValueError) as exc:
                 status.set_text(str(exc))
@@ -213,9 +223,16 @@ def _render_history(item_number: str, refresh) -> None:
         session = entry["session"]
         questions = entry["questions"]
         attempted = sum(bool(q["attempts"]) for q in questions)
+        difficulty_labels = {
+            PracticeDifficulty.STANDARD.value: "Standard",
+            PracticeDifficulty.EDN.value: "EDN",
+            PracticeDifficulty.DIFFICULT.value: "Difficile",
+            PracticeDifficulty.CONCOURS.value: "Concours",
+        }
+        difficulty_label = difficulty_labels.get(session.get("difficulty", PracticeDifficulty.STANDARD.value), "Standard")
         with ui.expansion(
             f"Session #{session['id']} · {session['practice_kind'].upper()} · "
-            f"{len(questions)} questions · {attempted}/{len(questions)} répondues",
+            f"{difficulty_label} · {len(questions)} questions · {attempted}/{len(questions)} répondues",
             icon="history",
         ).classes("w-full border-b border-slate-200 dark:border-slate-700"):
             with ui.row().classes("items-center gap-2 mb-2"):

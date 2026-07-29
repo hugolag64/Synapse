@@ -45,6 +45,11 @@ OIC, QCM, DP et KFP acceptent un nombre total de questions ainsi qu'une réparti
 entre questions ouvertes et fermées. Les questions et réponses restent consultables
 depuis le Cockpit de l'ITEM.
 
+Lorsqu'une tentative fermée est notée, son score agrégé est transmis une seule fois
+au service d'évaluation commun. Il alimente alors la maîtrise de l'ITEM comme une
+évaluation QCM/DP/KFP classique. Les réponses ouvertes restent historisées mais
+ne sont intégrées à la maîtrise qu'après validation.
+
 ## OIC et AnythingLLM
 
 Le dialogue OIC conserve le workspace AnythingLLM afin de garder la recherche

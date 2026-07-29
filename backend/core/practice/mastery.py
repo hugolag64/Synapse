@@ -1,0 +1,48 @@
+"""Pont entre les tentatives IA et le service d'évaluation/maîtrise."""
+
+from __future__ import annotations
+
+from backend.core.evaluation.models import EvaluationInput
+from backend.core.evaluation.service import record_evaluation
+from backend.core.reviews import local_store
+
+
+def record_ai_practice_mastery(session_id: int):
+    """Envoie une session scorée au moteur de maîtrise une seule fois."""
+    session = local_store.finalize_ai_practice_session(session_id)
+    if not session or session.get("mastery_recorded_at") or session.get("score_percent") is None:
+        return None
+
+    kind = str(session["practice_kind"]).lower()
+    if kind == "oic":
+        objective = str(session.get("objective_code") or "").strip()
+        if not objective or not session.get("course_id"):
+            return None
+        evaluation = EvaluationInput(
+            source="oic",
+            course_id=session["course_id"],
+            course_ids=(session["course_id"],),
+            oic_code=objective,
+            item_number=session["item_number"],
+            score_percent=session["score_percent"],
+            total_questions=session["total_questions"],
+            session_type="OIC",
+            platform="Synapse IA",
+        )
+    elif kind in {"qcm", "dp", "kfp"}:
+        evaluation = EvaluationInput(
+            source="qcm",
+            course_id=session["course_id"],
+            item_number=session["item_number"],
+            course_title=session["course_title"],
+            score_percent=session["score_percent"],
+            total_questions=session["total_questions"],
+            session_type=kind.upper(),
+            platform="Synapse IA",
+        )
+    else:
+        return None
+
+    outcome = record_evaluation(evaluation)
+    local_store.mark_ai_practice_mastery_recorded(session_id)
+    return outcome

@@ -7,6 +7,7 @@ import re
 
 from nicegui import ui
 
+from backend.core.practice.mastery import record_ai_practice_mastery
 from backend.core.practice.models import PracticeKind, PracticeSessionSpec, QuestionKind
 from backend.core.practice.service import PracticeService
 from backend.core.reviews import local_store
@@ -122,6 +123,10 @@ def _open_answer_dialog(session_id: int, refresh) -> None:
                     is_correct=correct,
                     score_percent=score,
                 )
+            try:
+                record_ai_practice_mastery(session_id)
+            except Exception as exc:
+                ui.notify(f"Réponses enregistrées, maîtrise non mise à jour : {exc}", type="warning")
             dialog.close()
             ui.notify("Réponses enregistrées dans l’historique", type="positive")
             refresh()

@@ -4,6 +4,7 @@ from types import SimpleNamespace
 import pytest
 
 from backend.core.ai.routing import AIModel, AIResponse
+from backend.core.practice.mastery import record_ai_practice_mastery
 from backend.core.practice.models import (
     GeneratedQuestion,
     PracticeKind,
@@ -120,3 +121,29 @@ def test_practice_service_routes_dp_to_flash_and_persists():
     assert result == 1
     assert fake.calls[0][0].value == "dp"
     assert fake.calls[0][1] == "json"
+
+
+def test_scored_ai_session_updates_mastery_evaluation_once(practice_db):
+    questions = [
+        {"prompt": "Q1", "kind": QuestionKind.CLOSED, "choices": ["A", "B"], "answer": "A", "explanation": "E1"},
+        {"prompt": "Q2", "kind": QuestionKind.CLOSED, "choices": ["A", "B"], "answer": "B", "explanation": "E2"},
+    ]
+    session_id = local_store.create_ai_practice_session(
+        spec=spec(total_questions=2, open_questions=0, closed_questions=2),
+        questions=questions,
+        model="gemini-3-flash-preview",
+    )
+    rows = local_store.get_ai_practice_session(session_id)
+    local_store.record_ai_practice_attempt(
+        session_id=session_id, question_id=rows[0]["id"], response="A", is_correct=True, score_percent=100,
+    )
+    local_store.record_ai_practice_attempt(
+        session_id=session_id, question_id=rows[1]["id"], response="A", is_correct=False, score_percent=0,
+    )
+
+    outcome = record_ai_practice_mastery(session_id)
+    assert outcome is not None
+    stored = local_store.get_qcm_sessions_all(course_id="course-115")
+    assert stored[0]["session_type"] == "QCM"
+    assert stored[0]["score_percent"] == 50
+    assert record_ai_practice_mastery(session_id) is None

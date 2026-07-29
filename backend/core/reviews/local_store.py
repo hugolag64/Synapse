@@ -174,6 +174,7 @@ def init_db() -> None:
             created_at          TEXT NOT NULL,
             completed_at        TEXT,
             score_percent       REAL,
+            mastery_recorded_at TEXT,
             FOREIGN KEY (replay_of_session_id) REFERENCES ai_practice_sessions(id)
         );
         CREATE TABLE IF NOT EXISTS ai_practice_questions (
@@ -363,6 +364,7 @@ def init_db() -> None:
     _migrate_pending_gap_proposals()
     _migrate_routine_tables()
     _migrate_oic_anythingllm_validation()
+    _migrate_ai_practice_v1()
     logger.info(f"SQLite initialisé : {DB_PATH}")
 
 
@@ -370,6 +372,14 @@ def init_db() -> None:
 
 def _now() -> str:
     return datetime.datetime.now(_TZ_REUNION).isoformat(timespec="seconds")
+
+
+def _migrate_ai_practice_v1() -> None:
+    """Ajoute les colonnes de suivi de maîtrise aux bases existantes."""
+    with _conn() as con:
+        columns = {row[1] for row in con.execute("PRAGMA table_info(ai_practice_sessions)").fetchall()}
+        if "mastery_recorded_at" not in columns:
+            con.execute("ALTER TABLE ai_practice_sessions ADD COLUMN mastery_recorded_at TEXT")
 
 
 # ── API publique — task_id ────────────────────────────────────────────────────
@@ -1310,6 +1320,44 @@ def record_ai_practice_attempt(
                 (avg, now, session_id),
             )
         return int(cur.lastrowid)
+
+
+def finalize_ai_practice_session(session_id: int) -> dict | None:
+    """Calcule le score courant d'une session à partir de la dernière tentative par question."""
+    with _conn() as con:
+        session = con.execute(
+            "SELECT * FROM ai_practice_sessions WHERE id = ?", (session_id,)
+        ).fetchone()
+        if session is None:
+            return None
+        latest = con.execute(
+            """SELECT a.* FROM ai_practice_attempts a
+               JOIN (
+                 SELECT question_id, MAX(id) AS max_id
+                 FROM ai_practice_attempts WHERE session_id = ? GROUP BY question_id
+               ) latest ON latest.max_id = a.id
+               WHERE a.session_id = ?""",
+            (session_id, session_id),
+        ).fetchall()
+        scored = [row["score_percent"] for row in latest if row["score_percent"] is not None]
+        score = round(sum(scored) / len(scored), 2) if scored else None
+        now = _now()
+        con.execute(
+            "UPDATE ai_practice_sessions SET score_percent = ?, completed_at = ? WHERE id = ?",
+            (score, now if latest else None, session_id),
+        )
+        updated = con.execute(
+            "SELECT * FROM ai_practice_sessions WHERE id = ?", (session_id,)
+        ).fetchone()
+    return {**dict(updated), "answered_count": len(latest), "scored_count": len(scored)}
+
+
+def mark_ai_practice_mastery_recorded(session_id: int) -> None:
+    with _conn() as con:
+        con.execute(
+            "UPDATE ai_practice_sessions SET mastery_recorded_at = ? WHERE id = ?",
+            (_now(), session_id),
+        )
 
 
 # ── Statistiques ─────────────────────────────────────────────────────────────

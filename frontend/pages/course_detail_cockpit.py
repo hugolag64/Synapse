@@ -54,6 +54,7 @@ from frontend.components.course_quick_actions import (
     open_start_tracking_dialog,
 )
 from frontend.components.anki_review_session import open_anki_review_session
+from frontend.components.ai_practice_panel import render_ai_practice_panel
 from frontend.components.responsive_drawer import (
     responsive_drawer, close_drawer, open_drawer, ensure_styles as _drawer_styles,
 )
@@ -831,6 +832,8 @@ def _open_manual_review_dialog(course) -> None:
 
 
 def _tab_qcm(course, qcm_summary, qcm_sessions, lacunes) -> None:
+    render_ai_practice_panel(course)
+
     anki_btn = ui.element("div").classes("ci-btn")
     with anki_btn:
         ui.label("Réviser avec Anki")

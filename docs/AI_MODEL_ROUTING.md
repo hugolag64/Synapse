@@ -34,6 +34,17 @@ dp = generate_dp(prompt)
 Le score ne doit pas être demandé au modèle. Le code métier valide les réponses,
 applique les bornes et calcule la progression.
 
+## Sessions rejouables
+
+Les sessions IA de l'ITEM sont persistées localement dans SQLite. Une question
+générée devient immuable ; les nouvelles tentatives réutilisent exactement le même
+énoncé, les mêmes choix, la même correction et la même explication. Chaque réponse
+est conservée séparément afin de comparer l'évolution et de créer des ancrages.
+
+OIC, QCM, DP et KFP acceptent un nombre total de questions ainsi qu'une répartition
+entre questions ouvertes et fermées. Les questions et réponses restent consultables
+depuis le Cockpit de l'ITEM.
+
 ## OIC et AnythingLLM
 
 Le dialogue OIC conserve le workspace AnythingLLM afin de garder la recherche

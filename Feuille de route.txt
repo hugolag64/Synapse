@@ -709,3 +709,13 @@ Obsidian bidirectionnel
 Priorite : moyenne/haute, apres stabilisation du routage IA. La premiere version
 doit privilegier un stockage local fiable et des liens explicites avant toute
 automatisation de collecte de contenu sur internet.
+
+Sessions d'entrainement rejouables
+
+- OIC : sessions composees de questions ouvertes et/ou fermees.
+- QCM, DP et KFP : choisir le nombre total et la repartition ouvertes/fermees.
+- Conserver les questions comme objets immuables ; une nouvelle tentative reutilise
+  exactement les memes questions sans les regenerer.
+- Comparer les tentatives successives (reponse, correction, explication, score,
+  date, temps et indices) pour construire des ancrages de progression.
+- Distinguer "nouvelle session", "rejouer exactement" et "questions a revoir".

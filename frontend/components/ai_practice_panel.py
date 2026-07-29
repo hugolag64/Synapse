@@ -1,0 +1,201 @@
+"""Panneau Cockpit des sessions IA, questions immuables et tentatives."""
+
+from __future__ import annotations
+
+import asyncio
+import re
+
+from nicegui import ui
+
+from backend.core.practice.models import PracticeKind, PracticeSessionSpec, QuestionKind
+from backend.core.practice.service import PracticeService
+from backend.core.reviews import local_store
+
+
+def _item_number(course) -> str:
+    return str(
+        getattr(course, "display_item_number", "")
+        or getattr(course, "item_number", "")
+        or ""
+    )
+
+
+def _norm(value: str) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip().lower())
+
+
+def _same_closed_answer(response: str, answer: str, choices: list[str]) -> bool:
+    response_norm = _norm(response)
+    answer_norm = _norm(answer)
+    if response_norm == answer_norm:
+        return True
+    for index, choice in enumerate(choices):
+        letter = chr(ord("a") + index)
+        if response_norm == letter and (answer_norm == letter or response_norm == _norm(choice)):
+            return True
+        if response_norm == _norm(choice) and answer_norm in {letter, _norm(choice)}:
+            return True
+    return False
+
+
+def _open_generation_dialog(course, refresh) -> None:
+    with ui.dialog() as dialog, ui.card().classes("w-[620px] max-w-[95vw] p-5"):
+        ui.label("Nouvelle session IA").classes("text-lg font-semibold")
+        ui.label("Les questions seront conservées et rejouables à l’identique.").classes(
+            "text-xs text-slate-500 mb-4"
+        )
+        kind = ui.select(
+            {"OIC": "OIC", "QCM": "QCM", "DP": "DP", "KFP": "KFP"},
+            value="QCM", label="Type de session",
+        ).classes("w-full")
+        with ui.row().classes("w-full gap-3"):
+            total = ui.number("Nombre total", value=10, min=1, max=50, step=1).classes("flex-1")
+            opened = ui.number("Questions ouvertes", value=3, min=0, max=50, step=1).classes("flex-1")
+            closed = ui.number("Questions fermées", value=7, min=0, max=50, step=1).classes("flex-1")
+        ui.label("La somme des ouvertes et fermées doit égaler le total.").classes(
+            "text-xs text-slate-400"
+        )
+        status = ui.label().classes("text-xs text-red-500")
+
+        async def _generate() -> None:
+            try:
+                spec = PracticeSessionSpec(
+                    practice_kind=PracticeKind(str(kind.value).lower()),
+                    total_questions=int(total.value or 0),
+                    open_questions=int(opened.value or 0),
+                    closed_questions=int(closed.value or 0),
+                    item_number=_item_number(course),
+                    course_id=str(getattr(course, "id", "") or ""),
+                    course_title=str(getattr(course, "title", "") or ""),
+                )
+            except (TypeError, ValueError) as exc:
+                status.set_text(str(exc))
+                return
+            status.set_text("Génération en cours…")
+            try:
+                session_id = await asyncio.to_thread(
+                    PracticeService().create_new_session, spec, str(getattr(course, "title", "") or "")
+                )
+            except Exception as exc:
+                status.set_text(f"Échec de génération : {exc}")
+                return
+            dialog.close()
+            ui.notify(f"Session IA #{session_id} enregistrée", type="positive")
+            refresh()
+
+        with ui.row().classes("justify-end gap-2 mt-5"):
+            ui.button("Annuler", on_click=dialog.close).props("flat")
+            ui.button("Générer et conserver", on_click=_generate).props("color=primary unelevated")
+    dialog.open()
+
+
+def _open_answer_dialog(session_id: int, refresh) -> None:
+    questions = local_store.get_ai_practice_session(session_id)
+    if not questions:
+        ui.notify("Cette session ne contient aucune question", type="warning")
+        return
+    answers = {}
+    with ui.dialog() as dialog, ui.card().classes("w-[760px] max-w-[96vw] p-5"):
+        ui.label(f"Session IA #{session_id}").classes("text-lg font-semibold")
+        ui.label("Les réponses seront ajoutées à l’historique sans modifier les questions.").classes(
+            "text-xs text-slate-500 mb-3"
+        )
+        for index, question in enumerate(questions, start=1):
+            with ui.card().classes("w-full p-3 border border-slate-200 dark:border-slate-700"):
+                ui.label(f"{index}. {question['prompt']}").classes("font-medium whitespace-pre-wrap")
+                if question["question_kind"] == QuestionKind.CLOSED.value:
+                    answers[question["id"]] = ui.radio(question["choices"], value=None).props("inline")
+                else:
+                    answers[question["id"]] = ui.textarea("Votre réponse").props("outlined autogrow").classes("w-full")
+
+        async def _submit() -> None:
+            for question in questions:
+                control = answers[question["id"]]
+                response = str(control.value or "").strip()
+                is_closed = question["question_kind"] == QuestionKind.CLOSED.value
+                correct = _same_closed_answer(response, question["answer"], question["choices"]) if is_closed else None
+                score = 100.0 if correct else 0.0 if is_closed else None
+                local_store.record_ai_practice_attempt(
+                    session_id=session_id,
+                    question_id=question["id"],
+                    response=response,
+                    is_correct=correct,
+                    score_percent=score,
+                )
+            dialog.close()
+            ui.notify("Réponses enregistrées dans l’historique", type="positive")
+            refresh()
+
+        with ui.row().classes("justify-end gap-2 mt-4"):
+            ui.button("Fermer", on_click=dialog.close).props("flat")
+            ui.button("Enregistrer mes réponses", on_click=_submit).props("color=primary unelevated")
+    dialog.open()
+
+
+def _render_history(item_number: str, refresh) -> None:
+    history = local_store.get_ai_practice_history(item_number=item_number, limit=30)
+    if not history:
+        ui.label("Aucune question IA enregistrée pour cet ITEM.").classes("ci-empty")
+        return
+    for entry in history:
+        session = entry["session"]
+        questions = entry["questions"]
+        attempted = sum(bool(q["attempts"]) for q in questions)
+        with ui.expansion(
+            f"Session #{session['id']} · {session['practice_kind'].upper()} · "
+            f"{len(questions)} questions · {attempted}/{len(questions)} répondues",
+            icon="history",
+        ).classes("w-full border-b border-slate-200 dark:border-slate-700"):
+            with ui.row().classes("items-center gap-2 mb-2"):
+                ui.label(str(session["created_at"])[:16]).classes("text-xs text-slate-400")
+                ui.label(session["model"] or "modèle inconnu").classes("text-xs font-mono text-slate-400")
+                ui.button("Répondre", on_click=lambda sid=session["id"]: _open_answer_dialog(sid, refresh)).props(
+                    "flat dense color=primary"
+                )
+                ui.button("Rejouer exactement", on_click=lambda sid=session["id"]: _replay(sid, refresh)).props(
+                    "flat dense"
+                )
+            for question in questions:
+                with ui.card().classes("w-full p-3 mb-2 bg-slate-50 dark:bg-slate-900/40"):
+                    ui.label(question["prompt"]).classes("text-sm font-medium whitespace-pre-wrap")
+                    ui.label(f"Correction : {question['answer']}").classes("text-xs text-green-700 dark:text-green-400 mt-1")
+                    ui.label(f"Explication : {question['explanation']}").classes("text-xs text-slate-500 whitespace-pre-wrap")
+                    for attempt in question["attempts"]:
+                        ui.label(
+                            f"Réponse du {str(attempt['answered_at'])[:16]} : {attempt['response'] or '—'}"
+                        ).classes("text-xs text-blue-700 dark:text-blue-300 mt-2")
+
+
+def _replay(session_id: int, refresh) -> None:
+    try:
+        new_id = local_store.replay_ai_practice_session(session_id)
+        ui.notify(f"Session #{new_id} créée avec les mêmes questions", type="positive")
+        refresh()
+    except Exception as exc:
+        ui.notify(str(exc), type="negative")
+
+
+def render_ai_practice_panel(course) -> None:
+    """Ajoute la génération, le rejeu et l'historique au Cockpit ITEM."""
+    item_number = _item_number(course)
+    container = ui.element("div").classes("w-full")
+
+    def refresh() -> None:
+        container.clear()
+        with container:
+            _render_content()
+
+    def _render_content() -> None:
+        with ui.row().classes("items-center justify-between w-full mb-3"):
+            with ui.column().classes("gap-0"):
+                ui.label("Questions IA").classes("ci-section-title")
+                ui.label("Questions conservées, rejouables et comparables dans le temps.").classes(
+                    "text-xs text-slate-400"
+                )
+            ui.button("Nouvelle session", icon="add", on_click=lambda: _open_generation_dialog(course, refresh)).props(
+                "color=primary unelevated"
+            )
+        _render_history(item_number, refresh)
+
+    with container:
+        _render_content()

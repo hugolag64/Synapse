@@ -158,6 +158,69 @@ def init_db() -> None:
         CREATE INDEX IF NOT EXISTS idx_qs_item_date   ON qcm_sessions(item_number, session_date);
         CREATE INDEX IF NOT EXISTS idx_qs_course_date ON qcm_sessions(course_id, session_date DESC);
 
+        -- ── Questions IA immuables et tentatives rejouables ────────────────
+        CREATE TABLE IF NOT EXISTS ai_practice_sessions (
+            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            course_id           TEXT NOT NULL DEFAULT '',
+            course_title        TEXT NOT NULL DEFAULT '',
+            item_number         TEXT NOT NULL DEFAULT '',
+            objective_code      TEXT NOT NULL DEFAULT '',
+            practice_kind       TEXT NOT NULL,
+            total_questions     INTEGER NOT NULL,
+            open_questions      INTEGER NOT NULL DEFAULT 0,
+            closed_questions    INTEGER NOT NULL DEFAULT 0,
+            model               TEXT NOT NULL DEFAULT '',
+            replay_of_session_id INTEGER,
+            created_at          TEXT NOT NULL,
+            completed_at        TEXT,
+            score_percent       REAL,
+            FOREIGN KEY (replay_of_session_id) REFERENCES ai_practice_sessions(id)
+        );
+        CREATE TABLE IF NOT EXISTS ai_practice_questions (
+            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            course_id           TEXT NOT NULL DEFAULT '',
+            item_number         TEXT NOT NULL DEFAULT '',
+            objective_code      TEXT NOT NULL DEFAULT '',
+            practice_kind       TEXT NOT NULL,
+            question_kind       TEXT NOT NULL,
+            position            INTEGER NOT NULL,
+            prompt              TEXT NOT NULL,
+            choices_json        TEXT NOT NULL DEFAULT '[]',
+            answer              TEXT NOT NULL,
+            explanation         TEXT NOT NULL,
+            source_refs_json    TEXT NOT NULL DEFAULT '[]',
+            model               TEXT NOT NULL DEFAULT '',
+            question_hash       TEXT NOT NULL,
+            created_at          TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS ai_practice_session_questions (
+            session_id          INTEGER NOT NULL,
+            question_id         INTEGER NOT NULL,
+            position            INTEGER NOT NULL,
+            PRIMARY KEY (session_id, question_id),
+            FOREIGN KEY (session_id) REFERENCES ai_practice_sessions(id) ON DELETE CASCADE,
+            FOREIGN KEY (question_id) REFERENCES ai_practice_questions(id) ON DELETE RESTRICT
+        );
+        CREATE TABLE IF NOT EXISTS ai_practice_attempts (
+            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id          INTEGER NOT NULL,
+            question_id         INTEGER NOT NULL,
+            response            TEXT NOT NULL DEFAULT '',
+            is_correct           INTEGER,
+            score_percent       REAL,
+            duration_seconds    INTEGER,
+            hints_used          INTEGER NOT NULL DEFAULT 0,
+            answered_at         TEXT NOT NULL,
+            FOREIGN KEY (session_id) REFERENCES ai_practice_sessions(id) ON DELETE CASCADE,
+            FOREIGN KEY (question_id) REFERENCES ai_practice_questions(id) ON DELETE RESTRICT
+        );
+        CREATE INDEX IF NOT EXISTS idx_ai_practice_session
+            ON ai_practice_session_questions(session_id, position);
+        CREATE INDEX IF NOT EXISTS idx_ai_practice_item
+            ON ai_practice_questions(item_number, created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_ai_practice_attempt_question
+            ON ai_practice_attempts(question_id, answered_at DESC);
+
         -- ── Table sessions de travail ─────────────────────────────────────
         CREATE TABLE IF NOT EXISTS study_sessions (
             id               INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1074,6 +1137,179 @@ def get_qcm_done_course_ids() -> set[str]:
     with _conn() as con:
         rows = con.execute("SELECT DISTINCT course_id FROM qcm_sessions").fetchall()
     return {row["course_id"] for row in rows}
+
+
+# ── API publique — questions IA rejouables ──────────────────────────────────
+
+def _ai_question_hash(question: dict) -> str:
+    import json as _json
+    payload = {
+        "kind": getattr(question.get("kind"), "value", question.get("kind", "")),
+        "prompt": str(question.get("prompt", "")).strip(),
+        "choices": list(question.get("choices") or []),
+        "answer": str(question.get("answer", "")).strip(),
+        "explanation": str(question.get("explanation", "")).strip(),
+    }
+    return hashlib.sha256(
+        _json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    ).hexdigest()
+
+
+def create_ai_practice_session(*, spec, questions: list[dict], model: str) -> int:
+    """Crée une session et conserve chaque question comme version immuable."""
+    import json as _json
+    now = _now()
+    with _conn() as con:
+        cur = con.execute(
+            """INSERT INTO ai_practice_sessions
+               (course_id, course_title, item_number, objective_code, practice_kind,
+                total_questions, open_questions, closed_questions, model, created_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?)""",
+            (
+                spec.course_id, spec.course_title, spec.item_number, spec.objective_code,
+                spec.practice_kind.value, spec.total_questions, spec.open_questions,
+                spec.closed_questions, model, now,
+            ),
+        )
+        session_id = int(cur.lastrowid)
+        for position, question in enumerate(questions, start=1):
+            kind = getattr(question.get("kind"), "value", question.get("kind", ""))
+            cur = con.execute(
+                """INSERT INTO ai_practice_questions
+                   (course_id, item_number, objective_code, practice_kind, question_kind,
+                    position, prompt, choices_json, answer, explanation, source_refs_json,
+                    model, question_hash, created_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (
+                    spec.course_id, spec.item_number, spec.objective_code,
+                    spec.practice_kind.value, kind, position,
+                    question["prompt"], _json.dumps(list(question.get("choices") or []), ensure_ascii=False),
+                    question["answer"], question["explanation"],
+                    _json.dumps(list(question.get("source_refs") or []), ensure_ascii=False),
+                    model, _ai_question_hash(question), now,
+                ),
+            )
+            con.execute(
+                "INSERT INTO ai_practice_session_questions(session_id, question_id, position) VALUES (?,?,?)",
+                (session_id, int(cur.lastrowid), position),
+            )
+    return session_id
+
+
+def replay_ai_practice_session(session_id: int) -> int:
+    """Crée une nouvelle tentative sur exactement les mêmes questions."""
+    with _conn() as con:
+        source = con.execute(
+            "SELECT * FROM ai_practice_sessions WHERE id = ?", (session_id,)
+        ).fetchone()
+        if source is None:
+            raise ValueError(f"Session IA introuvable : {session_id}")
+        now = _now()
+        cur = con.execute(
+            """INSERT INTO ai_practice_sessions
+               (course_id, course_title, item_number, objective_code, practice_kind,
+                total_questions, open_questions, closed_questions, model,
+                replay_of_session_id, created_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            tuple(source[key] for key in (
+                "course_id", "course_title", "item_number", "objective_code",
+                "practice_kind", "total_questions", "open_questions", "closed_questions",
+                "model",
+            )) + (session_id, now),
+        )
+        new_id = int(cur.lastrowid)
+        rows = con.execute(
+            "SELECT question_id, position FROM ai_practice_session_questions WHERE session_id = ? ORDER BY position",
+            (session_id,),
+        ).fetchall()
+        con.executemany(
+            "INSERT INTO ai_practice_session_questions(session_id, question_id, position) VALUES (?,?,?)",
+            [(new_id, row["question_id"], row["position"]) for row in rows],
+        )
+    return new_id
+
+
+def get_ai_practice_sessions(*, item_number: str = "", course_id: str = "", limit: int = 50) -> list:
+    """Retourne les sessions IA, plus récentes en premier."""
+    clauses, params = [], []
+    if item_number:
+        clauses.append("item_number = ?")
+        params.append(item_number)
+    if course_id:
+        clauses.append("course_id = ?")
+        params.append(course_id)
+    where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    with _conn() as con:
+        return con.execute(
+            f"SELECT * FROM ai_practice_sessions {where} ORDER BY created_at DESC LIMIT ?",
+            (*params, limit),
+        ).fetchall()
+
+
+def get_ai_practice_session(session_id: int) -> list:
+    """Retourne les questions d'une session avec toutes leurs tentatives."""
+    import json as _json
+    with _conn() as con:
+        rows = con.execute(
+            """SELECT q.*, sq.position AS session_position
+               FROM ai_practice_session_questions sq
+               JOIN ai_practice_questions q ON q.id = sq.question_id
+               WHERE sq.session_id = ? ORDER BY sq.position""",
+            (session_id,),
+        ).fetchall()
+        result = []
+        for row in rows:
+            item = dict(row)
+            item["choices"] = _json.loads(item.pop("choices_json") or "[]")
+            item["source_refs"] = _json.loads(item.pop("source_refs_json") or "[]")
+            attempts = con.execute(
+                "SELECT * FROM ai_practice_attempts WHERE session_id = ? AND question_id = ? ORDER BY answered_at DESC",
+                (session_id, row["id"]),
+            ).fetchall()
+            item["attempts"] = [dict(attempt) for attempt in attempts]
+            result.append(item)
+    return result
+
+
+def get_ai_practice_history(*, item_number: str, limit: int = 100) -> list:
+    """Historique consultable d'un ITEM, questions et réponses incluses."""
+    with _conn() as con:
+        sessions = con.execute(
+            "SELECT id, created_at, practice_kind, model, score_percent FROM ai_practice_sessions WHERE item_number = ? ORDER BY id DESC LIMIT ?",
+            (item_number, limit),
+        ).fetchall()
+    history = []
+    for session in sessions:
+        history.append({"session": dict(session), "questions": get_ai_practice_session(session["id"])})
+    return history
+
+
+def record_ai_practice_attempt(
+    *, session_id: int, question_id: int, response: str,
+    is_correct: bool | None = None, score_percent: float | None = None,
+    duration_seconds: int | None = None, hints_used: int = 0,
+) -> int:
+    """Enregistre une réponse sans modifier l'énoncé ni sa correction."""
+    now = _now()
+    with _conn() as con:
+        cur = con.execute(
+            """INSERT INTO ai_practice_attempts
+               (session_id, question_id, response, is_correct, score_percent,
+                duration_seconds, hints_used, answered_at)
+               VALUES (?,?,?,?,?,?,?,?)""",
+            (session_id, question_id, response, None if is_correct is None else int(is_correct),
+             score_percent, duration_seconds, hints_used, now),
+        )
+        if score_percent is not None:
+            avg = con.execute(
+                "SELECT AVG(score_percent) FROM ai_practice_attempts WHERE session_id = ? AND score_percent IS NOT NULL",
+                (session_id,),
+            ).fetchone()[0]
+            con.execute(
+                "UPDATE ai_practice_sessions SET score_percent = ?, completed_at = ? WHERE id = ?",
+                (avg, now, session_id),
+            )
+        return int(cur.lastrowid)
 
 
 # ── Statistiques ─────────────────────────────────────────────────────────────

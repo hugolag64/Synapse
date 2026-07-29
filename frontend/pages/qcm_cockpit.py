@@ -245,11 +245,14 @@ _CSS = """
 .qc-pending-state { flex:0 0 64px; padding-top:2px; font-size:11px; color:var(--warning); }
 .qc-pending-action { flex:0 0 110px; justify-content:flex-start; padding-left:0; padding-right:0; }
 .qc-workspace { display:grid; grid-template-columns:minmax(0, 1.1fr) minmax(320px, .9fr); gap:20px; width:100%; margin:24px 0 8px; align-items:stretch; }
-.qc-history { min-width:0; max-height:620px; overflow:auto; padding:14px; border:1px solid var(--border); border-radius:8px; background:var(--surface); }
+.qc-history { min-width:0; max-height:620px; overflow-x:hidden; overflow-y:auto; padding:14px; border:1px solid var(--border); border-radius:8px; background:var(--surface); }
 .qc-history-list { margin-top:10px; }
-.qc-history-entry { width:100%; align-items:center; gap:4px; border-radius:6px; }
+.qc-history-entry { width:100%; min-width:0; flex-wrap:nowrap; align-items:center; gap:4px; border-radius:6px; }
 .qc-history-entry.qc-history-row-active { background:var(--surface-hover); }
-.qc-history-row { flex:1 1 auto; width:auto; min-height:64px; flex-direction:column; align-items:flex-start; justify-content:center; text-align:left; padding:12px 14px; border-radius:6px; gap:4px; background:transparent; }
+.qc-history-row { flex:1 1 auto; width:auto; min-width:0; min-height:64px; flex-direction:column; align-items:flex-start; justify-content:center; text-align:left; padding:12px 14px; border-radius:6px; gap:4px; background:transparent; }
+.qc-history-row .q-btn__content { min-width:0; width:100%; flex-direction:column; align-items:flex-start; justify-content:center; gap:4px; }
+.qc-history-row .qc-course-title { display:block; max-width:100%; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.qc-history-row + .q-btn { flex:0 0 40px; width:40px; }
 .qc-history-row .qc-course-title { line-height:1.25; }
 .qc-history-meta { font-size:11px; color:var(--text-dim); margin-top:0; line-height:1.25; }
 .qc-selected { min-width:0; width:100%; padding:18px; border:1px solid var(--border); border-radius:8px; background:var(--surface); }

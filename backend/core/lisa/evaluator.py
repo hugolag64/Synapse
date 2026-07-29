@@ -6,6 +6,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Literal
 
+from backend.core.ai.routing import AITask
 from backend.core.lisa import anythingllm_client as _client
 
 
@@ -46,6 +47,13 @@ def aggregate_session_score(results: list[EvalResult]) -> int:
     return round(sum(r.score for r in results) / len(results))
 
 
+def _query(prompt: str, workspace_slug: str, ai_service=None) -> str:
+    """Exécute une requête OIC via le routeur fourni ou le fallback RAG historique."""
+    if ai_service is not None:
+        return ai_service.generate(AITask.OIC, prompt, response_format="json").text
+    return _client.query_workspace(workspace_slug, prompt)
+
+
 def next_oic_level(current_level: int, session_score: int, previous_scores: list[int]) -> int:
     """
     Fait évoluer le niveau de maîtrise (0-5) selon le score de la session courante.
@@ -82,7 +90,14 @@ def _extract_json(raw: str):
     return None
 
 
-def generate_questions(course_title: str, intitule: str, rang: str, workspace_slug: str) -> list[Question]:
+def generate_questions(
+    course_title: str,
+    intitule: str,
+    rang: str,
+    workspace_slug: str,
+    *,
+    ai_service=None,
+) -> list[Question]:
     """
     Appel query #1. Demande 3-5 questions mixtes QCM/ouvertes en JSON strict.
     Retry une fois si JSON invalide. Dégradé : une question ouverte générique si échec double.
@@ -103,7 +118,7 @@ def generate_questions(course_title: str, intitule: str, rang: str, workspace_sl
     )
 
     for _attempt in range(2):
-        raw = _client.query_workspace(workspace_slug, prompt)
+        raw = _query(prompt, workspace_slug, ai_service)
         parsed = _extract_json(raw)
         if isinstance(parsed, list) and parsed:
             questions = []
@@ -125,7 +140,13 @@ def generate_questions(course_title: str, intitule: str, rang: str, workspace_sl
     return [Question(type="ouverte", enonce=f"Expliquez : {intitule}", criteres=[f"Connaître {intitule}"])]
 
 
-def evaluate_open_answer(question: Question, student_response: str, workspace_slug: str) -> EvalResult:
+def evaluate_open_answer(
+    question: Question,
+    student_response: str,
+    workspace_slug: str,
+    *,
+    ai_service=None,
+) -> EvalResult:
     """Appel query #2, un par question ouverte répondue. Retry une fois si JSON invalide."""
     criteres = question.criteres or []
     prompt = (
@@ -147,7 +168,7 @@ def evaluate_open_answer(question: Question, student_response: str, workspace_sl
     )
 
     for _attempt in range(2):
-        raw = _client.query_workspace(workspace_slug, prompt)
+        raw = _query(prompt, workspace_slug, ai_service)
         parsed = _extract_json(raw)
         if isinstance(parsed, dict) and "verdict" in parsed and "score" in parsed:
             try:

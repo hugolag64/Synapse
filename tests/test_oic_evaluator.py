@@ -1,7 +1,7 @@
 """Tests unitaires — évaluateur OIC (logique pure + AnythingLLM)."""
-import pytest
 from unittest.mock import patch
 
+from backend.core.ai.routing import AIModel, AIResponse, AITask
 from backend.core.lisa import evaluator
 
 
@@ -86,6 +86,24 @@ class TestNextOicLevel:
 
 
 class TestGenerateQuestions:
+    def test_uses_routed_oic_service_when_provided(self):
+        raw = '[{"type": "ouverte", "enonce": "Q?", "criteres": ["c"]}]'
+
+        class FakeService:
+            def __init__(self):
+                self.calls = []
+
+            def generate(self, task, prompt, *, response_format="text", context=None):
+                self.calls.append((task, response_format, prompt))
+                return AIResponse(raw, AIModel.FLASH_LITE)
+
+        service = FakeService()
+        questions = evaluator.generate_questions("Cours", "Intitulé", "A", "slug", ai_service=service)
+
+        assert len(questions) == 1
+        assert service.calls[0][0] is AITask.OIC
+        assert service.calls[0][1] == "json"
+
     def test_parses_valid_json_response(self):
         raw = (
             '[{"type": "qcm", "enonce": "Q1?", "options": ["a", "b"], "correct_index": 0, "explication": "exp"},'

@@ -1,6 +1,7 @@
 import zoneinfo
-from pydantic_settings import BaseSettings, SettingsConfigDict
+
 from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # ── Fuseau horaire applicatif ──────────────────────────────────────────────────
 APP_TIMEZONE = zoneinfo.ZoneInfo("Indian/Reunion")
@@ -83,6 +84,10 @@ class Settings(BaseSettings):
     lisa_password: str = Field("", alias='LISA_PASSWORD')
     anythingllm_url: str = Field("http://localhost:3001", alias='ANYTHINGLLM_URL')
     anythingllm_api_key: str = Field("", alias='ANYTHINGLLM_API_KEY')
+    gemini_api_key: str = Field("", alias='GEMINI_API_KEY')
+    gemini_lite_model: str = Field("gemini-2.5-flash-lite", alias='GEMINI_LITE_MODEL')
+    gemini_flash_model: str = Field("gemini-2.5-flash", alias='GEMINI_FLASH_MODEL')
+    gemini_timeout_seconds: float = Field(60.0, alias='GEMINI_TIMEOUT_SECONDS')
 
     model_config = SettingsConfigDict(env_file='.env', extra='ignore')
 

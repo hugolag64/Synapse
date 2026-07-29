@@ -57,6 +57,11 @@ préparée en amont. L'import est local, dédupliqué et sans appel API. Les cas
 rattachés aux ITEM déclarés dans le fichier ; les associations introuvables sont
 placées dans une file de vérification.
 
+Une discussion ChatGPT peut également être importée en texte, Markdown, HTML ou
+JSON. Synapse extrait les questions/réponses/explications, propose les ITEM repérés
+avec confirmation, conserve la discussion source et rend les questions disponibles
+dans la banque locale, en tirage aléatoire ou via un ancrage volontaire.
+
 ## OIC et AnythingLLM
 
 Le dialogue OIC conserve le workspace AnythingLLM afin de garder la recherche

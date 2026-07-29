@@ -137,7 +137,15 @@ def _open_answer_dialog(session_id: int, refresh) -> None:
         )
         for index, question in enumerate(questions, start=1):
             with ui.card().classes("w-full p-3 border border-slate-200 dark:border-slate-700"):
-                ui.label(f"{index}. {question['prompt']}").classes("font-medium whitespace-pre-wrap")
+                with ui.row().classes("w-full items-start justify-between"):
+                    ui.label(f"{index}. {question['prompt']}").classes("font-medium whitespace-pre-wrap")
+                    ui.button(
+                        "Ancrer",
+                        on_click=lambda qid=question["id"]: (
+                            local_store.set_ai_practice_anchor(qid),
+                            ui.notify("Question ajoutée aux ancrages", type="positive"),
+                        ),
+                    ).props("flat dense color=primary")
                 if question["question_kind"] == QuestionKind.CLOSED.value:
                     answers[question["id"]] = [
                         (choice, ui.checkbox(choice).props("dense")) for choice in question["choices"]
@@ -220,6 +228,44 @@ def _replay(session_id: int, refresh) -> None:
         ui.notify(str(exc), type="negative")
 
 
+def _start_imported_case(case_id: int, course, refresh) -> None:
+    cases = [case for case in local_store.get_imported_practice_cases(limit=500) if case["id"] == case_id]
+    if not cases:
+        ui.notify("Cas importé introuvable", type="warning")
+        return
+    case = cases[0]
+    questions = []
+    for question in case.get("questions", []):
+        is_closed = bool(question.get("choices"))
+        questions.append({
+            "prompt": question["prompt"],
+            "kind": QuestionKind.CLOSED.value if is_closed else QuestionKind.OPEN.value,
+            "choices": question.get("choices", []),
+            "answer": question["answer"],
+            "explanation": question["explanation"],
+        })
+    open_count = sum(q["kind"] == QuestionKind.OPEN.value for q in questions)
+    spec = PracticeSessionSpec(
+        practice_kind=PracticeKind(str(case["kind"]).upper()),
+        total_questions=len(questions),
+        open_questions=open_count,
+        closed_questions=len(questions) - open_count,
+        item_number=_item_number(course),
+        course_id=str(getattr(course, "id", "") or ""),
+        course_title=str(getattr(course, "title", "") or case["title"]),
+    )
+    session_id = local_store.create_ai_practice_session(spec=spec, questions=questions, model="local-import")
+    _open_answer_dialog(session_id, refresh)
+
+
+def _start_random_imported_case(course, refresh) -> None:
+    rows = local_store.get_random_imported_practice_cases(item_number=_item_number(course), limit=1)
+    if not rows:
+        ui.notify("Aucun cas local disponible pour cet ITEM", type="warning")
+        return
+    _start_imported_case(rows[0]["id"], course, refresh)
+
+
 def render_ai_practice_panel(course) -> None:
     """Ajoute la génération, le rejeu et l'historique au Cockpit ITEM."""
     item_number = _item_number(course)
@@ -247,11 +293,19 @@ def render_ai_practice_panel(course) -> None:
         _render_history(item_number, refresh)
         imported = local_store.get_imported_practice_cases(item_number=item_number, limit=20)
         if imported:
-            ui.label("Banque locale DP/KFP").classes("ci-section-title mt-4")
+            with ui.row().classes("items-center gap-2 mt-4"):
+                ui.label("Banque locale DP/KFP").classes("ci-section-title")
+                ui.button("Tirer au hasard", on_click=lambda: _start_random_imported_case(course, refresh)).props(
+                    "flat dense color=primary"
+                )
             for case in imported:
-                ui.label(
-                    f"{case['kind'].upper()} · {case['title']} · {len(case.get('questions', []))} questions"
-                ).classes("text-sm")
+                with ui.row().classes("w-full items-center justify-between"):
+                    ui.label(
+                        f"{case['kind'].upper()} · {case['title']} · {len(case.get('questions', []))} questions"
+                    ).classes("text-sm")
+                    ui.button("S'entraîner", on_click=lambda cid=case["id"]: _start_imported_case(cid, course, refresh)).props(
+                        "flat dense color=primary"
+                    )
                 if case["status"] == "needs_review":
                     ui.label(f"À vérifier : {case['review_reason']}").classes("text-xs text-amber-600")
 

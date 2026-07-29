@@ -2,14 +2,21 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from nicegui import ui
 
-from backend.core.practice.importer import ImportValidationError, parse_practice_bank
+from backend.core.practice.importer import (
+    ImportValidationError,
+    parse_practice_bank,
+    parse_practice_discussion,
+)
 from backend.core.reviews import local_store
 
 
 def open_practice_import_dialog(refresh=None, item_number: str = "") -> None:
     pending = {"batch": None}
+    item_controls = {}
     with ui.dialog() as dialog, ui.card().classes("w-[680px] max-w-[95vw] p-5"):
         ui.label("Importer une banque DP/KFP").classes("text-lg font-semibold")
         ui.label(
@@ -20,6 +27,7 @@ def open_practice_import_dialog(refresh=None, item_number: str = "") -> None:
 
         def _show_preview(batch) -> None:
             preview.clear()
+            item_controls.clear()
             ready = sum(case.status == "ready" for case in batch.cases)
             review = len(batch.cases) - ready
             with preview:
@@ -27,12 +35,23 @@ def open_practice_import_dialog(refresh=None, item_number: str = "") -> None:
                     "font-medium"
                 )
                 for case in batch.cases[:8]:
-                    label = f"{case.kind.upper()} · {case.title} · ITEM {', '.join(case.item_numbers) or 'à identifier'}"
-                    ui.label(label).classes("text-xs text-slate-500")
+                    ui.label(f"{case.kind.upper()} · {case.title}").classes("text-xs font-medium")
+                    controls = []
+                    with ui.row().classes("items-center gap-2"):
+                        ui.label("ITEM proposés :").classes("text-xs text-slate-500")
+                        for number in case.item_numbers:
+                            controls.append((number, ui.checkbox(number, value=True).props("dense")))
+                        if not case.item_numbers:
+                            controls.append(("manual", ui.input(placeholder="115, 222").props("dense outlined")))
+                    item_controls[case.fingerprint] = controls
 
         def _on_upload(event) -> None:
             try:
-                batch = parse_practice_bank(event.content.read())
+                raw = event.content.read()
+                try:
+                    batch = parse_practice_bank(raw)
+                except ImportValidationError:
+                    batch = parse_practice_discussion(raw, source=event.name)
             except (ImportValidationError, UnicodeDecodeError) as exc:
                 pending["batch"] = None
                 status.set_text(f"Import refusé : {exc}")
@@ -42,13 +61,33 @@ def open_practice_import_dialog(refresh=None, item_number: str = "") -> None:
             status.set_text(f"Fichier chargé : {event.name}")
             _show_preview(batch)
 
-        ui.upload(on_upload=_on_upload, auto_upload=True).props("accept=.json color=primary")
+        ui.upload(on_upload=_on_upload, auto_upload=True).props("accept=.json,.txt,.md,.html color=primary")
 
         def _import() -> None:
             batch = pending["batch"]
             if batch is None:
                 status.set_text("Sélectionne d'abord un fichier JSON.")
                 return
+            confirmed_cases = []
+            for case in batch.cases:
+                controls = item_controls.get(case.fingerprint, [])
+                selected = list(case.item_numbers) if not controls else []
+                for number, control in controls:
+                    if number == "manual":
+                        selected.extend(
+                            part.strip() for part in str(control.value or "").split(",")
+                            if part.strip().isdigit()
+                        )
+                    elif control.value:
+                        selected.append(number)
+                selected = tuple(sorted(set(selected), key=lambda value: int(value)))
+                confirmed_cases.append(replace(
+                    case,
+                    item_numbers=selected,
+                    status="ready" if selected else "needs_review",
+                    review_reason="" if selected else "ITEM introuvable ou non confirmé",
+                ))
+            batch = replace(batch, cases=tuple(confirmed_cases))
             result = local_store.import_practice_batch(batch)
             dialog.close()
             ui.notify(

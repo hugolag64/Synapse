@@ -231,6 +231,7 @@ def init_db() -> None:
             stem          TEXT NOT NULL,
             item_numbers  TEXT NOT NULL DEFAULT '[]',
             source        TEXT NOT NULL DEFAULT '',
+            source_content TEXT NOT NULL DEFAULT '',
             status        TEXT NOT NULL DEFAULT 'ready',
             review_reason TEXT NOT NULL DEFAULT '',
             imported_at   TEXT NOT NULL
@@ -250,6 +251,15 @@ def init_db() -> None:
             explanation TEXT NOT NULL,
             FOREIGN KEY (case_id) REFERENCES imported_practice_cases(id) ON DELETE CASCADE,
             UNIQUE (case_id, position)
+        );
+        CREATE TABLE IF NOT EXISTS ai_practice_anchors (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            question_id INTEGER NOT NULL UNIQUE,
+            label       TEXT NOT NULL DEFAULT '',
+            created_at  TEXT NOT NULL,
+            last_seen_at TEXT,
+            active      INTEGER NOT NULL DEFAULT 1,
+            FOREIGN KEY (question_id) REFERENCES ai_practice_questions(id) ON DELETE CASCADE
         );
 
         -- ── Table sessions de travail ─────────────────────────────────────
@@ -3494,6 +3504,9 @@ def import_practice_batch(batch) -> dict[str, int]:
 
     inserted = duplicates = needs_review = 0
     with _conn() as con:
+        columns = {row[1] for row in con.execute("PRAGMA table_info(imported_practice_cases)").fetchall()}
+        if "source_content" not in columns:
+            con.execute("ALTER TABLE imported_practice_cases ADD COLUMN source_content TEXT NOT NULL DEFAULT ''")
         for case in batch.cases:
             existing = con.execute(
                 "SELECT id FROM imported_practice_cases WHERE fingerprint = ?",
@@ -3505,11 +3518,11 @@ def import_practice_batch(batch) -> dict[str, int]:
             cur = con.execute(
                 """INSERT INTO imported_practice_cases
                    (fingerprint, external_id, kind, title, stem, item_numbers,
-                    source, status, review_reason, imported_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   source, source_content, status, review_reason, imported_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (case.fingerprint, case.external_id, case.kind, case.title, case.stem,
-                 json.dumps(case.item_numbers), batch.source, case.status,
-                 case.review_reason, _now()),
+                 json.dumps(case.item_numbers), batch.source, getattr(batch, "raw_text", ""),
+                 case.status, case.review_reason, _now()),
             )
             for position, question in enumerate(case.questions, start=1):
                 con.execute(
@@ -3571,6 +3584,57 @@ def get_import_review_queue(limit: int = 100) -> list:
             "ORDER BY imported_at DESC LIMIT ?", (limit,),
         ).fetchall()
         return _imported_case_rows(rows)
+
+
+def get_random_imported_practice_cases(*, item_number: str | None = None, limit: int = 10) -> list:
+    """Retourne des cas locaux aléatoires, filtrables par ITEM."""
+    with _conn() as con:
+        if item_number:
+            rows = con.execute(
+                "SELECT * FROM imported_practice_cases WHERE status = 'ready' AND item_numbers LIKE ? "
+                "ORDER BY RANDOM() LIMIT ?", (f'%"{item_number}"%', limit),
+            ).fetchall()
+        else:
+            rows = con.execute(
+                "SELECT * FROM imported_practice_cases WHERE status = 'ready' "
+                "ORDER BY RANDOM() LIMIT ?", (limit,),
+            ).fetchall()
+        return _imported_case_rows(rows)
+
+
+def set_ai_practice_anchor(question_id: int, label: str = "") -> int:
+    with _conn() as con:
+        row = con.execute(
+            "SELECT id FROM ai_practice_anchors WHERE question_id = ?", (question_id,)
+        ).fetchone()
+        if row:
+            con.execute("UPDATE ai_practice_anchors SET active = 1, label = ? WHERE id = ?", (label, row["id"]))
+            return row["id"]
+        cur = con.execute(
+            "INSERT INTO ai_practice_anchors (question_id, label, created_at) VALUES (?, ?, ?)",
+            (question_id, label, _now()),
+        )
+        return cur.lastrowid
+
+
+def remove_ai_practice_anchor(question_id: int) -> None:
+    with _conn() as con:
+        con.execute("UPDATE ai_practice_anchors SET active = 0 WHERE question_id = ?", (question_id,))
+
+
+def get_ai_practice_anchors(*, item_number: str | None = None, limit: int = 100) -> list:
+    with _conn() as con:
+        query = """SELECT a.*, q.prompt, q.answer, q.explanation, q.item_number
+                   FROM ai_practice_anchors a
+                   JOIN ai_practice_questions q ON q.id = a.question_id
+                   WHERE a.active = 1"""
+        params: list = []
+        if item_number:
+            query += " AND q.item_number = ?"
+            params.append(item_number)
+        query += " ORDER BY a.created_at DESC LIMIT ?"
+        params.append(limit)
+        return con.execute(query, params).fetchall()
 
 
 # ── Auto-init à l'import ──────────────────────────────────────────────────────

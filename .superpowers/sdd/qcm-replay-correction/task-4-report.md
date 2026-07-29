@@ -28,3 +28,15 @@ Result: 31 passed, 1 existing `requests` dependency-version warning, in 2.26s.
 ## Concerns
 
 - No concerns. The test command emits one pre-existing third-party `requests` dependency-version warning.
+
+## Fix round 1
+
+- Fixed correction-summary denominators to use `total_questions`, rather than only scored closed questions.
+- Answered but unscored open questions are now reported separately as `réponse(s) non évaluée(s)` and are not counted as correct.
+- Added a regression test for two correct closed questions plus one answered open question; the summary now reads `2/3 bonnes réponses · 0 sans réponse · 1 réponse non évaluée`.
+
+### Tests run/output
+
+`pytest tests/test_qcm_replay.py tests/test_ai_practice.py -v`
+
+Result: 32 passed, 1 existing `requests` dependency-version warning, in 2.15s.

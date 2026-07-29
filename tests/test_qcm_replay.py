@@ -102,6 +102,23 @@ def test_correction_rows_render_a_finished_two_out_of_three_session():
     assert [row["response"] for row in rows] == ["A", "B", "B"]
 
 
+def test_correction_summary_counts_answered_open_questions_without_marking_them_correct():
+    summary = {
+        "total_questions": 3,
+        "answered_count": 3,
+        "scored_count": 2,
+        "correct_count": 2,
+        "incorrect_count": 0,
+        "unanswered_count": 0,
+        "score_percent": 100,
+    }
+
+    assert format_correction_summary(summary) == (
+        "Score : 100 %",
+        "2/3 bonnes réponses · 0 sans réponse · 1 réponse non évaluée",
+    )
+
+
 def test_filter_question_results_errors_only_keeps_non_correct_results():
     results = [{"status": "correct"}, {"status": "incorrect"}, {"status": "unanswered"}, {"status": None}]
 

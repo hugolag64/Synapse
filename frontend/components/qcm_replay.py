@@ -124,11 +124,18 @@ def format_correction_summary(summary: dict) -> tuple[str, str]:
     """Format the score and question counts shown at the top of correction."""
     score = summary.get("score_percent")
     scored_count = int(summary.get("correct_count", 0)) + int(summary.get("incorrect_count", 0))
+    unanswered_count = int(summary.get("unanswered_count", 0))
+    total_questions = int(summary.get("total_questions", scored_count + unanswered_count))
+    answered_count = int(summary.get("answered_count", total_questions - unanswered_count))
+    unscored_count = max(0, answered_count - scored_count)
     score_text = "Score non disponible" if score is None else f"Score : {score:g} %"
     counts_text = (
-        f"{summary.get('correct_count', 0)}/{scored_count} bonnes réponses · "
-        f"{summary.get('unanswered_count', 0)} sans réponse"
+        f"{summary.get('correct_count', 0)}/{total_questions} bonnes réponses · "
+        f"{unanswered_count} sans réponse"
     )
+    if unscored_count:
+        suffix = "réponse non évaluée" if unscored_count == 1 else "réponses non évaluées"
+        counts_text = f"{counts_text} · {unscored_count} {suffix}"
     return score_text, counts_text
 
 

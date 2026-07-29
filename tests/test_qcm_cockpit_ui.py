@@ -1,4 +1,5 @@
 import inspect
+import sqlite3
 
 from frontend.pages import qcm as qcm_page
 from frontend.pages import qcm_cockpit
@@ -25,6 +26,21 @@ def test_qcm_cockpit_keeps_generated_sessions_visible_before_scoring():
     ])
 
     assert [row["id"] for row in pending] == [1]
+
+
+def test_qcm_cockpit_accepts_sqlite_rows_for_pending_sessions():
+    connection = sqlite3.connect(":memory:")
+    connection.row_factory = sqlite3.Row
+    try:
+        rows = connection.execute(
+            "SELECT 1 AS id, NULL AS score_percent, NULL AS completed_at"
+        ).fetchall()
+
+        pending = qcm_cockpit._pending_ai_sessions(rows)
+
+        assert [row["id"] for row in pending] == [1]
+    finally:
+        connection.close()
 
 
 def test_qcm_cockpit_renders_a_start_action_for_pending_ai_sessions():

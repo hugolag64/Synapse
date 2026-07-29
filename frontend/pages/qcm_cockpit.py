@@ -54,11 +54,12 @@ HISTORY_STATUS_OPTIONS = {
 
 def _pending_ai_sessions(rows: list) -> list:
     """Retourne les sessions IA encore à faire, avant leur premier score."""
-    return [
-        row
-        for row in rows
-        if row["score_percent"] is None and row.get("completed_at") is None
-    ]
+    pending = []
+    for row in rows:
+        values = dict(row)
+        if values["score_percent"] is None and values.get("completed_at") is None:
+            pending.append(values)
+    return pending
 
 
 def _filter_item_picker_options(courses, query: str = "", limit: int = 8):

@@ -53,10 +53,10 @@ def _open_generation_dialog(course, refresh) -> None:
         ).props("spread no-caps unelevated").classes("w-full ai-practice-kind-toggle")
         difficulty = ui.toggle(
             {
-                "Standard": PracticeDifficulty.STANDARD.value,
-                "EDN": PracticeDifficulty.EDN.value,
-                "Difficile": PracticeDifficulty.DIFFICULT.value,
-                "Concours": PracticeDifficulty.CONCOURS.value,
+                PracticeDifficulty.STANDARD.value: "Standard",
+                PracticeDifficulty.EDN.value: "EDN",
+                PracticeDifficulty.DIFFICULT.value: "Difficile",
+                PracticeDifficulty.CONCOURS.value: "Concours",
             },
             value=PracticeDifficulty.EDN.value,
         ).props("spread no-caps unelevated").classes("w-full ai-practice-kind-toggle mt-2")

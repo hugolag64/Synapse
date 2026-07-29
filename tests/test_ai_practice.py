@@ -86,10 +86,10 @@ def test_generation_dialog_exposes_edn_difficulty_by_default():
     from frontend.components import ai_practice_panel
 
     source = inspect.getsource(ai_practice_panel._open_generation_dialog)
-    assert '"Standard": PracticeDifficulty.STANDARD.value' in source
-    assert '"EDN": PracticeDifficulty.EDN.value' in source
-    assert '"Difficile": PracticeDifficulty.DIFFICULT.value' in source
-    assert '"Concours": PracticeDifficulty.CONCOURS.value' in source
+    assert 'PracticeDifficulty.STANDARD.value: "Standard"' in source
+    assert 'PracticeDifficulty.EDN.value: "EDN"' in source
+    assert 'PracticeDifficulty.DIFFICULT.value: "Difficile"' in source
+    assert 'PracticeDifficulty.CONCOURS.value: "Concours"' in source
     assert "value=PracticeDifficulty.EDN.value" in source
     assert "difficulty=PracticeDifficulty(str(difficulty.value))" in source
 

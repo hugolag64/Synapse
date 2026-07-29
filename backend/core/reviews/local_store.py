@@ -1301,6 +1301,19 @@ def get_ai_practice_sessions(*, item_number: str = "", course_id: str = "", limi
         ).fetchall()
 
 
+def delete_pending_ai_practice_session(session_id: int) -> bool:
+    """Supprime une session IA encore à faire, sans toucher aux questions immuables."""
+    with _conn() as con:
+        session = con.execute(
+            "SELECT completed_at, score_percent FROM ai_practice_sessions WHERE id = ?",
+            (session_id,),
+        ).fetchone()
+        if session is None or session["completed_at"] is not None or session["score_percent"] is not None:
+            return False
+        con.execute("DELETE FROM ai_practice_sessions WHERE id = ?", (session_id,))
+    return True
+
+
 def get_ai_practice_session(session_id: int) -> list:
     """Retourne les questions d'une session avec toutes leurs tentatives."""
     import json as _json

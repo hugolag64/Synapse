@@ -150,9 +150,13 @@ def _open_ai_generation_picker(refresh) -> None:
             if course is None:
                 ui.notify("Sélectionne un ITEM", type="warning")
                 return
-            with page_slot:
-                _open_generation_dialog(course, refresh)
             picker.close()
+            # Fermer d'abord le picker avant de monter le second overlay.
+            def _open_generation() -> None:
+                with page_slot:
+                    _open_generation_dialog(course, refresh)
+
+            ui.timer(0.01, _open_generation, once=True)
 
         def _select_item(item_number: str) -> None:
             selected["item"] = item_number
@@ -466,6 +470,31 @@ def render_qcm_cockpit() -> None:
             status=str(history_filter.value or "all"),
         )
 
+    def _confirm_delete_pending(session_id: int, course_title: str) -> None:
+        with ui.dialog() as dialog, ui.card().classes("p-5").style(
+            "width: 420px; max-width: calc(100vw - 32px); border-radius: 8px;"
+        ):
+            ui.label("Supprimer cette session ?").classes("text-lg font-semibold")
+            ui.label(
+                f'« {course_title or "Session IA"} » sera retirée de la liste des sessions à faire.'
+            ).classes("text-sm text-slate-500 mt-2")
+
+            def _delete() -> None:
+                deleted = local_store.delete_pending_ai_practice_session(session_id)
+                dialog.close()
+                if deleted:
+                    ui.notify("Session supprimée", type="positive")
+                    _render()
+                else:
+                    ui.notify("Cette session n'est plus disponible", type="warning")
+
+            with ui.row().classes("justify-end gap-2 mt-5"):
+                ui.button("Annuler", on_click=dialog.close).props("flat")
+                ui.button("Confirmer la suppression", on_click=_delete).props(
+                    "color=negative unelevated"
+                )
+        dialog.open()
+
     def _render_workspace() -> None:
         sessions = _replayable_history()
         session_ids = {session["id"] for session in sessions}
@@ -497,6 +526,10 @@ def render_qcm_cockpit() -> None:
                         "Commencer",
                         on_click=lambda _e=None, sid=session["id"]: _open_selected_session(sid),
                     ).props("flat dense color=primary").classes("qc-pending-action")
+                    ui.button(
+                        icon="delete_outline",
+                        on_click=lambda _e=None, sid=session["id"], title=course_title: _confirm_delete_pending(sid, title),
+                    ).props("flat dense round color=negative").tooltip("Supprimer cette session")
 
     def _render() -> None:
         rows = local_store.get_qcm_sessions_all(limit=300)

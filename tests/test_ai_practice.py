@@ -315,6 +315,33 @@ def test_ai_practice_sessions_history_filter_matches_title_and_status(practice_d
     assert [row["id"] for row in local_store.get_ai_practice_sessions_history(status="completed")] == [completed]
 
 
+def test_delete_pending_ai_practice_session_removes_only_the_pending_session(practice_db):
+    pending = local_store.create_ai_practice_session(
+        spec=spec(course_title="Session à supprimer", item_number="115"),
+        questions=[{"prompt": "Q1", "kind": QuestionKind.CLOSED, "choices": ["A", "B"], "answer": "A", "explanation": "E"}],
+        model="test-model",
+    )
+
+    assert local_store.delete_pending_ai_practice_session(pending) is True
+    assert local_store.get_ai_practice_sessions_history(status="pending") == []
+    assert local_store.get_ai_practice_session(pending) == []
+
+
+def test_delete_pending_ai_practice_session_does_not_delete_completed_session(practice_db):
+    completed = local_store.create_ai_practice_session(
+        spec=spec(course_title="Session terminée", item_number="215"),
+        questions=[{"prompt": "Q1", "kind": QuestionKind.CLOSED, "choices": ["A", "B"], "answer": "A", "explanation": "E"}],
+        model="test-model",
+    )
+    question_id = local_store.get_ai_practice_session(completed)[0]["id"]
+    local_store.record_ai_practice_attempt(
+        session_id=completed, question_id=question_id, response="A", is_correct=True, score_percent=100,
+    )
+
+    assert local_store.delete_pending_ai_practice_session(completed) is False
+    assert local_store.get_ai_practice_sessions_history(status="completed")[0]["id"] == completed
+
+
 def test_practice_service_routes_dp_to_flash_and_persists():
     class FakeAI:
         def __init__(self):

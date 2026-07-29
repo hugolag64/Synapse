@@ -55,6 +55,14 @@ def test_qcm_cockpit_renders_a_start_action_for_pending_ai_sessions():
     assert ".qc-pending-action" in qcm_cockpit.QCM_COCKPIT_CSS
 
 
+def test_qcm_cockpit_exposes_delete_action_for_pending_sessions():
+    source = inspect.getsource(qcm_cockpit.render_qcm_cockpit)
+
+    assert "delete_pending_ai_practice_session" in source
+    assert "Supprimer" in source
+    assert "Confirmer la suppression" in source
+
+
 def test_ai_generation_opens_the_session_and_defaults_to_closed_questions():
     from frontend.components import ai_practice_panel
 
@@ -104,6 +112,8 @@ def test_item_picker_opens_generation_settings_on_item_click():
     assert "with page_slot" in source
     assert "picker.close()" in source
     assert "_open_generation_dialog(course, refresh)" in source
+    assert "picker.close()" in source
+    assert "ui.timer" in source
 
 
 def test_qcm_cockpit_is_full_width_with_handoff_content_bound():

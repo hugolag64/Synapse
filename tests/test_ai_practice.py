@@ -13,6 +13,7 @@ from backend.core.practice.models import (
 )
 from backend.core.practice.service import PracticeGenerationError, PracticeService
 from backend.core.reviews import local_store
+from frontend.components.ai_practice_panel import _same_closed_answer
 
 
 @pytest.fixture()
@@ -43,6 +44,12 @@ def spec(**overrides):
 def test_spec_requires_exact_open_closed_distribution():
     with pytest.raises(ValueError, match="somme"):
         spec(total_questions=4)
+
+
+def test_closed_qcm_accepts_multiple_correct_choices_in_any_order():
+    choices = ["HTA", "Tabac", "Âge"]
+    assert _same_closed_answer("Tabac, HTA", "A, B", choices)
+    assert not _same_closed_answer("HTA", "A, B", choices)
 
 
 def test_generated_question_requires_correction_and_explanation():

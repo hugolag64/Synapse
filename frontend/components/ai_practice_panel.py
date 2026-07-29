@@ -26,9 +26,22 @@ def _norm(value: str) -> str:
 
 
 def _same_closed_answer(response: str, answer: str, choices: list[str]) -> bool:
+    def _tokens(value: str) -> set[str]:
+        raw_tokens = [part for part in re.split(r"[,;|/]", str(value or "")) if part.strip()]
+        result = set()
+        for token in raw_tokens:
+            normalized = _norm(token)
+            for index, choice in enumerate(choices):
+                letter = chr(ord("a") + index)
+                if normalized in {letter, _norm(choice)}:
+                    normalized = letter
+                    break
+            result.add(normalized)
+        return result
+
     response_norm = _norm(response)
     answer_norm = _norm(answer)
-    if response_norm == answer_norm:
+    if response_norm == answer_norm or _tokens(response) == _tokens(answer):
         return True
     for index, choice in enumerate(choices):
         letter = chr(ord("a") + index)
@@ -125,15 +138,21 @@ def _open_answer_dialog(session_id: int, refresh) -> None:
             with ui.card().classes("w-full p-3 border border-slate-200 dark:border-slate-700"):
                 ui.label(f"{index}. {question['prompt']}").classes("font-medium whitespace-pre-wrap")
                 if question["question_kind"] == QuestionKind.CLOSED.value:
-                    answers[question["id"]] = ui.radio(question["choices"], value=None).props("inline")
+                    answers[question["id"]] = [
+                        (choice, ui.checkbox(choice).props("dense")) for choice in question["choices"]
+                    ]
                 else:
                     answers[question["id"]] = ui.textarea("Votre réponse").props("outlined autogrow").classes("w-full")
 
         async def _submit() -> None:
             for question in questions:
                 control = answers[question["id"]]
-                response = str(control.value or "").strip()
                 is_closed = question["question_kind"] == QuestionKind.CLOSED.value
+                if is_closed:
+                    selected = [choice for choice, box in control if box.value]
+                    response = ", ".join(selected)
+                else:
+                    response = str(control.value or "").strip()
                 correct = _same_closed_answer(response, question["answer"], question["choices"]) if is_closed else None
                 score = 100.0 if correct else 0.0 if is_closed else None
                 local_store.record_ai_practice_attempt(

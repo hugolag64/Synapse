@@ -86,7 +86,7 @@ def _open_generation_dialog(course, refresh) -> None:
             open_value_chip = ui.label().classes(
                 "text-xs font-mono font-semibold px-2 py-1 rounded-md bg-violet-50 text-violet-700"
             )
-        opened = ui.slider(min=0, max=10, step=1, value=3).props("color=deep-purple").classes("w-full")
+        opened = ui.slider(min=0, max=10, step=1, value=0).props("color=deep-purple").classes("w-full")
         opened.props("aria-label='Nombre de questions ouvertes'")
 
         distribution = ui.label().classes("text-xs text-slate-500 mt-2")
@@ -134,8 +134,8 @@ def _open_generation_dialog(course, refresh) -> None:
                 status.set_text(f"Échec de génération : {exc}")
                 return
             dialog.close()
+            _open_answer_dialog(session_id, refresh)
             ui.notify(f"Session IA #{session_id} enregistrée", type="positive")
-            refresh()
 
         with ui.row().classes("justify-end gap-2 mt-5"):
             ui.button("Annuler", on_click=dialog.close).props("flat")

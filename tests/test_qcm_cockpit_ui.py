@@ -35,6 +35,15 @@ def test_qcm_cockpit_renders_a_start_action_for_pending_ai_sessions():
     assert "_open_answer_dialog" in source
 
 
+def test_ai_generation_opens_the_session_and_defaults_to_closed_questions():
+    from frontend.components import ai_practice_panel
+
+    source = inspect.getsource(ai_practice_panel._open_generation_dialog)
+
+    assert 'value=0' in source
+    assert '_open_answer_dialog(session_id, refresh)' in source
+
+
 def test_item_picker_filters_and_limits_results():
     courses = [
         ("118", type("Course", (), {"title": "Évaluation fonctionnelle"})()),

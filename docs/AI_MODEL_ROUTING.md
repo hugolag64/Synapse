@@ -4,7 +4,7 @@ Synapse utilise deux niveaux Gemini selon la complexité de la tâche :
 
 | Parcours | Modèle |
 |---|---|
-| OIC, QCM, ECOS simple | `gemini-2.5-flash-lite` |
+| OIC, QCM, ECOS simple | `gemini-3.1-flash-lite` |
 | DP, KFP, ECOS complexe | `gemini-2.5-flash` |
 | Extraction complexe de grille | `gemini-2.5-flash`, validation humaine obligatoire |
 | Score, seuil, niveau, progression | Code Synapse |
@@ -15,7 +15,7 @@ Ajouter ces variables dans `.env` :
 
 ```dotenv
 GEMINI_API_KEY=...
-GEMINI_LITE_MODEL=gemini-2.5-flash-lite
+GEMINI_LITE_MODEL=gemini-3.1-flash-lite
 GEMINI_FLASH_MODEL=gemini-2.5-flash
 GEMINI_TIMEOUT_SECONDS=60
 ```

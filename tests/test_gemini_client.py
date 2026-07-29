@@ -31,7 +31,7 @@ def test_generate_sends_selected_model_and_returns_usage():
     assert result.input_tokens == 11
     assert result.output_tokens == 4
     url = post.call_args.args[0]
-    assert "/models/gemini-2.5-flash-lite:generateContent" in url
+    assert "/models/gemini-3.1-flash-lite:generateContent" in url
     assert post.call_args.kwargs["params"] == {"key": "secret"}
     assert post.call_args.kwargs["json"] == {
         "contents": [{"parts": [{"text": "Prompt"}]}]

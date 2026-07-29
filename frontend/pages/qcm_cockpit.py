@@ -25,9 +25,10 @@ from nicegui import ui
 from backend.core.qcm.service import QCM_PASS_THRESHOLD
 from backend.core.reviews import local_store
 from backend.state.store import data_store
-from frontend.components.ai_practice_panel import _open_answer_dialog, _open_generation_dialog
+from frontend.components.ai_practice_panel import _open_generation_dialog
 from frontend.components.mastery_indicator import _LEVEL_COLOR, _level_from_score
 from frontend.components.practice_import_panel import open_practice_import_dialog
+from frontend.components.qcm_replay import open_qcm_correction, open_qcm_session, replay_qcm_session
 from frontend.pages.qcm import (
     _ADD_DIALOG_CSS,
     _build_item_college_map,
@@ -170,6 +171,19 @@ _CSS = """
 .qc-pending .qc-course-title { white-space:normal; overflow:visible; text-overflow:clip; overflow-wrap:anywhere; line-height:1.4; }
 .qc-pending-state { flex:0 0 64px; padding-top:2px; font-size:11px; color:var(--warning); }
 .qc-pending-action { flex:0 0 110px; justify-content:flex-start; padding-left:0; padding-right:0; }
+.qc-workspace { display:flex; gap:20px; margin:24px 0 8px; align-items:stretch; }
+.qc-history { flex:0 1 350px; min-width:280px; max-height:620px; overflow:auto; padding:14px; border:1px solid var(--border); border-radius:8px; background:var(--surface); }
+.qc-history-list { margin-top:10px; }
+.qc-history-row { width:100%; justify-content:flex-start; text-align:left; padding:10px; border-radius:6px; }
+.qc-history-row-active { background:var(--surface-hover); }
+.qc-history-meta { font-size:11px; color:var(--text-dim); margin-top:3px; }
+.qc-selected { flex:1 1 0; min-width:0; padding:18px; border:1px solid var(--border); border-radius:8px; background:var(--surface); }
+.qc-selected-title { font-size:17px; font-weight:600; color:var(--text); }
+.qc-selected-meta { font-size:12px; color:var(--text-muted); margin-top:4px; }
+@media (max-width:760px) {
+  .qc-workspace { flex-direction:column; }
+  .qc-history { flex-basis:auto; min-width:0; max-height:360px; }
+}
 """
 
 QCM_COCKPIT_CSS = _CSS + _ADD_DIALOG_CSS
@@ -187,6 +201,17 @@ def render_qcm_cockpit() -> None:
         head = ui.element("div").classes("qc-head")
         list_col = ui.column().classes("w-full gap-0")
         pending_col = ui.column().classes("w-full gap-0 qc-pending")
+        with ui.element("div").classes("qc-workspace"):
+            with ui.element("section").classes("qc-history"):
+                ui.label("HISTORIQUE REJOUABLE").classes("qc-label")
+                history_search = ui.input(placeholder="Rechercher une session").props("outlined dense clearable")
+                history_filter = ui.toggle(
+                    {"Toutes": "all", "À faire": "pending", "Terminées": "completed"}, value="all"
+                ).props("spread no-caps unelevated dense").classes("w-full mt-2")
+                history_col = ui.column().classes("w-full gap-1 qc-history-list")
+            selected_col = ui.column().classes("qc-selected gap-3")
+
+    selected_session = {"id": None}
 
     # Handoff action model: one primary entry point, secondary flows in a menu.
     def _draw_topbar() -> None:
@@ -273,6 +298,109 @@ def render_qcm_cockpit() -> None:
             for g in groups:
                 _draw_row(g)
 
+    def _open_selected_session(session_id: int) -> None:
+        selected_session["id"] = session_id
+        open_qcm_session(
+            session_id,
+            on_complete=_after_session_completion,
+            on_back=_render,
+        )
+
+    def _after_session_completion(session_id: int) -> None:
+        selected_session["id"] = session_id
+        _render()
+        _open_selected_correction(session_id)
+
+    def _open_selected_correction(session_id: int) -> None:
+        selected_session["id"] = session_id
+        open_qcm_correction(
+            session_id,
+            on_back=_render,
+            on_replay=_select_replayed_session,
+        )
+
+    def _select_replayed_session(session_id: int) -> None:
+        selected_session["id"] = session_id
+        _render()
+        _open_selected_session(session_id)
+
+    def _replay_selected_session(session_id: int) -> None:
+        new_id = replay_qcm_session(session_id)
+        if new_id is None:
+            return
+        _select_replayed_session(new_id)
+
+    def _select_history_session(session_id: int) -> None:
+        selected_session["id"] = session_id
+        _render_workspace()
+
+    def _render_history(sessions: list[dict]) -> None:
+        history_col.clear()
+        with history_col:
+            if not sessions:
+                ui.label("Aucune session rejouable.").classes("qc-empty")
+                return
+            for session in sessions:
+                session_id = int(session["id"])
+                active_class = " qc-history-row-active" if session_id == selected_session["id"] else ""
+                with ui.button(
+                    on_click=lambda _e=None, sid=session_id: _select_history_session(sid)
+                ).props("flat no-caps align=left").classes(f"qc-history-row{active_class}"):
+                    ui.label(session["course_title"] or "Session IA").classes("qc-course-title")
+                    ui.label(
+                        f"ITEM {session['item_number'] or '—'} · {str(session['practice_kind'] or 'QCM').upper()} · "
+                        f"{session['answered_count']}/{session['total_questions']} répondues"
+                    ).classes("qc-history-meta")
+
+    def _render_selected_session(sessions: list[dict]) -> None:
+        selected_col.clear()
+        selected = next((row for row in sessions if row["id"] == selected_session["id"]), None)
+        with selected_col:
+            if selected is None:
+                ui.label("Sélectionnez une session").classes("qc-selected-title")
+                ui.label("Les sessions IA avec questions conservées apparaissent ici.").classes("qc-selected-meta")
+                return
+            ui.label(selected["course_title"] or "Session IA").classes("qc-selected-title")
+            ui.label(
+                f"ITEM {selected['item_number'] or '—'} · {str(selected['practice_kind'] or 'QCM').upper()} · "
+                f"{selected['total_questions']} questions"
+            ).classes("qc-selected-meta")
+            score = selected.get("score_percent")
+            status = "Terminée" if selected["status"] == "completed" else "À faire"
+            ui.label(f"{status} · {f'{score}%' if score is not None else 'pas encore de score'}").classes(
+                "qc-selected-meta"
+            )
+            with ui.row().classes("gap-2 flex-wrap mt-2"):
+                ui.button("Reprendre", icon="play_arrow", on_click=lambda sid=selected["id"]: _open_selected_session(sid)).props(
+                    "flat color=primary"
+                )
+                ui.button("Voir la correction", icon="fact_check", on_click=lambda sid=selected["id"]: _open_selected_correction(sid)).props(
+                    "flat color=primary"
+                )
+                ui.button("Rejouer", icon="replay", on_click=lambda sid=selected["id"]: _replay_selected_session(sid)).props(
+                    "flat"
+                )
+
+    def _replayable_history() -> list[dict]:
+        candidates = local_store.get_ai_practice_sessions_history(
+            limit=100,
+            query=str(history_search.value or ""),
+            status=str(history_filter.value or "all"),
+        )
+        return [
+            session
+            for session in candidates
+            if local_store.get_ai_practice_session(int(session["id"]))
+        ]
+
+    def _render_workspace() -> None:
+        sessions = _replayable_history()
+        session_ids = {session["id"] for session in sessions}
+        if selected_session["id"] not in session_ids:
+            selected_session["id"] = sessions[0]["id"] if sessions else None
+        _render_history(sessions)
+        _render_selected_session(sessions)
+
     def _draw_pending(sessions: list) -> None:
         pending_col.clear()
         if not sessions:
@@ -294,7 +422,7 @@ def render_qcm_cockpit() -> None:
                     ui.label("à faire").classes("qc-pending-state")
                     ui.button(
                         "Commencer",
-                        on_click=lambda _e=None, sid=session["id"]: _open_answer_dialog(sid, _render),
+                        on_click=lambda _e=None, sid=session["id"]: _open_selected_session(sid),
                     ).props("flat dense color=primary").classes("qc-pending-action")
 
     def _render() -> None:
@@ -306,5 +434,8 @@ def render_qcm_cockpit() -> None:
         _draw_head()
         _draw_list(groups)
         _draw_pending(pending)
+        _render_workspace()
 
+    history_search.on_value_change(lambda _event: _render_workspace())
+    history_filter.on_value_change(lambda _event: _render_workspace())
     _render()

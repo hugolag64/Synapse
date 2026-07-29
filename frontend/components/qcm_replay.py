@@ -153,6 +153,15 @@ def build_correction_rows(questions: list[dict], summary: dict) -> list[dict]:
     return rows
 
 
+def replay_qcm_session(session_id: int) -> int | None:
+    """Create an immutable replay and surface storage failures consistently."""
+    try:
+        return local_store.replay_ai_practice_session(session_id)
+    except Exception as exc:
+        ui.notify(str(exc), type="negative")
+        return None
+
+
 def open_qcm_correction(
     session_id: int,
     on_back: Callable[[], None],
@@ -212,10 +221,8 @@ def open_qcm_correction(
             on_back()
 
         def _replay() -> None:
-            try:
-                new_id = local_store.replay_ai_practice_session(session_id)
-            except Exception as exc:
-                ui.notify(str(exc), type="negative")
+            new_id = replay_qcm_session(session_id)
+            if new_id is None:
                 return
             dialog.close()
             on_replay(new_id)
@@ -247,7 +254,7 @@ def open_qcm_session(
     }
     state = {"index": 0}
     with ui.dialog() as dialog, ui.card().classes("w-[760px] max-w-[96vw] p-5"):
-        header = ui.label(f"Session IA #{session_id}").classes("text-lg font-semibold")
+        ui.label(f"Session IA #{session_id}").classes("text-lg font-semibold")
         progress = ui.label().classes("text-xs text-slate-500 mb-3")
         body = ui.column().classes("w-full")
         actions = ui.row().classes("w-full justify-between gap-2 mt-4")

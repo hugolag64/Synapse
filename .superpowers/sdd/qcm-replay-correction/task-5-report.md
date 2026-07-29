@@ -31,3 +31,18 @@ Result: 34 passed, 1 pre-existing `requests` dependency-version warning, in 4.53
 ## Concerns
 
 - The requested pytest command emits one existing third-party `requests` dependency-version warning.
+
+## Fix round 1
+
+- Corrected the history toggle to use NiceGUI's canonical value-to-label mapping: `all`, `pending`, and `completed` now reach the history reader, while the French labels remain visible.
+- Added a behavior-level regression test that creates pending and completed stored-question sessions, verifies each toggle selection filters to the correct session, and verifies a course-title query.
+
+### Commit
+
+`ea48fa800fc0690790eece65b2c820ad5c8112c6` — `fix: correct QCM history filter toggle`
+
+### Tests run/output
+
+`pytest tests/test_qcm_cockpit_replay.py tests/test_cockpit_shell.py tests/test_frontend_shell_import.py tests/test_ai_practice.py -v`
+
+Result: 35 passed, 1 pre-existing `requests` dependency-version warning, in 5.26s.

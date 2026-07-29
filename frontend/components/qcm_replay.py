@@ -86,6 +86,17 @@ def latest_response_by_question(questions: list[dict]) -> dict[int, str]:
     }
 
 
+def save_response_once(
+    persisted_responses: dict[int, str], question_id: int, response: str, save: Callable[[], None]
+) -> bool:
+    """Persist a response only when it differs from the last saved value."""
+    if question_id in persisted_responses and persisted_responses[question_id] == response:
+        return False
+    save()
+    persisted_responses[question_id] = response
+    return True
+
+
 def build_session_result(questions: list[dict]) -> dict:
     results = [build_question_result(question, _latest_attempt(question)) for question in questions]
     scored = [result for result in results if result["status"] in {"correct", "incorrect"}]
@@ -121,6 +132,11 @@ def open_qcm_session(
         return
 
     answers = latest_response_by_question(questions)
+    persisted_answers = {
+        int(question["id"]): str(_latest_attempt(question).get("response") or "")
+        for question in questions
+        if _latest_attempt(question) is not None
+    }
     state = {"index": 0}
     with ui.dialog() as dialog, ui.card().classes("w-[760px] max-w-[96vw] p-5"):
         header = ui.label(f"Session IA #{session_id}").classes("text-lg font-semibold")
@@ -140,12 +156,18 @@ def open_qcm_session(
         def _save(question: dict, response: str) -> None:
             is_open = _is_open(question)
             correct = None if is_open else _same_closed_answer(response, question.get("answer", ""), question.get("choices") or [])
-            local_store.record_ai_practice_attempt(
-                session_id=session_id,
-                question_id=question["id"],
-                response=response,
-                is_correct=correct,
-                score_percent=None if is_open else (100.0 if correct else 0.0),
+            save_response_once(
+                persisted_answers,
+                question["id"],
+                response,
+                lambda: local_store.record_ai_practice_attempt(
+                    session_id=session_id,
+                    question_id=question["id"],
+                    response=response,
+                    is_correct=correct,
+                    score_percent=None if is_open else (100.0 if correct else 0.0),
+                    finalize_session=False,
+                ),
             )
 
         def _render() -> None:

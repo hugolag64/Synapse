@@ -127,68 +127,8 @@ def _open_generation_dialog(course, refresh) -> None:
 
 
 def _open_answer_dialog(session_id: int, refresh) -> None:
-    questions = local_store.get_ai_practice_session(session_id)
-    if not questions:
-        ui.notify("Cette session ne contient aucune question", type="warning")
-        return
-    answers = {}
-    with ui.dialog() as dialog, ui.card().classes("w-[760px] max-w-[96vw] p-5"):
-        ui.label(f"Session IA #{session_id}").classes("text-lg font-semibold")
-        ui.label("Les réponses seront ajoutées à l’historique sans modifier les questions.").classes(
-            "text-xs text-slate-500 mb-3"
-        )
-        for index, question in enumerate(questions, start=1):
-            with ui.card().classes("w-full p-3 border border-slate-200 dark:border-slate-700"):
-                with ui.row().classes("w-full items-start justify-between"):
-                    ui.label(f"{index}. {question['prompt']}").classes("font-medium whitespace-pre-wrap")
-                    ui.button(
-                        "Ancrer",
-                        on_click=lambda qid=question["id"]: (
-                            local_store.set_ai_practice_anchor(qid),
-                            ui.notify("Question ajoutée aux ancrages", type="positive"),
-                        ),
-                    ).props("flat dense color=primary")
-                if question["question_kind"] == QuestionKind.CLOSED.value:
-                    answers[question["id"]] = [
-                        (choice, ui.checkbox(choice).props("dense")) for choice in question["choices"]
-                    ]
-                else:
-                    answers[question["id"]] = ui.textarea("Votre réponse").props("outlined autogrow").classes("w-full")
-
-        async def _submit() -> None:
-            for question in questions:
-                control = answers[question["id"]]
-                is_closed = question["question_kind"] == QuestionKind.CLOSED.value
-                if is_closed:
-                    selected = [choice for choice, box in control if box.value]
-                    response = ", ".join(selected)
-                else:
-                    response = str(control.value or "").strip()
-                correct = _same_closed_answer(response, question["answer"], question["choices"]) if is_closed else None
-                score = 100.0 if correct else 0.0 if is_closed else None
-                local_store.record_ai_practice_attempt(
-                    session_id=session_id,
-                    question_id=question["id"],
-                    response=response,
-                    is_correct=correct,
-                    score_percent=score,
-                )
-            try:
-                record_ai_practice_mastery(session_id)
-            except Exception as exc:
-                ui.notify(f"Réponses enregistrées, maîtrise non mise à jour : {exc}", type="warning")
-            dialog.close()
-            ui.notify("Réponses enregistrées dans l’historique", type="positive")
-            refresh()
-
-        with ui.row().classes("justify-end gap-2 mt-4"):
-            ui.button("Fermer", on_click=dialog.close).props("flat")
-            ui.button("Enregistrer mes réponses", on_click=_submit).props("color=primary unelevated")
-    dialog.open()
-
-
-def _open_answer_dialog(session_id: int, refresh) -> None:
     """Open the resumable, step-based stored-session reader."""
+    # set_ai_practice_anchor remains available from the reader for stored questions.
     open_qcm_session(session_id, on_complete=lambda _completed_id: refresh(), on_back=lambda: None)
 
 

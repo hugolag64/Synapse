@@ -3,6 +3,7 @@ from frontend.components.qcm_replay import (
     build_session_result,
     filter_question_results,
     latest_response_by_question,
+    save_response_once,
 )
 
 
@@ -89,3 +90,13 @@ def test_latest_response_by_question_restores_newest_and_leaves_unanswered_blank
     ]
 
     assert latest_response_by_question(questions) == {10: "Nouvelle", 11: "", 12: "Sans identifiant"}
+
+
+def test_retry_after_failed_completion_does_not_duplicate_saved_response():
+    persisted = {}
+    saved = []
+
+    assert save_response_once(persisted, 10, "A", lambda: saved.append("A")) is True
+    assert save_response_once(persisted, 10, "A", lambda: saved.append("A")) is False
+
+    assert saved == ["A"]

@@ -1421,7 +1421,7 @@ def get_ai_practice_history(*, item_number: str, limit: int = 100) -> list:
 def record_ai_practice_attempt(
     *, session_id: int, question_id: int, response: str,
     is_correct: bool | None = None, score_percent: float | None = None,
-    duration_seconds: int | None = None, hints_used: int = 0,
+    duration_seconds: int | None = None, hints_used: int = 0, finalize_session: bool = True,
 ) -> int:
     """Enregistre une réponse sans modifier l'énoncé ni sa correction."""
     now = _now()
@@ -1434,7 +1434,7 @@ def record_ai_practice_attempt(
             (session_id, question_id, response, None if is_correct is None else int(is_correct),
              score_percent, duration_seconds, hints_used, now),
         )
-        if score_percent is not None:
+        if score_percent is not None and finalize_session:
             avg = con.execute(
                 "SELECT AVG(score_percent) FROM ai_practice_attempts WHERE session_id = ? AND score_percent IS NOT NULL",
                 (session_id,),

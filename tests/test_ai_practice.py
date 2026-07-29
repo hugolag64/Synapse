@@ -15,6 +15,7 @@ from backend.core.practice.models import (
 from backend.core.practice.service import PracticeGenerationError, PracticeService
 from backend.core.reviews import local_store
 from frontend.components.ai_practice_panel import _same_closed_answer
+from frontend.components.qcm_replay import save_response_once
 
 
 @pytest.fixture()
@@ -227,6 +228,69 @@ def test_ai_practice_session_summary_uses_latest_attempt_per_question(practice_d
         first_attempt_id + 1, second_attempt_id,
     }
     assert first_attempt_id not in {attempt["id"] for attempt in summary["latest_attempts"]}
+
+
+def test_partial_scored_attempt_does_not_complete_session(practice_db):
+    session_id = local_store.create_ai_practice_session(
+        spec=spec(total_questions=2, open_questions=0, closed_questions=2),
+        questions=[
+            {"prompt": "Q1", "kind": QuestionKind.CLOSED, "choices": ["A", "B"], "answer": "A", "explanation": "E1"},
+            {"prompt": "Q2", "kind": QuestionKind.CLOSED, "choices": ["A", "B"], "answer": "B", "explanation": "E2"},
+        ],
+        model="test-model",
+    )
+    first_question = local_store.get_ai_practice_session(session_id)[0]
+
+    local_store.record_ai_practice_attempt(
+        session_id=session_id, question_id=first_question["id"], response="A",
+        is_correct=True, score_percent=100, finalize_session=False,
+    )
+
+    summary = local_store.get_ai_practice_session_summary(session_id)
+    assert summary["score_percent"] is None
+    assert summary["completed_at"] is None
+
+
+def test_explicit_finalization_completes_deferred_scored_attempts(practice_db):
+    session_id = local_store.create_ai_practice_session(
+        spec=spec(total_questions=2, open_questions=0, closed_questions=2),
+        questions=[
+            {"prompt": "Q1", "kind": QuestionKind.CLOSED, "choices": ["A", "B"], "answer": "A", "explanation": "E1"},
+            {"prompt": "Q2", "kind": QuestionKind.CLOSED, "choices": ["A", "B"], "answer": "B", "explanation": "E2"},
+        ],
+        model="test-model",
+    )
+    rows = local_store.get_ai_practice_session(session_id)
+    for question, response, correct in zip(rows, ("A", "A"), (True, False), strict=True):
+        local_store.record_ai_practice_attempt(
+            session_id=session_id, question_id=question["id"], response=response,
+            is_correct=correct, score_percent=100 if correct else 0, finalize_session=False,
+        )
+
+    completed = local_store.finalize_ai_practice_session(session_id)
+    assert completed["score_percent"] == 50.0
+    assert completed["completed_at"] is not None
+
+
+def test_reader_retry_does_not_duplicate_persisted_attempt(practice_db):
+    session_id = local_store.create_ai_practice_session(
+        spec=spec(total_questions=1, open_questions=0, closed_questions=1),
+        questions=[{"prompt": "Q1", "kind": QuestionKind.CLOSED, "choices": ["A", "B"], "answer": "A", "explanation": "E1"}],
+        model="test-model",
+    )
+    question = local_store.get_ai_practice_session(session_id)[0]
+    persisted = {}
+
+    def save() -> None:
+        local_store.record_ai_practice_attempt(
+            session_id=session_id, question_id=question["id"], response="A",
+            is_correct=True, score_percent=100, finalize_session=False,
+        )
+
+    save_response_once(persisted, question["id"], "A", save)
+    save_response_once(persisted, question["id"], "A", save)
+
+    assert len(local_store.get_ai_practice_session(session_id)[0]["attempts"]) == 1
 
 
 def test_ai_practice_sessions_history_filter_matches_title_and_status(practice_db):

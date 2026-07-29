@@ -72,6 +72,7 @@ def _open_ai_generation_picker(refresh) -> None:
         return
 
     by_item = {item_number: course for item_number, course in courses}
+    page_slot = ui.context.slot
     with ui.dialog() as picker, ui.card().classes("w-[560px] max-w-[95vw] p-5").style(
         "border-radius: 8px;"
     ):
@@ -85,9 +86,18 @@ def _open_ai_generation_picker(refresh) -> None:
         ).classes("w-full")
         results = ui.column().classes("w-full max-h-[280px] overflow-auto mt-3 gap-1")
 
+        def _open_selected_item(item_number: str) -> None:
+            course = by_item.get(str(item_number))
+            if course is None:
+                ui.notify("Sélectionne un ITEM", type="warning")
+                return
+            with page_slot:
+                _open_generation_dialog(course, refresh)
+            picker.close()
+
         def _select_item(item_number: str) -> None:
             selected["item"] = item_number
-            _render_options(search.value or "")
+            _open_selected_item(item_number)
 
         def _render_options(query: str = "") -> None:
             results.clear()
@@ -110,12 +120,7 @@ def _open_ai_generation_picker(refresh) -> None:
         _render_options()
 
         def _continue() -> None:
-            course = by_item.get(str(selected["item"]))
-            if course is None:
-                ui.notify("Sélectionne un ITEM", type="warning")
-                return
-            picker.close()
-            _open_generation_dialog(course, refresh)
+            _open_selected_item(selected["item"])
 
         with ui.row().classes("justify-end gap-2 mt-5"):
             ui.button("Annuler", on_click=picker.close).props("flat")

@@ -75,6 +75,17 @@ def test_qcm_cockpit_uses_compact_picker_and_single_action_menu():
     assert "Nouvelle session" in topbar_source
 
 
+def test_item_picker_opens_generation_settings_on_item_click():
+    source = inspect.getsource(qcm_cockpit._open_ai_generation_picker)
+
+    assert "def _open_selected_item" in source
+    assert "_open_selected_item(item_number)" in source
+    assert "page_slot = ui.context.slot" in source
+    assert "with page_slot" in source
+    assert "picker.close()" in source
+    assert "_open_generation_dialog(course, refresh)" in source
+
+
 def test_qcm_cockpit_is_full_width_with_handoff_content_bound():
     assert "max-width:1200px" in qcm_cockpit.QCM_COCKPIT_CSS
     assert "align-self:stretch" in qcm_cockpit.QCM_COCKPIT_CSS

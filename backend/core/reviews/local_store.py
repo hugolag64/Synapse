@@ -1257,6 +1257,12 @@ def replay_ai_practice_session(session_id: int) -> int:
         ).fetchone()
         if source is None:
             raise ValueError(f"Session IA introuvable : {session_id}")
+        rows = con.execute(
+            "SELECT question_id, position FROM ai_practice_session_questions WHERE session_id = ? ORDER BY position",
+            (session_id,),
+        ).fetchall()
+        if not rows:
+            raise ValueError(f"Session IA sans questions rejouables : {session_id}")
         now = _now()
         cur = con.execute(
             """INSERT INTO ai_practice_sessions
@@ -1271,10 +1277,6 @@ def replay_ai_practice_session(session_id: int) -> int:
             )) + (session_id, now),
         )
         new_id = int(cur.lastrowid)
-        rows = con.execute(
-            "SELECT question_id, position FROM ai_practice_session_questions WHERE session_id = ? ORDER BY position",
-            (session_id,),
-        ).fetchall()
         con.executemany(
             "INSERT INTO ai_practice_session_questions(session_id, question_id, position) VALUES (?,?,?)",
             [(new_id, row["question_id"], row["position"]) for row in rows],

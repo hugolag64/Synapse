@@ -27,3 +27,16 @@ Both runs emitted one pre-existing `RequestsDependencyWarning` from the installe
 ## Concerns
 
 - The existing dependency warning remains; it is unrelated to this task.
+
+## Round 1 fix
+
+- Validated the source session's stored question set before inserting a replay child.
+- Empty question sets now raise `ValueError("Session IA sans questions rejouables : <id>")` and leave the database unchanged.
+- Added `test_empty_ai_practice_session_cannot_be_replayed`.
+
+## Round 1 verification
+
+- `pytest tests/test_ai_practice.py -k "empty_ai_practice_session_cannot_be_replayed" -v` — 1 passed, 18 deselected.
+- `pytest tests/test_ai_practice.py -v` — 19 passed.
+
+Both runs emitted the same pre-existing `RequestsDependencyWarning`.

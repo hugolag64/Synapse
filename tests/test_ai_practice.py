@@ -184,6 +184,17 @@ def test_create_replay_and_attempt_history(practice_db):
     assert history[1]["questions"][0]["attempts"][0]["response"] == "Réponse"
 
 
+def test_empty_ai_practice_session_cannot_be_replayed(practice_db):
+    session_id = local_store.create_ai_practice_session(
+        spec=spec(), questions=[], model="test-model",
+    )
+
+    with pytest.raises(ValueError, match="questions"):
+        local_store.replay_ai_practice_session(session_id)
+
+    assert [row["id"] for row in local_store.get_ai_practice_sessions(limit=10)] == [session_id]
+
+
 def test_ai_practice_session_summary_uses_latest_attempt_per_question(practice_db):
     questions = [
         {"prompt": "Q1", "kind": QuestionKind.CLOSED, "choices": ["A", "B"], "answer": "A", "explanation": "E1"},

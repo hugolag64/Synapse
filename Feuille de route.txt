@@ -665,3 +665,47 @@ Backend propre
 ✅ Async partout où il y a IO
 
 ✅ Backend testable sans UI
+
+
+9 - MEMOIRE PEDAGOGIQUE PAR ITEM ET LIEN OBSIDIAN
+
+Objectif
+
+Conserver les questions generees par l'IA, les reponses de l'etudiant, les corrections
+et les explications afin de construire un historique pedagogique consultable depuis
+chaque vue Cockpit ITEM.
+
+Questions et corrections
+
+- QCM/OIC : enregistrer l'enonce, les propositions, la bonne reponse, la reponse de
+  l'etudiant, l'explication, les sources et le modele utilise.
+- Une reponse generee doit toujours etre accompagnee de sa correction et de son
+  explication ; la note et les calculs restent deterministes dans Synapse.
+- Relier chaque interaction a un item, un objectif OIC et, si possible, une session
+  de revision.
+- Eviter les doublons par empreinte de question et conserver la date, le score et
+  l'historique des tentatives.
+
+Cockpit ITEM
+
+- Ajouter une section "Questions IA" dans la vue de l'ITEM.
+- Afficher les questions/reponses/corrections/explications avec filtres par type,
+  objectif, date et statut de maitrise.
+- Permettre de relancer une question, de la marquer comme valide et de la reutiliser
+  dans une future session de revision.
+
+Obsidian bidirectionnel
+
+- Lier chaque ITEM Synapse a une note Obsidian via un identifiant stable et un
+  frontmatter standardise.
+- Obsidian -> Synapse : importer les moyens mnemonotechniques, notes personnelles,
+  liens et corrections ajoutees manuellement.
+- Synapse -> Obsidian : pousser sur demande les questions, corrections et syntheses
+  validees, sans ecraser le contenu manuel de la note.
+- Piloter depuis Synapse la creation, l'association, l'ouverture, l'import et
+  l'export de la note.
+- Prevoir une gestion explicite des conflits et un journal de synchronisation.
+
+Priorite : moyenne/haute, apres stabilisation du routage IA. La premiere version
+doit privilegier un stockage local fiable et des liens explicites avant toute
+automatisation de collecte de contenu sur internet.

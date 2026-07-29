@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import re
 
 from nicegui import ui
 
@@ -12,6 +11,7 @@ from backend.core.practice.models import PracticeDifficulty, PracticeKind, Pract
 from backend.core.practice.service import PracticeService
 from backend.core.reviews import local_store
 from frontend.components.practice_import_panel import open_practice_import_dialog
+from frontend.components.qcm_replay import _same_closed_answer
 
 
 def _item_number(course) -> str:
@@ -20,37 +20,6 @@ def _item_number(course) -> str:
         or getattr(course, "item_number", "")
         or ""
     )
-
-
-def _norm(value: str) -> str:
-    return re.sub(r"\s+", " ", str(value or "").strip().lower())
-
-
-def _same_closed_answer(response: str, answer: str, choices: list[str]) -> bool:
-    def _tokens(value: str) -> set[str]:
-        raw_tokens = [part for part in re.split(r"[,;|/]", str(value or "")) if part.strip()]
-        result = set()
-        for token in raw_tokens:
-            normalized = _norm(token)
-            for index, choice in enumerate(choices):
-                letter = chr(ord("a") + index)
-                if normalized in {letter, _norm(choice)}:
-                    normalized = letter
-                    break
-            result.add(normalized)
-        return result
-
-    response_norm = _norm(response)
-    answer_norm = _norm(answer)
-    if response_norm == answer_norm or _tokens(response) == _tokens(answer):
-        return True
-    for index, choice in enumerate(choices):
-        letter = chr(ord("a") + index)
-        if response_norm == letter and (answer_norm == letter or response_norm == _norm(choice)):
-            return True
-        if response_norm == _norm(choice) and answer_norm in {letter, _norm(choice)}:
-            return True
-    return False
 
 
 def _open_generation_dialog(course, refresh) -> None:

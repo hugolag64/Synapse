@@ -54,7 +54,9 @@ def _same_closed_answer(response: str, answer: str, choices: list[str]) -> bool:
 
 
 def _open_generation_dialog(course, refresh) -> None:
-    with ui.dialog() as dialog, ui.card().classes("w-[620px] max-w-[95vw] p-5"):
+    with ui.dialog() as dialog, ui.card().classes("ai-practice-generation-card p-5").style(
+        "width: 680px; max-width: calc(100vw - 32px); border-radius: 10px;"
+    ):
         ui.label("Nouvelle session IA").classes("text-lg font-semibold")
         ui.label("Les questions seront conservées et rejouables à l’identique.").classes(
             "text-xs text-slate-500 mb-4"
@@ -62,26 +64,36 @@ def _open_generation_dialog(course, refresh) -> None:
         kind = ui.toggle(
             {"OIC": "OIC", "QCM": "QCM", "DP": "DP", "KFP": "KFP"},
             value="QCM",
-        ).props("spread no-caps")
+        ).props("spread no-caps unelevated").classes("w-full")
 
-        total_label = ui.label().classes("text-sm font-medium")
-        total = ui.slider(min=1, max=50, step=1, value=10).props("label-always color=primary")
+        with ui.row().classes("w-full items-center justify-between mt-5"):
+            total_label = ui.label().classes("text-sm font-medium")
+            total_value_chip = ui.label().classes(
+                "text-xs font-mono font-semibold px-2 py-1 rounded-md bg-slate-100 text-slate-700"
+            )
+        total = ui.slider(min=1, max=50, step=1, value=10).props("color=primary").classes("w-full")
         total.props("aria-label='Nombre total de questions'")
 
-        open_label = ui.label().classes("text-sm font-medium")
-        opened = ui.slider(min=0, max=10, step=1, value=3).props("label-always color=deep-purple")
+        with ui.row().classes("w-full items-center justify-between mt-4"):
+            open_label = ui.label().classes("text-sm font-medium")
+            open_value_chip = ui.label().classes(
+                "text-xs font-mono font-semibold px-2 py-1 rounded-md bg-violet-50 text-violet-700"
+            )
+        opened = ui.slider(min=0, max=10, step=1, value=3).props("color=deep-purple").classes("w-full")
         opened.props("aria-label='Nombre de questions ouvertes'")
 
-        distribution = ui.label().classes("text-xs text-slate-500")
-        status = ui.label().classes("text-xs text-red-500")
+        distribution = ui.label().classes("text-xs text-slate-500 mt-2")
+        status = ui.label().classes("text-xs text-red-500 mt-2")
 
         def _sync_sliders(_event=None) -> None:
             total_value = int(total.value or 1)
             opened.props(f"max={total_value}")
             opened.value = min(int(opened.value or 0), total_value)
             total_label.set_text(f"Nombre total · {total_value} question{'s' if total_value != 1 else ''}")
+            total_value_chip.set_text(str(total_value))
             open_value = int(opened.value or 0)
             open_label.set_text(f"Questions ouvertes · {open_value}")
+            open_value_chip.set_text(str(open_value))
             closed_value = total_value - open_value
             distribution.set_text(
                 f"{open_value} ouverte{'s' if open_value != 1 else ''} · "

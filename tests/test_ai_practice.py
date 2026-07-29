@@ -46,6 +46,18 @@ def test_spec_requires_exact_open_closed_distribution():
         spec(total_questions=4)
 
 
+def test_generation_dialog_uses_compact_centered_linear_controls():
+    import inspect
+
+    from frontend.components import ai_practice_panel
+
+    source = inspect.getsource(ai_practice_panel._open_generation_dialog)
+    assert "width: 680px" in source
+    assert "max-width: calc(100vw - 32px)" in source
+    assert "label-always" not in source
+    assert "total_value_chip" in source
+
+
 def test_closed_qcm_accepts_multiple_correct_choices_in_any_order():
     choices = ["HTA", "Tabac", "Âge"]
     assert _same_closed_answer("Tabac, HTA", "A, B", choices)

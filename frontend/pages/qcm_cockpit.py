@@ -247,9 +247,10 @@ _CSS = """
 .qc-workspace { display:grid; grid-template-columns:minmax(0, 1.1fr) minmax(320px, .9fr); gap:20px; width:100%; margin:24px 0 8px; align-items:stretch; }
 .qc-history { min-width:0; max-height:620px; overflow:auto; padding:14px; border:1px solid var(--border); border-radius:8px; background:var(--surface); }
 .qc-history-list { margin-top:10px; }
-.qc-history-row { width:100%; justify-content:flex-start; text-align:left; padding:10px; border-radius:6px; }
+.qc-history-row { width:100%; min-height:64px; flex-direction:column; align-items:flex-start; justify-content:center; text-align:left; padding:12px 14px; border-radius:6px; gap:4px; }
 .qc-history-row-active { background:var(--surface-hover); }
-.qc-history-meta { font-size:11px; color:var(--text-dim); margin-top:3px; }
+.qc-history-row .qc-course-title { line-height:1.25; }
+.qc-history-meta { font-size:11px; color:var(--text-dim); margin-top:0; line-height:1.25; }
 .qc-selected { min-width:0; width:100%; padding:18px; border:1px solid var(--border); border-radius:8px; background:var(--surface); }
 .qc-selected-title { font-size:17px; font-weight:600; color:var(--text); }
 .qc-selected-meta { font-size:12px; color:var(--text-muted); margin-top:4px; }

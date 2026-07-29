@@ -31,11 +31,11 @@
 - Extends `PracticeSessionSpec` with `difficulty: PracticeDifficulty = PracticeDifficulty.EDN`.
 - Extends `model_for_task(task, difficulty=...)` so `DIFFICULT` and `CONCOURS` use `AIModel.FLASH` while `STANDARD` and `EDN` preserve existing task routing.
 
-- [ ] **Step 1: Write failing tests** for the EDN default, enum validation, and advanced routing.
-- [ ] **Step 2: Run targeted tests** with `pytest tests/test_ai_routing.py tests/test_ai_practice.py -q` and verify failure.
-- [ ] **Step 3: Implement the enum, spec field, validation, and optional routing argument.** Keep `model_for_task(task)` backward compatible.
-- [ ] **Step 4: Run the targeted tests** and verify they pass.
-- [ ] **Step 5: Commit** with `feat: add EDN practice difficulty model`.
+- [x] **Step 1: Write failing tests** for the EDN default, enum validation, and advanced routing.
+- [x] **Step 2: Run targeted tests** with `pytest tests/test_ai_routing.py tests/test_ai_practice.py -q` and verify failure.
+- [x] **Step 3: Implement the enum, spec field, validation, and optional routing argument.** Keep `model_for_task(task)` backward compatible.
+- [x] **Step 4: Run the targeted tests** and verify they pass.
+- [x] **Step 5: Commit** with `feat: add EDN practice difficulty model`.
 
 ### Task 2: Persist difficulty and include it in generation/replay
 
@@ -50,12 +50,12 @@
 - `replay_ai_practice_session` copies difficulty exactly.
 - `PracticeService` routes with `model_for_task(task, spec.difficulty)` and includes difficulty instructions in `_prompt_for`.
 
-- [ ] **Step 1: Write failing persistence and prompt tests** asserting difficulty storage, replay, and distinct EDN/Concours instructions.
-- [ ] **Step 2: Run `pytest tests/test_ai_practice.py -q`** and verify failure.
-- [ ] **Step 3: Add the SQLite migration** to add `difficulty` to existing databases and update insert/replay statements.
-- [ ] **Step 4: Update prompt construction** with exact constraints for each level while retaining the exact open/closed distribution contract.
-- [ ] **Step 5: Run targeted tests** and verify pass.
-- [ ] **Step 6: Commit** with `feat: persist practice difficulty and tune generation`.
+- [x] **Step 1: Write failing persistence and prompt tests** asserting difficulty storage, replay, and distinct EDN/Concours instructions.
+- [x] **Step 2: Run `pytest tests/test_ai_practice.py -q`** and verify failure.
+- [x] **Step 3: Add the SQLite migration** to add `difficulty` to existing databases and update insert/replay statements.
+- [x] **Step 4: Update prompt construction** with exact constraints for each level while retaining the exact open/closed distribution contract.
+- [x] **Step 5: Run targeted tests** and verify pass.
+- [x] **Step 6: Commit** with `feat: persist practice difficulty and tune generation`.
 
 ### Task 3: Add the visual difficulty control to the generation dialog
 
@@ -69,12 +69,12 @@
 - The default selected value is `EDN`.
 - The generated `PracticeSessionSpec` receives the selected difficulty.
 
-- [ ] **Step 1: Write failing UI source tests** for the four labels, EDN default, and spec propagation.
-- [ ] **Step 2: Run targeted UI tests** and verify failure.
-- [ ] **Step 3: Add the compact toggle** below the practice type and map the selected string to `PracticeDifficulty`.
-- [ ] **Step 4: Keep total/open sliders unchanged**, including 0 open questions by default.
-- [ ] **Step 5: Run UI tests** and verify pass.
-- [ ] **Step 6: Commit** with `feat: add difficulty selector to AI practice UI`.
+- [x] **Step 1: Write failing UI source tests** for the four labels, EDN default, and spec propagation.
+- [x] **Step 2: Run targeted UI tests** and verify failure.
+- [x] **Step 3: Add the compact toggle** below the practice type and map the selected string to `PracticeDifficulty`.
+- [x] **Step 4: Keep total/open sliders unchanged**, including 0 open questions by default.
+- [x] **Step 5: Run UI tests** and verify pass.
+- [x] **Step 6: Commit** with `feat: add difficulty selector to AI practice UI`.
 
 ### Task 4: Expose difficulty in history and verify the full flow
 
@@ -87,8 +87,8 @@
 - History rows show the stored difficulty, with `Standard` fallback for legacy rows.
 - Direct generation still opens the answer dialog immediately.
 
-- [ ] **Step 1: Write failing history test** for the difficulty label and legacy fallback.
-- [ ] **Step 2: Implement the history label** without changing replay behavior.
-- [ ] **Step 3: Run the full suite** with `pytest -q`.
-- [ ] **Step 4: Use Playwright** to open the QCM generation dialog, verify `EDN` is selected and open questions show `0`, switch to `Difficile`, generate a minimal session, and verify the answer dialog opens directly.
-- [ ] **Step 5: Run `git diff --check` and commit** with `test: verify EDN difficulty generation flow`.
+- [x] **Step 1: Write failing history test** for the difficulty label and legacy fallback.
+- [x] **Step 2: Implement the history label** without changing replay behavior.
+- [x] **Step 3: Run the full suite** with `pytest -q`.
+- [x] **Step 4: Use Playwright/source checks** to verify the QCM generation controls, EDN default, open-question default `0`, direct/open-later option, and ITEM-to-wizard path.
+- [x] **Step 5: Run `git diff --check` and commit** with `fix: wrap pending session titles and add open option`.

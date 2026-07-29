@@ -1,12 +1,13 @@
 # Routage des modèles IA
 
-Synapse utilise deux niveaux Gemini selon la complexité de la tâche :
+Synapse utilise deux niveaux Gemini selon la complexité de la tâche et du niveau choisi :
 
-| Parcours | Modèle |
+| Parcours / niveau | Modèle |
 |---|---|
 | OIC, QCM, ECOS simple | `gemini-3.1-flash-lite` |
 | DP, KFP, ECOS complexe | `gemini-2.5-flash` |
 | Extraction complexe de grille | `gemini-2.5-flash`, validation humaine obligatoire |
+| QCM/OIC en difficulté Difficile ou Concours | modèle Flash configuré |
 | Score, seuil, niveau, progression | Code Synapse |
 
 ## Configuration
@@ -19,6 +20,12 @@ GEMINI_LITE_MODEL=gemini-3.1-flash-lite
 GEMINI_FLASH_MODEL=gemini-3-flash-preview
 GEMINI_TIMEOUT_SECONDS=60
 ```
+
+Le niveau `EDN` est sélectionné par défaut pour les nouvelles sessions. Les niveaux
+`Difficile` et `Concours` forcent le modèle Flash configuré afin de permettre un
+raisonnement plus riche ; `Standard` et `EDN` conservent le routage économique par
+type de parcours. Les sessions historiques sans niveau restent affichées comme
+`Standard`.
 
 Les appels directs utilisent `backend.core.ai.tasks`. Les services métier
 doivent fournir des prompts structurés et demander une réponse JSON lorsqu’un
@@ -42,8 +49,14 @@ générée devient immuable ; les nouvelles tentatives réutilisent exactement l
 est conservée séparément afin de comparer l'évolution et de créer des ancrages.
 
 OIC, QCM, DP et KFP acceptent un nombre total de questions ainsi qu'une répartition
-entre questions ouvertes et fermées. Les questions et réponses restent consultables
-depuis le Cockpit de l'ITEM.
+entre questions ouvertes et fermées. Les questions ouvertes sont à `0` par défaut.
+Lors de la création, l'utilisateur peut choisir d'ouvrir directement la session pour
+répondre ou de la conserver uniquement dans l'historique. Les questions et réponses
+restent consultables depuis le Cockpit de l'ITEM.
+
+Depuis la vue QCM, le parcours `Nouvelle session → Générer avec IA` permet de
+sélectionner un ITEM ; un clic sur un ITEM ouvre directement les réglages de session.
+Le bouton `Commencer` des sessions à faire ouvre ensuite les réponses enregistrées.
 
 Lorsqu'une tentative fermée est notée, son score agrégé est transmis une seule fois
 au service d'évaluation commun. Il alimente alors la maîtrise de l'ITEM comme une

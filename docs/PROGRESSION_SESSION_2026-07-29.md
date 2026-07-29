@@ -13,11 +13,17 @@
 - Extraction locale des blocs question/réponse/explication, conservation de la discussion source et déduplication.
 - Détection des ITEM mentionnés, confirmation manuelle des associations et conservation de plusieurs ITEM par cas.
 - Tirage local aléatoire par ITEM, lancement d'un cas importé et ajout aux ancrages.
+- Niveaux de difficulté visuels pour les sessions IA : Standard, EDN, Difficile et Concours ; EDN par défaut.
+- Routage renforcé : les niveaux Difficile/Concours basculent vers le modèle Flash configuré.
+- Historique enrichi avec le niveau, rejeu exact et conservation des réponses/tentatives par ITEM.
+- Depuis la vue QCM, clic sur un ITEM pour ouvrir directement les réglages de session.
+- Sessions à faire : titres longs avec retour à la ligne et boutons `Commencer` alignés.
+- À la création d'une session, choix entre ouverture directe pour répondre ou conservation seule.
 
 ## Modèles et coût de référence
 
 - `gemini-3.1-flash-lite` : QCM, OIC, QROC simples.
-- `gemini-3-flash-preview` : DP, KFP, corrections ou raisonnements complexes.
+- `gemini-3-flash-preview` : modèle Flash configuré par défaut pour DP, KFP, corrections ou raisonnements complexes.
 - Les scores sont calculés par le code Synapse, pas par Gemini.
 - Les documents passent par RAG : seuls les extraits récupérés sont envoyés au modèle.
 - Les questions locales et les rejouées ne coûtent aucun appel API.
@@ -41,3 +47,4 @@ pédagogique et doit être relue avant de devenir une référence médicale.
 - `pytest tests/test_practice_importer.py tests/test_practice_importer_ui.py -q` : couvre le JSON, le texte, HTML, JSON ChatGPT, QCM, DP, KFP, multi-ITEM, déduplication, source, tirage et ancrage.
 - `pytest -q` : suite complète du projet.
 - Les tests utilisent une base SQLite temporaire et aucun appel Gemini ou réseau.
+- Dernière validation de session : `697 passed`.

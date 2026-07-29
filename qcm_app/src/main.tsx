@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Component, useEffect, useMemo, useState } from 'react'
 import { completeSession, fetchSession, replaySession, saveAttempt } from './api'
 import type { CorrectionPayload, CorrectionRow, SessionPayload } from './types'
 import './styles.css'
@@ -9,11 +9,25 @@ function Header() {
   return <header className="brand"><span className="brand-mark">S</span><strong>Synapse</strong><span className="brand-slash">/</span><span>QCM</span></header>
 }
 
+class RenderBoundary extends Component<React.PropsWithChildren, { error: Error | null }> {
+  state = { error: null as Error | null }
+
+  static getDerivedStateFromError(error: Error) {
+    return { error }
+  }
+
+  render() {
+    if (this.state.error) return <main className="state"><Header /><h1>Impossible d’ouvrir ce QCM</h1><p>{this.state.error.message}</p></main>
+    return this.props.children
+  }
+}
+
 function Reader({ payload, onCorrection }: { payload: SessionPayload; onCorrection: (value: CorrectionPayload) => void }) {
   const [index, setIndex] = useState(0)
   const [answers, setAnswers] = useState(payload.answers)
   const [busy, setBusy] = useState(false)
   const question = payload.questions[index]
+  if (!question) return <main className="state"><Header /><h1>QCM vide</h1><p>Cette session ne contient aucune question.</p></main>
   const selected = useMemo(() => {
     try { return JSON.parse(answers[String(question.id)] || '[]') as string[] } catch { return [] }
   }, [answers, question.id])
@@ -87,4 +101,6 @@ function App() {
   return <Reader payload={data} onCorrection={setData} />
 }
 
-export default App
+export default function Root() {
+  return <RenderBoundary><App /></RenderBoundary>
+}

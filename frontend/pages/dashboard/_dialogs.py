@@ -20,6 +20,11 @@ from backend.core.reviews.service import review_service
 from backend.core.knowledge import store as knowledge_store
 from backend.core.knowledge import service as knowledge_service
 from backend.state.store import data_store
+from frontend.components.session_feedback_ui import (
+    confidence_label,
+    default_feedback_state,
+    qcm_activity_ids,
+)
 
 from ._state import DashboardState
 
@@ -209,29 +214,10 @@ def open_session_feedback_dialog(
     initial_duration_minutes: int | None = None,
     manual_date: datetime.date | None = None,
 ) -> None:
-    """Modale 'Retour de séance' avec chips multi-sélection."""
-    if task.review_type == "bonus":
-        _acts, _dur, _conf, _diff, _qcm = ["lecture"], 30, 3, "moyen", None
-    elif task.review_type == "qcm_error":
-        _acts, _dur, _conf, _diff, _qcm = ["qcm", "correction"], 20, 2, "difficile", "raté"
-    elif task.review_type == "lacune":
-        _acts, _dur, _conf, _diff, _qcm = ["correction"], 15, 3, "moyen", None
-    else:
-        _acts, _dur, _conf, _diff, _qcm = ["révision"], 20, 3, "moyen", None
-
-    if initial_duration_minutes is not None:
-        _dur = max(1, int(initial_duration_minutes))
-
-    state_fb = SimpleNamespace(
-        activity_types=list(_acts),
-        duration=_dur,
-        confidence=_conf,
-        difficulty=_diff,
-        qcm_result=_qcm,
-        weak_category=None,
-        weak_detail="",
-        session_date=manual_date or datetime.date.today(),
-    )
+    """Open the compact, item-aware Linear-style session feedback panel."""
+    state_fb = SimpleNamespace(**default_feedback_state(
+        task, initial_duration_minutes, manual_date
+    ))
 
     # ── Socle « état des connaissances » ──────────────────────────────────────
     # Si l'item vient d'un collège validé et n'a pas encore de niveau déclaré,
@@ -247,32 +233,47 @@ def open_session_feedback_dialog(
     DUR_PRESETS = [5, 10, 20, 30, 45, 60, 90]
     DIFF_OPTS   = [("facile","Facile","positive"),("moyen","Moyen","warning"),("difficile","Difficile","negative")]
     QCM_OPTS    = [(None,"—","grey"),("réussi","Réussi","positive"),("moyen","Moyen","warning"),("raté","Raté","negative")]
+    item_label = str(task.label or "")
+    if not item_label.upper().startswith("ITEM "):
+        item_label = f"ITEM {task.item_number or '—'} · {item_label}"
 
-    def _chip_on(col): return f"unelevated rounded size=sm color={col}"
-    def _chip_off():   return "outline rounded size=sm color=grey"
+    def _chip_on(col): return f"unelevated dense size=sm color={col}"
+    def _chip_off():   return "outline dense size=sm color=grey-7"
 
     with ui.dialog() as dialog:
         with ui.card().classes(
-            "w-[560px] max-w-[92vw] rounded-3xl p-0 overflow-hidden "
-            "bg-white dark:bg-slate-900 shadow-2xl"
-        ).style("max-height:90vh;overflow-y:auto"):
+            "w-[520px] max-w-[calc(100vw-24px)] max-h-[calc(100vh-24px)] self-end mr-0 "
+            "flex flex-col rounded-none sm:rounded-lg p-0 overflow-hidden bg-white "
+            "dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl"
+        ):
 
             with ui.element("div").classes(
                 "px-6 pt-5 pb-4 border-b border-slate-100 dark:border-slate-800"
             ):
                 with ui.row().classes("items-start justify-between w-full gap-3"):
                     with ui.column().classes("gap-0.5 min-w-0 flex-1"):
-                        ui.label("Retour de séance").classes(
-                            "text-[15px] font-bold text-slate-900 dark:text-slate-50"
+                        ui.label("RETOUR DE SÉANCE").classes(
+                            "text-[11px] font-bold tracking-[0.16em] text-slate-500"
                         )
-                        ui.label(task.label).classes("text-xs text-slate-400").style(
+                        ui.label(
+                            item_label
+                        ).classes("text-sm font-semibold text-slate-900 dark:text-slate-50").style(
                             "overflow:hidden;white-space:nowrap;text-overflow:ellipsis"
                         )
                     ui.button(icon="close", on_click=dialog.close).props(
                         "flat round dense size=sm color=grey-7"
                     )
 
-            with ui.element("div").classes("px-6 py-5 flex flex-col gap-5"):
+            with ui.element("div").classes(
+                "flex-1 min-h-0 overflow-y-auto px-5 py-4 flex flex-col gap-4"
+            ):
+
+                ui.label("Comment s'est passée cette séance ?").classes(
+                    "text-base font-semibold text-slate-900 dark:text-slate-50"
+                )
+                ui.label(
+                    "La validation mettra à jour la maîtrise de l'item et sa prochaine révision."
+                ).classes("text-xs text-slate-500")
 
                 if manual_date is not None:
                     ui.label("DATE DE SÉANCE").classes(
@@ -296,7 +297,7 @@ def open_session_feedback_dialog(
                         "text-[11px] font-bold tracking-widest text-slate-400 uppercase"
                     )
 
-                _section("Activités")
+                _section("Activité")
                 act_btns: dict = {}
                 with ui.row().classes("flex-wrap gap-2"):
                     for a_id, a_lbl in ACTIVITIES:
@@ -311,6 +312,10 @@ def open_session_feedback_dialog(
                     else:
                         state_fb.activity_types.append(a)
                         act_btns[a].props(_chip_on("indigo"), remove=_chip_off())
+                    if qcm_section is not None:
+                        qcm_section.set_visibility(
+                            bool(set(state_fb.activity_types) & qcm_activity_ids())
+                        )
 
                 for a_id, _ in ACTIVITIES:
                     act_btns[a_id].on_click(lambda a=a_id: _toggle_act(a))
@@ -350,14 +355,20 @@ def open_session_feedback_dialog(
                 with ui.row().classes("w-full gap-8"):
                     with ui.column().classes("gap-2"):
                         _section("Confiance")
-                        _CONF_CONFIG = [(1,"😰","red"),(2,"😟","orange"),(3,"😐","blue"),(4,"😊","teal"),(5,"🔥","green")]
+                        _CONF_CONFIG = [
+                            (1, "Très incertain", "red"),
+                            (2, "Incertain", "orange"),
+                            (3, "Correct", "blue"),
+                            (4, "Solide", "teal"),
+                            (5, "Très solide", "green"),
+                        ]
                         conf_btns: dict = {}
-                        with ui.row().classes("gap-1.5"):
-                            for _v, _emoji, _col in _CONF_CONFIG:
+                        with ui.row().classes("gap-1.5 flex-wrap"):
+                            for _v, _label, _col in _CONF_CONFIG:
                                 _is_on = _v == state_fb.confidence
-                                _b = ui.button(_emoji).props(
-                                    (_chip_on(_col) if _is_on else _chip_off()) + " round size=sm"
-                                ).tooltip(f"Confiance {_v}/5")
+                                _b = ui.button(_label).props(
+                                    _chip_on(_col) if _is_on else _chip_off()
+                                ).tooltip(f"Confiance {_v}/5 · {confidence_label(_v)}")
                                 conf_btns[_v] = _b
 
                         def _set_conf(val: int):
@@ -392,12 +403,17 @@ def open_session_feedback_dialog(
                             diff_btns[d_id].on_click(lambda val=d_id: _set_diff(val))
 
                 # UX-08 — Sections avancées repliées
-                with ui.expansion("Détails avancés (optionnel)", value=False).classes(
+                qcm_section = None
+                with ui.expansion("Détails avancés", value=False).classes(
                     "w-full rounded-xl"
                 ).props("dense"):
                     with ui.column().classes("gap-4 w-full pt-2"):
-                        with ui.column().classes("gap-2"):
-                            _section("Résultat QCM / DP")
+                        with ui.element("div") as qcm_section:
+                            with ui.column().classes("gap-2"):
+                                _section("Résultat QCM / DP")
+                                ui.label("Visible pour les activités QCM et DP/KFP.").classes(
+                                    "text-xs text-slate-500"
+                                )
                             qcm_btns: dict = {}
                             with ui.row().classes("gap-1.5 flex-wrap"):
                                 for q_id, q_lbl, q_col in QCM_OPTS:
@@ -416,6 +432,10 @@ def open_session_feedback_dialog(
 
                             for q_id, _, _ in QCM_OPTS:
                                 qcm_btns[str(q_id)].on_click(lambda val=q_id: _set_qcm(val))
+
+                        qcm_section.set_visibility(
+                            bool(set(state_fb.activity_types) & qcm_activity_ids())
+                        )
 
                         with ui.column().classes("gap-2"):
                             _section("Erreur / piège EDN")
@@ -487,7 +507,7 @@ def open_session_feedback_dialog(
                                 )
 
             with ui.element("div").classes(
-                "px-6 py-4 bg-slate-50 dark:bg-slate-800/50 "
+                "shrink-0 sticky bottom-0 px-5 py-3 bg-slate-50 dark:bg-slate-800/50 "
                 "border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2"
             ):
                 ui.button("Annuler", on_click=dialog.close).props("flat color=grey-8")
@@ -512,8 +532,8 @@ def open_session_feedback_dialog(
                         **({"session_date": state_fb.session_date} if manual_date is not None else {}),
                     )
 
-                ui.button("Valider ✓", on_click=_submit).props(
-                    "unelevated color=positive rounded"
-                ).classes("px-5 font-semibold")
+                ui.button("Valider la séance", on_click=_submit).props(
+                    "unelevated color=primary"
+                ).classes("px-4 font-semibold")
 
     dialog.open()

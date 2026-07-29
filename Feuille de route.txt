@@ -719,3 +719,82 @@ Sessions d'entrainement rejouables
 - Comparer les tentatives successives (reponse, correction, explication, score,
   date, temps et indices) pour construire des ancrages de progression.
 - Distinguer "nouvelle session", "rejouer exactement" et "questions a revoir".
+═══════════════════════════════════════════════════════════════════════════════
+SYNAPSE — ÉTAT DES LIEUX ET FEUILLE DE ROUTE ACTUALISÉE
+29 juillet 2026
+═══════════════════════════════════════════════════════════════════════════════
+
+Cette section remplace les anciennes hypothèses « Medecinator » pour le suivi
+actuel du projet Synapse. Les notes historiques et l'architecture cible restent
+conservées plus bas comme référence.
+
+ÉTAT ACTUEL
+
+✅ Socle métier et révisions
+- Backend reviews, maîtrise, planification et historique opérationnels.
+- Évaluations de séance reliées aux items et aux prochaines révisions.
+- Suggestions de lacunes et questions d'ancrage après échecs QCM répétés.
+- Import PDF et synchronisation des cours déjà intégrés.
+- OIC/LiSA : récupération des codes d'items corrigée avec préfixes normalisés.
+
+✅ QCM
+- Application QCM React/Node intégrée sous `/qcm-app`.
+- Sessions interactives, correction détaillée et historique rejouable.
+- Suppression des sessions à faire et des sessions de l'historique.
+- Import local de banques JSON avec gestion des événements d'upload.
+- Correction des pages blanches, du routage, des tailles de texte et des lignes
+  d'historique.
+
+✅ Interface et cohérence visuelle
+- Cockpit principal toujours rendu en Python/NiceGUI.
+- QCM rendu dans l'application React/Node embarquée.
+- Retour de séance refondu vers un panneau compact inspiré de Linear.
+- Pied de validation rendu fixe lors de l'ouverture des détails avancés.
+- Contrats et tests ajoutés pour les états du retour de séance.
+
+⚠️ POINT À CONTRÔLER MANUELLEMENT
+- Vérifier dans le navigateur les trois cas du retour de séance : révision
+  standard, QCM/DP et détails avancés ouverts.
+- Vérifier que le serveur en cours recharge bien les derniers assets et modules.
+
+PRIORITÉS RESTANTES
+
+1. Finaliser l'unification visuelle
+   - Appliquer les tokens du handoff Linear aux derniers écrans NiceGUI.
+   - Réduire les différences entre cockpit NiceGUI et application QCM React.
+   - Documenter clairement la frontière entre les deux frontends.
+
+2. Finaliser le flux QCM/import
+   - Ajouter un accusé d'import fiable : nombre de questions, item associé,
+     sessions créées et erreurs éventuelles.
+   - Vérifier les formats QCM/DP/KFP et les doublons.
+   - Relier les sessions importées à la vue Item et à l'historique pédagogique.
+
+3. Renforcer la connexion Item/OIC
+   - Réparer et tester l'affichage OIC sur les items avec codes LiSA réels.
+   - Afficher les QCM, lacunes, ancrages et sessions directement depuis l'Item.
+   - Ajouter un historique pédagogique filtrable par item et objectif.
+
+4. Stabiliser les parcours de maîtrise
+   - Vérifier le calcul de maîtrise après sessions IA, QCM, DP/KFP et OIC.
+   - Finaliser les propositions contextualisées de fiche lacune/ancrage.
+   - Tester les transitions échec → lacune → nouvelle tentative → progression.
+
+5. Obsidian et mémoire pédagogique
+   - Stocker les questions, réponses, corrections et explications comme objets
+     immuables reliés à l'item.
+   - Ajouter les liens bidirectionnels Synapse/Obsidian sans écraser le contenu
+     manuel.
+   - Prévoir déduplication, conflits et journal de synchronisation.
+
+6. Qualité technique
+   - Conserver une suite de tests Python complète et ajouter les tests UI React.
+   - Ajouter des tests d'intégration pour le démarrage `/qcm-app` et les imports.
+   - Réduire progressivement le couplage résiduel entre layout NiceGUI et services.
+
+DOCUMENTS DE RÉFÉRENCE AJOUTÉS
+
+- `docs/superpowers/specs/2026-07-29-session-feedback-linear-redesign-design.md`
+- `docs/superpowers/plans/2026-07-29-session-feedback-linear-redesign.md`
+
+═══════════════════════════════════════════════════════════════════════════════

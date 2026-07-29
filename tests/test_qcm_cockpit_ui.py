@@ -17,6 +17,34 @@ def test_qcm_cockpit_exposes_ai_generation_entry():
     assert "_open_ai_generation_picker" in source
 
 
+def test_item_picker_filters_and_limits_results():
+    courses = [
+        ("118", type("Course", (), {"title": "Évaluation fonctionnelle"})()),
+        ("119", type("Course", (), {"title": "Soins chroniques"})()),
+        ("220", type("Course", (), {"title": "Cardiologie"})()),
+    ]
+
+    matches = qcm_cockpit._filter_item_picker_options(courses, "cardio", limit=1)
+
+    assert matches == [("220", courses[2][1])]
+
+
+def test_qcm_cockpit_uses_compact_picker_and_single_action_menu():
+    source = inspect.getsource(qcm_cockpit._open_ai_generation_picker)
+    topbar_source = inspect.getsource(qcm_cockpit.render_qcm_cockpit)
+
+    assert "ui.select" not in source
+    assert "Rechercher un ITEM" in source
+    assert "max-h-[280px]" in source
+    assert "ui.menu" in topbar_source
+    assert "Nouvelle session" in topbar_source
+
+
+def test_qcm_cockpit_is_full_width_with_handoff_content_bound():
+    assert "max-width:1200px" in qcm_cockpit.QCM_COCKPIT_CSS
+    assert "align-self:stretch" in qcm_cockpit.QCM_COCKPIT_CSS
+
+
 def test_qcm_add_dialog_has_cockpit_scoped_linear_tokens():
     assert ".qcm-add-dialog-card" in qcm_page._ADD_DIALOG_CSS
     assert "var(--accent)" in qcm_page._ADD_DIALOG_CSS

@@ -29,10 +29,26 @@ from frontend.components.ai_practice_panel import _open_generation_dialog
 from frontend.components.mastery_indicator import _LEVEL_COLOR, _level_from_score
 from frontend.components.practice_import_panel import open_practice_import_dialog
 from frontend.pages.qcm import (
-    _compute_groups, _build_item_college_map, _open_add_dialog, _ADD_DIALOG_CSS,
+    _ADD_DIALOG_CSS,
+    _build_item_college_map,
+    _compute_groups,
+    _open_add_dialog,
 )
 
 QCM_ENTRY_LABEL = "Saisir un résultat"
+
+
+def _filter_item_picker_options(courses, query: str = "", limit: int = 8):
+    """Retourne une courte liste d'ITEMs correspondant à la recherche."""
+    normalized = (query or "").strip().casefold()
+    matches = []
+    for item_number, course in courses:
+        title = str(getattr(course, "title", "") or "")
+        if not normalized or normalized in f"{item_number} {title}".casefold():
+            matches.append((item_number, course))
+        if len(matches) >= limit:
+            break
+    return matches
 
 
 def _open_ai_generation_picker(refresh) -> None:
@@ -50,24 +66,46 @@ def _open_ai_generation_picker(refresh) -> None:
         ui.notify("Aucun ITEM disponible pour générer une session", type="warning")
         return
 
-    options = {
-        item_number: f"ITEM {item_number} — {getattr(course, 'title', '') or 'Cours sans titre'}"
-        for item_number, course in courses
-    }
     by_item = {item_number: course for item_number, course in courses}
     with ui.dialog() as picker, ui.card().classes("w-[560px] max-w-[95vw] p-5").style(
-        "border-radius: 10px;"
+        "border-radius: 8px;"
     ):
         ui.label("Générer avec IA").classes("text-lg font-semibold")
         ui.label("Choisis l’ITEM qui servira de contexte à la session.").classes(
             "text-xs text-slate-500 mb-4"
         )
-        item_select = ui.select(options, value=courses[0][0], label="ITEM").props(
-            "outlined use-input options-dense"
+        selected = {"item": courses[0][0]}
+        search = ui.input(placeholder="Rechercher un ITEM ou un titre…").props(
+            "outlined dense autofocus"
         ).classes("w-full")
+        results = ui.column().classes("w-full max-h-[280px] overflow-auto mt-3 gap-1")
+
+        def _select_item(item_number: str) -> None:
+            selected["item"] = item_number
+            _render_options(search.value or "")
+
+        def _render_options(query: str = "") -> None:
+            results.clear()
+            matches = _filter_item_picker_options(courses, query)
+            with results:
+                for item_number, course in matches:
+                    title = getattr(course, "title", "") or "Cours sans titre"
+                    row = ui.button(
+                        on_click=lambda _e=None, _item=item_number: _select_item(_item)
+                    ).props("flat no-caps align=left").classes(
+                        "w-full justify-start px-3 py-2 text-left"
+                    )
+                    if item_number == selected["item"]:
+                        row.props("color=primary")
+                    with row:
+                        ui.label(f"ITEM {item_number}").classes("font-mono text-xs shrink-0")
+                        ui.label(title).classes("text-sm truncate ml-3")
+
+        search.on_value_change(lambda event: _render_options(event.value or ""))
+        _render_options()
 
         def _continue() -> None:
-            course = by_item.get(str(item_select.value))
+            course = by_item.get(str(selected["item"]))
             if course is None:
                 ui.notify("Sélectionne un ITEM", type="warning")
                 return
@@ -80,13 +118,14 @@ def _open_ai_generation_picker(refresh) -> None:
     picker.open()
 
 _CSS = """
-.qc-wrap { max-width:1100px; width:100%; }
+.qc-wrap { width:100%; max-width:1200px; align-self:stretch; margin:0 auto; min-width:0; }
 .qc-topbar { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:4px 0 18px; flex-wrap:wrap; }
 .qc-title { font-size:20px; font-weight:600; color:var(--text); letter-spacing:-0.01em; }
 .qc-subtitle { font-size:12.5px; color:var(--text-muted); margin-top:4px; }
 .qc-btn-primary { background:var(--accent); color:var(--accent-text); border-radius:6px; padding:9px 16px;
   font-size:13px; font-weight:500; cursor:pointer; white-space:nowrap; }
 .qc-btn-primary:hover { background:var(--accent-hover); }
+.qc-session-menu { min-width:230px; }
 .qc-summary { display:flex; align-items:center; gap:24px; padding:14px 0; border-top:1px solid var(--border);
   border-bottom:1px solid var(--border); margin-bottom:18px; flex-wrap:wrap; }
 .qc-metric { display:flex; flex-direction:column; gap:2px; }
@@ -126,32 +165,27 @@ def render_qcm_cockpit() -> None:
 
     college_map = _build_item_college_map()
 
-    with ui.column().classes("qc-wrap gap-0"):
+    with ui.column().classes("qc-wrap gap-0").style("flex:1 1 auto;"):
         topbar = ui.element("div").classes("qc-topbar")
         summary = ui.element("div").classes("qc-summary")
         ui.label("PAR COURS").classes("qc-label")
         head = ui.element("div").classes("qc-head")
         list_col = ui.column().classes("w-full gap-0")
 
+    # Handoff action model: one primary entry point, secondary flows in a menu.
     def _draw_topbar() -> None:
         topbar.clear()
         with topbar:
             with ui.column().classes("gap-0"):
                 ui.label("QCM").classes("qc-title")
                 ui.label("Analytique · cours à retravailler · EDNpro & Hypocampus").classes("qc-subtitle")
-            with ui.row().classes("gap-2"):
-                import_btn = ui.element("div").classes("qc-btn-primary")
-                with import_btn:
-                    ui.label("Importer QCM / DP / KFP")
-                import_btn.on("click", lambda: open_practice_import_dialog(_render))
-                generate_btn = ui.element("div").classes("qc-btn-primary")
-                with generate_btn:
-                    ui.label("Générer avec IA")
-                generate_btn.on("click", lambda: _open_ai_generation_picker(_render))
-                btn = ui.element("div").classes("qc-btn-primary")
-                with btn:
-                    ui.label(QCM_ENTRY_LABEL)
-                btn.on("click", lambda: _open_add_dialog(_render))
+            with ui.button("Nouvelle session", icon="add").props(
+                "unelevated color=primary"
+            ).classes("qc-action-primary"), ui.menu().classes("qc-session-menu text-sm"):
+                ui.menu_item("Générer avec IA", on_click=lambda: _open_ai_generation_picker(_render))
+                ui.menu_item("Importer QCM / DP / KFP", on_click=lambda: open_practice_import_dialog(_render))
+                ui.separator()
+                ui.menu_item(QCM_ENTRY_LABEL, on_click=lambda: _open_add_dialog(_render))
 
     def _draw_summary(rows: list, groups: list) -> None:
         summary.clear()
@@ -205,7 +239,7 @@ def render_qcm_cockpit() -> None:
             with ui.element("div").classes("qc-main"):
                 ui.label(g["course_title"]).classes("qc-course-title")
                 ui.label(sub).classes("qc-course-sub")
-            with ui.element("div").classes("qc-bar-cell"):
+            with ui.element("div").classes("qc-bar-cell"):  # noqa: SIM117 - the track must remain nested
                 with ui.element("div").classes("qc-bar-track"):
                     ui.element("div").classes("qc-bar-fill").style(f"width:{pct}%; background:{color}")
             with ui.element("div").classes("qc-score-cell"):

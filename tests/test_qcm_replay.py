@@ -1,7 +1,9 @@
 from frontend.components.qcm_replay import (
+    build_correction_rows,
     build_question_result,
     build_session_result,
     filter_question_results,
+    format_correction_summary,
     latest_response_by_question,
     save_response_once,
 )
@@ -73,6 +75,31 @@ def test_build_session_result_uses_latest_attempt_results_for_score():
         "unanswered_count": 1,
         "score_percent": 50.0,
     }
+
+
+def test_correction_rows_render_a_finished_two_out_of_three_session():
+    questions = [
+        question(id=10, prompt="Q1"),
+        question(id=11, prompt="Q2", answer="B"),
+        question(id=12, prompt="Q3"),
+    ]
+    summary = {
+        "score_percent": 66.67,
+        "correct_count": 2,
+        "incorrect_count": 1,
+        "unanswered_count": 0,
+        "latest_attempts": [
+            {"question_id": 10, "response": "A", "is_correct": 1},
+            {"question_id": 11, "response": "B", "is_correct": 1},
+            {"question_id": 12, "response": "B", "is_correct": 0},
+        ],
+    }
+
+    rows = build_correction_rows(questions, summary)
+
+    assert format_correction_summary(summary) == ("Score : 66.67 %", "2/3 bonnes réponses · 0 sans réponse")
+    assert [row["status"] for row in rows] == ["correct", "correct", "incorrect"]
+    assert [row["response"] for row in rows] == ["A", "B", "B"]
 
 
 def test_filter_question_results_errors_only_keeps_non_correct_results():

@@ -10,7 +10,7 @@ from backend.core.practice.models import PracticeDifficulty, PracticeKind, Pract
 from backend.core.practice.service import PracticeService
 from backend.core.reviews import local_store
 from frontend.components.practice_import_panel import open_practice_import_dialog
-from frontend.components.qcm_replay import _same_closed_answer, open_qcm_session
+from frontend.components.qcm_replay import _same_closed_answer, open_qcm_correction, open_qcm_session
 
 
 def _item_number(course) -> str:
@@ -129,7 +129,20 @@ def _open_generation_dialog(course, refresh) -> None:
 def _open_answer_dialog(session_id: int, refresh) -> None:
     """Open the resumable, step-based stored-session reader."""
     # set_ai_practice_anchor remains available from the reader for stored questions.
-    open_qcm_session(session_id, on_complete=lambda _completed_id: refresh(), on_back=lambda: None)
+    open_qcm_session(
+        session_id,
+        on_complete=lambda completed_id: _open_correction_dialog(completed_id, refresh),
+        on_back=lambda: None,
+    )
+
+
+def _open_correction_dialog(session_id: int, refresh) -> None:
+    """Open correction and route replayed sessions back into the step reader."""
+    open_qcm_correction(
+        session_id,
+        on_back=refresh,
+        on_replay=lambda new_id: _open_answer_dialog(new_id, refresh),
+    )
 
 
 def _render_history(item_number: str, refresh) -> None:
@@ -159,6 +172,10 @@ def _render_history(item_number: str, refresh) -> None:
                 ui.button("Répondre", on_click=lambda sid=session["id"]: _open_answer_dialog(sid, refresh)).props(
                     "flat dense color=primary"
                 )
+                if session.get("completed_at"):
+                    ui.button("Voir la correction", on_click=lambda sid=session["id"]: _open_correction_dialog(sid, refresh)).props(
+                        "flat dense color=primary"
+                    )
                 ui.button("Rejouer exactement", on_click=lambda sid=session["id"]: _replay(sid, refresh)).props(
                     "flat dense"
                 )

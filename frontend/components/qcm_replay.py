@@ -120,6 +120,107 @@ def filter_question_results(results: list[dict], errors_only: bool) -> list[dict
     return [result for result in results if result.get("status") != "correct"]
 
 
+def format_correction_summary(summary: dict) -> tuple[str, str]:
+    """Format the score and question counts shown at the top of correction."""
+    score = summary.get("score_percent")
+    scored_count = int(summary.get("correct_count", 0)) + int(summary.get("incorrect_count", 0))
+    score_text = "Score non disponible" if score is None else f"Score : {score:g} %"
+    counts_text = (
+        f"{summary.get('correct_count', 0)}/{scored_count} bonnes réponses · "
+        f"{summary.get('unanswered_count', 0)} sans réponse"
+    )
+    return score_text, counts_text
+
+
+def build_correction_rows(questions: list[dict], summary: dict) -> list[dict]:
+    """Combine immutable questions with the summary's latest attempts."""
+    latest_attempts = {
+        int(attempt["question_id"]): attempt
+        for attempt in summary.get("latest_attempts", [])
+        if attempt.get("question_id") is not None
+    }
+    rows = []
+    for position, question in enumerate(questions, start=1):
+        result = build_question_result(question, latest_attempts.get(int(question["id"])))
+        rows.append({"question": question, "position": position, **result})
+    return rows
+
+
+def open_qcm_correction(
+    session_id: int,
+    on_back: Callable[[], None],
+    on_replay: Callable[[int], None],
+) -> None:
+    """Open the compact, immutable correction view for a stored QCM session."""
+    summary = local_store.get_ai_practice_session_summary(session_id)
+    questions = local_store.get_ai_practice_session(session_id)
+    if summary is None:
+        ui.notify("Session IA introuvable", type="warning")
+        return
+    if not questions:
+        ui.notify("Cette session ne contient aucune question", type="warning")
+        return
+
+    rows = build_correction_rows(questions, summary)
+    state = {"errors_only": False}
+    statuses = {
+        "correct": ("Correcte", "check_circle", "text-green-700 dark:text-green-400"),
+        "incorrect": ("Incorrecte", "cancel", "text-red-700 dark:text-red-400"),
+        "unanswered": ("Sans réponse", "help", "text-amber-700 dark:text-amber-400"),
+        None: ("À évaluer", "pending", "text-slate-600 dark:text-slate-300"),
+    }
+
+    with ui.dialog() as dialog, ui.card().classes("w-[860px] max-w-[96vw] p-5"):
+        score_text, counts_text = format_correction_summary(summary)
+        ui.label(score_text).classes("text-xl font-semibold")
+        ui.label(counts_text).classes("text-sm text-slate-600 dark:text-slate-300 mb-3")
+        errors_toggle = ui.checkbox("Afficher uniquement les erreurs", value=False).props("dense")
+        question_list = ui.column().classes("w-full gap-2 mt-2")
+
+        def _render_rows() -> None:
+            question_list.clear()
+            with question_list:
+                for row in filter_question_results(rows, state["errors_only"]):
+                    label, icon, colour = statuses[row["status"]]
+                    title = f"Question {row['position']} · {label}"
+                    with ui.expansion(title, icon=icon).classes("w-full border rounded"):
+                        ui.label(row["question"]["prompt"]).classes("font-medium whitespace-pre-wrap")
+                        ui.label(label).classes(f"text-xs font-semibold mt-2 {colour}")
+                        ui.label(f"Votre réponse : {row['response'] or '—'}").classes(
+                            "text-sm whitespace-pre-wrap mt-2"
+                        )
+                        ui.label(f"Réponse correcte : {row['correct_answer'] or '—'}").classes(
+                            "text-sm text-green-700 dark:text-green-400 whitespace-pre-wrap"
+                        )
+                        ui.label(f"Explication : {row['explanation']}").classes(
+                            "text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap mt-1"
+                        )
+
+        def _toggle_errors(event) -> None:
+            state["errors_only"] = bool(event.value)
+            _render_rows()
+
+        def _back() -> None:
+            dialog.close()
+            on_back()
+
+        def _replay() -> None:
+            try:
+                new_id = local_store.replay_ai_practice_session(session_id)
+            except Exception as exc:
+                ui.notify(str(exc), type="negative")
+                return
+            dialog.close()
+            on_replay(new_id)
+
+        errors_toggle.on_value_change(_toggle_errors)
+        _render_rows()
+        with ui.row().classes("w-full justify-between mt-5"):
+            ui.button("Retour", on_click=_back).props("flat")
+            ui.button("Rejouer exactement", icon="replay", on_click=_replay).props("color=primary unelevated")
+    dialog.open()
+
+
 def open_qcm_session(
     session_id: int,
     on_complete: Callable[[int], None],

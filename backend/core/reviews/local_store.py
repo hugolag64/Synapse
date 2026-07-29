@@ -1324,6 +1324,85 @@ def get_ai_practice_session(session_id: int) -> list:
     return result
 
 
+def get_ai_practice_session_summary(session_id: int) -> dict | None:
+    """Retourne les metadonnees et la derniere tentative de chaque question."""
+    with _conn() as con:
+        session = con.execute(
+            "SELECT * FROM ai_practice_sessions WHERE id = ?", (session_id,)
+        ).fetchone()
+        if session is None:
+            return None
+        latest = con.execute(
+            """SELECT a.*, sq.position AS question_position
+               FROM ai_practice_attempts a
+               JOIN ai_practice_session_questions sq
+                 ON sq.session_id = a.session_id AND sq.question_id = a.question_id
+               JOIN (
+                 SELECT question_id, MAX(id) AS max_id
+                 FROM ai_practice_attempts WHERE session_id = ? GROUP BY question_id
+               ) latest ON latest.max_id = a.id
+               WHERE a.session_id = ? ORDER BY sq.position""",
+            (session_id, session_id),
+        ).fetchall()
+
+    latest_attempts = [dict(row) for row in latest]
+    scored_count = sum(attempt["score_percent"] is not None for attempt in latest_attempts)
+    correct_count = sum(attempt["is_correct"] == 1 for attempt in latest_attempts)
+    incorrect_count = sum(attempt["is_correct"] == 0 for attempt in latest_attempts)
+    return {
+        **dict(session),
+        "answered_count": len(latest_attempts),
+        "scored_count": scored_count,
+        "correct_count": correct_count,
+        "incorrect_count": incorrect_count,
+        "unanswered_count": max(0, session["total_questions"] - len(latest_attempts)),
+        "latest_attempts": latest_attempts,
+    }
+
+
+def get_ai_practice_sessions_history(
+    limit: int = 100, query: str = "", status: str = "all"
+) -> list[dict]:
+    """Retourne l'historique borne des sessions avec leurs compteurs."""
+    clauses = []
+    params: list = []
+    if query.strip():
+        pattern = f"%{query.strip().lower()}%"
+        clauses.append("(LOWER(s.course_title) LIKE ? OR LOWER(s.item_number) LIKE ?)")
+        params.extend((pattern, pattern))
+    if status == "pending":
+        clauses.append("s.completed_at IS NULL")
+    elif status == "completed":
+        clauses.append("s.completed_at IS NOT NULL")
+    where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    params.append(max(0, limit))
+    with _conn() as con:
+        rows = con.execute(
+            f"""WITH latest AS (
+                    SELECT a.session_id, a.question_id, a.is_correct, a.score_percent
+                    FROM ai_practice_attempts a
+                    JOIN (
+                        SELECT session_id, question_id, MAX(id) AS max_id
+                        FROM ai_practice_attempts GROUP BY session_id, question_id
+                    ) current ON current.max_id = a.id
+                )
+                SELECT s.*, COUNT(latest.question_id) AS answered_count,
+                       COUNT(latest.score_percent) AS scored_count,
+                       COALESCE(SUM(CASE WHEN latest.is_correct = 1 THEN 1 ELSE 0 END), 0) AS correct_count,
+                       COALESCE(SUM(CASE WHEN latest.is_correct = 0 THEN 1 ELSE 0 END), 0) AS incorrect_count,
+                       MAX(0, s.total_questions - COUNT(latest.question_id)) AS unanswered_count,
+                       CASE WHEN s.completed_at IS NULL THEN 'pending' ELSE 'completed' END AS status
+                FROM ai_practice_sessions s
+                LEFT JOIN latest ON latest.session_id = s.id
+                {where}
+                GROUP BY s.id
+                ORDER BY s.created_at DESC, s.id DESC
+                LIMIT ?""",
+            params,
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
 def get_ai_practice_history(*, item_number: str, limit: int = 100) -> list:
     """Historique consultable d'un ITEM, questions et réponses incluses."""
     with _conn() as con:

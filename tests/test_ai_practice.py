@@ -184,6 +184,63 @@ def test_create_replay_and_attempt_history(practice_db):
     assert history[1]["questions"][0]["attempts"][0]["response"] == "Réponse"
 
 
+def test_ai_practice_session_summary_uses_latest_attempt_per_question(practice_db):
+    questions = [
+        {"prompt": "Q1", "kind": QuestionKind.CLOSED, "choices": ["A", "B"], "answer": "A", "explanation": "E1"},
+        {"prompt": "Q2", "kind": QuestionKind.CLOSED, "choices": ["A", "B"], "answer": "B", "explanation": "E2"},
+        {"prompt": "Q3", "kind": QuestionKind.OPEN, "choices": [], "answer": "C", "explanation": "E3"},
+    ]
+    session_id = local_store.create_ai_practice_session(
+        spec=spec(), questions=questions, model="test-model",
+    )
+    rows = local_store.get_ai_practice_session(session_id)
+    first_attempt_id = local_store.record_ai_practice_attempt(
+        session_id=session_id, question_id=rows[0]["id"], response="A", is_correct=False, score_percent=0,
+    )
+    local_store.record_ai_practice_attempt(
+        session_id=session_id, question_id=rows[0]["id"], response="A", is_correct=True, score_percent=100,
+    )
+    second_attempt_id = local_store.record_ai_practice_attempt(
+        session_id=session_id, question_id=rows[1]["id"], response="A", is_correct=False, score_percent=0,
+    )
+
+    summary = local_store.get_ai_practice_session_summary(session_id)
+
+    assert summary["answered_count"] == 2
+    assert summary["scored_count"] == 2
+    assert summary["correct_count"] == 1
+    assert summary["incorrect_count"] == 1
+    assert summary["unanswered_count"] == 1
+    assert len(summary["latest_attempts"]) == 2
+    assert {attempt["id"] for attempt in summary["latest_attempts"]} == {
+        first_attempt_id + 1, second_attempt_id,
+    }
+    assert first_attempt_id not in {attempt["id"] for attempt in summary["latest_attempts"]}
+
+
+def test_ai_practice_sessions_history_filter_matches_title_and_status(practice_db):
+    pending = local_store.create_ai_practice_session(
+        spec=spec(course_title="Cardio avancée", item_number="115"),
+        questions=[{"prompt": "Q1", "kind": QuestionKind.CLOSED, "choices": ["A", "B"], "answer": "A", "explanation": "E"}],
+        model="test-model",
+    )
+    completed = local_store.create_ai_practice_session(
+        spec=spec(course_title="Neurologie", item_number="215"),
+        questions=[{"prompt": "Q1", "kind": QuestionKind.CLOSED, "choices": ["A", "B"], "answer": "A", "explanation": "E"}],
+        model="test-model",
+    )
+    completed_question_id = local_store.get_ai_practice_session(completed)[0]["id"]
+    local_store.record_ai_practice_attempt(
+        session_id=completed, question_id=completed_question_id, response="A", is_correct=True, score_percent=100,
+    )
+    local_store.finalize_ai_practice_session(completed)
+
+    assert [row["id"] for row in local_store.get_ai_practice_sessions_history(query="CARDIO")] == [pending]
+    assert [row["id"] for row in local_store.get_ai_practice_sessions_history(query="215")] == [completed]
+    assert [row["id"] for row in local_store.get_ai_practice_sessions_history(status="pending")] == [pending]
+    assert [row["id"] for row in local_store.get_ai_practice_sessions_history(status="completed")] == [completed]
+
+
 def test_practice_service_routes_dp_to_flash_and_persists():
     class FakeAI:
         def __init__(self):

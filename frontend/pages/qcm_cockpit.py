@@ -37,6 +37,11 @@ from frontend.pages.qcm import (
 )
 
 QCM_ENTRY_LABEL = "Saisir un résultat"
+HISTORY_STATUS_OPTIONS = {
+    "all": "Toutes",
+    "pending": "À faire",
+    "completed": "Terminées",
+}
 
 
 def _pending_ai_sessions(rows: list) -> list:
@@ -205,9 +210,9 @@ def render_qcm_cockpit() -> None:
             with ui.element("section").classes("qc-history"):
                 ui.label("HISTORIQUE REJOUABLE").classes("qc-label")
                 history_search = ui.input(placeholder="Rechercher une session").props("outlined dense clearable")
-                history_filter = ui.toggle(
-                    {"Toutes": "all", "À faire": "pending", "Terminées": "completed"}, value="all"
-                ).props("spread no-caps unelevated dense").classes("w-full mt-2")
+                history_filter = ui.toggle(HISTORY_STATUS_OPTIONS, value="all").props(
+                    "spread no-caps unelevated dense"
+                ).classes("w-full mt-2")
                 history_col = ui.column().classes("w-full gap-1 qc-history-list")
             selected_col = ui.column().classes("qc-selected gap-3")
 

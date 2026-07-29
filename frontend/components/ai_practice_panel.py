@@ -6,12 +6,11 @@ import asyncio
 
 from nicegui import ui
 
-from backend.core.practice.mastery import record_ai_practice_mastery
 from backend.core.practice.models import PracticeDifficulty, PracticeKind, PracticeSessionSpec, QuestionKind
 from backend.core.practice.service import PracticeService
 from backend.core.reviews import local_store
 from frontend.components.practice_import_panel import open_practice_import_dialog
-from frontend.components.qcm_replay import _same_closed_answer
+from frontend.components.qcm_replay import _same_closed_answer, open_qcm_session
 
 
 def _item_number(course) -> str:
@@ -186,6 +185,11 @@ def _open_answer_dialog(session_id: int, refresh) -> None:
             ui.button("Fermer", on_click=dialog.close).props("flat")
             ui.button("Enregistrer mes réponses", on_click=_submit).props("color=primary unelevated")
     dialog.open()
+
+
+def _open_answer_dialog(session_id: int, refresh) -> None:
+    """Open the resumable, step-based stored-session reader."""
+    open_qcm_session(session_id, on_complete=lambda _completed_id: refresh(), on_back=lambda: None)
 
 
 def _render_history(item_number: str, refresh) -> None:

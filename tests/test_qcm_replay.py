@@ -2,6 +2,7 @@ from frontend.components.qcm_replay import (
     build_question_result,
     build_session_result,
     filter_question_results,
+    latest_response_by_question,
 )
 
 
@@ -78,3 +79,13 @@ def test_filter_question_results_errors_only_keeps_non_correct_results():
 
     assert filter_question_results(results, errors_only=True) == results[1:]
     assert filter_question_results(results, errors_only=False) == results
+
+
+def test_latest_response_by_question_restores_newest_and_leaves_unanswered_blank():
+    questions = [
+        question(id=10, attempts=[{"id": 1, "response": "Ancienne"}, {"id": 2, "response": "Nouvelle"}]),
+        question(id=11, attempts=[]),
+        question(id=12, attempts=[{"response": "Sans identifiant"}]),
+    ]
+
+    assert latest_response_by_question(questions) == {10: "Nouvelle", 11: "", 12: "Sans identifiant"}

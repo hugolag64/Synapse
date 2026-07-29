@@ -11,7 +11,9 @@ ce qui donne un contrôle pixel exact et le collapse 200↔56px (transition widt
 160ms) sans dépendre du header. L'overlay mobile <768px sera traité en session 17.
 """
 from contextlib import contextmanager
+
 from nicegui import ui
+
 from backend.state.store import data_store
 from frontend.components.command_palette import open_command_palette
 
@@ -76,9 +78,10 @@ _SIDEBAR_CSS = """
 .cockpit-sidebar.mini { width:56px; }
 .cockpit-sidebar::-webkit-scrollbar { width:0; }
 
-.cockpit-main { margin-left:200px; min-height:100vh; padding:16px 24px 40px; color:var(--text);
+.cockpit-main { margin-left:200px; width:calc(100% - 200px); flex:1 1 auto; min-width:0; box-sizing:border-box;
+  min-height:100vh; padding:16px 24px 40px; color:var(--text);
   background:var(--bg); transition: margin-left 160ms var(--ease-standard); }
-.cockpit-main.mini { margin-left:56px; }
+.cockpit-main.mini { margin-left:56px; width:calc(100% - 56px); }
 
 .cockpit-logo { width:24px; height:24px; border-radius:6px; background:var(--accent); color:var(--accent-text);
   font-weight:600; font-size:13px; display:flex; align-items:center; justify-content:center; flex:0 0 24px; }
@@ -131,7 +134,7 @@ _SIDEBAR_CSS = """
 /* ── Palier 768–900px : icônes forcées, indépendant du toggle manuel ── */
 @media (min-width: 768px) and (max-width: 899.98px) {
   .cockpit-sidebar { width:56px; }
-  .cockpit-main { margin-left:56px; }
+  .cockpit-main { margin-left:56px; width:calc(100% - 56px); }
   .cockpit-sidebar .cockpit-group-label,
   .cockpit-sidebar .cockpit-nav-item .lbl,
   .cockpit-sidebar .cockpit-badge-count,
@@ -145,7 +148,7 @@ _SIDEBAR_CSS = """
 /* ── Palier <768px : sidebar remplacée par topbar + bottom nav ── */
 @media (max-width: 767.98px) {
   .cockpit-sidebar { display:none; }
-  .cockpit-main { margin-left:0; padding:68px 16px 76px; }
+  .cockpit-main { margin-left:0; width:100%; padding:68px 16px 76px; }
   .cockpit-topbar-mobile { display:flex; }
   .cockpit-bottomnav { display:flex; }
 }

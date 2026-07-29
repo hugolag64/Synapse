@@ -54,8 +54,15 @@ def _same_closed_answer(response: str, answer: str, choices: list[str]) -> bool:
 
 
 def _open_generation_dialog(course, refresh) -> None:
+    ui.add_head_html("""
+    <style>
+      .ai-practice-generation-card { border:1px solid var(--border); box-shadow:var(--shadow-popover); }
+      .ai-practice-kind-toggle { border:1px solid var(--border); border-radius:6px; overflow:hidden; }
+      .ai-practice-kind-toggle .q-btn { min-height:40px; border-radius:0 !important; }
+    </style>
+    """, shared=True)
     with ui.dialog() as dialog, ui.card().classes("ai-practice-generation-card p-5").style(
-        "width: 680px; max-width: calc(100vw - 32px); border-radius: 10px;"
+        "width: 620px; max-width: calc(100vw - 32px); border-radius: 8px;"
     ):
         ui.label("Nouvelle session IA").classes("text-lg font-semibold")
         ui.label("Les questions seront conservées et rejouables à l’identique.").classes(
@@ -64,7 +71,7 @@ def _open_generation_dialog(course, refresh) -> None:
         kind = ui.toggle(
             {"OIC": "OIC", "QCM": "QCM", "DP": "DP", "KFP": "KFP"},
             value="QCM",
-        ).props("spread no-caps unelevated").classes("w-full")
+        ).props("spread no-caps unelevated").classes("w-full ai-practice-kind-toggle")
 
         with ui.row().classes("w-full items-center justify-between mt-5"):
             total_label = ui.label().classes("text-sm font-medium")

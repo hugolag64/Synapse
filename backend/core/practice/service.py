@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import asdict
 from typing import Any
 
@@ -51,10 +52,20 @@ def _parse_questions(payload: Any, spec: PracticeSessionSpec) -> list[GeneratedQ
     if hasattr(payload, "text"):
         payload = payload.text
     if isinstance(payload, str):
+        raw_text = payload.strip()
         try:
-            payload = json.loads(payload)
-        except json.JSONDecodeError as exc:
-            raise PracticeGenerationError("La réponse IA n'est pas un JSON valide") from exc
+            payload = json.loads(raw_text)
+        except json.JSONDecodeError:
+            fenced = re.search(r"```(?:json)?\s*(.*?)\s*```", raw_text, flags=re.IGNORECASE | re.DOTALL)
+            candidate = fenced.group(1).strip() if fenced else raw_text
+            if not fenced:
+                start = candidate.find("{")
+                end = candidate.rfind("}")
+                candidate = candidate[start:end + 1] if start >= 0 and end > start else candidate
+            try:
+                payload = json.loads(candidate)
+            except json.JSONDecodeError as exc:
+                raise PracticeGenerationError("La réponse IA n'est pas un JSON valide") from exc
     raw_questions = payload.get("questions") if isinstance(payload, dict) else None
     if not isinstance(raw_questions, list) or len(raw_questions) != spec.total_questions:
         raise PracticeGenerationError("La réponse IA ne respecte pas le nombre de questions demandé")

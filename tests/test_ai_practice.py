@@ -52,8 +52,10 @@ def test_generation_dialog_uses_compact_centered_linear_controls():
     from frontend.components import ai_practice_panel
 
     source = inspect.getsource(ai_practice_panel._open_generation_dialog)
-    assert "width: 680px" in source
+    assert "width: 620px" in source
+    assert "border-radius: 8px" in source
     assert "max-width: calc(100vw - 32px)" in source
+    assert "ai-practice-kind-toggle" in source
     assert "label-always" not in source
     assert "total_value_chip" in source
 
@@ -87,6 +89,21 @@ def test_practice_parser_keeps_mixed_distribution():
     from backend.core.practice.service import _parse_questions
     parsed = _parse_questions(payload, spec())
     assert [q.kind for q in parsed] == [QuestionKind.OPEN, QuestionKind.CLOSED, QuestionKind.CLOSED]
+
+
+def test_practice_parser_accepts_fenced_json_from_provider():
+    from backend.core.practice.service import _parse_questions
+
+    payload = '''Voici la session :
+```json
+{"questions":[{"kind":"open","prompt":"P1","answer":"A1","explanation":"E1"},{"kind":"closed","prompt":"P2","choices":["A","B"],"answer":"A","explanation":"E2"},{"kind":"closed","prompt":"P3","choices":["A","B"],"answer":"B","explanation":"E3"}]}
+```
+'''
+
+    parsed = _parse_questions(payload, spec())
+
+    assert len(parsed) == 3
+    assert parsed[0].prompt == "P1"
 
 
 def test_parser_rejects_wrong_distribution():

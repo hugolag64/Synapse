@@ -60,10 +60,10 @@ def test_parser_marks_missing_item_as_review():
     assert "ITEM" in batch.cases[0].review_reason
 
 
-def test_parser_rejects_non_dp_kfp_case():
+def test_parser_rejects_unsupported_case_type():
     payload = _payload()
-    payload["cases"][0]["kind"] = "qcm"
-    with pytest.raises(ImportValidationError, match="DP ou KFP"):
+    payload["cases"][0]["kind"] = "tcs"
+    with pytest.raises(ImportValidationError, match="QCM, DP ou KFP"):
         parse_practice_bank(payload)
 
 
@@ -92,6 +92,24 @@ def test_discussion_parser_supports_html_and_kfp_marker():
     batch = parse_practice_discussion(html, source="discussion.html")
     assert batch.cases[0].kind == "kfp"
     assert batch.cases[0].item_numbers == ("330",)
+
+
+def test_discussion_parser_imports_qcm_by_item_with_choices():
+    discussion = """
+    QCM — ITEM 115
+    Question 1 : Quels signes évoquent une insuffisance cardiaque ?
+    A. Dyspnée
+    B. Fièvre isolée
+    C. Orthopnée
+    Réponse : A, C
+    Explication : La dyspnée et l'orthopnée sont caractéristiques.
+    """
+    batch = parse_practice_discussion(discussion, source="qcm-chatgpt.md")
+    case = batch.cases[0]
+    assert case.kind == "qcm"
+    assert case.item_numbers == ("115",)
+    assert case.questions[0].choices == ("A. Dyspnée", "B. Fièvre isolée", "C. Orthopnée")
+    assert case.questions[0].answer == "A, C"
 
 
 def test_item_suggestions_rank_title_matches():

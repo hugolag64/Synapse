@@ -95,7 +95,7 @@ def render_qcm_cockpit() -> None:
             with ui.row().classes("gap-2"):
                 import_btn = ui.element("div").classes("qc-btn-primary")
                 with import_btn:
-                    ui.label("Importer DP/KFP")
+                    ui.label("Importer QCM / DP / KFP")
                 import_btn.on("click", lambda: open_practice_import_dialog(_render))
                 btn = ui.element("div").classes("qc-btn-primary")
                 with btn:

@@ -18,7 +18,7 @@ def open_practice_import_dialog(refresh=None, item_number: str = "") -> None:
     pending = {"batch": None}
     item_controls = {}
     with ui.dialog() as dialog, ui.card().classes("w-[680px] max-w-[95vw] p-5"):
-        ui.label("Importer une banque DP/KFP").classes("text-lg font-semibold")
+        ui.label("Importer une banque QCM / DP / KFP").classes("text-lg font-semibold")
         ui.label(
             "Import local JSON préparé en amont. Aucun appel Gemini ne sera effectué."
         ).classes("text-xs text-slate-500 mb-3")

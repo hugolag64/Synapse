@@ -284,7 +284,7 @@ def render_ai_practice_panel(course) -> None:
                     "text-xs text-slate-400"
                 )
             with ui.row().classes("gap-2"):
-                ui.button("Importer DP/KFP", icon="upload_file", on_click=lambda: open_practice_import_dialog(
+                ui.button("Importer QCM / DP / KFP", icon="upload_file", on_click=lambda: open_practice_import_dialog(
                     refresh, item_number
                 )).props("flat color=primary")
                 ui.button("Nouvelle session", icon="add", on_click=lambda: _open_generation_dialog(course, refresh)).props(

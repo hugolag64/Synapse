@@ -85,8 +85,8 @@ def parse_practice_bank(payload: Any) -> ImportBatch:
         if not isinstance(raw_case, dict):
             raise ImportValidationError(f"Cas {index} invalide")
         kind = _text(raw_case.get("kind"), f"cases[{index}].kind").lower()
-        if kind not in {"dp", "kfp"}:
-            raise ImportValidationError(f"Cas {index} : le type doit être DP ou KFP")
+        if kind not in {"dp", "kfp", "qcm"}:
+            raise ImportValidationError(f"Cas {index} : le type doit être QCM, DP ou KFP")
         title = _text(raw_case.get("title"), f"cases[{index}].title")
         stem = _text(raw_case.get("stem"), f"cases[{index}].stem")
         raw_questions = raw_case.get("questions")
@@ -166,7 +166,12 @@ def parse_practice_discussion(payload: Any, *, source: str = "Discussion import�
         questions.append(ImportedQuestion(prompt=prompt, answer=answer, explanation=explanation, choices=choices))
 
     item_numbers = _item_numbers(None, text[:500], text[:1000])
-    kind = "kfp" if re.search(r"\bKFP\b", text[:500], re.I) else "dp"
+    if re.search(r"\bKFP\b", text[:500], re.I):
+        kind = "kfp"
+    elif re.search(r"\bQCM\b|\bQRU\b|\bQRM\b|\bQRP\b", text[:500], re.I):
+        kind = "qcm"
+    else:
+        kind = "dp"
     title = next((line.strip(" #:-") for line in text.splitlines() if line.strip()), f"Discussion {kind.upper()}")
     status, review_reason = _case_status(item_numbers)
     canonical = json.dumps({"kind": kind, "title": title, "stem": text[:500], "questions": [q.__dict__ for q in questions]}, sort_keys=True, ensure_ascii=False)

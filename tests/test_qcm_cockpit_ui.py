@@ -50,24 +50,18 @@ def test_qcm_cockpit_accepts_sqlite_rows_for_pending_sessions():
         connection.close()
 
 
-def test_qcm_cockpit_renders_a_start_action_for_pending_ai_sessions():
+def test_qcm_cockpit_uses_history_for_pending_sessions():
     source = inspect.getsource(qcm_cockpit.render_qcm_cockpit)
 
-    assert "get_ai_practice_sessions" in source
-    assert "SESSIONS À FAIRE" in source
-    assert "Commencer" in source
+    assert "_render_workspace()" in source
     assert "open_qcm_session(" in source
-    assert "_open_selected_session(sid)" in source
-    assert "white-space:normal" in qcm_cockpit.QCM_COCKPIT_CSS
-    assert ".qc-pending-action" in qcm_cockpit.QCM_COCKPIT_CSS
 
 
-def test_qcm_cockpit_exposes_delete_action_for_pending_sessions():
+def test_qcm_cockpit_exposes_delete_action_for_history_sessions():
     source = inspect.getsource(qcm_cockpit.render_qcm_cockpit)
 
-    assert "delete_pending_ai_practice_session" in source
-    assert "Supprimer" in source
-    assert "Confirmer la suppression" in source
+    assert "delete_ai_practice_session" in source
+    assert "_confirm_delete_history" in source
 
 
 def test_ai_generation_opens_the_session_and_defaults_to_closed_questions():

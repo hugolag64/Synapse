@@ -21,6 +21,7 @@ def test_import_dialog_is_local_upload_flow():
     assert "import_practice_batch" in source
     assert "parse_practice_discussion" in source
     assert ".txt,.md,.html" in source
+    assert "await event.file.read()" in source
 
 
 def test_item_practice_panel_exposes_random_and_anchor_actions():

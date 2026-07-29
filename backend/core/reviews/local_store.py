@@ -1314,6 +1314,13 @@ def delete_pending_ai_practice_session(session_id: int) -> bool:
     return True
 
 
+def delete_ai_practice_session(session_id: int) -> bool:
+    """Supprime une session IA de l'historique, terminée ou non."""
+    with _conn() as con:
+        cur = con.execute("DELETE FROM ai_practice_sessions WHERE id = ?", (session_id,))
+    return cur.rowcount > 0
+
+
 def get_ai_practice_session(session_id: int) -> list:
     """Retourne les questions d'une session avec toutes leurs tentatives."""
     import json as _json

@@ -342,6 +342,18 @@ def test_delete_pending_ai_practice_session_does_not_delete_completed_session(pr
     assert local_store.get_ai_practice_sessions_history(status="completed")[0]["id"] == completed
 
 
+def test_delete_ai_practice_session_removes_completed_session(practice_db):
+    session_id = local_store.create_ai_practice_session(
+        spec=spec(course_title="Session historique", item_number="215"),
+        questions=[{"prompt": "Q1", "kind": QuestionKind.CLOSED, "choices": ["A", "B"], "answer": "A", "explanation": "E"}],
+        model="test-model",
+    )
+
+    assert local_store.delete_ai_practice_session(session_id) is True
+    assert local_store.get_ai_practice_session(session_id) == []
+    assert local_store.delete_ai_practice_session(session_id) is False
+
+
 def test_practice_service_routes_dp_to_flash_and_persists():
     class FakeAI:
         def __init__(self):

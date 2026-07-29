@@ -247,8 +247,9 @@ _CSS = """
 .qc-workspace { display:grid; grid-template-columns:minmax(0, 1.1fr) minmax(320px, .9fr); gap:20px; width:100%; margin:24px 0 8px; align-items:stretch; }
 .qc-history { min-width:0; max-height:620px; overflow:auto; padding:14px; border:1px solid var(--border); border-radius:8px; background:var(--surface); }
 .qc-history-list { margin-top:10px; }
-.qc-history-row { width:100%; min-height:64px; flex-direction:column; align-items:flex-start; justify-content:center; text-align:left; padding:12px 14px; border-radius:6px; gap:4px; }
-.qc-history-row-active { background:var(--surface-hover); }
+.qc-history-entry { width:100%; align-items:center; gap:4px; border-radius:6px; }
+.qc-history-entry.qc-history-row-active { background:var(--surface-hover); }
+.qc-history-row { flex:1 1 auto; width:auto; min-height:64px; flex-direction:column; align-items:flex-start; justify-content:center; text-align:left; padding:12px 14px; border-radius:6px; gap:4px; background:transparent; }
 .qc-history-row .qc-course-title { line-height:1.25; }
 .qc-history-meta { font-size:11px; color:var(--text-dim); margin-top:0; line-height:1.25; }
 .qc-selected { min-width:0; width:100%; padding:18px; border:1px solid var(--border); border-radius:8px; background:var(--surface); }
@@ -431,6 +432,31 @@ def render_qcm_cockpit() -> None:
         selected_session["id"] = session_id
         _render_workspace()
 
+    def _confirm_delete_history(session_id: int, course_title: str) -> None:
+        with ui.dialog() as dialog, ui.card().classes("p-5").style(
+            "width: 420px; max-width: calc(100vw - 32px); border-radius: 8px;"
+        ):
+            ui.label("Supprimer cette session de l’historique ?").classes("text-lg font-semibold")
+            ui.label(
+                f'« {course_title or "Session IA"} » et sa correction seront supprimées.'
+            ).classes("text-sm text-slate-500 mt-2")
+
+            def _delete() -> None:
+                deleted = local_store.delete_ai_practice_session(session_id)
+                dialog.close()
+                if deleted:
+                    if selected_session["id"] == session_id:
+                        selected_session["id"] = None
+                    ui.notify("Session supprimée", type="positive")
+                    _render()
+                else:
+                    ui.notify("Cette session n'est plus disponible", type="warning")
+
+            with ui.row().classes("justify-end gap-2 mt-5"):
+                ui.button("Annuler", on_click=dialog.close).props("flat")
+                ui.button("Supprimer", on_click=_delete).props("color=negative unelevated")
+        dialog.open()
+
     def _render_history(sessions: list[dict]) -> None:
         history_col.clear()
         with history_col:
@@ -440,11 +466,16 @@ def render_qcm_cockpit() -> None:
             for session in sessions:
                 session_id = int(session["id"])
                 active_class = " qc-history-row-active" if session_id == selected_session["id"] else ""
-                with ui.button(
-                    on_click=lambda _e=None, sid=session_id: _select_history_session(sid)
-                ).props("flat no-caps align=left").classes(f"qc-history-row{active_class}"):
-                    ui.label(session["course_title"] or "Session IA").classes("qc-course-title")
-                    ui.label(_history_metadata(session)).classes("qc-history-meta")
+                with ui.row().classes(f"qc-history-entry{active_class}"):
+                    with ui.button(
+                        on_click=lambda _e=None, sid=session_id: _select_history_session(sid)
+                    ).props("flat no-caps align=left").classes("qc-history-row"):
+                        ui.label(session["course_title"] or "Session IA").classes("qc-course-title")
+                        ui.label(_history_metadata(session)).classes("qc-history-meta")
+                    ui.button(
+                        icon="delete_outline",
+                        on_click=lambda _e=None, sid=session_id, title=session["course_title"]: _confirm_delete_history(sid, title),
+                    ).props("flat dense round color=negative").tooltip("Supprimer cette session")
 
     def _render_selected_session(sessions: list[dict]) -> None:
         selected_col.clear()
@@ -555,13 +586,11 @@ def render_qcm_cockpit() -> None:
 
     def _render() -> None:
         rows = local_store.get_qcm_sessions_all(limit=300)
-        pending = _pending_ai_sessions(local_store.get_ai_practice_sessions(limit=100))
         groups = _compute_groups(rows)
         _draw_topbar()
         _draw_summary(rows, groups)
         _draw_head()
         _draw_list(groups)
-        _draw_pending(pending)
         _render_workspace()
 
     history_search.on_value_change(lambda _event: _render_workspace())

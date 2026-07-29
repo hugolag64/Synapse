@@ -45,20 +45,20 @@ def open_practice_import_dialog(refresh=None, item_number: str = "") -> None:
                             controls.append(("manual", ui.input(placeholder="115, 222").props("dense outlined")))
                     item_controls[case.fingerprint] = controls
 
-        def _on_upload(event) -> None:
+        async def _on_upload(event) -> None:
             try:
-                raw = event.content.read()
+                raw = await event.file.read()
                 try:
                     batch = parse_practice_bank(raw)
                 except ImportValidationError:
-                    batch = parse_practice_discussion(raw, source=event.name)
+                    batch = parse_practice_discussion(raw, source=event.file.name)
             except (ImportValidationError, UnicodeDecodeError) as exc:
                 pending["batch"] = None
                 status.set_text(f"Import refusé : {exc}")
                 preview.clear()
                 return
             pending["batch"] = batch
-            status.set_text(f"Fichier chargé : {event.name}")
+            status.set_text(f"Fichier chargé : {event.file.name}")
             _show_preview(batch)
 
         ui.upload(on_upload=_on_upload, auto_upload=True).props("accept=.json,.txt,.md,.html color=primary")

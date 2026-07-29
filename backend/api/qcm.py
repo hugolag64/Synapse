@@ -17,6 +17,28 @@ class AttemptPayload(BaseModel):
     response: str = ""
 
 
+class FollowUpPayload(BaseModel):
+    action: str
+    question_id: int | None = None
+
+
+def _follow_up(session_id: int, summary: dict, rows: list[dict]) -> dict | None:
+    score = summary.get("score_percent")
+    if score is None or float(score) >= 70 or local_store.get_ai_practice_failure_streak(session_id) < 2:
+        return None
+    failed = [row for row in rows if row.get("status") in {"incorrect", "unanswered"}]
+    if not failed:
+        return None
+    first = failed[0]
+    return {
+        "eligible": True,
+        "failure_streak": local_store.get_ai_practice_failure_streak(session_id),
+        "question_id": int(first["question"]["id"]),
+        "question_prompt": first["question"].get("prompt", ""),
+        "context": "OIC" if str(summary.get("practice_kind", "")).lower() == "oic" else "item",
+    }
+
+
 def _session_payload(session_id: int) -> dict:
     summary = local_store.get_ai_practice_session_summary(session_id)
     questions = local_store.get_ai_practice_session(session_id)
@@ -74,10 +96,45 @@ def complete_session(session_id: int) -> dict:
         raise HTTPException(status_code=404, detail="Session QCM introuvable")
     record_ai_practice_mastery(session_id)
     questions = local_store.get_ai_practice_session(session_id)
+    current = local_store.get_ai_practice_session_summary(session_id)
+    rows = build_correction_rows(questions, current)
     return {
         "session": summary,
-        "rows": build_correction_rows(questions, local_store.get_ai_practice_session_summary(session_id)),
+        "rows": rows,
+        "follow_up": _follow_up(session_id, dict(current or summary), rows),
     }
+
+
+@router.post("/sessions/{session_id}/follow-up")
+def follow_up(session_id: int, payload: FollowUpPayload) -> dict:
+    summary = local_store.get_ai_practice_session_summary(session_id)
+    if summary is None:
+        raise HTTPException(status_code=404, detail="Session QCM introuvable")
+    if payload.action == "anchor":
+        if payload.question_id is None:
+            raise HTTPException(status_code=400, detail="Question à ancrer manquante")
+        local_store.set_ai_practice_anchor(payload.question_id)
+        return {"ok": True, "message": "Question ajoutée aux ancrages"}
+    if payload.action == "lacune":
+        questions = local_store.get_ai_practice_session(session_id)
+        failed = [q for q in questions if q.get("attempts") and q["attempts"][-1].get("is_correct") == 0]
+        if not failed:
+            raise HTTPException(status_code=400, detail="Aucune erreur exploitable pour créer une lacune")
+        detail = "Échecs répétés sur : " + "; ".join(q.get("prompt", "")[:120] for q in failed[:3])
+        weak_id = local_store.add_weak_point_full(
+            course_id=summary.get("course_id", ""),
+            detail=detail,
+            course_title=summary.get("course_title", ""),
+            item_number=summary.get("item_number", ""),
+            category="OIC" if str(summary.get("practice_kind", "")).lower() == "oic" else "connaissance",
+            severity=3,
+            source_type="qcm",
+            source_session_id=session_id,
+        )
+        return {"ok": True, "message": "Fiche lacune créée", "weak_point_id": weak_id}
+    if payload.action == "ignore":
+        return {"ok": True, "message": "Suggestion ignorée"}
+    raise HTTPException(status_code=400, detail="Action de suivi inconnue")
 
 
 @router.post("/sessions/{session_id}/replay")

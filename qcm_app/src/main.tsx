@@ -1,6 +1,6 @@
 import { Component, useEffect, useMemo, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { completeSession, fetchSession, replaySession, saveAttempt } from './api'
+import { completeSession, fetchSession, followUpAction, replaySession, saveAttempt } from './api'
 import type { CorrectionPayload, CorrectionRow, SessionPayload } from './types'
 import './styles.css'
 
@@ -69,9 +69,11 @@ function Reader({ payload, onCorrection }: { payload: SessionPayload; onCorrecti
 
 function Correction({ payload, onReplay }: { payload: CorrectionPayload; onReplay: (id: number) => void }) {
   const [errorsOnly, setErrorsOnly] = useState(false)
+  const [followUp, setFollowUp] = useState(payload.follow_up)
   const rows = errorsOnly ? payload.rows.filter((row) => row.status !== 'correct') : payload.rows
   const score = payload.session.score_percent == null ? '—' : `${payload.session.score_percent}%`
-  return <main className="correction-page">
+  const followUpCard = followUp && <section className="follow-up"><div><strong>Plusieurs échecs sur ce contexte</strong><p>{followUp.failure_streak} sessions sous 70 %. Veux-tu transformer cette difficulté en support de révision ?</p></div><div className="follow-up-actions"><button className="button secondary" onClick={async () => { await followUpAction(payload.session.id, 'anchor', followUp.question_id); setFollowUp(null) }}>Ancrer la question</button><button className="button primary" onClick={async () => { await followUpAction(payload.session.id, 'lacune'); setFollowUp(null) }}>Créer une fiche lacune</button><button className="button quiet" onClick={async () => { await followUpAction(payload.session.id, 'ignore'); setFollowUp(null) }}>Ignorer</button></div></section>
+  return <main className="correction-page">{followUpCard}
     <Header onExit />
     <div className="reader-kicker">CORRECTION TERMINÉE · {new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}</div>
     <h1>{payload.session.course_title || 'QCM'}</h1>

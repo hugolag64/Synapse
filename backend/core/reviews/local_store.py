@@ -1440,6 +1440,29 @@ def get_ai_practice_sessions_history(
     return [dict(row) for row in rows]
 
 
+def get_ai_practice_failure_streak(session_id: int, threshold: float = 70.0) -> int:
+    """Compte les sessions terminées sous le seuil, jusqu'à la dernière session donnée."""
+    with _conn() as con:
+        current = con.execute(
+            "SELECT course_id, item_number, created_at FROM ai_practice_sessions WHERE id = ?",
+            (session_id,),
+        ).fetchone()
+        if current is None:
+            return 0
+        rows = con.execute(
+            """SELECT score_percent FROM ai_practice_sessions
+               WHERE course_id = ? AND item_number = ? AND completed_at IS NOT NULL
+               ORDER BY created_at DESC, id DESC""",
+            (current["course_id"], current["item_number"]),
+        ).fetchall()
+    streak = 0
+    for row in rows:
+        if row["score_percent"] is None or float(row["score_percent"]) >= threshold:
+            break
+        streak += 1
+    return streak
+
+
 def get_ai_practice_history(*, item_number: str, limit: int = 100) -> list:
     """Historique consultable d'un ITEM, questions et réponses incluses."""
     with _conn() as con:

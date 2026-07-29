@@ -51,3 +51,14 @@ def test_attempt_endpoint_scores_closed_question_on_the_server(monkeypatch):
 
     assert recorded["is_correct"] is True
     assert recorded["score_percent"] == 100.0
+
+
+def test_follow_up_is_proposed_after_two_failed_sessions(monkeypatch):
+    monkeypatch.setattr(qcm.local_store, "get_ai_practice_failure_streak", lambda _session_id: 2)
+    summary = {"score_percent": 40, "practice_kind": "QCM"}
+    rows = [{"status": "incorrect", "question": {"id": 7, "prompt": "Question difficile"}}]
+
+    follow_up = qcm._follow_up(3, summary, rows)
+
+    assert follow_up["failure_streak"] == 2
+    assert follow_up["question_id"] == 7

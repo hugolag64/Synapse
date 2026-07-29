@@ -37,4 +37,13 @@ export type CorrectionPayload = {
     unanswered_count?: number
   }
   rows: CorrectionRow[]
+  follow_up?: FollowUp | null
+}
+
+export type FollowUp = {
+  eligible: boolean
+  failure_streak: number
+  question_id: number
+  question_prompt: string
+  context: string
 }

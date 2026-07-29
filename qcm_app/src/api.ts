@@ -22,3 +22,9 @@ export const completeSession = (id: number) =>
 
 export const replaySession = async (id: number) =>
   (await request<{ session_id: number }>(`/api/qcm/sessions/${id}/replay`, { method: 'POST' })).session_id
+
+export const followUpAction = (sessionId: number, action: 'lacune' | 'anchor' | 'ignore', questionId?: number) =>
+  request<{ ok: boolean; message: string }>(`/api/qcm/sessions/${sessionId}/follow-up`, {
+    method: 'POST',
+    body: JSON.stringify({ action, question_id: questionId }),
+  })

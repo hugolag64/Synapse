@@ -19,8 +19,9 @@ def test_qcm_cockpit_exposes_ai_generation_entry():
 
 def test_qcm_cockpit_keeps_generated_sessions_visible_before_scoring():
     pending = qcm_cockpit._pending_ai_sessions([
-        {"id": 1, "score_percent": None},
-        {"id": 2, "score_percent": 82},
+        {"id": 1, "score_percent": None, "completed_at": None},
+        {"id": 2, "score_percent": 82, "completed_at": "2026-07-29T12:00:00"},
+        {"id": 3, "score_percent": None, "completed_at": "2026-07-29T12:00:00"},
     ])
 
     assert [row["id"] for row in pending] == [1]

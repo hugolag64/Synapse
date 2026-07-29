@@ -12,15 +12,15 @@ Aucune connexion réseau dans ce fichier.
 
 from __future__ import annotations
 
-import sqlite3
 import datetime
 import hashlib
 import os
+import sqlite3
 import threading
 import uuid
 from pathlib import Path
-from typing import Optional
 from zoneinfo import ZoneInfo
+
 from loguru import logger
 
 _TZ_REUNION = ZoneInfo("Indian/Reunion")
@@ -444,7 +444,7 @@ def make_task_id(course_id: str, context: str, review_type: str, due_date: datet
 
 # ── API publique — lecture ────────────────────────────────────────────────────
 
-def get_history(task_id: str) -> Optional[sqlite3.Row]:
+def get_history(task_id: str) -> sqlite3.Row | None:
     """Retourne l'enregistrement SQLite d'une tâche, ou None."""
     with _conn() as con:
         return con.execute(
@@ -522,9 +522,9 @@ def mark_done(
     theoretical_due_date: datetime.date,
     course_title: str = "",
     item_number: str = "",
-    difficulty: Optional[str] = None,
-    confidence: Optional[int] = None,
-    notes: Optional[str] = None,
+    difficulty: str | None = None,
+    confidence: int | None = None,
+    notes: str | None = None,
     critical_trap: bool = False,
     recurrent_trap: bool = False,
 ) -> None:
@@ -537,12 +537,12 @@ def mark_done(
     si confidence est fourni.
     """
     # ── Calcul SM-2 ───────────────────────────────────────────────────────────
-    new_ef: Optional[float] = None
-    new_rep: Optional[int] = None
-    next_interval: Optional[int] = None
+    new_ef: float | None = None
+    new_rep: int | None = None
+    next_interval: int | None = None
 
     if confidence is not None:
-        from backend.core.reviews.sm2 import compute_next_interval, SM2_INIT_EF
+        from backend.core.reviews.sm2 import SM2_INIT_EF, compute_next_interval
 
         current_ef  = SM2_INIT_EF
         current_rep = 0
@@ -678,7 +678,7 @@ def is_j_cycle_complete(course_id: str, context: str) -> bool:
 
 def get_last_completed_date(
     course_id: str, context: str, review_type: str
-) -> Optional[datetime.date]:
+) -> datetime.date | None:
     """Date de complétion la plus récente d'un review_type donné, ou None."""
     with _conn() as con:
         row = con.execute(
@@ -692,7 +692,7 @@ def get_last_completed_date(
     return datetime.date.fromisoformat(str(row["completed_at"])[:10])
 
 
-def get_last_consolidation_state(course_id: str, context: str) -> Optional[sqlite3.Row]:
+def get_last_consolidation_state(course_id: str, context: str) -> sqlite3.Row | None:
     """Dernière ligne 'consolidation' done (la plus récente), ou None si jamais amorcée."""
     with _conn() as con:
         return con.execute(
@@ -750,7 +750,7 @@ def bootstrap_consolidation(
         ))
 
 
-def get_consolidation_due_date(course_id: str, context: str) -> Optional[datetime.date]:
+def get_consolidation_due_date(course_id: str, context: str) -> datetime.date | None:
     """Prochaine échéance de consolidation, ou None si jamais amorcée."""
     row = get_last_consolidation_state(course_id, context)
     if not row or not row["completed_at"] or row["next_interval_days"] is None:
@@ -766,8 +766,8 @@ def mark_consolidation_done(
     course_title: str = "",
     item_number: str = "",
     confidence: int = 3,
-    difficulty: Optional[str] = None,
-    notes: Optional[str] = None,
+    difficulty: str | None = None,
+    notes: str | None = None,
 ) -> int:
     """
     Valide une occurrence 'consolidation' et fait progresser la chaîne SM-2.
@@ -779,7 +779,7 @@ def mark_consolidation_done(
 
     Retourne le nouvel intervalle (jours), utile pour les tests/logs.
     """
-    from backend.core.reviews.sm2 import compute_next_interval, SM2_INIT_EF
+    from backend.core.reviews.sm2 import SM2_INIT_EF, compute_next_interval
 
     prev = get_last_consolidation_state(course_id, context)
     prev_ef       = (prev["easiness_factor"]   if prev else None) or SM2_INIT_EF
@@ -894,15 +894,15 @@ def add_study_session(
     course_title: str = "",
     item_number: str = "",
     context: str = "college",
-    activity_types: Optional[list] = None,
-    duration_minutes: Optional[int] = None,
-    confidence: Optional[int] = None,
-    difficulty: Optional[str] = None,
-    qcm_result: Optional[str] = None,
-    weak_category: Optional[str] = None,
-    weak_detail: Optional[str] = None,
-    perceived_mastery: Optional[int] = None,
-    notes: Optional[str] = None,
+    activity_types: list | None = None,
+    duration_minutes: int | None = None,
+    confidence: int | None = None,
+    difficulty: str | None = None,
+    qcm_result: str | None = None,
+    weak_category: str | None = None,
+    weak_detail: str | None = None,
+    perceived_mastery: int | None = None,
+    notes: str | None = None,
 ) -> int:
     """Enregistre une session de travail après validation d'une révision."""
     import json as _json
@@ -978,13 +978,13 @@ def record_manual_review(
     context: str,
     review_date: datetime.date,
     activity_types: list[str],
-    duration_minutes: Optional[int],
-    confidence: Optional[int],
-    difficulty: Optional[str],
-    qcm_result: Optional[str] = None,
-    weak_category: Optional[str] = None,
-    weak_detail: Optional[str] = None,
-    notes: Optional[str] = None,
+    duration_minutes: int | None,
+    confidence: int | None,
+    difficulty: str | None,
+    qcm_result: str | None = None,
+    weak_category: str | None = None,
+    weak_detail: str | None = None,
+    notes: str | None = None,
 ) -> str:
     """Ajoute une séance manuelle dans la timeline et les sessions d'étude."""
     import json as _json
@@ -1049,12 +1049,12 @@ def get_manual_reviews_by_course(course_id: str) -> list[sqlite3.Row]:
 
 def record_anki_review(
     card_id: int,
-    note_id: Optional[int],
+    note_id: int | None,
     item_numbers: tuple[str, ...],
     rating: str,
     reviewed_at: datetime.datetime,
-    interval: Optional[int],
-    source_review_id: Optional[str],
+    interval: int | None,
+    source_review_id: str | None,
 ) -> str:
     """Enregistre une réponse Anki une seule fois pour chaque item associé."""
     if rating not in {"again", "hard", "good", "easy"}:
@@ -1079,7 +1079,7 @@ def record_anki_review(
     return event_key
 
 
-def get_anki_review_evidence(item_number: Optional[str] = None) -> list[sqlite3.Row]:
+def get_anki_review_evidence(item_number: str | None = None) -> list[sqlite3.Row]:
     with _conn() as con:
         if item_number is None:
             return con.execute(
@@ -1156,10 +1156,10 @@ def add_qcm_session(
     session_date: str,
     course_title: str = "",
     item_number: str = "",
-    score: Optional[float] = None,
-    total_questions: Optional[int] = None,
-    errors: Optional[str] = None,
-    comments: Optional[str] = None,
+    score: float | None = None,
+    total_questions: int | None = None,
+    errors: str | None = None,
+    comments: str | None = None,
 ) -> int:
     """Enregistre une session de QCM locale."""
     now = _now()
@@ -1318,7 +1318,10 @@ def get_ai_practice_session(session_id: int) -> list:
             item["choices"] = _json.loads(item.pop("choices_json") or "[]")
             item["source_refs"] = _json.loads(item.pop("source_refs_json") or "[]")
             attempts = con.execute(
-                "SELECT * FROM ai_practice_attempts WHERE session_id = ? AND question_id = ? ORDER BY answered_at DESC",
+                """SELECT * FROM ai_practice_attempts
+                   WHERE session_id = ? AND question_id = ?
+                     AND TRIM(COALESCE(response, '')) NOT IN ('', '[]')
+                   ORDER BY answered_at DESC""",
                 (session_id, row["id"]),
             ).fetchall()
             item["attempts"] = [dict(attempt) for attempt in attempts]
@@ -1341,7 +1344,10 @@ def get_ai_practice_session_summary(session_id: int) -> dict | None:
                  ON sq.session_id = a.session_id AND sq.question_id = a.question_id
                JOIN (
                  SELECT question_id, MAX(id) AS max_id
-                 FROM ai_practice_attempts WHERE session_id = ? GROUP BY question_id
+                 FROM ai_practice_attempts
+                 WHERE session_id = ?
+                   AND TRIM(COALESCE(response, '')) NOT IN ('', '[]')
+                 GROUP BY question_id
                ) latest ON latest.max_id = a.id
                WHERE a.session_id = ? ORDER BY sq.position""",
             (session_id, session_id),
@@ -1381,11 +1387,14 @@ def get_ai_practice_sessions_history(
     with _conn() as con:
         rows = con.execute(
             f"""WITH latest AS (
-                    SELECT a.session_id, a.question_id, a.is_correct, a.score_percent
+                    SELECT a.session_id, a.question_id, a.is_correct, a.score_percent,
+                           a.duration_seconds
                     FROM ai_practice_attempts a
                     JOIN (
                         SELECT session_id, question_id, MAX(id) AS max_id
-                        FROM ai_practice_attempts GROUP BY session_id, question_id
+                        FROM ai_practice_attempts
+                        WHERE TRIM(COALESCE(response, '')) NOT IN ('', '[]')
+                        GROUP BY session_id, question_id
                     ) current ON current.max_id = a.id
                 )
                 SELECT s.*, COUNT(latest.question_id) AS answered_count,
@@ -1393,6 +1402,12 @@ def get_ai_practice_sessions_history(
                        COALESCE(SUM(CASE WHEN latest.is_correct = 1 THEN 1 ELSE 0 END), 0) AS correct_count,
                        COALESCE(SUM(CASE WHEN latest.is_correct = 0 THEN 1 ELSE 0 END), 0) AS incorrect_count,
                        MAX(0, s.total_questions - COUNT(latest.question_id)) AS unanswered_count,
+                       SUM(latest.duration_seconds) AS duration_seconds,
+                       EXISTS (
+                           SELECT 1
+                           FROM ai_practice_session_questions sq
+                           WHERE sq.session_id = s.id
+                       ) AS has_questions,
                        CASE WHEN s.completed_at IS NULL THEN 'pending' ELSE 'completed' END AS status
                 FROM ai_practice_sessions s
                 LEFT JOIN latest ON latest.session_id = s.id
@@ -1409,7 +1424,11 @@ def get_ai_practice_history(*, item_number: str, limit: int = 100) -> list:
     """Historique consultable d'un ITEM, questions et réponses incluses."""
     with _conn() as con:
         sessions = con.execute(
-            "SELECT id, created_at, practice_kind, model, difficulty, score_percent FROM ai_practice_sessions WHERE item_number = ? ORDER BY id DESC LIMIT ?",
+            """SELECT id, created_at, completed_at, practice_kind, model, difficulty,
+                      score_percent
+               FROM ai_practice_sessions
+               WHERE item_number = ?
+               ORDER BY id DESC LIMIT ?""",
             (item_number, limit),
         ).fetchall()
     history = []
@@ -1458,7 +1477,10 @@ def finalize_ai_practice_session(session_id: int) -> dict | None:
             """SELECT a.* FROM ai_practice_attempts a
                JOIN (
                  SELECT question_id, MAX(id) AS max_id
-                 FROM ai_practice_attempts WHERE session_id = ? GROUP BY question_id
+                 FROM ai_practice_attempts
+                 WHERE session_id = ?
+                   AND TRIM(COALESCE(response, '')) NOT IN ('', '[]')
+                 GROUP BY question_id
                ) latest ON latest.max_id = a.id
                WHERE a.session_id = ?""",
             (session_id, session_id),
@@ -1550,7 +1572,7 @@ def create_manual_planning_entry(
     if duration <= 0:
         raise ValueError("La durée doit être positive")
     date_iso = entry_date.isoformat() if isinstance(entry_date, datetime.date) else str(entry_date)
-    created_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    created_at = datetime.datetime.now(datetime.UTC).isoformat()
     with _conn() as con:
         cursor = con.execute(
             """INSERT INTO manual_planning_entries
@@ -1763,9 +1785,9 @@ def add_weak_point(
     detail: str,
     course_title: str = "",
     item_number: str = "",
-    category: Optional[str] = None,
+    category: str | None = None,
     severity: int = 2,
-    source_session_id: Optional[int] = None,
+    source_session_id: int | None = None,
 ) -> int:
     """Enregistre un point faible. Retourne l'id inséré."""
     now = _now()
@@ -1927,10 +1949,10 @@ def add_weak_point_full(
     detail: str,
     course_title: str = "",
     item_number: str = "",
-    category: Optional[str] = None,
+    category: str | None = None,
     severity: int = 2,
     source_type: str = "manuel",
-    source_session_id: Optional[int] = None,
+    source_session_id: int | None = None,
 ) -> int:
     """
     Ajoute une lacune avec tous les champs Phase D.
@@ -1952,7 +1974,7 @@ def add_weak_point_full(
 
 
 def get_all_weak_points_table(
-    status_filter: Optional[str] = None,
+    status_filter: str | None = None,
     limit: int = 200,
 ) -> list:
     """
@@ -2091,14 +2113,14 @@ def add_qcm_session_full(
     course_title: str = "",
     item_number: str = "",
     session_type: str = "QCM",
-    score_raw: Optional[str] = None,
-    score_percent: Optional[float] = None,
-    total_questions: Optional[int] = None,
-    correct_answers: Optional[int] = None,
-    wrong_answers: Optional[int] = None,
-    difficulty: Optional[str] = None,
-    error_types: Optional[list] = None,
-    comments: Optional[str] = None,
+    score_raw: str | None = None,
+    score_percent: float | None = None,
+    total_questions: int | None = None,
+    correct_answers: int | None = None,
+    wrong_answers: int | None = None,
+    difficulty: str | None = None,
+    error_types: list | None = None,
+    comments: str | None = None,
 ) -> int:
     """
     Enregistre un résultat QCM complet (Phase C).
@@ -2141,8 +2163,8 @@ def add_qcm_session_full(
 
 def get_qcm_sessions_all(
     limit: int = 100,
-    platform: Optional[str] = None,
-    course_id: Optional[str] = None,
+    platform: str | None = None,
+    course_id: str | None = None,
 ) -> list:
     """Retourne les sessions QCM triées du plus récent au plus ancien."""
     with _conn() as con:
@@ -2495,7 +2517,7 @@ def _migrate_weak_points_obsidian() -> None:
 
 # ── API Obsidian — weak_points ────────────────────────────────────────────────
 
-def get_weak_point_by_synapse_id(synapse_id: str) -> Optional[sqlite3.Row]:
+def get_weak_point_by_synapse_id(synapse_id: str) -> sqlite3.Row | None:
     """Retourne la lacune dont le synapse_id correspond, ou None."""
     with _conn() as con:
         return con.execute(
@@ -2518,8 +2540,8 @@ def upsert_weak_point_from_obsidian(
     course_title: str,
     item_number: str,
     raw_frontmatter: str,
-    created_at: Optional[str] = None,
-    resolved_at: Optional[str] = None,
+    created_at: str | None = None,
+    resolved_at: str | None = None,
 ) -> int:
     """
     Insert or update une lacune provenant d'Obsidian.
@@ -2621,7 +2643,7 @@ def get_review_history_by_course(course_id: str) -> list:
         ).fetchall()
 
 
-def get_bounded_week_stats(monday: "datetime.date", sunday: "datetime.date") -> dict:
+def get_bounded_week_stats(monday: datetime.date, sunday: datetime.date) -> dict:
     """
     Stats d'une semaine bornée (lundi → dimanche).
     Utilisé par la page 'Ma Progression' onglet Semaine.
@@ -2731,8 +2753,9 @@ def load_graph_from_db() -> dict:
     Recharge le graphe depuis SQLite.
     Retourne {source_id: [CourseEdge]}.
     """
-    from backend.core.graph.models import CourseEdge
     from collections import defaultdict
+
+    from backend.core.graph.models import CourseEdge
 
     with _conn() as con:
         rows = con.execute("SELECT * FROM course_edges").fetchall()
@@ -2751,7 +2774,7 @@ def get_sm2_effective_date(
     course_id: str,
     context: str,
     review_type: str,
-) -> Optional[datetime.date]:
+) -> datetime.date | None:
     """
     Retourne la date effective SM-2 calculée depuis la révision précédente.
 
@@ -2815,7 +2838,7 @@ def get_all_sm2_effective_dates() -> dict[tuple[str, str, str], datetime.date]:
         seen.add(key_prev)
 
         # Le type SUIVANT dans la séquence SM-2
-        next_type: Optional[str] = None
+        next_type: str | None = None
         for nxt, prv in _PREV_REVIEW_TYPE.items():
             if prv == row["review_type"]:
                 next_type = nxt
@@ -2911,8 +2934,8 @@ def check_and_propose_recurring_gaps(
     une proposition pending_gap_proposals.
     Retourne la liste des proposal IDs créés ou mis à jour.
     """
-    import json as _json
     import datetime as _dt
+    import json as _json
 
     if not item_number or not error_types:
         return []
@@ -3120,7 +3143,6 @@ def accept_gap_proposal(proposal_id: int, course_id: str = "") -> int:
         source_type="error_type_recurrence",
     )
 
-    now = _now()
     with _conn() as con:
         con.execute(
             "UPDATE weak_points SET status='récurrente', recurrence_count=? WHERE id=?",
@@ -3247,7 +3269,7 @@ def get_item_stats(limit: int = 300) -> list[dict]:
 
 # ── PDF Zéro-Friction : cache local ───────────────────────────────────────────
 
-def get_pdf_cache(course_id: str, context: str) -> Optional[str]:
+def get_pdf_cache(course_id: str, context: str) -> str | None:
     """
     Retourne le chemin du PDF mis en cache pour (course_id, context).
     Si pas de cache, retourne None.

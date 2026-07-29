@@ -6,11 +6,21 @@ import asyncio
 
 from nicegui import ui
 
-from backend.core.practice.models import PracticeDifficulty, PracticeKind, PracticeSessionSpec, QuestionKind
+from backend.core.practice.models import (
+    PracticeDifficulty,
+    PracticeKind,
+    PracticeSessionSpec,
+    QuestionKind,
+)
 from backend.core.practice.service import PracticeService
 from backend.core.reviews import local_store
 from frontend.components.practice_import_panel import open_practice_import_dialog
-from frontend.components.qcm_replay import _same_closed_answer, open_qcm_correction, open_qcm_session
+from frontend.components.qcm_replay import (
+    open_chained_dialog,
+    open_qcm_correction,
+    open_qcm_session,
+    session_action_keys,
+)
 
 
 def _item_number(course) -> str:
@@ -22,6 +32,7 @@ def _item_number(course) -> str:
 
 
 def _open_generation_dialog(course, refresh) -> None:
+    page_slot = ui.context.slot
     ui.add_head_html("""
     <style>
       .ai-practice-generation-card { border:1px solid var(--border); box-shadow:var(--shadow-popover); }
@@ -117,7 +128,10 @@ def _open_generation_dialog(course, refresh) -> None:
                 return
             dialog.close()
             if open_after_generation.value:
-                _open_answer_dialog(session_id, refresh)
+                open_chained_dialog(
+                    page_slot,
+                    lambda: _open_answer_dialog(session_id, refresh),
+                )
             ui.notify(f"Session IA #{session_id} enregistrée", type="positive")
 
         with ui.row().classes("justify-end gap-2 mt-5"):
@@ -128,20 +142,28 @@ def _open_generation_dialog(course, refresh) -> None:
 
 def _open_answer_dialog(session_id: int, refresh) -> None:
     """Open the resumable, step-based stored-session reader."""
+    page_slot = ui.context.slot
     # set_ai_practice_anchor remains available from the reader for stored questions.
     open_qcm_session(
         session_id,
-        on_complete=lambda completed_id: _open_correction_dialog(completed_id, refresh),
+        on_complete=lambda completed_id: open_chained_dialog(
+            page_slot,
+            lambda: _open_correction_dialog(completed_id, refresh),
+        ),
         on_back=lambda: None,
     )
 
 
 def _open_correction_dialog(session_id: int, refresh) -> None:
     """Open correction and route replayed sessions back into the step reader."""
+    page_slot = ui.context.slot
     open_qcm_correction(
         session_id,
-        on_back=refresh,
-        on_replay=lambda new_id: _open_answer_dialog(new_id, refresh),
+        on_back=lambda: open_chained_dialog(page_slot, refresh),
+        on_replay=lambda new_id: open_chained_dialog(
+            page_slot,
+            lambda: _open_answer_dialog(new_id, refresh),
+        ),
     )
 
 
@@ -161,32 +183,42 @@ def _render_history(item_number: str, refresh) -> None:
             PracticeDifficulty.CONCOURS.value: "Concours",
         }
         difficulty_label = difficulty_labels.get(session.get("difficulty", PracticeDifficulty.STANDARD.value), "Standard")
+        score = session.get("score_percent")
+        score_label = f" · Score {float(score):g} %" if score is not None else ""
         with ui.expansion(
             f"Session #{session['id']} · {session['practice_kind'].upper()} · "
-            f"{difficulty_label} · {len(questions)} questions · {attempted}/{len(questions)} répondues",
+            f"{difficulty_label} · {len(questions)} questions · "
+            f"{attempted}/{len(questions)} répondues{score_label}",
             icon="history",
         ).classes("w-full border-b border-slate-200 dark:border-slate-700"):
             with ui.row().classes("items-center gap-2 mb-2"):
                 ui.label(str(session["created_at"])[:16]).classes("text-xs text-slate-400")
                 ui.label(session["model"] or "modèle inconnu").classes("text-xs font-mono text-slate-400")
-                ui.button("Répondre", on_click=lambda sid=session["id"]: _open_answer_dialog(sid, refresh)).props(
-                    "flat dense color=primary"
-                )
-                if session.get("completed_at"):
+                actions = session_action_keys(session)
+                if "resume" in actions:
+                    ui.button(
+                        "Reprendre",
+                        on_click=lambda sid=session["id"]: _open_answer_dialog(sid, refresh),
+                    ).props("flat dense color=primary")
+                if "correction" in actions:
                     ui.button("Voir la correction", on_click=lambda sid=session["id"]: _open_correction_dialog(sid, refresh)).props(
                         "flat dense color=primary"
                     )
-                ui.button("Rejouer exactement", on_click=lambda sid=session["id"]: _replay(sid, refresh)).props(
-                    "flat dense"
-                )
+                if "replay" in actions:
+                    ui.button("Rejouer exactement", on_click=lambda sid=session["id"]: _replay(sid, refresh)).props(
+                        "flat dense"
+                    )
             for question in questions:
                 with ui.card().classes("w-full p-3 mb-2 bg-slate-50 dark:bg-slate-900/40"):
                     ui.label(question["prompt"]).classes("text-sm font-medium whitespace-pre-wrap")
                     ui.label(f"Correction : {question['answer']}").classes("text-xs text-green-700 dark:text-green-400 mt-1")
                     ui.label(f"Explication : {question['explanation']}").classes("text-xs text-slate-500 whitespace-pre-wrap")
                     for attempt in question["attempts"]:
+                        duration = attempt.get("duration_seconds")
+                        duration_label = f" · {duration} s" if duration is not None else ""
                         ui.label(
-                            f"Réponse du {str(attempt['answered_at'])[:16]} : {attempt['response'] or '—'}"
+                            f"Réponse du {str(attempt['answered_at'])[:16]}{duration_label} : "
+                            f"{attempt['response'] or '—'}"
                         ).classes("text-xs text-blue-700 dark:text-blue-300 mt-2")
 
 

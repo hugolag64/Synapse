@@ -14,8 +14,7 @@ from backend.core.practice.models import (
 )
 from backend.core.practice.service import PracticeGenerationError, PracticeService
 from backend.core.reviews import local_store
-from frontend.components.ai_practice_panel import _same_closed_answer
-from frontend.components.qcm_replay import save_response_once
+from frontend.components.qcm_replay import _same_closed_answer, save_response_once
 
 
 @pytest.fixture()

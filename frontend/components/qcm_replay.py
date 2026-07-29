@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from collections.abc import Callable
 
@@ -15,11 +16,57 @@ def _norm(value: str) -> str:
     return re.sub(r"\s+", " ", str(value or "").strip().lower())
 
 
+def _has_response(value: str) -> bool:
+    text = str(value or "").strip()
+    if not text:
+        return False
+    try:
+        parsed = json.loads(text)
+    except (TypeError, ValueError):
+        return True
+    return any(str(item).strip() for item in parsed) if isinstance(parsed, list) else True
+
+
+def _closed_response_values(value: str, choices: list[str]) -> list[str]:
+    text = str(value or "").strip()
+    if not text:
+        return []
+    try:
+        parsed = json.loads(text)
+    except (TypeError, ValueError):
+        parsed = None
+    if isinstance(parsed, list):
+        return [str(item).strip() for item in parsed if str(item).strip()]
+    if any(_norm(text) == _norm(choice) for choice in choices):
+        return [text]
+    return [part.strip() for part in re.split(r"[,;|/]", text) if part.strip()]
+
+
+def serialize_closed_response(selected_choices: list[str]) -> str:
+    """Persist selected labels without losing commas contained in a choice."""
+    selected = [str(choice).strip() for choice in selected_choices if str(choice).strip()]
+    return json.dumps(selected, ensure_ascii=False) if selected else ""
+
+
+def deserialize_closed_response(response: str, choices: list[str]) -> list[str]:
+    """Restore JSON responses and legacy delimiter-separated response strings."""
+    restored = []
+    for value in _closed_response_values(response, choices):
+        normalized = _norm(value)
+        match = next((choice for choice in choices if normalized == _norm(choice)), None)
+        if match is None and len(normalized) == 1:
+            index = ord(normalized) - ord("a")
+            if 0 <= index < len(choices):
+                match = choices[index]
+        if match is not None and match not in restored:
+            restored.append(match)
+    return restored
+
+
 def _same_closed_answer(response: str, answer: str, choices: list[str]) -> bool:
     def _tokens(value: str) -> set[str]:
-        raw_tokens = [part for part in re.split(r"[,;|/]", str(value or "")) if part.strip()]
         result = set()
-        for token in raw_tokens:
+        for token in _closed_response_values(value, choices):
             normalized = _norm(token)
             for index, choice in enumerate(choices):
                 letter = chr(ord("a") + index)
@@ -29,17 +76,8 @@ def _same_closed_answer(response: str, answer: str, choices: list[str]) -> bool:
             result.add(normalized)
         return result
 
-    response_norm = _norm(response)
-    answer_norm = _norm(answer)
-    if response_norm == answer_norm or _tokens(response) == _tokens(answer):
-        return True
-    for index, choice in enumerate(choices):
-        letter = chr(ord("a") + index)
-        if response_norm == letter and (answer_norm == letter or response_norm == _norm(choice)):
-            return True
-        if response_norm == _norm(choice) and answer_norm in {letter, _norm(choice)}:
-            return True
-    return False
+    response_tokens = _tokens(response)
+    return bool(response_tokens) and response_tokens == _tokens(answer)
 
 
 def _is_open(question: dict) -> bool:
@@ -49,9 +87,12 @@ def _is_open(question: dict) -> bool:
 def build_question_result(question: dict, latest_attempt: dict | None) -> dict:
     choices = list(question.get("choices") or [])
     is_open = _is_open(question)
-    response = "" if latest_attempt is None else str(latest_attempt.get("response") or "")
+    raw_response = "" if latest_attempt is None else str(latest_attempt.get("response") or "")
+    response = raw_response
+    if not is_open and raw_response.lstrip().startswith("["):
+        response = ", ".join(deserialize_closed_response(raw_response, choices))
     explicit_status = None if latest_attempt is None else latest_attempt.get("is_correct")
-    if latest_attempt is None:
+    if latest_attempt is None or not _has_response(raw_response):
         status = "unanswered"
     elif explicit_status is not None:
         status = "correct" if bool(explicit_status) else "incorrect"
@@ -71,7 +112,11 @@ def build_question_result(question: dict, latest_attempt: dict | None) -> dict:
 
 
 def _latest_attempt(question: dict) -> dict | None:
-    attempts = question.get("attempts") or []
+    attempts = [
+        attempt
+        for attempt in question.get("attempts") or []
+        if _has_response(attempt.get("response", ""))
+    ]
     if not attempts:
         return None
     with_ids = [attempt for attempt in attempts if attempt.get("id") is not None]
@@ -90,6 +135,8 @@ def save_response_once(
     persisted_responses: dict[int, str], question_id: int, response: str, save: Callable[[], None]
 ) -> bool:
     """Persist a response only when it differs from the last saved value."""
+    if not _has_response(response):
+        return False
     if question_id in persisted_responses and persisted_responses[question_id] == response:
         return False
     save()
@@ -160,6 +207,26 @@ def replay_qcm_session(session_id: int) -> int | None:
     except Exception as exc:
         ui.notify(str(exc), type="negative")
         return None
+
+
+def session_action_keys(session: dict) -> tuple[str, ...]:
+    """Return only the actions valid for a pending or completed session."""
+    if session.get("status") == "completed" or session.get("completed_at") is not None:
+        return ("correction", "replay")
+    return ("resume",)
+
+
+def open_chained_dialog(
+    parent_slot,
+    open_next: Callable[[], None],
+    *,
+    refresh: Callable[[], None] | None = None,
+) -> None:
+    """Open a chained dialog under a stable slot after any caller refresh."""
+    if refresh is not None:
+        refresh()
+    with parent_slot:
+        open_next()
 
 
 def open_qcm_correction(
@@ -266,7 +333,7 @@ def open_qcm_session(
         def _response(question: dict, control) -> str:
             if _is_open(question):
                 return str(control.value or "").strip()
-            return ", ".join(choice for choice, box in control if box.value)
+            return serialize_closed_response([choice for choice, box in control if box.value])
 
         def _save(question: dict, response: str) -> None:
             is_open = _is_open(question)
@@ -305,7 +372,12 @@ def open_qcm_session(
                         "outlined autogrow"
                     ).classes("w-full")
                 else:
-                    selected = {_norm(value) for value in answers[question["id"]].split(",") if value.strip()}
+                    selected = {
+                        _norm(value)
+                        for value in deserialize_closed_response(
+                            answers[question["id"]], question.get("choices") or []
+                        )
+                    }
                     control = [
                         (choice, ui.checkbox(choice, value=_norm(choice) in selected).props("dense"))
                         for choice in question.get("choices") or []

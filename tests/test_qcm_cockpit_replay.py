@@ -119,3 +119,79 @@ def test_cockpit_keeps_pending_start_and_new_qcm_entry_actions():
     assert "Commencer" in source
     assert "Nouvelle session" in source
     assert "QCM_ENTRY_LABEL" in source
+
+
+def test_selected_session_actions_are_gated_by_completion_state():
+    """Completed sessions cannot be edited in place; pending sessions cannot expose correction."""
+    from frontend.pages import qcm_cockpit
+
+    assert qcm_cockpit._session_action_keys({"status": "pending"}) == ("resume",)
+    assert qcm_cockpit._session_action_keys({"status": "completed"}) == (
+        "correction",
+        "replay",
+    )
+
+
+def test_replay_history_uses_one_bounded_aggregate_query(cockpit_practice_db):
+    """History search must not hydrate every candidate session and its attempts."""
+    from frontend.pages import qcm_cockpit
+
+    empty_session = local_store.create_ai_practice_session(
+        spec=_stored_qcm_spec("Empty", "100"),
+        questions=[],
+        model="test-model",
+    )
+    expected_ids = []
+    for index in range(6):
+        session_id = local_store.create_ai_practice_session(
+            spec=_stored_qcm_spec(f"Course {index}", str(200 + index)),
+            questions=[_stored_question()],
+            model="test-model",
+        )
+        expected_ids.append(session_id)
+
+    statements = []
+    local_store._DB.set_trace_callback(statements.append)
+    try:
+        history = qcm_cockpit._get_replayable_history(limit=3)
+    finally:
+        local_store._DB.set_trace_callback(None)
+
+    history_queries = [
+        statement
+        for statement in statements
+        if "ai_practice_sessions" in statement.lower()
+        and statement.lstrip().lower().startswith(("select", "with"))
+    ]
+    assert [row["id"] for row in history] == list(reversed(expected_ids[-3:]))
+    assert empty_session not in {row["id"] for row in history}
+    assert all(row["has_questions"] == 1 for row in history)
+    assert len(history_queries) == 1
+
+
+def test_history_rows_include_score_and_available_duration(cockpit_practice_db):
+    from frontend.pages import qcm_cockpit
+
+    session_id = local_store.create_ai_practice_session(
+        spec=_stored_qcm_spec("Cardiology", "115"),
+        questions=[_stored_question()],
+        model="test-model",
+    )
+    question_id = local_store.get_ai_practice_session(session_id)[0]["id"]
+    local_store.record_ai_practice_attempt(
+        session_id=session_id,
+        question_id=question_id,
+        response="A",
+        is_correct=True,
+        score_percent=100,
+        duration_seconds=95,
+        finalize_session=False,
+    )
+    local_store.finalize_ai_practice_session(session_id)
+
+    session = qcm_cockpit._get_replayable_history(limit=1)[0]
+
+    assert session["duration_seconds"] == 95
+    assert qcm_cockpit._history_metadata(session) == (
+        "ITEM 115 · QCM · 1/1 répondues · Score 100 % · 1 min 35 s"
+    )

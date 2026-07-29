@@ -28,7 +28,15 @@ from backend.state.store import data_store
 from frontend.components.ai_practice_panel import _open_generation_dialog
 from frontend.components.mastery_indicator import _LEVEL_COLOR, _level_from_score
 from frontend.components.practice_import_panel import open_practice_import_dialog
-from frontend.components.qcm_replay import open_qcm_correction, open_qcm_session, replay_qcm_session
+from frontend.components.qcm_replay import (
+    open_chained_dialog,
+    open_qcm_correction,
+    open_qcm_session,
+    replay_qcm_session,
+)
+from frontend.components.qcm_replay import (
+    session_action_keys as _session_action_keys,
+)
 from frontend.pages.qcm import (
     _ADD_DIALOG_CSS,
     _build_item_college_map,
@@ -46,7 +54,11 @@ HISTORY_STATUS_OPTIONS = {
 
 def _pending_ai_sessions(rows: list) -> list:
     """Retourne les sessions IA encore à faire, avant leur premier score."""
-    return [row for row in rows if row["score_percent"] is None]
+    return [
+        row
+        for row in rows
+        if row["score_percent"] is None and row.get("completed_at") is None
+    ]
 
 
 def _filter_item_picker_options(courses, query: str = "", limit: int = 8):
@@ -60,6 +72,46 @@ def _filter_item_picker_options(courses, query: str = "", limit: int = 8):
         if len(matches) >= limit:
             break
     return matches
+
+
+def _format_duration(duration_seconds: int | None) -> str:
+    if duration_seconds is None:
+        return ""
+    minutes, seconds = divmod(max(0, int(duration_seconds)), 60)
+    if minutes and seconds:
+        return f"{minutes} min {seconds} s"
+    if minutes:
+        return f"{minutes} min"
+    return f"{seconds} s"
+
+
+def _history_metadata(session: dict) -> str:
+    parts = [
+        f"ITEM {session.get('item_number') or '—'}",
+        str(session.get("practice_kind") or "QCM").upper(),
+        f"{session.get('answered_count', 0)}/{session.get('total_questions', 0)} répondues",
+    ]
+    score = session.get("score_percent")
+    if score is not None:
+        parts.append(f"Score {float(score):g} %")
+    duration = _format_duration(session.get("duration_seconds"))
+    if duration:
+        parts.append(duration)
+    return " · ".join(parts)
+
+
+def _get_replayable_history(
+    *, limit: int = 100, query: str = "", status: str = "all"
+) -> list[dict]:
+    return [
+        session
+        for session in local_store.get_ai_practice_sessions_history(
+            limit=limit,
+            query=query,
+            status=status,
+        )
+        if session.get("has_questions")
+    ]
 
 
 def _open_ai_generation_picker(refresh) -> None:
@@ -195,6 +247,7 @@ QCM_COCKPIT_CSS = _CSS + _ADD_DIALOG_CSS
 
 
 def render_qcm_cockpit() -> None:
+    page_slot = ui.context.slot
     ui.add_head_html(f"<style>{QCM_COCKPIT_CSS}</style>", shared=True)
 
     college_map = _build_item_college_map()
@@ -303,31 +356,43 @@ def render_qcm_cockpit() -> None:
             for g in groups:
                 _draw_row(g)
 
-    def _open_selected_session(session_id: int) -> None:
-        selected_session["id"] = session_id
+    def _show_session(session_id: int) -> None:
         open_qcm_session(
             session_id,
             on_complete=_after_session_completion,
-            on_back=_render,
+            on_back=lambda: open_chained_dialog(page_slot, _render),
         )
 
-    def _after_session_completion(session_id: int) -> None:
-        selected_session["id"] = session_id
-        _render()
-        _open_selected_correction(session_id)
-
-    def _open_selected_correction(session_id: int) -> None:
-        selected_session["id"] = session_id
+    def _show_correction(session_id: int) -> None:
         open_qcm_correction(
             session_id,
-            on_back=_render,
+            on_back=lambda: open_chained_dialog(page_slot, _render),
             on_replay=_select_replayed_session,
         )
 
+    def _open_selected_session(session_id: int) -> None:
+        selected_session["id"] = session_id
+        open_chained_dialog(page_slot, lambda: _show_session(session_id))
+
+    def _after_session_completion(session_id: int) -> None:
+        selected_session["id"] = session_id
+        open_chained_dialog(
+            page_slot,
+            lambda: _show_correction(session_id),
+            refresh=_render,
+        )
+
+    def _open_selected_correction(session_id: int) -> None:
+        selected_session["id"] = session_id
+        open_chained_dialog(page_slot, lambda: _show_correction(session_id))
+
     def _select_replayed_session(session_id: int) -> None:
         selected_session["id"] = session_id
-        _render()
-        _open_selected_session(session_id)
+        open_chained_dialog(
+            page_slot,
+            lambda: _show_session(session_id),
+            refresh=_render,
+        )
 
     def _replay_selected_session(session_id: int) -> None:
         new_id = replay_qcm_session(session_id)
@@ -352,10 +417,7 @@ def render_qcm_cockpit() -> None:
                     on_click=lambda _e=None, sid=session_id: _select_history_session(sid)
                 ).props("flat no-caps align=left").classes(f"qc-history-row{active_class}"):
                     ui.label(session["course_title"] or "Session IA").classes("qc-course-title")
-                    ui.label(
-                        f"ITEM {session['item_number'] or '—'} · {str(session['practice_kind'] or 'QCM').upper()} · "
-                        f"{session['answered_count']}/{session['total_questions']} répondues"
-                    ).classes("qc-history-meta")
+                    ui.label(_history_metadata(session)).classes("qc-history-meta")
 
     def _render_selected_session(sessions: list[dict]) -> None:
         selected_col.clear()
@@ -376,27 +438,32 @@ def render_qcm_cockpit() -> None:
                 "qc-selected-meta"
             )
             with ui.row().classes("gap-2 flex-wrap mt-2"):
-                ui.button("Reprendre", icon="play_arrow", on_click=lambda sid=selected["id"]: _open_selected_session(sid)).props(
-                    "flat color=primary"
-                )
-                ui.button("Voir la correction", icon="fact_check", on_click=lambda sid=selected["id"]: _open_selected_correction(sid)).props(
-                    "flat color=primary"
-                )
-                ui.button("Rejouer", icon="replay", on_click=lambda sid=selected["id"]: _replay_selected_session(sid)).props(
-                    "flat"
-                )
+                actions = _session_action_keys(selected)
+                if "resume" in actions:
+                    ui.button(
+                        "Reprendre",
+                        icon="play_arrow",
+                        on_click=lambda sid=selected["id"]: _open_selected_session(sid),
+                    ).props("flat color=primary")
+                if "correction" in actions:
+                    ui.button(
+                        "Voir la correction",
+                        icon="fact_check",
+                        on_click=lambda sid=selected["id"]: _open_selected_correction(sid),
+                    ).props("flat color=primary")
+                if "replay" in actions:
+                    ui.button(
+                        "Rejouer",
+                        icon="replay",
+                        on_click=lambda sid=selected["id"]: _replay_selected_session(sid),
+                    ).props("flat")
 
     def _replayable_history() -> list[dict]:
-        candidates = local_store.get_ai_practice_sessions_history(
+        return _get_replayable_history(
             limit=100,
             query=str(history_search.value or ""),
             status=str(history_filter.value or "all"),
         )
-        return [
-            session
-            for session in candidates
-            if local_store.get_ai_practice_session(int(session["id"]))
-        ]
 
     def _render_workspace() -> None:
         sessions = _replayable_history()

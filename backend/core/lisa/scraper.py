@@ -106,7 +106,8 @@ def scrape_oic(course_title: str, item_number: str = "") -> list[dict]:
     params = {
         "action":     "query",
         "generator":  "allpages",
-        "gapprefix":  f"OIC-{item_int}-",
+        # Les titres LiSA sont normalisés sur trois chiffres (OIC-095-01-A).
+        "gapprefix":  f"OIC-{item_int:03d}-",
         "gaplimit":   "100",
         "prop":       "revisions",
         "rvprop":     "content",

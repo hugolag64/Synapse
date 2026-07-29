@@ -107,7 +107,7 @@ def _open_generation_dialog(course, refresh) -> None:
         async def _generate() -> None:
             try:
                 spec = PracticeSessionSpec(
-                    practice_kind=PracticeKind(str(kind.value).lower()),
+                    practice_kind=PracticeKind(str(kind.value).upper()),
                     total_questions=int(total.value or 0),
                     open_questions=int(opened.value or 0),
                     closed_questions=int(total.value or 0) - int(opened.value or 0),

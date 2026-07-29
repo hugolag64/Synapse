@@ -9,6 +9,14 @@ def test_qcm_cockpit_entry_uses_a_plain_action_label():
     assert "+" not in qcm_cockpit.QCM_ENTRY_LABEL
 
 
+def test_qcm_cockpit_exposes_ai_generation_entry():
+    import inspect
+
+    source = inspect.getsource(qcm_cockpit.render_qcm_cockpit)
+    assert "Générer avec IA" in source
+    assert "_open_ai_generation_picker" in source
+
+
 def test_qcm_add_dialog_has_cockpit_scoped_linear_tokens():
     assert ".qcm-add-dialog-card" in qcm_page._ADD_DIALOG_CSS
     assert "var(--accent)" in qcm_page._ADD_DIALOG_CSS

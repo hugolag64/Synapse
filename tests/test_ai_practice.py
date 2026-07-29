@@ -58,6 +58,15 @@ def test_generation_dialog_uses_compact_centered_linear_controls():
     assert "total_value_chip" in source
 
 
+def test_generation_dialog_normalizes_qcm_toggle_value_to_enum():
+    import inspect
+
+    from frontend.components import ai_practice_panel
+
+    source = inspect.getsource(ai_practice_panel._open_generation_dialog)
+    assert "PracticeKind(str(kind.value).upper())" in source
+
+
 def test_closed_qcm_accepts_multiple_correct_choices_in_any_order():
     choices = ["HTA", "Tabac", "Âge"]
     assert _same_closed_answer("Tabac, HTA", "A, B", choices)

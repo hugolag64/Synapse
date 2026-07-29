@@ -22,8 +22,10 @@ from __future__ import annotations
 
 from nicegui import ui
 
-from backend.core.reviews import local_store
 from backend.core.qcm.service import QCM_PASS_THRESHOLD
+from backend.core.reviews import local_store
+from backend.state.store import data_store
+from frontend.components.ai_practice_panel import _open_generation_dialog
 from frontend.components.mastery_indicator import _LEVEL_COLOR, _level_from_score
 from frontend.components.practice_import_panel import open_practice_import_dialog
 from frontend.pages.qcm import (
@@ -31,6 +33,51 @@ from frontend.pages.qcm import (
 )
 
 QCM_ENTRY_LABEL = "Saisir un résultat"
+
+
+def _open_ai_generation_picker(refresh) -> None:
+    """Choisit un ITEM avant d'ouvrir le réglage de session IA partagé."""
+    courses = []
+    seen = set()
+    for course in getattr(data_store, "cours", []) or []:
+        item_number = str(getattr(course, "item_number", "") or "").strip()
+        if not item_number or item_number in seen:
+            continue
+        seen.add(item_number)
+        courses.append((item_number, course))
+    courses.sort(key=lambda row: int(row[0]) if row[0].isdigit() else row[0])
+    if not courses:
+        ui.notify("Aucun ITEM disponible pour générer une session", type="warning")
+        return
+
+    options = {
+        item_number: f"ITEM {item_number} — {getattr(course, 'title', '') or 'Cours sans titre'}"
+        for item_number, course in courses
+    }
+    by_item = {item_number: course for item_number, course in courses}
+    with ui.dialog() as picker, ui.card().classes("w-[560px] max-w-[95vw] p-5").style(
+        "border-radius: 10px;"
+    ):
+        ui.label("Générer avec IA").classes("text-lg font-semibold")
+        ui.label("Choisis l’ITEM qui servira de contexte à la session.").classes(
+            "text-xs text-slate-500 mb-4"
+        )
+        item_select = ui.select(options, value=courses[0][0], label="ITEM").props(
+            "outlined use-input options-dense"
+        ).classes("w-full")
+
+        def _continue() -> None:
+            course = by_item.get(str(item_select.value))
+            if course is None:
+                ui.notify("Sélectionne un ITEM", type="warning")
+                return
+            picker.close()
+            _open_generation_dialog(course, refresh)
+
+        with ui.row().classes("justify-end gap-2 mt-5"):
+            ui.button("Annuler", on_click=picker.close).props("flat")
+            ui.button("Continuer", on_click=_continue).props("color=primary unelevated")
+    picker.open()
 
 _CSS = """
 .qc-wrap { max-width:1100px; width:100%; }
@@ -97,6 +144,10 @@ def render_qcm_cockpit() -> None:
                 with import_btn:
                     ui.label("Importer QCM / DP / KFP")
                 import_btn.on("click", lambda: open_practice_import_dialog(_render))
+                generate_btn = ui.element("div").classes("qc-btn-primary")
+                with generate_btn:
+                    ui.label("Générer avec IA")
+                generate_btn.on("click", lambda: _open_ai_generation_picker(_render))
                 btn = ui.element("div").classes("qc-btn-primary")
                 with btn:
                     ui.label(QCM_ENTRY_LABEL)

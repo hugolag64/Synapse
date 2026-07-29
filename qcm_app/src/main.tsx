@@ -1,4 +1,5 @@
 import { Component, useEffect, useMemo, useState } from 'react'
+import { createRoot } from 'react-dom/client'
 import { completeSession, fetchSession, replaySession, saveAttempt } from './api'
 import type { CorrectionPayload, CorrectionRow, SessionPayload } from './types'
 import './styles.css'
@@ -104,3 +105,7 @@ function App() {
 export default function Root() {
   return <RenderBoundary><App /></RenderBoundary>
 }
+
+const root = document.getElementById('root')
+if (!root) throw new Error('Point de montage QCM introuvable')
+createRoot(root).render(<Root />)

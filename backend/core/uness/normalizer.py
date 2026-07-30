@@ -184,6 +184,24 @@ def _link_images(question: UnessQuestion, copied_media: dict[str, str]) -> Uness
 
 def normalize_artifact(artifact: RawUnessArtifact, metadata: ExamMetadata) -> UnessExam:
     """Normalize captured local content, preserving source provenance and visual files."""
+    required_metadata = {
+        "faculty": metadata.faculte,
+        "level": metadata.niveau,
+        "title": metadata.titre,
+    }
+    for field_name, value in required_metadata.items():
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"{field_name} est requis")
+    if metadata.annee is None or isinstance(metadata.annee, bool):
+        raise ValueError("year est requis et doit être un entier")
+    artifact_url = artifact.source_url.strip()
+    if not artifact_url or artifact_url != metadata.source_url.strip():
+        raise ValueError("source_url de l'artéfact et des métadonnées doit correspondre")
+    if not artifact.collected_at.strip():
+        raise ValueError("collected_at est requis")
+    if not artifact.collection_status.strip():
+        raise ValueError("collection_status est requis")
+
     root = artifact.artifact_root or Path("data") / "uness" / "artifacts"
     directory = Path(root) / _slug(metadata.titre)
     copied_media = _copy_media(artifact.media, directory)
@@ -202,7 +220,9 @@ def normalize_artifact(artifact: RawUnessArtifact, metadata: ExamMetadata) -> Un
         questions=tuple(questions),
         provenance={
             "source": "UNESS",
-            "source_url": artifact.source_url,
+            "source_url": artifact_url,
+            "collected_at": artifact.collected_at.strip(),
+            "collection_status": artifact.collection_status.strip(),
             "contents": list(artifact.html_by_content),
         },
         metadata={"subject": metadata.matiere, "exam_type": metadata.type_epreuve},

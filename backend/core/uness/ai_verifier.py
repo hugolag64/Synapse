@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass, replace
-from typing import Any, Callable
+from typing import Any
 
 from backend.core.ai.routing import AITask
 
@@ -52,9 +53,18 @@ class VerificationContext:
         return replace(self, course_text=course_text.strip(), course_text_loader=None)
 
 
-def _prompt(question: UnessQuestion, context: VerificationContext) -> str:
+def _prompt(
+    question: UnessQuestion,
+    context: VerificationContext,
+    exam_context: dict[str, Any] | None = None,
+) -> str:
     propositions = "\n".join(
         f"- {proposition.id}: {proposition.texte}" for proposition in question.propositions
+    )
+    official_answers = "\n".join(
+        f"- {proposition.id}: "
+        f"{'vrai' if proposition.reponse_uness is True else 'faux' if proposition.reponse_uness is False else 'inconnu'}"
+        for proposition in question.propositions
     )
     refs = ", ".join([*context.item_refs, *context.external_refs]) or "aucune"
     source_notice = (
@@ -62,8 +72,31 @@ def _prompt(question: UnessQuestion, context: VerificationContext) -> str:
         if context.has_pedagogical_sources
         else "CONTEXTE LIMITÉ : aucune source pédagogique n'est disponible; indiquez cette limite."
     )
+    general_context = json.dumps(exam_context or {}, ensure_ascii=False, sort_keys=True)
+    question_context = json.dumps(question.dp_context, ensure_ascii=False, sort_keys=True)
+    images = json.dumps(
+        [
+            {
+                "source_url": image.source_url,
+                "alt_text": image.alt_text,
+                "caption": image.caption,
+                "metadata": image.metadata,
+                "local_copy_available": bool(image.local_path),
+            }
+            for image in question.images
+        ],
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+    visual_warning = (
+        "Cette question est conservée comme support visuel uniquement : "
+        "l'interaction UNESS originale n'est pas reconstruite."
+        if question.support_visuel_seul
+        else "Interaction standard."
+    )
     return f"""Vérifie indépendamment chaque proposition d'une question UNESS.
-La correction officielle est informative uniquement : ne la recopie pas sans raisonnement.
+La correction officielle sert de comparaison non autoritative : produis d'abord ton
+raisonnement indépendant, puis signale toute divergence sans la résoudre silencieusement.
 Retourne exclusivement un objet JSON avec la clé `propositions`, contenant exactement un
 résultat par identifiant de proposition. Chaque résultat doit contenir les clés : id,
 verdict_ia (booléen ou null), explication_ia (explication non vide), sources_ia (liste),
@@ -72,6 +105,12 @@ confiance_ia (nombre), commentaire_desaccord (chaîne, vide seulement sans désa
 Question {question.id} ({question.type_question}) : {question.enonce}
 Propositions :
 {propositions}
+Correction officielle UNESS (comparaison non autoritative) :
+{official_answers}
+Contexte général du dossier : {general_context}
+Contexte de cette question : {question_context}
+Métadonnées des images : {images}
+Contrainte visuelle : {visual_warning}
 Références d'items ou externes : {refs}
 Contexte : {source_notice}"""
 
@@ -106,7 +145,7 @@ def _status(official: bool | None, verdict: bool | None) -> str:
 def _result_by_id(payload: dict[str, Any], question: UnessQuestion) -> dict[str, dict[str, Any]]:
     results: dict[str, dict[str, Any]] = {}
     for result in payload["propositions"]:
-        if not isinstance(result, dict) or not _REQUIRED_RESULT_KEYS <= result.keys():
+        if not isinstance(result, dict) or not result.keys() >= _REQUIRED_RESULT_KEYS:
             raise ValueError("résultat IA incomplet")
         identifier = result["id"]
         if not isinstance(identifier, str) or identifier in results:
@@ -155,13 +194,17 @@ def _verified_proposition(
 
 
 def verify_question(
-    question: UnessQuestion, context: VerificationContext, ai_service: Any
+    question: UnessQuestion,
+    context: VerificationContext,
+    ai_service: Any,
+    *,
+    exam_context: dict[str, Any] | None = None,
 ) -> UnessQuestion:
     """Return a verified copy; the official UNESS answer is never changed."""
     resolved_context = context.with_loaded_course_text()
     response = ai_service.generate(
         AITask.QCM,
-        _prompt(question, resolved_context),
+        _prompt(question, resolved_context, exam_context),
         context=resolved_context.course_text or None,
         response_format="json",
     )
@@ -181,6 +224,12 @@ def verify_exam(exam: UnessExam, context: VerificationContext, ai_service: Any) 
     return replace(
         exam,
         questions=tuple(
-            verify_question(question, resolved_context, ai_service) for question in exam.questions
+            verify_question(
+                question,
+                resolved_context,
+                ai_service,
+                exam_context=exam.dp_context,
+            )
+            for question in exam.questions
         ),
     )

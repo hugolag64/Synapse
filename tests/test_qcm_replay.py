@@ -173,6 +173,8 @@ def test_correction_rows_render_a_finished_two_out_of_three_session():
 def test_qcm_correction_discloses_official_uness_correction(monkeypatch):
     """Catches the NiceGUI correction view dropping the stored official UNESS answer."""
     labels = []
+    images = []
+    expansion_titles = []
 
     class Element:
         def __enter__(self):
@@ -210,6 +212,10 @@ def test_qcm_correction_discloses_official_uness_correction(monkeypatch):
             labels.append(str(text))
             return Element()
 
+        def image(self, source):
+            images.append(str(source))
+            return Element()
+
         def checkbox(self, *_args, **_kwargs):
             return Element()
 
@@ -217,6 +223,8 @@ def test_qcm_correction_discloses_official_uness_correction(monkeypatch):
             return Element()
 
         def expansion(self, *_args, **_kwargs):
+            if _args:
+                expansion_titles.append(str(_args[0]))
             return Element()
 
         def row(self):
@@ -235,6 +243,26 @@ def test_qcm_correction_discloses_official_uness_correction(monkeypatch):
         "correction": {
             "official": {"source": "UNESS", "answer": ["Réponse officielle"], "available": True}
         },
+        "uness": {
+            "question": {
+                "images": [
+                    {
+                        "source_url": "images/scan.png",
+                        "local_path": "imports/media/scan.png",
+                        "alt_text": "Scanner cérébral",
+                        "caption": "Coupe axiale",
+                    }
+                ],
+                "support_visuel_seul": True,
+            },
+            "propositions": [
+                {
+                    "id": "A",
+                    "statut": "desaccord",
+                    "commentaire_desaccord": "Le cours local contredit la correction officielle.",
+                }
+            ],
+        },
     }
     monkeypatch.setattr(qcm_replay, "ui", FakeUI())
     monkeypatch.setattr(qcm_replay.local_store, "get_ai_practice_session_summary", lambda _id: {
@@ -246,6 +274,14 @@ def test_qcm_correction_discloses_official_uness_correction(monkeypatch):
     qcm_replay.open_qcm_correction(4, on_back=lambda: None, on_replay=lambda _id: None)
 
     assert "Correction officielle UNESS : Réponse officielle" in labels
+    assert "Divergence avec la correction officielle UNESS" in labels
+    assert "Le cours local contredit la correction officielle." in labels
+    assert (
+        "Support visuel uniquement : l’interaction UNESS originale n’est pas reconstruite."
+        in labels
+    )
+    assert images == ["imports/media/scan.png"]
+    assert any("Divergence UNESS" in title for title in expansion_titles)
 
 
 def test_correction_summary_counts_answered_open_questions_without_marking_them_correct():

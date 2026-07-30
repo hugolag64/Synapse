@@ -12,8 +12,8 @@ from backend.core.reviews import local_store
 from backend.core.uness.ai_verifier import VerificationContext, verify_exam
 from backend.core.uness.artifacts import ExamMetadata, RawMedia, RawUnessArtifact
 from backend.core.uness.import_service import import_uness_exam
+from backend.core.uness.json_io import load_exam, save_exam
 from backend.core.uness.normalizer import normalize_artifact
-
 
 FIXTURE = Path(__file__).parent / "fixtures" / "uness" / "geriatry_review.html"
 
@@ -76,6 +76,8 @@ def test_geriatry_fixture_normalizes_verifies_and_imports_one_explained_session(
         source_url="https://entrainement.uness.fr/annales/course/view.php?id=29135",
         html_by_content={"nutrition": FIXTURE.read_text(encoding="utf-8")},
         media=[RawMedia("images/courbe-poids.png", b"fixture-image", "image/png", 1)],
+        collected_at="2026-07-30T09:15:00+02:00",
+        collection_status="complete",
         artifact_root=tmp_path / "artifacts",
     )
     metadata = ExamMetadata(
@@ -94,7 +96,10 @@ def test_geriatry_fixture_normalizes_verifies_and_imports_one_explained_session(
         VerificationContext("Critères locaux de dénutrition.", ["124"], []),
         FixtureAIService(),
     )
-    session_id = import_uness_exam(verified)
+    verified_json = tmp_path / "imports" / "geriatry-verified.json"
+    save_exam(verified, verified_json)
+    round_tripped = load_exam(verified_json)
+    session_id = import_uness_exam(round_tripped)
 
     sessions = local_store.get_ai_practice_sessions(limit=10)
     questions = local_store.get_ai_practice_session(session_id)
@@ -106,3 +111,4 @@ def test_geriatry_fixture_normalizes_verifies_and_imports_one_explained_session(
     assert all(proposition.explication_ia for proposition in propositions)
     assert all(proposition["explication_ia"] for proposition in questions[0]["uness"]["propositions"])
     assert all(proposition.explication_ia in questions[0]["explanation"] for proposition in propositions)
+    assert round_tripped.to_dict() == verified.to_dict()

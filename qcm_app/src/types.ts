@@ -1,8 +1,57 @@
+export type UnessImage = {
+  source_url: string
+  local_path: string
+  alt_text: string
+  caption: string
+  metadata?: Record<string, unknown>
+}
+
+export type UnessQuestionMetadata = {
+  exam?: {
+    faculty?: string
+    level?: string
+    year?: number
+    title?: string
+    dp_context?: Record<string, unknown>
+  }
+  question?: {
+    id?: string
+    type_question?: string
+    support_visuel_seul?: boolean
+    dp_context?: Record<string, unknown>
+    images?: UnessImage[]
+  }
+  propositions?: Array<{
+    id: string
+    statut: 'concordant' | 'desaccord' | 'incertain' | 'valide_manuellement' | string
+    commentaire_desaccord?: string
+  }>
+}
+
+export type CorrectionMetadata = {
+  primary?: {
+    source: 'ia' | 'uness' | 'validated' | string
+    answer: string[]
+    explanation?: string
+  }
+  official?: {
+    source: 'UNESS' | string
+    answer: string[]
+    available: boolean
+  }
+  disagreement?: {
+    present: boolean
+    comments: string[]
+  }
+}
+
 export type Question = {
   id: number
   prompt: string
   choices: string[]
   question_kind: 'closed' | 'open' | string
+  uness?: UnessQuestionMetadata
+  correction?: CorrectionMetadata
 }
 
 export type Session = {
@@ -27,6 +76,7 @@ export type CorrectionRow = {
   explanation: string
   choices: string[]
   question: Question
+  correction?: CorrectionMetadata
 }
 
 export type CorrectionPayload = {

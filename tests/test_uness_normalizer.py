@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from backend.core.uness.artifacts import ExamMetadata, RawMedia, RawUnessArtifact
 from backend.core.uness.normalizer import extract_review_content, normalize_artifact
-
 
 FIXTURE = Path(__file__).parent / "fixtures" / "uness" / "geriatry_review.html"
 
@@ -59,6 +60,8 @@ def test_normalize_artifact_copies_media_under_a_per_exam_directory(tmp_path) ->
                 question_number=1,
             )
         ],
+        collected_at="2026-07-30T09:15:00+02:00",
+        collection_status="complete",
         artifact_root=tmp_path,
     )
 
@@ -73,6 +76,8 @@ def test_normalize_artifact_copies_media_under_a_per_exam_directory(tmp_path) ->
     assert exam.provenance == {
         "source": "UNESS",
         "source_url": "https://entrainement.uness.example/course/review/42",
+        "collected_at": "2026-07-30T09:15:00+02:00",
+        "collection_status": "complete",
         "contents": ["nutrition"],
     }
 
@@ -96,6 +101,8 @@ def test_normalize_artifact_preserves_media_with_the_same_basename_from_differen
             RawMedia("images/a/scan.png", b"first", "image/png", question_number=1),
             RawMedia("images/b/scan.png", b"second", "image/png", question_number=1),
         ],
+        collected_at="2026-07-30T09:15:00+02:00",
+        collection_status="complete",
         artifact_root=tmp_path,
     )
 
@@ -119,3 +126,17 @@ def test_extract_review_content_sets_unknown_official_answer_when_no_correction_
     )
 
     assert questions[0].propositions[0].reponse_uness is None
+
+
+def test_normalize_artifact_rejects_a_metadata_url_that_does_not_match_the_capture() -> None:
+    """Catches an artifact being attributed to a different user-confirmed source URL."""
+    artifact = RawUnessArtifact(
+        source_url="https://entrainement.uness.example/course/review/99",
+        html_by_content={"nutrition": FIXTURE.read_text(encoding="utf-8")},
+        media=[],
+        collected_at="2026-07-30T09:15:00+02:00",
+        collection_status="complete",
+    )
+
+    with pytest.raises(ValueError, match="source_url"):
+        normalize_artifact(artifact, _metadata())

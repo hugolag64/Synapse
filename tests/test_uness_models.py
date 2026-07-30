@@ -1,11 +1,30 @@
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 
 import pytest
 
 from backend.core.uness.json_io import load_exam, save_exam
 from backend.core.uness.models import UnessExam, UnessProposition
+
+
+def _valid_exam_payload(**overrides) -> dict:
+    payload = {
+        "faculty": "Université Paris Cité",
+        "level": "DFASM3",
+        "year": 2026,
+        "title": "Gériatrie — dossier progressif",
+        "provenance": {
+            "source": "UNESS",
+            "source_url": "https://entrainement.uness.example/review/42",
+            "collected_at": "2026-07-30T09:15:00+02:00",
+            "collection_status": "complete",
+        },
+        "questions": [],
+    }
+    payload.update(overrides)
+    return payload
 
 
 def test_exam_round_trip_preserves_uness_correction_ai_verdict_and_visual_context(tmp_path) -> None:
@@ -15,7 +34,13 @@ def test_exam_round_trip_preserves_uness_correction_ai_verdict_and_visual_contex
         "level": "DFASM3",
         "year": 2026,
         "title": "Gériatrie — dossier progressif",
-        "provenance": {"source": "UNESS", "artifact_path": "imports/exam-42.json"},
+        "provenance": {
+            "source": "UNESS",
+            "source_url": "https://entrainement.uness.example/review/42",
+            "collected_at": "2026-07-30T09:15:00+02:00",
+            "collection_status": "complete",
+            "artifact_path": "imports/exam-42.json",
+        },
         "dp_context": {"patient": "Mme Martin, 86 ans", "step": 2},
         "questions": [
             {
@@ -68,7 +93,9 @@ def test_exam_round_trip_preserves_uness_correction_ai_verdict_and_visual_contex
 def test_exam_accepts_every_supported_question_type(type_question: str) -> None:
     """Catches validation that rejects one of the supported UNESS question kinds."""
     exam = UnessExam.from_dict(
-        {"questions": [{"id": "q1", "type_question": type_question, "enonce": "Question"}]}
+        _valid_exam_payload(
+            questions=[{"id": "q1", "type_question": type_question, "enonce": "Question"}]
+        )
     )
 
     assert exam.questions[0].type_question == type_question
@@ -78,8 +105,8 @@ def test_exam_rejects_unknown_status_and_question_type() -> None:
     """Catches imports that silently accept values downstream consumers cannot interpret."""
     with pytest.raises(ValueError, match="statut"):
         UnessExam.from_dict(
-            {
-                "questions": [
+            _valid_exam_payload(
+                questions=[
                     {
                         "id": "q1",
                         "type_question": "QRM",
@@ -87,29 +114,44 @@ def test_exam_rejects_unknown_status_and_question_type() -> None:
                         "propositions": [{"id": "A", "texte": "Réponse", "statut": "invalide"}],
                     }
                 ]
-            }
+            )
         )
 
     with pytest.raises(ValueError, match="type_question"):
         UnessExam.from_dict(
-            {"questions": [{"id": "q1", "type_question": "QCM", "enonce": "Question"}]}
+            _valid_exam_payload(
+                questions=[{"id": "q1", "type_question": "QCM", "enonce": "Question"}]
+            )
         )
 
 
 @pytest.mark.parametrize(
-    "sensitive_key", ["Credentials", "session-token", "localStorage", "COOKIE"]
+    "sensitive_key",
+    [
+        "Credentials",
+        "session-token",
+        "localStorage",
+        "sessionStorage",
+        "COOKIE",
+        "password",
+        "access_token",
+        "Authorization",
+        "api-key",
+    ],
 )
 def test_exam_rejects_sensitive_data_from_import_regardless_of_key_spelling(
     sensitive_key: str,
 ) -> None:
     """Catches an import path that stores credentials or browser-session data."""
     with pytest.raises(ValueError, match="sensible"):
-        UnessExam.from_dict({"metadata": {sensitive_key: "secret"}})
+        UnessExam.from_dict(
+            _valid_exam_payload(metadata={"nested": [{"browser": {sensitive_key: "secret"}}]})
+        )
 
 
 def test_save_exam_rejects_sensitive_data_on_directly_constructed_model(tmp_path) -> None:
     """Catches direct model construction bypassing loader-only secret validation."""
-    exam = UnessExam()
+    exam = UnessExam.from_dict(_valid_exam_payload())
     exam.metadata["Credentials"] = "secret"
     with pytest.raises(ValueError, match="sensible"):
         save_exam(exam, tmp_path / "exam.json")
@@ -118,7 +160,45 @@ def test_save_exam_rejects_sensitive_data_on_directly_constructed_model(tmp_path
 def test_direct_model_construction_rejects_sensitive_data() -> None:
     """Catches callers bypassing JSON import to place credentials in an exam."""
     with pytest.raises(ValueError, match="sensible"):
-        UnessExam(metadata={"Credentials": "secret"})
+        UnessExam.from_dict(_valid_exam_payload(metadata={"Credentials": "secret"}))
+
+
+@pytest.mark.parametrize(
+    ("field_path", "empty_value"),
+    [
+        (("faculty",), " "),
+        (("level",), ""),
+        (("year",), None),
+        (("title",), ""),
+        (("provenance", "source"), ""),
+        (("provenance", "source_url"), ""),
+        (("provenance", "collected_at"), ""),
+        (("provenance", "collection_status"), ""),
+    ],
+)
+def test_exam_rejects_missing_required_identity_and_provenance(
+    field_path: tuple[str, ...], empty_value,
+) -> None:
+    """Catches canonical artifacts that cannot prove their identity or collection origin."""
+    payload = deepcopy(_valid_exam_payload())
+    target = payload
+    for key in field_path[:-1]:
+        target = target[key]
+    target[field_path[-1]] = empty_value
+
+    with pytest.raises(ValueError, match=field_path[-1]):
+        UnessExam.from_dict(payload)
+
+
+def test_exam_rejects_source_url_with_embedded_access_token() -> None:
+    """Catches provenance URLs that accidentally retain browser authorization data."""
+    payload = _valid_exam_payload()
+    payload["provenance"]["source_url"] = (
+        "https://entrainement.uness.example/review/42?access_token=secret"
+    )
+
+    with pytest.raises(ValueError, match="source_url"):
+        UnessExam.from_dict(payload)
 
 
 def test_proposition_rejects_final_answer_without_manual_user_validation() -> None:

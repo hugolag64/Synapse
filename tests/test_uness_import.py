@@ -47,12 +47,29 @@ def _exam_payload() -> dict:
         "level": "DFASM3",
         "year": 2026,
         "title": "Gériatrie — examen vérifié",
-        "provenance": {"source": "UNESS", "artifact_path": "review/geriatry.json"},
+        "dp_context": {"text": "Une personne âgée présente une confusion aiguë."},
+        "provenance": {
+            "source": "UNESS",
+            "source_url": "https://entrainement.uness.example/review/42",
+            "collected_at": "2026-07-30T09:15:00+02:00",
+            "collection_status": "complete",
+            "artifact_path": "review/geriatry.json",
+        },
         "questions": [
             {
                 "id": "q-1",
                 "type_question": "QRM",
                 "enonce": "Concernant le delirium :",
+                "dp_context": {"step": 1, "text": "Les symptômes fluctuent dans la journée."},
+                "images": [
+                    {
+                        "source_url": "images/horloge.png",
+                        "local_path": "",
+                        "alt_text": "Horloge dessinée par le patient",
+                        "caption": "Test de l'horloge",
+                    }
+                ],
+                "support_visuel_seul": True,
                 "propositions": [
                     {
                         "id": "A",
@@ -106,7 +123,16 @@ def test_import_endpoint_creates_local_qcm_session_with_verified_correction(clie
     assert json.loads(question["answer"]) == ["Il est toujours irréversible.", "Il peut être fluctuant."]
     assert question["correction"]["primary"]["explanation"].startswith("A. Le delirium")
     assert question["correction"]["official"]["answer"] == ["Il peut être fluctuant."]
+    assert question["correction"]["disagreement"]["present"] is True
+    assert question["correction"]["disagreement"]["comments"] == [
+        "La correction officielle semble inversée."
+    ]
     assert question["uness"]["provenance"]["source"] == "UNESS"
+    assert question["uness"]["exam"]["dp_context"]["text"].startswith("Une personne âgée")
+    assert question["uness"]["question"]["images"][0]["alt_text"] == (
+        "Horloge dessinée par le patient"
+    )
+    assert question["uness"]["question"]["support_visuel_seul"] is True
     assert question["uness"]["propositions"][0]["statut"] == "desaccord"
 
     assert client.post(
@@ -117,6 +143,7 @@ def test_import_endpoint_creates_local_qcm_session_with_verified_correction(clie
     assert completed.status_code == 200
     assert completed.json()["rows"][0]["correction"]["primary"]["source"] == "ia"
     assert completed.json()["rows"][0]["correction"]["official"]["source"] == "UNESS"
+    assert completed.json()["rows"][0]["correction"]["disagreement"]["present"] is True
 
 
 def test_import_endpoint_rejects_malformed_json_with_400(client, import_dir):
@@ -149,6 +176,7 @@ def test_import_keeps_partial_official_correction_marked_as_incomplete(client, i
     """Catches a partial UNESS correction being falsely labelled complete."""
     payload = _exam_payload()
     payload["questions"][0]["propositions"][1]["reponse_uness"] = None
+    payload["questions"][0]["propositions"][1]["statut"] = "incertain"
     _write_exam(import_dir, "partial-official.json", payload)
 
     imported = client.post(
@@ -159,6 +187,92 @@ def test_import_keeps_partial_official_correction_marked_as_incomplete(client, i
     question = client.get(f"/api/qcm/sessions/{imported.json()['session_id']}").json()["questions"][0]
     assert question["correction"]["official"]["available"] is False
     assert question["uness"]["propositions"][1]["reponse_uness"] is None
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("verdict_ia", None),
+        ("explication_ia", " "),
+        ("confiance_ia", None),
+        ("confiance_ia", 1.2),
+        ("statut", "incertain"),
+    ],
+)
+def test_verified_import_rejects_incomplete_or_incoherent_ai_review(
+    client, import_dir, field, value
+):
+    """Catches the request's verify flag being trusted instead of the artifact contents."""
+    payload = _exam_payload()
+    payload["questions"][0]["propositions"][0][field] = value
+    _write_exam(import_dir, "not-verified.json", payload)
+
+    response = client.post(
+        "/api/qcm/uness/import", json={"path": "not-verified.json", "verify": True}
+    )
+
+    assert response.status_code == 400
+    assert "vérification IA" in response.json()["detail"]
+
+
+def test_import_uses_manually_validated_final_answer_for_payload_and_scoring(
+    client, import_dir
+):
+    """Catches a validated final answer being ignored in favor of the earlier IA verdict."""
+    payload = _exam_payload()
+    proposition = payload["questions"][0]["propositions"][0]
+    proposition.update(
+        reponse_finale=False,
+        statut="valide_manuellement",
+        validation_utilisateur=True,
+    )
+    _write_exam(import_dir, "manually-validated.json", payload)
+
+    imported = client.post(
+        "/api/qcm/uness/import", json={"path": "manually-validated.json", "verify": True}
+    )
+    assert imported.status_code == 200
+    session_id = imported.json()["session_id"]
+    question = client.get(f"/api/qcm/sessions/{session_id}").json()["questions"][0]
+
+    assert json.loads(question["answer"]) == ["Il peut être fluctuant."]
+    assert question["correction"]["primary"]["source"] == "validated"
+    attempt = client.post(
+        f"/api/qcm/sessions/{session_id}/attempts",
+        json={
+            "question_id": question["id"],
+            "response": json.dumps(["Il peut être fluctuant."], ensure_ascii=False),
+        },
+    )
+    assert attempt.status_code == 200
+    completed = client.post(f"/api/qcm/sessions/{session_id}/complete")
+    assert completed.status_code == 200
+    assert completed.json()["session"]["score_percent"] == 100
+
+
+def test_imported_local_image_is_available_to_the_react_reader(client, import_dir):
+    """Catches replay metadata pointing at a local file the browser cannot request."""
+    media = import_dir / "media"
+    media.mkdir()
+    image = media / "horloge.png"
+    image.write_bytes(b"png-fixture")
+    payload = _exam_payload()
+    payload["questions"][0]["images"][0]["local_path"] = str(image)
+    _write_exam(import_dir, "with-image.json", payload)
+
+    imported = client.post(
+        "/api/qcm/uness/import", json={"path": "with-image.json", "verify": True}
+    )
+    assert imported.status_code == 200
+    session_id = imported.json()["session_id"]
+    question = client.get(f"/api/qcm/sessions/{session_id}").json()["questions"][0]
+
+    response = client.get(
+        f"/api/qcm/sessions/{session_id}/questions/{question['id']}/images/0"
+    )
+
+    assert response.status_code == 200
+    assert response.content == b"png-fixture"
 
 
 def test_import_endpoint_rejects_paths_outside_local_import_directory(client, import_dir, tmp_path):

@@ -37,4 +37,6 @@ class RawUnessArtifact:
     source_url: str
     html_by_content: dict[str, str]
     media: list[RawMedia]
+    collected_at: str
+    collection_status: str
     artifact_root: Path | None = field(default=None, compare=False)

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, Literal
+from urllib.parse import parse_qsl, urlparse
 
 UnessStatus = Literal["concordant", "desaccord", "incertain", "valide_manuellement"]
 UnessQuestionType = Literal["QRM", "QRU", "QRP/L", "DP", "KFP", "QROC"]
@@ -15,9 +16,15 @@ _SENSITIVE_KEYS = {
     "credentials",
     "cookie",
     "cookies",
+    "password",
     "localstorage",
+    "sessionstorage",
     "sessiontoken",
     "sessiontokens",
+    "accesstoken",
+    "refreshtoken",
+    "authorization",
+    "apikey",
 }
 
 
@@ -30,7 +37,9 @@ def _optional_bool(value: Any, field_name: str) -> bool | None:
 def _assert_no_sensitive_data(value: Any) -> None:
     if isinstance(value, dict):
         for key in value:
-            normalized_key = "".join(character for character in key.lower() if character.isalnum())
+            normalized_key = "".join(
+                character for character in str(key).lower() if character.isalnum()
+            )
             if normalized_key in _SENSITIVE_KEYS:
                 raise ValueError(f"Donnée sensible interdite: {key}")
         for child in value.values():
@@ -38,6 +47,20 @@ def _assert_no_sensitive_data(value: Any) -> None:
     elif isinstance(value, list):
         for child in value:
             _assert_no_sensitive_data(child)
+
+
+def _assert_safe_source_url(source_url: str) -> None:
+    parsed = urlparse(source_url)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise ValueError("source_url doit être une URL HTTP(S) non vide")
+    if parsed.username or parsed.password:
+        raise ValueError("source_url ne doit contenir aucun identifiant")
+    for key, _value in parse_qsl(parsed.query, keep_blank_values=True):
+        normalized_key = "".join(
+            character for character in key.lower() if character.isalnum()
+        )
+        if normalized_key in _SENSITIVE_KEYS:
+            raise ValueError("source_url ne doit contenir aucune donnée sensible")
 
 
 @dataclass(frozen=True)
@@ -207,6 +230,18 @@ class UnessExam:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        for field_name in ("faculty", "level", "title"):
+            value = getattr(self, field_name)
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(f"{field_name} est requis")
+        if self.year is None or isinstance(self.year, bool) or not isinstance(self.year, int):
+            raise ValueError("year est requis et doit être un entier")
+        required_provenance = ("source", "source_url", "collected_at", "collection_status")
+        for field_name in required_provenance:
+            value = self.provenance.get(field_name)
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(f"provenance.{field_name} est requis")
+        _assert_safe_source_url(str(self.provenance["source_url"]).strip())
         _assert_no_sensitive_data(self.to_dict())
 
     @classmethod
@@ -222,7 +257,7 @@ class UnessExam:
             faculty=str(payload.get("faculty", payload.get("faculte", ""))),
             level=str(payload.get("level", payload.get("niveau", ""))),
             year=year,
-            title=str(payload.get("title", "")),
+            title=str(payload.get("title", payload.get("titre", ""))),
             dp_context=dict(payload.get("dp_context", {})),
             questions=tuple(UnessQuestion.from_dict(item) for item in payload.get("questions", [])),
             provenance=dict(payload.get("provenance", {})),

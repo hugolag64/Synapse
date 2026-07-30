@@ -1,10 +1,11 @@
 import json
+from dataclasses import replace
 
 import pytest
 
 from backend.core.ai.routing import AIModel, AIResponse, AITask
 from backend.core.uness.ai_verifier import VerificationContext, verify_exam, verify_question
-from backend.core.uness.models import UnessExam, UnessProposition, UnessQuestion
+from backend.core.uness.models import UnessExam, UnessImage, UnessProposition, UnessQuestion
 
 
 class FakeAIService:
@@ -52,6 +53,23 @@ def _answer_payload() -> dict:
     }
 
 
+def _exam(*questions: UnessQuestion, dp_context: dict | None = None) -> UnessExam:
+    return UnessExam(
+        faculty="Université Paris Cité",
+        level="DFASM3",
+        year=2026,
+        title="Gériatrie",
+        dp_context=dp_context or {},
+        questions=questions,
+        provenance={
+            "source": "UNESS",
+            "source_url": "https://entrainement.uness.example/review/42",
+            "collected_at": "2026-07-30T09:15:00+02:00",
+            "collection_status": "complete",
+        },
+    )
+
+
 def test_verifier_preserves_official_answers_and_persists_complete_ai_review() -> None:
     service = FakeAIService(_answer_payload())
 
@@ -77,6 +95,52 @@ def test_verifier_preserves_official_answers_and_persists_complete_ai_review() -
     assert service.calls[0][0] is AITask.QCM
     assert service.calls[0][2] == "json"
     assert service.calls[0][3] == "Le delirium est fluctuant."
+
+
+def test_verifier_prompt_supplies_official_answers_as_non_authoritative_comparison() -> None:
+    """Catches a disagreement contract the model cannot satisfy from the supplied prompt."""
+    service = FakeAIService(_answer_payload())
+
+    verify_question(_question(), VerificationContext("Cours", [], []), service)
+
+    prompt = service.calls[0][1]
+    assert "Correction officielle UNESS (comparaison non autoritative)" in prompt
+    assert "A: faux" in prompt
+    assert "B: vrai" in prompt
+    assert "raisonnement indépendant" in prompt
+
+
+def test_verify_exam_supplies_general_dp_question_context_and_image_metadata_to_ai() -> None:
+    """Catches clinically relevant dossier or visual context being omitted from verification."""
+    question = replace(
+        _question(),
+        dp_context={"step": 2, "text": "Perte de poids de 8 kg."},
+        images=(
+            UnessImage(
+                source_url="images/courbe-poids.png",
+                local_path="imports/media/courbe-poids.png",
+                alt_text="Courbe pondérale",
+                caption="Évolution sur six mois",
+            ),
+        ),
+        support_visuel_seul=True,
+    )
+    service = FakeAIService(_answer_payload())
+
+    verify_exam(
+        _exam(question, dp_context={"patient": "Personne de 86 ans"}),
+        VerificationContext("Cours", [], []),
+        service,
+    )
+
+    prompt = service.calls[0][1]
+    assert "Contexte général du dossier" in prompt
+    assert "Personne de 86 ans" in prompt
+    assert "Perte de poids de 8 kg." in prompt
+    assert "images/courbe-poids.png" in prompt
+    assert "Courbe pondérale" in prompt
+    assert "support visuel uniquement" in prompt
+    assert "imports/media/courbe-poids.png" not in prompt
 
 
 def test_verifier_rejects_a_response_missing_a_proposition() -> None:
@@ -140,7 +204,7 @@ def test_verifier_rejects_empty_comment_for_a_disagreement() -> None:
 
 
 def test_verify_exam_replaces_every_question_without_changing_exam_metadata() -> None:
-    exam = UnessExam(title="Gériatrie", questions=(_question(),))
+    exam = _exam(_question())
     service = FakeAIService(_answer_payload())
 
     verified = verify_exam(exam, VerificationContext("Cours", ["124"], ["HAS" ]), service)
@@ -156,7 +220,7 @@ def test_verify_exam_loads_course_context_once_and_reuses_it_for_every_question(
         requested_refs.append(item_refs)
         return "Contexte de cours partagé."
 
-    exam = UnessExam(title="Gériatrie", questions=(_question(), _question()))
+    exam = _exam(_question(), _question())
     service = FakeAIService(_answer_payload())
 
     verify_exam(
@@ -179,7 +243,7 @@ def test_verify_exam_does_not_retry_an_unavailable_course_context_loader() -> No
         requested_refs.append(item_refs)
         return None
 
-    exam = UnessExam(title="Gériatrie", questions=(_question(), _question()))
+    exam = _exam(_question(), _question())
     service = FakeAIService(_answer_payload())
 
     verified = verify_exam(

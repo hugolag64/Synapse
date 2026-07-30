@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from backend.core.practice.mastery import record_ai_practice_mastery
 from backend.core.reviews import local_store
+from backend.core.uness import import_service
 from backend.core.uness.import_service import (
     count_disagreements,
     import_uness_exam,
@@ -93,6 +97,40 @@ def import_uness(payload: UnessImportPayload) -> dict:
 @router.get("/sessions/{session_id}")
 def get_session(session_id: int) -> dict:
     return _session_payload(session_id)
+
+
+@router.get("/sessions/{session_id}/questions/{question_id}/images/{image_index}")
+def get_uness_question_image(
+    session_id: int,
+    question_id: int,
+    image_index: int,
+) -> FileResponse:
+    """Serve an imported local visual without exposing arbitrary filesystem paths."""
+    questions = local_store.get_ai_practice_session(session_id)
+    question = next((item for item in questions if int(item["id"]) == question_id), None)
+    if question is None:
+        raise HTTPException(status_code=404, detail="Question QCM introuvable")
+    images = ((question.get("uness") or {}).get("question") or {}).get("images") or []
+    if image_index < 0 or image_index >= len(images):
+        raise HTTPException(status_code=404, detail="Image UNESS introuvable")
+    raw_path = str(images[image_index].get("local_path") or "").strip()
+    if not raw_path:
+        raise HTTPException(status_code=404, detail="Image UNESS locale introuvable")
+    requested = Path(raw_path)
+    candidate = (
+        (import_service.IMPORT_DIR / requested).resolve()
+        if not requested.is_absolute()
+        else requested.resolve()
+    )
+    allowed_roots = (
+        import_service.IMPORT_DIR.resolve(),
+        (Path(__file__).resolve().parents[2] / "data" / "uness" / "artifacts").resolve(),
+    )
+    if not any(candidate == root or candidate.is_relative_to(root) for root in allowed_roots):
+        raise HTTPException(status_code=404, detail="Image UNESS hors du stockage local autorisé")
+    if not candidate.is_file():
+        raise HTTPException(status_code=404, detail="Image UNESS locale introuvable")
+    return FileResponse(candidate)
 
 
 @router.post("/sessions/{session_id}/attempts")

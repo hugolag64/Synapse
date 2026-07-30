@@ -265,7 +265,15 @@ def open_qcm_correction(
             with question_list:
                 for row in filter_question_results(rows, state["errors_only"]):
                     label, icon, colour = statuses[row["status"]]
+                    uness = row["question"].get("uness") or {}
+                    disagreements = [
+                        proposition
+                        for proposition in uness.get("propositions") or []
+                        if proposition.get("statut") == "desaccord"
+                    ]
                     title = f"Question {row['position']} · {label}"
+                    if disagreements:
+                        title = f"{title} · ⚠ Divergence UNESS"
                     with ui.expansion(title, icon=icon).classes("w-full border rounded"):
                         ui.label(row["question"]["prompt"]).classes("font-medium whitespace-pre-wrap")
                         ui.label(label).classes(f"text-xs font-semibold mt-2 {colour}")
@@ -278,6 +286,40 @@ def open_qcm_correction(
                         ui.label(f"Explication : {row['explanation']}").classes(
                             "text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap mt-1"
                         )
+                        if disagreements:
+                            ui.label("Divergence avec la correction officielle UNESS").classes(
+                                "text-sm font-semibold text-amber-800 dark:text-amber-300 mt-2"
+                            )
+                            for proposition in disagreements:
+                                comment = str(
+                                    proposition.get("commentaire_desaccord") or ""
+                                ).strip()
+                                if comment:
+                                    ui.label(comment).classes(
+                                        "text-sm text-amber-800 dark:text-amber-300 whitespace-pre-wrap"
+                                    )
+                        question_metadata = uness.get("question") or {}
+                        if question_metadata.get("support_visuel_seul"):
+                            ui.label(
+                                "Support visuel uniquement : l’interaction UNESS originale "
+                                "n’est pas reconstruite."
+                            ).classes(
+                                "text-sm text-amber-800 dark:text-amber-300 whitespace-pre-wrap mt-2"
+                            )
+                        for image in question_metadata.get("images") or []:
+                            source = str(
+                                image.get("local_path") or image.get("source_url") or ""
+                            ).strip()
+                            if not source:
+                                continue
+                            ui.image(source).classes("w-full max-h-80 object-contain rounded mt-2")
+                            caption = str(
+                                image.get("caption") or image.get("alt_text") or ""
+                            ).strip()
+                            if caption:
+                                ui.label(caption).classes(
+                                    "text-xs text-slate-500 dark:text-slate-400"
+                                )
                         official = (row["question"].get("correction") or {}).get("official")
                         if isinstance(official, dict):
                             answers = ", ".join(str(answer) for answer in official.get("answer") or [])

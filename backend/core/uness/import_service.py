@@ -18,7 +18,6 @@ from backend.core.reviews import local_store
 from .json_io import load_exam
 from .models import UnessExam, UnessProposition, UnessQuestion, _assert_no_sensitive_data
 
-
 _ROOT = Path(__file__).resolve().parents[3]
 IMPORT_DIR = Path(os.environ.get("UNESS_IMPORT_DIR", _ROOT / "data" / "uness" / "imports"))
 
@@ -41,7 +40,9 @@ def load_local_exam(path: str | Path) -> UnessExam:
 
 
 def _effective_answer(proposition: UnessProposition) -> bool | None:
-    """Use the independent IA verdict when available, otherwise the official answer."""
+    """Use a manual final answer first, then IA, then the official answer."""
+    if proposition.reponse_finale is not None:
+        return proposition.reponse_finale
     return proposition.verdict_ia if proposition.verdict_ia is not None else proposition.reponse_uness
 
 
@@ -76,6 +77,17 @@ def _source_refs(question: UnessQuestion, exam: UnessExam) -> list[str]:
 def _question_metadata(question: UnessQuestion, exam: UnessExam) -> dict[str, Any]:
     primary_answer = _choice_answers(question, official=False)
     official_answer = _choice_answers(question, official=True)
+    disagreement_comments = [
+        proposition.commentaire_desaccord
+        for proposition in question.propositions
+        if proposition.statut == "desaccord" and proposition.commentaire_desaccord
+    ]
+    if any(proposition.reponse_finale is not None for proposition in question.propositions):
+        primary_source = "validated"
+    elif any(proposition.verdict_ia is not None for proposition in question.propositions):
+        primary_source = "ia"
+    else:
+        primary_source = "uness"
     return {
         "uness": {
             "provenance": dict(exam.provenance),
@@ -97,7 +109,7 @@ def _question_metadata(question: UnessQuestion, exam: UnessExam) -> dict[str, An
         },
         "correction": {
             "primary": {
-                "source": "ia" if any(p.verdict_ia is not None for p in question.propositions) else "uness",
+                "source": primary_source,
                 "answer": primary_answer,
                 "explanation": _primary_explanation(question),
             },
@@ -107,6 +119,13 @@ def _question_metadata(question: UnessQuestion, exam: UnessExam) -> dict[str, An
                 "available": bool(question.propositions) and all(
                     proposition.reponse_uness is not None for proposition in question.propositions
                 ),
+            },
+            "disagreement": {
+                "present": any(
+                    proposition.statut == "desaccord"
+                    for proposition in question.propositions
+                ),
+                "comments": list(dict.fromkeys(disagreement_comments)),
             },
         },
     }
@@ -143,9 +162,47 @@ def _to_practice_question(question: UnessQuestion, exam: UnessExam) -> dict[str,
     }
 
 
+def assert_verified_exam(exam: UnessExam) -> None:
+    """Reject artifacts that have not completed a coherent proposition-level IA review."""
+    for question in exam.questions:
+        for proposition in question.propositions:
+            error_prefix = (
+                f"Échec de vérification IA pour la question {question.id}, "
+                f"proposition {proposition.id}"
+            )
+            if proposition.verdict_ia is None:
+                raise ValueError(f"{error_prefix} : verdict_ia manquant")
+            if not proposition.explication_ia.strip():
+                raise ValueError(f"{error_prefix} : explication_ia manquante")
+            confidence = proposition.confiance_ia
+            if (
+                confidence is None
+                or isinstance(confidence, bool)
+                or not 0.0 <= float(confidence) <= 1.0
+            ):
+                raise ValueError(f"{error_prefix} : confiance_ia invalide")
+
+            if proposition.reponse_finale is not None:
+                expected_status = "valide_manuellement"
+            elif proposition.reponse_uness is None:
+                expected_status = "incertain"
+            elif proposition.reponse_uness == proposition.verdict_ia:
+                expected_status = "concordant"
+            else:
+                expected_status = "desaccord"
+            if proposition.statut != expected_status:
+                raise ValueError(
+                    f"{error_prefix} : statut {proposition.statut!r} incohérent "
+                    f"(attendu {expected_status!r})"
+                )
+            if expected_status == "desaccord" and not proposition.commentaire_desaccord.strip():
+                raise ValueError(f"{error_prefix} : commentaire_desaccord manquant")
+
+
 def import_uness_exam(exam: UnessExam) -> int:
     """Create one local, replayable practice session from a verified UNESS exam."""
     _assert_no_sensitive_data(exam.to_dict())
+    assert_verified_exam(exam)
     if not exam.questions:
         raise ValueError("L'examen UNESS ne contient aucune question importable")
     questions = [_to_practice_question(question, exam) for question in exam.questions]

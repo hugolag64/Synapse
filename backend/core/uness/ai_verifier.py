@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, replace
-from typing import Any
+from typing import Any, Callable
 
 from backend.core.ai.routing import AITask
 
@@ -23,15 +23,33 @@ _REQUIRED_RESULT_KEYS = {
 
 @dataclass(frozen=True)
 class VerificationContext:
-    """Local pedagogical context supplied by the existing course/Notion layer."""
+    """Context supplied by the existing course/Notion layer.
+
+    ``course_text_loader`` is the permitted bridge to that layer.  It is invoked only
+    when item references exist and the caller did not already provide course text, so
+    callers can pass a deterministic local/Notion/Obsidian-backed loader without this
+    verifier owning credentials or a network session.
+    """
 
     course_text: str
     item_refs: list[str]
     external_refs: list[str]
+    course_text_loader: Callable[[list[str]], str | None] | None = None
 
     @property
     def has_pedagogical_sources(self) -> bool:
-        return bool(self.course_text.strip() or self.item_refs or self.external_refs)
+        return bool(self.course_text.strip() or self.external_refs)
+
+    def with_loaded_course_text(self) -> VerificationContext:
+        if self.course_text.strip() or not self.item_refs or self.course_text_loader is None:
+            return self
+        try:
+            course_text = self.course_text_loader(list(self.item_refs))
+        except Exception:
+            course_text = None
+        if not isinstance(course_text, str) or not course_text.strip():
+            return self
+        return replace(self, course_text=course_text.strip())
 
 
 def _prompt(question: UnessQuestion, context: VerificationContext) -> str:
@@ -122,13 +140,16 @@ def _verified_proposition(
     disagreement_comment = result["commentaire_desaccord"]
     if not isinstance(disagreement_comment, str):
         raise ValueError("commentaire_desaccord invalide")
+    normalized_comment = disagreement_comment.strip()
+    if _status(proposition.reponse_uness, verdict) == "desaccord" and not normalized_comment:
+        raise ValueError("commentaire_desaccord est requis en cas de désaccord")
     return replace(
         proposition,
         verdict_ia=verdict,
         explication_ia=explanation.strip(),
         sources_ia=normalized_sources,
         confiance_ia=_clamped_confidence(result["confiance_ia"]),
-        commentaire_desaccord=disagreement_comment.strip(),
+        commentaire_desaccord=normalized_comment,
         statut=_status(proposition.reponse_uness, verdict),
     )
 
@@ -137,14 +158,18 @@ def verify_question(
     question: UnessQuestion, context: VerificationContext, ai_service: Any
 ) -> UnessQuestion:
     """Return a verified copy; the official UNESS answer is never changed."""
+    resolved_context = context.with_loaded_course_text()
     response = ai_service.generate(
-        AITask.QCM, _prompt(question, context), context=context.course_text or None, response_format="json"
+        AITask.QCM,
+        _prompt(question, resolved_context),
+        context=resolved_context.course_text or None,
+        response_format="json",
     )
     results = _result_by_id(_json_payload(response.text), question)
     return replace(
         question,
         propositions=tuple(
-            _verified_proposition(proposition, results[proposition.id], context)
+            _verified_proposition(proposition, results[proposition.id], resolved_context)
             for proposition in question.propositions
         ),
     )

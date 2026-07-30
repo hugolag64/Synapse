@@ -95,6 +95,50 @@ def test_verifier_marks_results_context_limited_without_course_or_references() -
     assert "CONTEXTE LIMITÉ" in service.calls[0][1]
 
 
+def test_verifier_loads_course_text_for_item_references_when_not_supplied() -> None:
+    service = FakeAIService(_answer_payload())
+    requested_refs: list[list[str]] = []
+
+    def load_course_text(item_refs: list[str]) -> str:
+        requested_refs.append(item_refs)
+        return "Le cours local confirme que le delirium est fluctuant."
+
+    verified = verify_question(
+        _question(),
+        VerificationContext("", ["124"], [], course_text_loader=load_course_text),
+        service,
+    )
+
+    assert requested_refs == [["124"]]
+    assert service.calls[0][3] == "Le cours local confirme que le delirium est fluctuant."
+    assert "Contexte limité : aucune source pédagogique fournie." not in verified.propositions[0].sources_ia
+
+
+def test_verifier_keeps_false_verdict_with_its_explanation() -> None:
+    payload = _answer_payload()
+    payload["propositions"][0].update(
+        verdict_ia=False,
+        explication_ia="L'absence de réversibilité n'est pas absolue.",
+        commentaire_desaccord="",
+    )
+    service = FakeAIService(payload)
+
+    verified = verify_question(_question(), VerificationContext("Cours", [], []), service)
+
+    assert verified.propositions[0].verdict_ia is False
+    assert verified.propositions[0].explication_ia == "L'absence de réversibilité n'est pas absolue."
+    assert verified.propositions[0].statut == "concordant"
+
+
+def test_verifier_rejects_empty_comment_for_a_disagreement() -> None:
+    payload = _answer_payload()
+    payload["propositions"][0]["commentaire_desaccord"] = " "
+    service = FakeAIService(payload)
+
+    with pytest.raises(ValueError, match="commentaire_desaccord est requis"):
+        verify_question(_question(), VerificationContext("Cours", [], []), service)
+
+
 def test_verify_exam_replaces_every_question_without_changing_exam_metadata() -> None:
     exam = UnessExam(title="Gériatrie", questions=(_question(),))
     service = FakeAIService(_answer_payload())

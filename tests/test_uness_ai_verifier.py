@@ -1,4 +1,5 @@
 import json
+from base64 import b64decode
 from dataclasses import replace
 
 import pytest
@@ -8,6 +9,11 @@ from backend.core.uness import import_service
 from backend.core.uness.ai_verifier import VerificationContext, verify_exam, verify_question
 from backend.core.uness.import_service import assert_verified_exam
 from backend.core.uness.models import UnessExam, UnessImage, UnessProposition, UnessQuestion
+
+_VALID_PNG = b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk"
+    "+A8AAQUBAScY42YAAAAASUVORK5CYII="
+)
 
 
 class FakeAIService:
@@ -121,7 +127,7 @@ def test_verify_exam_supplies_general_dp_context_and_local_image_content_to_ai(
     artifact_root = tmp_path / "artifacts"
     image_path = artifact_root / "courbe-poids.png"
     artifact_root.mkdir()
-    image_path.write_bytes(b"fixture-image")
+    image_path.write_bytes(_VALID_PNG)
     monkeypatch.setattr(import_service, "ARTIFACT_DIR", artifact_root)
     question = replace(
         _question(),
@@ -152,7 +158,7 @@ def test_verify_exam_supplies_general_dp_context_and_local_image_content_to_ai(
     assert str(image_path) not in prompt
     assert "support visuel uniquement" in prompt
     assert service.calls[0][4] == (
-        AIImageContent(mime_type="image/png", data=b"fixture-image"),
+        AIImageContent(mime_type="image/png", data=_VALID_PNG),
     )
 
 
@@ -171,9 +177,100 @@ def test_verifier_marks_unavailable_visual_verification_unsupported() -> None:
 
     verified = verify_question(question, VerificationContext("Cours", [], []), service)
 
-    assert service.calls[0][4] == ()
-    assert "Vérification visuelle non prise en charge" in service.calls[0][1]
+    assert service.calls == []
+    assert verified.verification_status == "unsupported"
     assert verified.images[0].metadata["verification_status"] == "unsupported"
+    assert all(proposition.verdict_ia is None for proposition in verified.propositions)
+    assert all(proposition.statut == "incertain" for proposition in verified.propositions)
+    assert all(
+        "support visuel" in proposition.explication_ia.lower()
+        for proposition in verified.propositions
+    )
+
+
+def test_verifier_rejects_corrupt_image_content_instead_of_trusting_the_filename(
+    tmp_path, monkeypatch
+) -> None:
+    """Catches fake PNG bytes being represented as provided to the multimodal model."""
+    artifact_root = tmp_path / "artifacts"
+    image_path = artifact_root / "fake.png"
+    artifact_root.mkdir()
+    image_path.write_bytes(b"not-a-real-png")
+    monkeypatch.setattr(import_service, "ARTIFACT_DIR", artifact_root)
+    question = replace(
+        _question(),
+        images=(UnessImage(source_url="images/fake.png", local_path=str(image_path)),),
+    )
+    service = FakeAIService(_answer_payload())
+
+    verified = verify_question(question, VerificationContext("Cours", [], []), service)
+
+    assert service.calls == []
+    assert verified.verification_status == "unsupported"
+    assert verified.images[0].metadata["verification_status"] == "unsupported"
+    assert all(proposition.verdict_ia is None for proposition in verified.propositions)
+
+
+def test_verifier_bounds_the_number_of_multimodal_images(
+    tmp_path, monkeypatch
+) -> None:
+    """Catches a question attaching more image parts than the aggregate count budget."""
+    artifact_root = tmp_path / "artifacts"
+    artifact_root.mkdir()
+    monkeypatch.setattr(import_service, "ARTIFACT_DIR", artifact_root)
+    monkeypatch.setattr("backend.core.uness.ai_verifier._MAX_IMAGE_COUNT", 2)
+    images = []
+    for index in range(3):
+        path = artifact_root / f"scan-{index}.png"
+        path.write_bytes(_VALID_PNG)
+        images.append(UnessImage(source_url=f"images/scan-{index}.png", local_path=str(path)))
+    service = FakeAIService(_answer_payload())
+
+    verified = verify_question(
+        replace(_question(), images=tuple(images)),
+        VerificationContext("Cours", [], []),
+        service,
+    )
+
+    assert service.calls == []
+    assert verified.verification_status == "unsupported"
+    assert [image.metadata["verification_status"] for image in verified.images] == [
+        "not_provided_to_ai",
+        "not_provided_to_ai",
+        "unsupported",
+    ]
+
+
+def test_verifier_bounds_total_multimodal_image_bytes(
+    tmp_path, monkeypatch
+) -> None:
+    """Catches individually valid images exceeding the aggregate byte budget together."""
+    artifact_root = tmp_path / "artifacts"
+    artifact_root.mkdir()
+    monkeypatch.setattr(import_service, "ARTIFACT_DIR", artifact_root)
+    monkeypatch.setattr(
+        "backend.core.uness.ai_verifier._MAX_TOTAL_IMAGE_BYTES",
+        len(_VALID_PNG) * 2 - 1,
+    )
+    images = []
+    for index in range(2):
+        path = artifact_root / f"scan-{index}.png"
+        path.write_bytes(_VALID_PNG)
+        images.append(UnessImage(source_url=f"images/scan-{index}.png", local_path=str(path)))
+    service = FakeAIService(_answer_payload())
+
+    verified = verify_question(
+        replace(_question(), images=tuple(images)),
+        VerificationContext("Cours", [], []),
+        service,
+    )
+
+    assert service.calls == []
+    assert verified.verification_status == "unsupported"
+    assert [image.metadata["verification_status"] for image in verified.images] == [
+        "not_provided_to_ai",
+        "unsupported",
+    ]
 
 
 def test_verifier_rejects_sensitive_nested_context_before_calling_ai() -> None:
@@ -200,6 +297,21 @@ def test_verifier_rejects_token_bearing_image_url_before_calling_ai() -> None:
 
     with pytest.raises(ValueError, match="sensible"):
         verify_question(question, VerificationContext("Cours", [], []), service)
+
+    assert service.calls == []
+
+
+def test_verifier_rejects_an_embedded_fragment_token_before_calling_ai() -> None:
+    """Catches arbitrary prompt text containing a fragment-routed callback secret."""
+    context = VerificationContext(
+        "Voir https://uness.example/#/callback?access_token=secret",
+        [],
+        [],
+    )
+    service = FakeAIService(_answer_payload())
+
+    with pytest.raises(ValueError, match="sensible"):
+        verify_question(_question(), context, service)
 
     assert service.calls == []
 

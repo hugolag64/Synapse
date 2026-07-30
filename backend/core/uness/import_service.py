@@ -131,6 +131,7 @@ def _question_metadata(question: UnessQuestion, exam: UnessExam) -> dict[str, An
                 "id": question.id,
                 "type_question": question.type_question,
                 "support_visuel_seul": question.support_visuel_seul,
+                "verification_status": question.verification_status,
                 "dp_context": dict(question.dp_context),
                 "images": [image.to_dict() for image in question.images],
             },
@@ -194,6 +195,11 @@ def _to_practice_question(question: UnessQuestion, exam: UnessExam) -> dict[str,
 def assert_verified_exam(exam: UnessExam) -> None:
     """Reject artifacts that have not completed a coherent proposition-level IA review."""
     for question in exam.questions:
+        if question.verification_status == "unsupported":
+            raise ValueError(
+                f"Échec de vérification IA pour la question {question.id} : "
+                "vérification visuelle non prise en charge"
+            )
         for proposition in question.propositions:
             error_prefix = (
                 f"Échec de vérification IA pour la question {question.id}, "
@@ -226,6 +232,11 @@ def assert_verified_exam(exam: UnessExam) -> None:
                 )
             if expected_status == "desaccord" and not proposition.commentaire_desaccord.strip():
                 raise ValueError(f"{error_prefix} : commentaire_desaccord manquant")
+        if question.verification_status != "verified":
+            raise ValueError(
+                f"Échec de vérification IA pour la question {question.id} : "
+                "verification_status non vérifié"
+            )
 
 
 def import_uness_exam(exam: UnessExam) -> int:

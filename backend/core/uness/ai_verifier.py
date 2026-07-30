@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-import mimetypes
+import zlib
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 from typing import Any
@@ -28,7 +28,13 @@ _REQUIRED_RESULT_KEYS = {
     "confiance_ia",
     "commentaire_desaccord",
 }
-_MAX_IMAGE_BYTES = 20 * 1024 * 1024
+_MAX_IMAGE_COUNT = 4
+_MAX_IMAGE_BYTES = 10 * 1024 * 1024
+_MAX_TOTAL_IMAGE_BYTES = 20 * 1024 * 1024
+_UNSUPPORTED_VISUAL_EXPLANATION = (
+    "Vérification IA indisponible : le support visuel requis n'a pas pu être "
+    "fourni intégralement au modèle."
+)
 
 
 @dataclass(frozen=True)
@@ -130,6 +136,100 @@ Références d'items ou externes : {refs}
 Contexte : {source_notice}"""
 
 
+def _png_mime_type(data: bytes) -> str | None:
+    if not data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return None
+    offset = 8
+    saw_header = False
+    while offset + 12 <= len(data):
+        length = int.from_bytes(data[offset : offset + 4], "big")
+        chunk_type = data[offset + 4 : offset + 8]
+        chunk_end = offset + 12 + length
+        if chunk_end > len(data):
+            return None
+        chunk_data = data[offset + 8 : offset + 8 + length]
+        expected_crc = int.from_bytes(data[offset + 8 + length : chunk_end], "big")
+        actual_crc = zlib.crc32(chunk_type)
+        actual_crc = zlib.crc32(chunk_data, actual_crc) & 0xFFFFFFFF
+        if actual_crc != expected_crc:
+            return None
+        if not saw_header:
+            if chunk_type != b"IHDR" or length != 13:
+                return None
+            width = int.from_bytes(chunk_data[:4], "big")
+            height = int.from_bytes(chunk_data[4:8], "big")
+            if width < 1 or height < 1:
+                return None
+            saw_header = True
+        if chunk_type == b"IEND":
+            return "image/png" if length == 0 and chunk_end == len(data) else None
+        offset = chunk_end
+    return None
+
+
+def _jpeg_mime_type(data: bytes) -> str | None:
+    if len(data) < 8 or not data.startswith(b"\xff\xd8") or not data.endswith(b"\xff\xd9"):
+        return None
+    offset = 2
+    saw_frame = False
+    while offset < len(data) - 2:
+        if data[offset] != 0xFF:
+            return None
+        while offset < len(data) and data[offset] == 0xFF:
+            offset += 1
+        if offset >= len(data):
+            return None
+        marker = data[offset]
+        offset += 1
+        if marker == 0xD9:
+            break
+        if marker in {0x01, *range(0xD0, 0xD8)}:
+            continue
+        if offset + 2 > len(data):
+            return None
+        segment_length = int.from_bytes(data[offset : offset + 2], "big")
+        if segment_length < 2 or offset + segment_length > len(data):
+            return None
+        if marker in {*range(0xC0, 0xC4), *range(0xC5, 0xC8), *range(0xC9, 0xCC), *range(0xCD, 0xD0)}:
+            if segment_length < 7:
+                return None
+            height = int.from_bytes(data[offset + 3 : offset + 5], "big")
+            width = int.from_bytes(data[offset + 5 : offset + 7], "big")
+            if width < 1 or height < 1:
+                return None
+            saw_frame = True
+        if marker == 0xDA:
+            return "image/jpeg" if saw_frame else None
+        offset += segment_length
+    return None
+
+
+def _detected_image_mime_type(data: bytes) -> str | None:
+    png = _png_mime_type(data)
+    if png:
+        return png
+    jpeg = _jpeg_mime_type(data)
+    if jpeg:
+        return jpeg
+    if (
+        len(data) >= 14
+        and data[:6] in {b"GIF87a", b"GIF89a"}
+        and int.from_bytes(data[6:8], "little") > 0
+        and int.from_bytes(data[8:10], "little") > 0
+        and data.endswith(b";")
+    ):
+        return "image/gif"
+    if (
+        len(data) >= 20
+        and data.startswith(b"RIFF")
+        and data[8:12] == b"WEBP"
+        and int.from_bytes(data[4:8], "little") + 8 == len(data)
+        and data[12:16] in {b"VP8 ", b"VP8L", b"VP8X"}
+    ):
+        return "image/webp"
+    return None
+
+
 def _local_image_content(question: UnessQuestion) -> tuple[
     tuple[AIImageContent, ...],
     tuple[str, ...],
@@ -138,15 +238,23 @@ def _local_image_content(question: UnessQuestion) -> tuple[
     parts: list[AIImageContent] = []
     statuses: list[str] = []
     images: list[UnessImage] = []
-    for image in question.images:
+    total_bytes = 0
+    for index, image in enumerate(question.images):
         status = "unsupported"
-        if image.local_path:
+        if image.local_path and index < _MAX_IMAGE_COUNT:
             try:
                 path = import_service.resolve_local_media_path(image.local_path)
-                mime_type = mimetypes.guess_type(path.name)[0] or ""
-                if mime_type.startswith("image/") and path.stat().st_size <= _MAX_IMAGE_BYTES:
-                    parts.append(AIImageContent(mime_type=mime_type, data=path.read_bytes()))
-                    status = "provided_to_ai"
+                size = path.stat().st_size
+                if (
+                    0 < size <= _MAX_IMAGE_BYTES
+                    and total_bytes + size <= _MAX_TOTAL_IMAGE_BYTES
+                ):
+                    data = path.read_bytes()
+                    mime_type = _detected_image_mime_type(data)
+                    if mime_type is not None and len(data) == size:
+                        parts.append(AIImageContent(mime_type=mime_type, data=data))
+                        total_bytes += size
+                        status = "provided_to_ai"
             except (FileNotFoundError, OSError, PermissionError, ValueError):
                 status = "unsupported"
         statuses.append(status)
@@ -157,6 +265,48 @@ def _local_image_content(question: UnessQuestion) -> tuple[
             )
         )
     return tuple(parts), tuple(statuses), tuple(images)
+
+
+def _unsupported_visual_question(
+    question: UnessQuestion,
+    images: tuple[UnessImage, ...],
+) -> UnessQuestion:
+    truthful_images = tuple(
+        replace(
+            image,
+            metadata={
+                **image.metadata,
+                "verification_status": (
+                    "not_provided_to_ai"
+                    if image.metadata.get("verification_status") == "provided_to_ai"
+                    else "unsupported"
+                ),
+            },
+        )
+        for image in images
+    )
+    propositions = tuple(
+        replace(
+            proposition,
+            verdict_ia=None,
+            explication_ia=_UNSUPPORTED_VISUAL_EXPLANATION,
+            sources_ia=(),
+            confiance_ia=None,
+            commentaire_desaccord="",
+            statut=(
+                "valide_manuellement"
+                if proposition.reponse_finale is not None
+                else "incertain"
+            ),
+        )
+        for proposition in question.propositions
+    )
+    return replace(
+        question,
+        propositions=propositions,
+        images=truthful_images,
+        verification_status="unsupported",
+    )
 
 
 def _json_payload(text: str) -> dict[str, Any]:
@@ -256,6 +406,11 @@ def verify_question(
         }
     )
     image_parts, image_statuses, verified_images = _local_image_content(question)
+    visual_verification_unsupported = (
+        bool(question.images) and "unsupported" in image_statuses
+    ) or (question.support_visuel_seul and not question.images)
+    if visual_verification_unsupported:
+        return _unsupported_visual_question(question, verified_images)
     response = ai_service.generate(
         AITask.QCM,
         _prompt(question, resolved_context, exam_context, image_statuses),
@@ -271,6 +426,7 @@ def verify_question(
             for proposition in question.propositions
         ),
         images=verified_images,
+        verification_status="verified",
     )
 
 

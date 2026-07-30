@@ -24,6 +24,7 @@ export type UnessQuestionMetadata = {
     id?: string
     type_question?: string
     support_visuel_seul?: boolean
+    verification_status?: 'unverified' | 'verified' | 'unsupported' | string
     dp_context?: Record<string, unknown>
     images?: UnessImage[]
   }

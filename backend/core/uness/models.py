@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
+import re
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, Literal
-from urllib.parse import parse_qsl, urlparse
+from urllib.parse import unquote, urlparse
 
 UnessStatus = Literal["concordant", "desaccord", "incertain", "valide_manuellement"]
 UnessQuestionType = Literal["QRM", "QRU", "QRP/L", "DP", "KFP", "QROC"]
+UnessVerificationStatus = Literal["unverified", "verified", "unsupported"]
 
 _STATUTS = {"concordant", "desaccord", "incertain", "valide_manuellement"}
 _QUESTION_TYPES = {"QRM", "QRU", "QRP/L", "DP", "KFP", "QROC"}
+_VERIFICATION_STATUSES = {"unverified", "verified", "unsupported"}
 _SENSITIVE_KEYS = {
     "credential",
     "credentials",
@@ -30,23 +34,50 @@ _SENSITIVE_KEYS = {
     "authorization",
     "apikey",
 }
+_SIGNED_URL_KEYS = {
+    "awsaccesskeyid",
+    "googleaccessid",
+    "keypairid",
+    "sig",
+    "signature",
+}
+_HTTP_URL_PATTERN = re.compile(r"https?://[^\s<>\"']+", re.IGNORECASE)
+_URL_PARAMETER_PATTERN = re.compile(
+    r"(?:[?&#;])\s*([A-Za-z0-9_.%+-]+)\s*=",
+    re.IGNORECASE,
+)
 
 
 def _normalized_key(value: Any) -> str:
     return "".join(character for character in str(value).lower() if character.isalnum())
 
 
+def _is_sensitive_url_parameter(key: Any) -> bool:
+    normalized = _normalized_key(key)
+    return (
+        normalized in _SENSITIVE_KEYS
+        or normalized in _SIGNED_URL_KEYS
+        or normalized.endswith(("credential", "secret", "signature", "token"))
+    )
+
+
 def _url_contains_sensitive_data(value: str) -> bool:
-    parsed = urlparse(value)
-    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-        return False
-    if parsed.username or parsed.password:
+    decoded = unquote(value)
+    if any(
+        _is_sensitive_url_parameter(match.group(1))
+        for match in _URL_PARAMETER_PATTERN.finditer(decoded)
+    ):
         return True
-    parameters = [
-        *parse_qsl(parsed.query, keep_blank_values=True),
-        *parse_qsl(parsed.fragment, keep_blank_values=True),
-    ]
-    return any(_normalized_key(key) in _SENSITIVE_KEYS for key, _value in parameters)
+    candidates = [value, *_HTTP_URL_PATTERN.findall(value)]
+    for candidate in candidates:
+        parsed = urlparse(candidate.rstrip(".,);]}"))
+        if (
+            parsed.scheme in {"http", "https"}
+            and parsed.netloc
+            and (parsed.username or parsed.password)
+        ):
+            return True
+    return False
 
 
 def _optional_bool(value: Any, field_name: str) -> bool | None:
@@ -56,13 +87,13 @@ def _optional_bool(value: Any, field_name: str) -> bool | None:
 
 
 def _assert_no_sensitive_data(value: Any) -> None:
-    if isinstance(value, dict):
+    if isinstance(value, Mapping):
         for key in value:
             if _normalized_key(key) in _SENSITIVE_KEYS:
                 raise ValueError(f"Donnée sensible interdite: {key}")
         for child in value.values():
             _assert_no_sensitive_data(child)
-    elif isinstance(value, (list, tuple)):
+    elif isinstance(value, (list, tuple, set, frozenset)):
         for child in value:
             _assert_no_sensitive_data(child)
     elif isinstance(value, str) and _url_contains_sensitive_data(value):
@@ -197,6 +228,7 @@ class UnessQuestion:
     propositions: tuple[UnessProposition, ...] = ()
     images: tuple[UnessImage, ...] = ()
     support_visuel_seul: bool = False
+    verification_status: UnessVerificationStatus = "unverified"
     dp_context: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -204,6 +236,8 @@ class UnessQuestion:
             raise ValueError(f"type_question inconnu: {self.type_question}")
         if not isinstance(self.support_visuel_seul, bool):
             raise ValueError("support_visuel_seul doit être un booléen")
+        if self.verification_status not in _VERIFICATION_STATUSES:
+            raise ValueError(f"verification_status inconnu: {self.verification_status}")
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> UnessQuestion:
@@ -216,6 +250,7 @@ class UnessQuestion:
             ),
             images=tuple(UnessImage.from_dict(item) for item in payload.get("images", [])),
             support_visuel_seul=payload.get("support_visuel_seul", False),
+            verification_status=payload.get("verification_status", "unverified"),
             dp_context=dict(payload.get("dp_context", {})),
         )
 
@@ -227,6 +262,7 @@ class UnessQuestion:
             "propositions": [item.to_dict() for item in self.propositions],
             "images": [item.to_dict() for item in self.images],
             "support_visuel_seul": self.support_visuel_seul,
+            "verification_status": self.verification_status,
             "dp_context": self.dp_context,
         }
 

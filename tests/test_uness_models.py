@@ -231,6 +231,57 @@ def test_exam_rejects_token_bearing_urls_anywhere_in_nested_data(token_url: str)
         UnessExam.from_dict(payload)
 
 
+@pytest.mark.parametrize(
+    "secret_text",
+    [
+        "https://uness.example/#/callback?access_token=secret",
+        "Ouvrir https://uness.example/review/42?id_token=secret puis continuer.",
+        "https://storage.example/scan.png?X-Amz-Signature=secret",
+    ],
+)
+def test_exam_rejects_fragment_embedded_and_signed_secret_urls(secret_text: str) -> None:
+    """Catches tokenized URLs that whole-string URL parsing does not inspect correctly."""
+    payload = _valid_exam_payload(metadata={"narrative": secret_text})
+
+    with pytest.raises(ValueError, match="sensible"):
+        UnessExam.from_dict(payload)
+
+
+@pytest.mark.parametrize(
+    "source_url",
+    [
+        "images/scan.png?access_token=secret",
+        "https://storage.example/scan.png?X-Goog-Signature=secret",
+    ],
+)
+def test_exam_rejects_secret_bearing_image_source_urls(source_url: str) -> None:
+    """Catches relative or signed visual URLs surviving into persisted artifacts."""
+    payload = _valid_exam_payload(
+        questions=[
+            {
+                "id": "q-1",
+                "type_question": "QRM",
+                "enonce": "Question visuelle",
+                "images": [{"source_url": source_url}],
+            }
+        ]
+    )
+
+    with pytest.raises(ValueError, match="sensible"):
+        UnessExam.from_dict(payload)
+
+
+def test_save_exam_rejects_an_embedded_secret_url_added_after_construction(tmp_path) -> None:
+    """Catches direct mutation bypassing import-time validation before persistence."""
+    exam = UnessExam.from_dict(_valid_exam_payload())
+    exam.metadata["note"] = (
+        "Relancer via https://uness.example/#/callback?refresh_token=secret"
+    )
+
+    with pytest.raises(ValueError, match="sensible"):
+        save_exam(exam, tmp_path / "exam.json")
+
+
 def test_proposition_rejects_final_answer_without_manual_user_validation() -> None:
     """Catches final answers being recorded before a user validates the proposition."""
     with pytest.raises(ValueError, match="validation utilisateur"):

@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import json
+from base64 import b64decode
 from pathlib import Path
 
 import pytest
 
 from backend.core.ai.routing import AIModel, AIResponse
 from backend.core.reviews import local_store
+from backend.core.uness import import_service
 from backend.core.uness.ai_verifier import VerificationContext, verify_exam
 from backend.core.uness.artifacts import ExamMetadata, RawMedia, RawUnessArtifact
 from backend.core.uness.import_service import import_uness_exam
@@ -16,6 +18,10 @@ from backend.core.uness.json_io import load_exam, save_exam
 from backend.core.uness.normalizer import normalize_artifact
 
 FIXTURE = Path(__file__).parent / "fixtures" / "uness" / "geriatry_review.html"
+VALID_PNG = b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk"
+    "+A8AAQUBAScY42YAAAAASUVORK5CYII="
+)
 
 
 class FixtureAIService:
@@ -70,12 +76,15 @@ def isolated_store(tmp_path, monkeypatch):
     monkeypatch.setattr(local_store, "_DB", None)
 
 
-def test_geriatry_fixture_normalizes_verifies_and_imports_one_explained_session(tmp_path) -> None:
+def test_geriatry_fixture_normalizes_verifies_and_imports_one_explained_session(
+    tmp_path, monkeypatch
+) -> None:
     """Catches a handoff that cannot turn one reviewed content into a usable local QCM."""
+    monkeypatch.setattr(import_service, "ARTIFACT_DIR", tmp_path / "artifacts")
     artifact = RawUnessArtifact(
         source_url="https://entrainement.uness.fr/annales/course/view.php?id=29135",
         html_by_content={"nutrition": FIXTURE.read_text(encoding="utf-8")},
-        media=[RawMedia("images/courbe-poids.png", b"fixture-image", "image/png", 1)],
+        media=[RawMedia("images/courbe-poids.png", VALID_PNG, "image/png", 1)],
         collected_at="2026-07-30T09:15:00+02:00",
         collection_status="complete",
         artifact_root=tmp_path / "artifacts",

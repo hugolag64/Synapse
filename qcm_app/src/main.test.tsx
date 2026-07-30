@@ -23,6 +23,7 @@ const unessQuestion = {
     collection_status: 'complete',
   },
   question: {
+    verification_status: 'verified',
     dp_context: { text: 'Les symptômes fluctuent au cours de la journée.' },
     images: [
       {
@@ -117,6 +118,40 @@ describe('UNESS replay disclosure', () => {
     expect(markup).toContain('2026')
     expect(markup).toContain('2026-07-30T09:15:00+02:00')
     expect(markup).toContain('complete')
+  })
+
+  it('warns that an unsupported visual question has no AI verdict', () => {
+    const payload: SessionPayload = {
+      session: { id: 12, total_questions: 1, course_title: 'Gériatrie' },
+      questions: [
+        {
+          id: 7,
+          prompt: 'Interprète ce support visuel :',
+          choices: ['A', 'B'],
+          question_kind: 'closed',
+          uness: {
+            ...unessQuestion,
+            question: {
+              ...unessQuestion.question,
+              verification_status: 'unsupported',
+              support_visuel_seul: false,
+              images: unessQuestion.question.images.map((image) => ({
+                ...image,
+                metadata: { verification_status: 'unsupported' },
+              })),
+            },
+          },
+        },
+      ],
+      answers: {},
+    }
+
+    const markup = renderToStaticMarkup(
+      createElement(components.Reader, { payload, onCorrection: () => undefined }),
+    )
+
+    expect(markup).toContain('Vérification IA visuelle indisponible')
+    expect(markup).toContain('Aucun verdict IA')
   })
 
   it('keeps the divergence warning visible while a correct row is collapsed', () => {

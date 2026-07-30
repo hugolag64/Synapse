@@ -58,7 +58,9 @@ function QuestionVisualContext({ question, sessionId }: { question: Question; se
   const images = question.uness?.question?.images || []
   const contexts = [...new Set([examContext, questionContext].filter(Boolean))]
   const hasProvenance = Boolean(question.uness?.provenance || question.uness?.exam)
-  if (!contexts.length && !images.length && !question.uness?.question?.support_visuel_seul && !hasProvenance) return null
+  const visualVerificationUnsupported = question.uness?.question?.verification_status === 'unsupported'
+    || images.some((image) => image.metadata?.verification_status === 'unsupported')
+  if (!contexts.length && !images.length && !question.uness?.question?.support_visuel_seul && !hasProvenance && !visualVerificationUnsupported) return null
   return <div className="uness-context">
     <UnessProvenance question={question} />
     {contexts.length > 0 && <section className="clinical-context"><strong>Contexte du dossier</strong>{contexts.map((context) => <p key={context}>{context}</p>)}</section>}
@@ -66,6 +68,7 @@ function QuestionVisualContext({ question, sessionId }: { question: Question; se
       <img src={imageSource(sessionId, question.id, index, image)} alt={image.alt_text || image.caption || `Support visuel ${index + 1}`} />
       {(image.caption || image.alt_text) && <figcaption>{image.caption || image.alt_text}</figcaption>}
     </figure>)}</div>}
+    {visualVerificationUnsupported && <div className="visual-warning" role="alert"><strong>Vérification IA visuelle indisponible</strong><span>Aucun verdict IA n’a été retenu pour cette question : un ou plusieurs supports visuels n’ont pas pu être fournis au modèle.</span></div>}
     {question.uness?.question?.support_visuel_seul && <div className="visual-warning" role="alert"><strong>Support visuel uniquement</strong><span>L’interaction UNESS originale n’est pas reconstruite ; utilise l’image comme support pédagogique.</span></div>}
   </div>
 }

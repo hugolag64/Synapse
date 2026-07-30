@@ -69,6 +69,7 @@ def _exam_payload() -> dict:
                 "id": "q-1",
                 "type_question": "QRM",
                 "enonce": "Concernant le delirium :",
+                "verification_status": "verified",
                 "dp_context": {"step": 1, "text": "Les symptômes fluctuent dans la journée."},
                 "images": [
                     {
@@ -150,6 +151,7 @@ def test_import_endpoint_creates_local_qcm_session_with_verified_correction(clie
         "Horloge dessinée par le patient"
     )
     assert question["uness"]["question"]["support_visuel_seul"] is True
+    assert question["uness"]["question"]["verification_status"] == "verified"
     assert question["uness"]["propositions"][0]["statut"] == "desaccord"
 
     assert client.post(
@@ -230,6 +232,33 @@ def test_verified_import_rejects_incomplete_or_incoherent_ai_review(
 
     assert response.status_code == 400
     assert "vérification IA" in response.json()["detail"]
+
+
+def test_verified_import_rejects_an_unsupported_visual_question(client, import_dir):
+    """Catches a missing visual being silently imported as a boolean AI correction."""
+    payload = _exam_payload()
+    question = payload["questions"][0]
+    question["verification_status"] = "unsupported"
+    question["images"][0]["metadata"] = {"verification_status": "unsupported"}
+    for proposition in question["propositions"]:
+        proposition.update(
+            verdict_ia=None,
+            explication_ia="Vérification IA indisponible : support visuel non pris en charge.",
+            sources_ia=[],
+            confiance_ia=None,
+            commentaire_desaccord="",
+            statut="incertain",
+        )
+    _write_exam(import_dir, "unsupported-visual.json", payload)
+
+    response = client.post(
+        "/api/qcm/uness/import",
+        json={"path": "unsupported-visual.json", "verify": True},
+    )
+
+    assert response.status_code == 400
+    assert "visuelle" in response.json()["detail"]
+    assert "non prise en charge" in response.json()["detail"]
 
 
 def test_import_uses_manually_validated_final_answer_for_payload_and_scoring(

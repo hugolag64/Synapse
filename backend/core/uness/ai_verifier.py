@@ -51,14 +51,40 @@ def _png_has_exact_end(data: bytes) -> bool:
     if not data.startswith(b"\x89PNG\r\n\x1a\n"):
         return False
     offset = 8
+    declared_frames: int | None = None
+    frame_controls = 0
+    has_animation_data = False
     while offset + 12 <= len(data):
         chunk_length = int.from_bytes(data[offset : offset + 4], "big")
         chunk_type = data[offset + 4 : offset + 8]
         chunk_end = offset + 12 + chunk_length
         if chunk_end > len(data):
             return False
+        if chunk_type == b"acTL":
+            if chunk_length != 8 or declared_frames is not None:
+                return False
+            declared_frames = int.from_bytes(data[offset + 8 : offset + 12], "big")
+            if declared_frames == 0:
+                return False
+        elif chunk_type == b"fcTL":
+            if chunk_length != 26:
+                return False
+            frame_controls += 1
+        elif chunk_type == b"fdAT":
+            if chunk_length < 4:
+                return False
+            has_animation_data = True
         if chunk_type == b"IEND":
-            return chunk_length == 0 and chunk_end == len(data)
+            valid_animation_metadata = (
+                frame_controls == 0 and not has_animation_data
+                if declared_frames is None
+                else frame_controls == declared_frames
+            )
+            return (
+                chunk_length == 0
+                and chunk_end == len(data)
+                and valid_animation_metadata
+            )
         offset = chunk_end
     return False
 
@@ -289,6 +315,8 @@ Contexte : {source_notice}"""
 
 
 def _detected_image_mime_type(data: bytes) -> str | None:
+    if data.startswith(b"\x89PNG\r\n\x1a\n") and not _png_has_exact_end(data):
+        return None
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("error", Image.DecompressionBombWarning)

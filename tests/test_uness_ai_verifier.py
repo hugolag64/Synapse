@@ -48,7 +48,12 @@ _VALID_IMAGE_PAYLOADS = {
     "gif": ("image/gif", _encoded_image("GIF")),
     "webp": ("image/webp", _encoded_image("WEBP")),
 }
-_VALID_MULTI_FRAME_GIF = _encoded_image("GIF", frames=2)
+_VALID_ANIMATED_IMAGE_PAYLOADS = {
+    "apng": ("png", "image/png", _encoded_image("PNG", frames=2)),
+    "gif": ("gif", "image/gif", _encoded_image("GIF", frames=2)),
+    "webp": ("webp", "image/webp", _encoded_image("WEBP", frames=2)),
+}
+_VALID_MULTI_FRAME_GIF = _VALID_ANIMATED_IMAGE_PAYLOADS["gif"][2]
 _DECOMPRESSION_WARNING_PNG = _encoded_image("PNG")
 
 
@@ -59,6 +64,23 @@ def _png_chunk(kind: bytes, payload: bytes) -> bytes:
         + payload
         + struct.pack(">I", zlib.crc32(kind + payload) & 0xFFFFFFFF)
     )
+
+
+def _png_with_declared_frame_count(data: bytes, frame_count: int) -> bytes:
+    offset = 8
+    while offset + 12 <= len(data):
+        chunk_length = int.from_bytes(data[offset : offset + 4], "big")
+        chunk_type = data[offset + 4 : offset + 8]
+        chunk_end = offset + 12 + chunk_length
+        if chunk_type == b"acTL":
+            loop_count = data[offset + 12 : offset + 16]
+            replacement = _png_chunk(
+                b"acTL",
+                struct.pack(">I", frame_count) + loop_count,
+            )
+            return data[:offset] + replacement + data[chunk_end:]
+        offset = chunk_end
+    raise ValueError("PNG fixture has no acTL chunk")
 
 
 _CORRUPT_IMAGE_PAYLOADS = {
@@ -328,6 +350,31 @@ def test_verifier_accepts_complete_supported_image_containers(
 
 
 @pytest.mark.parametrize(
+    ("suffix", "mime_type", "payload"),
+    _VALID_ANIMATED_IMAGE_PAYLOADS.values(),
+    ids=_VALID_ANIMATED_IMAGE_PAYLOADS,
+)
+def test_verifier_accepts_complete_supported_animated_images(
+    tmp_path,
+    monkeypatch,
+    suffix: str,
+    mime_type: str,
+    payload: bytes,
+) -> None:
+    """Catches animation metadata checks rejecting complete supported animations."""
+    service, verified = _verify_local_image_payload(
+        tmp_path,
+        monkeypatch,
+        suffix=suffix,
+        payload=payload,
+    )
+
+    assert service.calls[0][4] == (AIImageContent(mime_type=mime_type, data=payload),)
+    assert verified.verification_status == "verified"
+    assert verified.images[0].metadata["verification_status"] == "provided_to_ai"
+
+
+@pytest.mark.parametrize(
     ("suffix", "payload"),
     [
         (suffix, payload + b"\naccess_token=secret")
@@ -389,6 +436,34 @@ def test_verifier_rejects_images_that_trigger_a_decompression_bomb_warning(
         monkeypatch,
         suffix="png",
         payload=_DECOMPRESSION_WARNING_PNG,
+    )
+
+    assert service.calls == []
+    assert verified.verification_status == "unsupported"
+    assert verified.images[0].metadata["verification_status"] == "unsupported"
+
+
+@pytest.mark.parametrize(
+    "declared_frame_count",
+    [0, 3],
+    ids=["zero-frames", "frame-control-mismatch"],
+)
+def test_verifier_rejects_apng_with_invalid_declared_frame_count(
+    tmp_path,
+    monkeypatch,
+    declared_frame_count: int,
+) -> None:
+    """Catches malformed APNG frame metadata being accepted or silently downgraded."""
+    invalid_apng = _png_with_declared_frame_count(
+        _encoded_image("PNG", frames=2),
+        declared_frame_count,
+    )
+
+    service, verified = _verify_local_image_payload(
+        tmp_path,
+        monkeypatch,
+        suffix="png",
+        payload=invalid_apng,
     )
 
     assert service.calls == []

@@ -147,3 +147,26 @@ def test_verify_exam_replaces_every_question_without_changing_exam_metadata() ->
 
     assert verified.title == "Gériatrie"
     assert verified.questions[0].propositions[0].statut == "desaccord"
+
+
+def test_verify_exam_loads_course_context_once_and_reuses_it_for_every_question() -> None:
+    requested_refs: list[list[str]] = []
+
+    def load_course_text(item_refs: list[str]) -> str:
+        requested_refs.append(item_refs)
+        return "Contexte de cours partagé."
+
+    exam = UnessExam(title="Gériatrie", questions=(_question(), _question()))
+    service = FakeAIService(_answer_payload())
+
+    verify_exam(
+        exam,
+        VerificationContext("", ["124"], [], course_text_loader=load_course_text),
+        service,
+    )
+
+    assert requested_refs == [["124"]]
+    assert [call[3] for call in service.calls] == [
+        "Contexte de cours partagé.",
+        "Contexte de cours partagé.",
+    ]

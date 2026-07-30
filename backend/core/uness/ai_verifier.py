@@ -177,7 +177,10 @@ def verify_question(
 
 def verify_exam(exam: UnessExam, context: VerificationContext, ai_service: Any) -> UnessExam:
     """Verify every question of a local exam with the same source context."""
+    resolved_context = context.with_loaded_course_text()
     return replace(
         exam,
-        questions=tuple(verify_question(question, context, ai_service) for question in exam.questions),
+        questions=tuple(
+            verify_question(question, resolved_context, ai_service) for question in exam.questions
+        ),
     )

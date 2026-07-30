@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from collections import Counter
 from dataclasses import replace
 from pathlib import Path
 from urllib.parse import unquote, urlparse
@@ -145,20 +146,37 @@ def _safe_filename(filename: str) -> str:
     return safe or "media"
 
 
+def _media_key(filename: str) -> str:
+    """Return a stable path-aware identifier for a captured or referenced asset."""
+    path = unquote(urlparse(filename).path).replace("\\", "/").lstrip("/")
+    return path.casefold()
+
+
 def _copy_media(media: list[RawMedia], directory: Path) -> dict[str, str]:
     directory.mkdir(parents=True, exist_ok=True)
     copied: dict[str, str] = {}
+    basenames = Counter(_safe_filename(item.filename).casefold() for item in media)
     for index, item in enumerate(media, start=1):
         prefix = f"q{item.question_number:02d}" if item.question_number else f"media-{index:02d}"
-        target = directory / f"{prefix}-{_safe_filename(item.filename)}"
+        filename = _safe_filename(item.filename)
+        if basenames[filename.casefold()] > 1:
+            filename = f"{index:02d}-{filename}"
+        target = directory / f"{prefix}-{filename}"
         target.write_bytes(item.content)
-        copied[_safe_filename(item.filename)] = str(target)
+        copied[_media_key(item.filename)] = str(target)
+        if basenames[_safe_filename(item.filename).casefold()] == 1:
+            copied[_safe_filename(item.filename).casefold()] = str(target)
     return copied
 
 
 def _link_images(question: UnessQuestion, copied_media: dict[str, str]) -> UnessQuestion:
     images = tuple(
-        replace(image, local_path=copied_media.get(_safe_filename(image.source_url), ""))
+        replace(
+            image,
+            local_path=copied_media.get(
+                _media_key(image.source_url), copied_media.get(_safe_filename(image.source_url).casefold(), "")
+            ),
+        )
         for image in question.images
     )
     return replace(question, images=images)

@@ -77,6 +77,36 @@ def test_normalize_artifact_copies_media_under_a_per_exam_directory(tmp_path) ->
     }
 
 
+def test_normalize_artifact_preserves_media_with_the_same_basename_from_different_paths(
+    tmp_path,
+) -> None:
+    """Catches basename-only media maps that overwrite one visual with another."""
+    artifact = RawUnessArtifact(
+        source_url="https://entrainement.uness.example/course/review/42",
+        html_by_content={
+            "images": """
+                <article class='review-question' data-question-id='q-images' data-question-type='QRM'>
+                  <p class='question-text'>Identifier les examens</p>
+                  <img src='images/a/scan.png' alt='Premier scanner'>
+                  <img src='images/b/scan.png' alt='Second scanner'>
+                </article>
+            """
+        },
+        media=[
+            RawMedia("images/a/scan.png", b"first", "image/png", question_number=1),
+            RawMedia("images/b/scan.png", b"second", "image/png", question_number=1),
+        ],
+        artifact_root=tmp_path,
+    )
+
+    exam = normalize_artifact(artifact, _metadata())
+
+    first, second = exam.questions[0].images
+    assert first.local_path != second.local_path
+    assert Path(first.local_path).read_bytes() == b"first"
+    assert Path(second.local_path).read_bytes() == b"second"
+
+
 def test_extract_review_content_sets_unknown_official_answer_when_no_correction_is_visible() -> None:
     """Catches an unchecked answer being mistaken for an official false correction."""
     questions = extract_review_content(

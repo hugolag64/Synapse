@@ -18,11 +18,10 @@ def test_qcm_cockpit_exposes_ai_generation_entry():
     assert "_open_ai_generation_picker" in source
 
 
-def test_qcm_cockpit_prefers_the_node_reader_when_built():
-    source = inspect.getsource(qcm_cockpit._open_node_qcm)
+def test_qcm_cockpit_delegates_node_reader_check_to_the_shared_component():
+    source = inspect.getsource(qcm_cockpit.render_qcm_cockpit)
 
-    assert "qcm-app" in source
-    assert "QCM_NODE_DIST.exists()" in source
+    assert "open_node_qcm(session_id)" in source
 
 
 def test_qcm_cockpit_keeps_generated_sessions_visible_before_scoring():

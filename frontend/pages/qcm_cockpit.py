@@ -1,6 +1,6 @@
 """qcm_cockpit.py — Vue « QCM » cockpit (refonte, session 10).
 
-Rendu quand preferences['ui_mode'] == 'cockpit' (early-return depuis
+Vue principale de l'écran QCM.
 qcm.py). Bandeau de stats (moyenne · taux de réussite · cours à
 retravailler) + liste par cours (score, barre santé, badge « à
 retravailler »). Le chemin classic (KPI cards + sparkline + stats par item
@@ -13,14 +13,12 @@ groupées par collège + assistants de saisie) reste strictement inchangé.
   • le README ne décrit que le rollup simple par cours — la vue détaillée
     par item EDN, les filtres période/plateforme et les assistants
     (proposer une lacune, wizard session) du classic restent inaccessibles
-    depuis le cockpit (bascule « Vue classic » pour y accéder) ;
+    depuis cette vue ;
   • badge « à retravailler » sur `avg_score` (le score affiché sur la
     ligne), pas `last_score` (métrique différente utilisée par le bandeau
     « cours à retravailler », fidèle au classic).
 """
 from __future__ import annotations
-
-from pathlib import Path
 
 from nicegui import ui
 
@@ -30,14 +28,12 @@ from backend.state.store import data_store
 from frontend.components.ai_practice_panel import _open_generation_dialog
 from frontend.components.mastery_indicator import _LEVEL_COLOR, _level_from_score
 from frontend.components.practice_import_panel import open_practice_import_dialog
+from frontend.components.practice_session_card import open_node_qcm, render_session_actions
 from frontend.components.qcm_replay import (
     open_chained_dialog,
     open_qcm_correction,
     open_qcm_session,
     replay_qcm_session,
-)
-from frontend.components.qcm_replay import (
-    session_action_keys as _session_action_keys,
 )
 from frontend.pages.qcm import (
     _ADD_DIALOG_CSS,
@@ -47,7 +43,6 @@ from frontend.pages.qcm import (
 )
 
 QCM_ENTRY_LABEL = "Saisir un résultat"
-QCM_NODE_DIST = Path(__file__).parents[2] / "qcm_app" / "dist" / "index.html"
 HISTORY_STATUS_OPTIONS = {
     "all": "Toutes",
     "pending": "À faire",
@@ -116,14 +111,6 @@ def _get_replayable_history(
         )
         if session.get("has_questions")
     ]
-
-
-def _open_node_qcm(session_id: int) -> bool:
-    """Open the approved Node reader when its production bundle is available."""
-    if not QCM_NODE_DIST.exists():
-        return False
-    ui.navigate.to(f"/qcm-app/?session={int(session_id)}")
-    return True
 
 
 def _open_ai_generation_picker(refresh) -> None:
@@ -384,7 +371,7 @@ def render_qcm_cockpit() -> None:
                 _draw_row(g)
 
     def _show_session(session_id: int) -> None:
-        if _open_node_qcm(session_id):
+        if open_node_qcm(session_id):
             return
         open_qcm_session(
             session_id,
@@ -393,7 +380,7 @@ def render_qcm_cockpit() -> None:
         )
 
     def _show_correction(session_id: int) -> None:
-        if _open_node_qcm(session_id):
+        if open_node_qcm(session_id):
             return
         open_qcm_correction(
             session_id,
@@ -498,26 +485,12 @@ def render_qcm_cockpit() -> None:
             ui.label(f"{status} · {f'{score}%' if score is not None else 'pas encore de score'}").classes(
                 "qc-selected-meta"
             )
-            with ui.row().classes("gap-2 flex-wrap mt-2"):
-                actions = _session_action_keys(selected)
-                if "resume" in actions:
-                    ui.button(
-                        "Reprendre",
-                        icon="play_arrow",
-                        on_click=lambda sid=selected["id"]: _open_selected_session(sid),
-                    ).props("flat color=primary")
-                if "correction" in actions:
-                    ui.button(
-                        "Voir la correction",
-                        icon="fact_check",
-                        on_click=lambda sid=selected["id"]: _open_selected_correction(sid),
-                    ).props("flat color=primary")
-                if "replay" in actions:
-                    ui.button(
-                        "Rejouer",
-                        icon="replay",
-                        on_click=lambda sid=selected["id"]: _replay_selected_session(sid),
-                    ).props("flat")
+            render_session_actions(
+                selected,
+                on_resume=_open_selected_session,
+                on_correction=_open_selected_correction,
+                on_replay=_replay_selected_session,
+            )
 
     def _replayable_history() -> list[dict]:
         return _get_replayable_history(

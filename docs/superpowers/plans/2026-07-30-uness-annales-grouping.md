@@ -872,11 +872,11 @@ def test_qcm_cockpit_prefers_the_node_reader_when_built():
     assert "QCM_NODE_DIST.exists()" in source
 ```
 
-`qcm_cockpit._open_node_qcm` no longer exists after Step 5. Replace this test with one confirming `qcm_cockpit.py` now delegates to the shared component:
+`qcm_cockpit._open_node_qcm` no longer exists after Step 5. Replace this test with one confirming `qcm_cockpit.py` now delegates to the shared component. `_show_session` is a closure nested inside `render_qcm_cockpit`, not a module attribute, so `inspect.getsource` must target `render_qcm_cockpit` itself (same target the other tests in this file already use) and check for the delegating call:
 
 ```python
 def test_qcm_cockpit_delegates_node_reader_check_to_the_shared_component():
-    source = inspect.getsource(qcm_cockpit._show_session)
+    source = inspect.getsource(qcm_cockpit.render_qcm_cockpit)
 
     assert "open_node_qcm(session_id)" in source
 ```

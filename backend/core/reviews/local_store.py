@@ -191,6 +191,7 @@ def init_db() -> None:
             answer              TEXT NOT NULL,
             explanation         TEXT NOT NULL,
             source_refs_json    TEXT NOT NULL DEFAULT '[]',
+            import_metadata_json TEXT NOT NULL DEFAULT '{}',
             model               TEXT NOT NULL DEFAULT '',
             question_hash       TEXT NOT NULL,
             created_at          TEXT NOT NULL
@@ -423,6 +424,14 @@ def _migrate_ai_practice_v1() -> None:
             con.execute("ALTER TABLE ai_practice_sessions ADD COLUMN mastery_recorded_at TEXT")
         if "difficulty" not in columns:
             con.execute("ALTER TABLE ai_practice_sessions ADD COLUMN difficulty TEXT NOT NULL DEFAULT 'standard'")
+        question_columns = {
+            row[1] for row in con.execute("PRAGMA table_info(ai_practice_questions)").fetchall()
+        }
+        if "import_metadata_json" not in question_columns:
+            con.execute(
+                "ALTER TABLE ai_practice_questions "
+                "ADD COLUMN import_metadata_json TEXT NOT NULL DEFAULT '{}'"
+            )
 
 
 # ── API publique — task_id ────────────────────────────────────────────────────
@@ -1231,14 +1240,15 @@ def create_ai_practice_session(*, spec, questions: list[dict], model: str) -> in
                 """INSERT INTO ai_practice_questions
                    (course_id, item_number, objective_code, practice_kind, question_kind,
                     position, prompt, choices_json, answer, explanation, source_refs_json,
-                    model, question_hash, created_at)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    import_metadata_json, model, question_hash, created_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (
                     spec.course_id, spec.item_number, spec.objective_code,
                     spec.practice_kind.value, kind, position,
                     question["prompt"], _json.dumps(list(question.get("choices") or []), ensure_ascii=False),
                     question["answer"], question["explanation"],
                     _json.dumps(list(question.get("source_refs") or []), ensure_ascii=False),
+                    _json.dumps(dict(question.get("import_metadata") or {}), ensure_ascii=False),
                     model, _ai_question_hash(question), now,
                 ),
             )
@@ -1337,6 +1347,10 @@ def get_ai_practice_session(session_id: int) -> list:
             item = dict(row)
             item["choices"] = _json.loads(item.pop("choices_json") or "[]")
             item["source_refs"] = _json.loads(item.pop("source_refs_json") or "[]")
+            item["import_metadata"] = _json.loads(item.pop("import_metadata_json") or "{}")
+            for key in ("uness", "correction"):
+                if key in item["import_metadata"]:
+                    item[key] = item["import_metadata"][key]
             attempts = con.execute(
                 """SELECT * FROM ai_practice_attempts
                    WHERE session_id = ? AND question_id = ?

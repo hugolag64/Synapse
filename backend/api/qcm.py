@@ -7,6 +7,11 @@ from pydantic import BaseModel
 
 from backend.core.practice.mastery import record_ai_practice_mastery
 from backend.core.reviews import local_store
+from backend.core.uness.import_service import (
+    count_disagreements,
+    import_uness_exam,
+    load_local_exam,
+)
 from frontend.components.qcm_replay import _same_closed_answer, build_correction_rows
 
 router = APIRouter(prefix="/api/qcm", tags=["qcm"])
@@ -20,6 +25,11 @@ class AttemptPayload(BaseModel):
 class FollowUpPayload(BaseModel):
     action: str
     question_id: int | None = None
+
+
+class UnessImportPayload(BaseModel):
+    path: str
+    verify: bool = True
 
 
 def _follow_up(session_id: int, summary: dict, rows: list[dict]) -> dict | None:
@@ -61,6 +71,25 @@ def _session_payload(session_id: int) -> dict:
     }
 
 
+@router.post("/uness/import")
+def import_uness(payload: UnessImportPayload) -> dict:
+    """Import a verified JSON artifact from the local UNESS inbox only."""
+    if not payload.verify:
+        raise HTTPException(status_code=400, detail="Un examen UNESS doit être vérifié avant import")
+    try:
+        exam = load_local_exam(payload.path)
+        session_id = import_uness_exam(exam)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Fichier UNESS introuvable") from exc
+    except (PermissionError, ValueError, OSError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {
+        "session_id": session_id,
+        "questions": len(exam.questions),
+        "disagreements": count_disagreements(exam),
+    }
+
+
 @router.get("/sessions/{session_id}")
 def get_session(session_id: int) -> dict:
     return _session_payload(session_id)
@@ -98,6 +127,10 @@ def complete_session(session_id: int) -> dict:
     questions = local_store.get_ai_practice_session(session_id)
     current = local_store.get_ai_practice_session_summary(session_id)
     rows = build_correction_rows(questions, current)
+    for row in rows:
+        correction = row.get("question", {}).get("correction")
+        if correction:
+            row["correction"] = correction
     return {
         "session": summary,
         "rows": rows,

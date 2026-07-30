@@ -28,6 +28,13 @@ ARTIFACT_DIR = Path(
     os.environ.get("UNESS_ARTIFACT_DIR", _ROOT / "data" / "uness" / "artifacts")
 )
 
+ANNALE_TYPE_LABELS = {
+    "matiere": "Matière",
+    "concours_blanc": "Concours blanc",
+    "vrai_concours": "Vrai concours",
+    "edn_complet": "EDN complet",
+}
+
 
 def load_local_exam(path: str | Path) -> UnessExam:
     """Load an artifact only when it is inside the configured local inbox."""

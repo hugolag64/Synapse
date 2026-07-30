@@ -360,3 +360,90 @@ def test_import_endpoint_rejects_paths_outside_local_import_directory(client, im
     response = client.post("/api/qcm/uness/import", json={"path": str(outside), "verify": True})
 
     assert response.status_code == 400
+
+
+@pytest.fixture
+def verified_dir(tmp_path, monkeypatch):
+    directory = tmp_path / "uness-verified"
+    directory.mkdir()
+    monkeypatch.setattr(import_service, "VERIFIED_DIR", directory)
+    monkeypatch.setattr(import_service, "ARCHIVE_DIR", tmp_path / "uness-archive")
+    monkeypatch.setattr(import_service, "TO_REVIEW_DIR", tmp_path / "uness-to-review")
+    return directory
+
+
+def test_scan_reports_a_new_source_url_group_as_pending_tag(verified_dir):
+    """A never-seen source_url must not import until a type_annale is supplied."""
+    payload_a = _exam_payload()
+    payload_a["provenance"]["source_url"] = "https://entrainement.uness.fr/annales/course/view.php?id=99"
+    payload_a["title"] = "UE Test — mDP1"
+    payload_b = _exam_payload()
+    payload_b["provenance"]["source_url"] = "https://entrainement.uness.fr/annales/course/view.php?id=99"
+    payload_b["title"] = "UE Test — DP1"
+    _write_exam(verified_dir, "mdp1.json", payload_a)
+    _write_exam(verified_dir, "dp1.json", payload_b)
+
+    result = import_service.import_verified_directory()
+
+    assert result["imported"] == []
+    assert len(result["pending_tag"]) == 1
+    group = result["pending_tag"][0]
+    assert group["source_url"] == "https://entrainement.uness.fr/annales/course/view.php?id=99"
+    assert sorted(group["files"]) == ["dp1.json", "mdp1.json"]
+    assert (verified_dir / "mdp1.json").exists()
+    assert (verified_dir / "dp1.json").exists()
+
+
+def test_import_with_tag_creates_one_annale_for_both_sub_parts(verified_dir):
+    payload_a = _exam_payload()
+    payload_a["provenance"]["source_url"] = "https://entrainement.uness.fr/annales/course/view.php?id=100"
+    payload_a["title"] = "UE Test — mDP1"
+    payload_b = _exam_payload()
+    payload_b["provenance"]["source_url"] = "https://entrainement.uness.fr/annales/course/view.php?id=100"
+    payload_b["title"] = "UE Test — DP1"
+    for question in payload_b["questions"]:
+        question["id"] = question["id"] + "-b"
+    _write_exam(verified_dir, "mdp1.json", payload_a)
+    _write_exam(verified_dir, "dp1.json", payload_b)
+
+    result = import_service.import_verified_directory(
+        tags={"https://entrainement.uness.fr/annales/course/view.php?id=100": "matiere"}
+    )
+
+    assert result["pending_tag"] == []
+    assert len(result["imported"]) == 2
+    annale = local_store.get_uness_annale_by_source_url(
+        "https://entrainement.uness.fr/annales/course/view.php?id=100"
+    )
+    assert annale is not None
+    assert annale["type_annale"] == "matiere"
+    session_ids = [entry["session_id"] for entry in result["imported"]]
+    for session_id in session_ids:
+        summary = local_store.get_ai_practice_session_summary(session_id)
+        assert summary["annale_id"] == annale["id"]
+
+
+def test_reimporting_same_source_url_attaches_to_existing_annale(verified_dir):
+    payload = _exam_payload()
+    payload["provenance"]["source_url"] = "https://entrainement.uness.fr/annales/course/view.php?id=101"
+    _write_exam(verified_dir, "part1.json", payload)
+    import_service.import_verified_directory(
+        tags={"https://entrainement.uness.fr/annales/course/view.php?id=101": "vrai_concours"}
+    )
+    before = local_store.list_uness_annales()
+    assert len(before) == 1
+
+    payload_2 = _exam_payload()
+    payload_2["provenance"]["source_url"] = "https://entrainement.uness.fr/annales/course/view.php?id=101"
+    payload_2["title"] = payload_2["title"] + " (2)"
+    for question in payload_2["questions"]:
+        question["id"] = question["id"] + "-second"
+    _write_exam(verified_dir, "part2.json", payload_2)
+
+    result = import_service.import_verified_directory()
+
+    assert result["pending_tag"] == []
+    assert len(result["imported"]) == 1
+    after = local_store.list_uness_annales()
+    assert len(after) == 1
+    assert after[0]["id"] == before[0]["id"]

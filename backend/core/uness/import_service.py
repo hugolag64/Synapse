@@ -20,6 +20,10 @@ from .models import UnessExam, UnessProposition, UnessQuestion, _assert_no_sensi
 
 _ROOT = Path(__file__).resolve().parents[3]
 IMPORT_DIR = Path(os.environ.get("UNESS_IMPORT_DIR", _ROOT / "data" / "uness" / "imports"))
+UNESS_ROOT = Path(os.environ.get("UNESS_ROOT", _ROOT / "UNESS"))
+TO_REVIEW_DIR = Path(os.environ.get("UNESS_TO_REVIEW_DIR", UNESS_ROOT / "à_vérifier"))
+VERIFIED_DIR = Path(os.environ.get("UNESS_VERIFIED_DIR", UNESS_ROOT / "vérifiés"))
+ARCHIVE_DIR = Path(os.environ.get("UNESS_ARCHIVE_DIR", UNESS_ROOT / "archives"))
 ARTIFACT_DIR = Path(
     os.environ.get("UNESS_ARTIFACT_DIR", _ROOT / "data" / "uness" / "artifacts")
 )
@@ -40,6 +44,103 @@ def load_local_exam(path: str | Path) -> UnessExam:
         return load_exam(candidate)
     except (AttributeError, TypeError) as exc:
         raise ValueError("Artéfact UNESS invalide : structure JSON attendue") from exc
+
+
+def scan_verified_exams() -> list[Path]:
+    """List JSON outputs manually returned by ChatGPT, excluding the index."""
+    VERIFIED_DIR.mkdir(parents=True, exist_ok=True)
+    return sorted(path for path in VERIFIED_DIR.glob("*.json") if path.name != ".imported.json")
+
+
+def _exam_fingerprint(exam: UnessExam) -> str:
+    import hashlib
+    raw = f"{exam.faculty}|{exam.level}|{exam.year}|{exam.title}|" + "|".join(q.id for q in exam.questions)
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def _annale_group_title(exam: UnessExam) -> str:
+    """Recover the shared course title from convert_chatgpt_export.py's '{course} — {part}' convention."""
+    return exam.title.rsplit(" — ", 1)[0] if " — " in exam.title else exam.title
+
+
+def _group_files_by_source_url(paths: list[Path]) -> dict[str, list[tuple[Path, UnessExam]]]:
+    groups: dict[str, list[tuple[Path, UnessExam]]] = {}
+    for path in paths:
+        exam = load_exam(path)
+        source_url = str(exam.provenance.get("source_url", "")).strip()
+        groups.setdefault(source_url, []).append((path, exam))
+    return groups
+
+
+def import_verified_directory(tags: dict[str, str] | None = None) -> dict[str, Any]:
+    """Validate and import all new verified outputs, grouped by partiel, without aborting the batch."""
+    tags = tags or {}
+    index_path = VERIFIED_DIR / ".imported.json"
+    try:
+        imported = set(json.loads(index_path.read_text(encoding="utf-8")))
+    except (FileNotFoundError, json.JSONDecodeError, TypeError):
+        imported = set()
+    result: dict[str, Any] = {"imported": [], "skipped": [], "errors": [], "pending_tag": []}
+
+    for source_url, entries in _group_files_by_source_url(scan_verified_exams()).items():
+        annale = local_store.get_uness_annale_by_source_url(source_url) if source_url else None
+        if annale is None and source_url:
+            type_annale = tags.get(source_url)
+            if type_annale is None:
+                first_path, first_exam = entries[0]
+                result["pending_tag"].append(
+                    {
+                        "source_url": source_url,
+                        "faculte": first_exam.faculty,
+                        "niveau": first_exam.level,
+                        "annee": first_exam.year,
+                        "matiere": str(first_exam.metadata.get("subject", "")),
+                        "titre": _annale_group_title(first_exam),
+                        "files": [path.name for path, _ in entries],
+                    }
+                )
+                continue
+            _, first_exam = entries[0]
+            annale_id = local_store.create_uness_annale(
+                source_url=source_url,
+                collected_at=str(first_exam.provenance.get("collected_at", "")).strip(),
+                faculte=first_exam.faculty,
+                niveau=first_exam.level,
+                annee=first_exam.year,
+                matiere=str(first_exam.metadata.get("subject", "")),
+                titre=_annale_group_title(first_exam),
+                type_annale=type_annale,
+            )
+            annale = local_store.get_uness_annale(annale_id)
+
+        for path, exam in entries:
+            try:
+                fingerprint = _exam_fingerprint(exam)
+                if fingerprint in imported:
+                    result["skipped"].append(path.name)
+                    continue
+                session_id = import_uness_exam(exam)
+                if annale is not None:
+                    local_store.set_session_annale_id(session_id, annale["id"])
+                imported.add(fingerprint)
+                result["imported"].append(
+                    {"file": path.name, "session_id": session_id, "disagreements": count_disagreements(exam)}
+                )
+                ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
+                path.replace(ARCHIVE_DIR / path.name)
+                collected_at = str(exam.provenance.get("collected_at", "")).strip()
+                for candidate in TO_REVIEW_DIR.glob("*.json"):
+                    try:
+                        source = json.loads(candidate.read_text(encoding="utf-8")).get("source", {})
+                    except (OSError, json.JSONDecodeError, AttributeError):
+                        continue
+                    if collected_at and source.get("collected_at") == collected_at:
+                        candidate.replace(ARCHIVE_DIR / f"a_verifier-{candidate.name}")
+            except (ValueError, OSError, PermissionError) as exc:
+                result["errors"].append({"file": path.name, "error": str(exc)})
+
+    index_path.write_text(json.dumps(sorted(imported), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return result
 
 
 def resolve_local_media_path(path: str | Path) -> Path:

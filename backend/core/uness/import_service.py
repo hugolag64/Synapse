@@ -34,7 +34,10 @@ def load_local_exam(path: str | Path) -> UnessExam:
         raise PermissionError("Le fichier UNESS doit être dans le répertoire d'import local") from exc
     if not candidate.is_file():
         raise FileNotFoundError(candidate)
-    return load_exam(candidate)
+    try:
+        return load_exam(candidate)
+    except (AttributeError, TypeError) as exc:
+        raise ValueError("Artéfact UNESS invalide : structure JSON attendue") from exc
 
 
 def _effective_answer(proposition: UnessProposition) -> bool | None:
@@ -101,7 +104,9 @@ def _question_metadata(question: UnessQuestion, exam: UnessExam) -> dict[str, An
             "official": {
                 "source": "UNESS",
                 "answer": official_answer,
-                "available": any(p.reponse_uness is not None for p in question.propositions),
+                "available": bool(question.propositions) and all(
+                    proposition.reponse_uness is not None for proposition in question.propositions
+                ),
             },
         },
     }

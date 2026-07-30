@@ -278,6 +278,16 @@ def open_qcm_correction(
                         ui.label(f"Explication : {row['explanation']}").classes(
                             "text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap mt-1"
                         )
+                        official = (row["question"].get("correction") or {}).get("official")
+                        if isinstance(official, dict):
+                            answers = ", ".join(str(answer) for answer in official.get("answer") or [])
+                            availability = "" if official.get("available") else " (partielle)"
+                            with ui.expansion("Correction officielle UNESS", icon="fact_check").classes(
+                                "w-full mt-2"
+                            ):
+                                ui.label(
+                                    f"Correction officielle UNESS{availability} : {answers or '—'}"
+                                ).classes("text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap")
 
         def _toggle_errors(event) -> None:
             state["errors_only"] = bool(event.value)

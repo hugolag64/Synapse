@@ -170,6 +170,84 @@ def test_correction_rows_render_a_finished_two_out_of_three_session():
     assert [row["response"] for row in rows] == ["A", "B", "B"]
 
 
+def test_qcm_correction_discloses_official_uness_correction(monkeypatch):
+    """Catches the NiceGUI correction view dropping the stored official UNESS answer."""
+    labels = []
+
+    class Element:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, _exc_type, _exc_value, _traceback):
+            return False
+
+        def classes(self, _value):
+            return self
+
+        def props(self, _value):
+            return self
+
+        def clear(self):
+            return None
+
+        def on_value_change(self, _callback):
+            return None
+
+        def open(self):
+            return None
+
+        def close(self):
+            return None
+
+    class FakeUI:
+        def dialog(self):
+            return Element()
+
+        def card(self):
+            return Element()
+
+        def label(self, text=""):
+            labels.append(str(text))
+            return Element()
+
+        def checkbox(self, *_args, **_kwargs):
+            return Element()
+
+        def column(self):
+            return Element()
+
+        def expansion(self, *_args, **_kwargs):
+            return Element()
+
+        def row(self):
+            return Element()
+
+        def button(self, *_args, **_kwargs):
+            return Element()
+
+    question = {
+        "id": 7,
+        "prompt": "Question UNESS",
+        "question_kind": "closed",
+        "answer": '["Réponse IA"]',
+        "choices": ["Réponse IA", "Réponse officielle"],
+        "explanation": "Explication IA.",
+        "correction": {
+            "official": {"source": "UNESS", "answer": ["Réponse officielle"], "available": True}
+        },
+    }
+    monkeypatch.setattr(qcm_replay, "ui", FakeUI())
+    monkeypatch.setattr(qcm_replay.local_store, "get_ai_practice_session_summary", lambda _id: {
+        "score_percent": 100, "correct_count": 1, "incorrect_count": 0,
+        "unanswered_count": 0, "latest_attempts": [{"question_id": 7, "response": question["answer"], "is_correct": 1}],
+    })
+    monkeypatch.setattr(qcm_replay.local_store, "get_ai_practice_session", lambda _id: [question])
+
+    qcm_replay.open_qcm_correction(4, on_back=lambda: None, on_replay=lambda _id: None)
+
+    assert "Correction officielle UNESS : Réponse officielle" in labels
+
+
 def test_correction_summary_counts_answered_open_questions_without_marking_them_correct():
     summary = {
         "total_questions": 3,

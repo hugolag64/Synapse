@@ -128,11 +128,37 @@ def test_import_endpoint_rejects_malformed_json_with_400(client, import_dir):
     assert response.status_code == 400
 
 
+@pytest.mark.parametrize("payload", [[], {"questions": "not-a-list"}])
+def test_import_endpoint_rejects_parseable_invalid_exam_shapes_with_400(client, import_dir, payload):
+    """Catches model AttributeErrors escaping parseable but invalid JSON as a 500."""
+    _write_exam(import_dir, "invalid-shape.json", payload)
+
+    response = client.post("/api/qcm/uness/import", json={"path": "invalid-shape.json", "verify": True})
+
+    assert response.status_code == 400
+
+
 def test_import_endpoint_returns_404_for_missing_local_artifact(client, import_dir):
     """Catches a missing local file being reported as a generic import failure."""
     response = client.post("/api/qcm/uness/import", json={"path": "absent.json", "verify": True})
 
     assert response.status_code == 404
+
+
+def test_import_keeps_partial_official_correction_marked_as_incomplete(client, import_dir):
+    """Catches a partial UNESS correction being falsely labelled complete."""
+    payload = _exam_payload()
+    payload["questions"][0]["propositions"][1]["reponse_uness"] = None
+    _write_exam(import_dir, "partial-official.json", payload)
+
+    imported = client.post(
+        "/api/qcm/uness/import", json={"path": "partial-official.json", "verify": True}
+    )
+
+    assert imported.status_code == 200
+    question = client.get(f"/api/qcm/sessions/{imported.json()['session_id']}").json()["questions"][0]
+    assert question["correction"]["official"]["available"] is False
+    assert question["uness"]["propositions"][1]["reponse_uness"] is None
 
 
 def test_import_endpoint_rejects_paths_outside_local_import_directory(client, import_dir, tmp_path):

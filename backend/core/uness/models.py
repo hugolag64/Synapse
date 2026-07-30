@@ -10,7 +10,15 @@ UnessQuestionType = Literal["QRM", "QRU", "QRP/L", "DP", "KFP", "QROC"]
 
 _STATUTS = {"concordant", "desaccord", "incertain", "valide_manuellement"}
 _QUESTION_TYPES = {"QRM", "QRU", "QRP/L", "DP", "KFP", "QROC"}
-_SENSITIVE_KEYS = {"credentials", "cookies", "local_storage", "session_token"}
+_SENSITIVE_KEYS = {
+    "credential",
+    "credentials",
+    "cookie",
+    "cookies",
+    "localstorage",
+    "sessiontoken",
+    "sessiontokens",
+}
 
 
 def _optional_bool(value: Any, field_name: str) -> bool | None:
@@ -21,9 +29,10 @@ def _optional_bool(value: Any, field_name: str) -> bool | None:
 
 def _assert_no_sensitive_data(value: Any) -> None:
     if isinstance(value, dict):
-        prohibited = _SENSITIVE_KEYS.intersection(value)
-        if prohibited:
-            raise ValueError(f"Donnée sensible interdite: {sorted(prohibited)[0]}")
+        for key in value:
+            normalized_key = "".join(character for character in key.lower() if character.isalnum())
+            if normalized_key in _SENSITIVE_KEYS:
+                raise ValueError(f"Donnée sensible interdite: {key}")
         for child in value.values():
             _assert_no_sensitive_data(child)
     elif isinstance(value, list):
@@ -67,12 +76,21 @@ class UnessProposition:
     verdict_ia: bool | None = None
     reponse_finale: bool | None = None
     statut: UnessStatus = "incertain"
+    validation_utilisateur: bool = False
 
     def __post_init__(self) -> None:
         for field_name in ("reponse_uness", "verdict_ia", "reponse_finale"):
             _optional_bool(getattr(self, field_name), field_name)
         if self.statut not in _STATUTS:
             raise ValueError(f"statut inconnu: {self.statut}")
+        if not isinstance(self.validation_utilisateur, bool):
+            raise ValueError("validation_utilisateur doit être un booléen")
+        if self.reponse_finale is not None and (
+            self.statut != "valide_manuellement" or not self.validation_utilisateur
+        ):
+            raise ValueError(
+                "reponse_finale nécessite une validation utilisateur manuelle"
+            )
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> UnessProposition:
@@ -83,6 +101,7 @@ class UnessProposition:
             verdict_ia=payload.get("verdict_ia"),
             reponse_finale=payload.get("reponse_finale"),
             statut=payload.get("statut", "incertain"),
+            validation_utilisateur=payload.get("validation_utilisateur", False),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -93,6 +112,7 @@ class UnessProposition:
             "verdict_ia": self.verdict_ia,
             "reponse_finale": self.reponse_finale,
             "statut": self.statut,
+            "validation_utilisateur": self.validation_utilisateur,
         }
 
 
@@ -151,6 +171,9 @@ class UnessExam:
     questions: tuple[UnessQuestion, ...] = ()
     provenance: dict[str, Any] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        _assert_no_sensitive_data(self.to_dict())
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> UnessExam:

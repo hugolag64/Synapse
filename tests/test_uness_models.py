@@ -5,7 +5,7 @@ import json
 import pytest
 
 from backend.core.uness.json_io import load_exam, save_exam
-from backend.core.uness.models import UnessExam
+from backend.core.uness.models import UnessExam, UnessProposition
 
 
 def test_exam_round_trip_preserves_uness_correction_ai_verdict_and_visual_context(tmp_path) -> None:
@@ -59,6 +59,7 @@ def test_exam_round_trip_preserves_uness_correction_ai_verdict_and_visual_contex
         "verdict_ia": False,
         "reponse_finale": None,
         "statut": "desaccord",
+        "validation_utilisateur": False,
     }
     assert load_exam(target).to_dict() == persisted
 
@@ -93,3 +94,32 @@ def test_exam_rejects_unknown_status_and_question_type() -> None:
         UnessExam.from_dict(
             {"questions": [{"id": "q1", "type_question": "QCM", "enonce": "Question"}]}
         )
+
+
+@pytest.mark.parametrize("sensitive_key", ["Credentials", "session-token", "localStorage"])
+def test_exam_rejects_sensitive_data_from_import_regardless_of_key_spelling(
+    sensitive_key: str,
+) -> None:
+    """Catches an import path that stores credentials or browser-session data."""
+    with pytest.raises(ValueError, match="sensible"):
+        UnessExam.from_dict({"metadata": {sensitive_key: "secret"}})
+
+
+def test_save_exam_rejects_sensitive_data_on_directly_constructed_model(tmp_path) -> None:
+    """Catches direct model construction bypassing loader-only secret validation."""
+    exam = UnessExam()
+    exam.metadata["Credentials"] = "secret"
+    with pytest.raises(ValueError, match="sensible"):
+        save_exam(exam, tmp_path / "exam.json")
+
+
+def test_direct_model_construction_rejects_sensitive_data() -> None:
+    """Catches callers bypassing JSON import to place credentials in an exam."""
+    with pytest.raises(ValueError, match="sensible"):
+        UnessExam(metadata={"Credentials": "secret"})
+
+
+def test_proposition_rejects_final_answer_without_manual_user_validation() -> None:
+    """Catches final answers being recorded before a user validates the proposition."""
+    with pytest.raises(ValueError, match="validation utilisateur"):
+        UnessProposition(id="A", texte="Réponse", reponse_finale=True, statut="incertain")

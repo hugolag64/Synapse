@@ -48,8 +48,8 @@ class VerificationContext:
         except Exception:
             course_text = None
         if not isinstance(course_text, str) or not course_text.strip():
-            return self
-        return replace(self, course_text=course_text.strip())
+            return replace(self, course_text_loader=None)
+        return replace(self, course_text=course_text.strip(), course_text_loader=None)
 
 
 def _prompt(question: UnessQuestion, context: VerificationContext) -> str:

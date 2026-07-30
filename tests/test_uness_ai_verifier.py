@@ -170,3 +170,27 @@ def test_verify_exam_loads_course_context_once_and_reuses_it_for_every_question(
         "Contexte de cours partagé.",
         "Contexte de cours partagé.",
     ]
+
+
+def test_verify_exam_does_not_retry_an_unavailable_course_context_loader() -> None:
+    requested_refs: list[list[str]] = []
+
+    def unavailable_loader(item_refs: list[str]) -> None:
+        requested_refs.append(item_refs)
+        return None
+
+    exam = UnessExam(title="Gériatrie", questions=(_question(), _question()))
+    service = FakeAIService(_answer_payload())
+
+    verified = verify_exam(
+        exam,
+        VerificationContext("", ["124"], [], course_text_loader=unavailable_loader),
+        service,
+    )
+
+    assert requested_refs == [["124"]]
+    assert all(
+        proposition.sources_ia[-1] == "Contexte limité : aucune source pédagogique fournie."
+        for question in verified.questions
+        for proposition in question.propositions
+    )

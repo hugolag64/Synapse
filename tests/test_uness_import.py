@@ -77,6 +77,7 @@ def _exam_payload() -> dict:
                         "local_path": "",
                         "alt_text": "Horloge dessinée par le patient",
                         "caption": "Test de l'horloge",
+                        "metadata": {"verification_status": "provided_to_ai"},
                     }
                 ],
                 "support_visuel_seul": True,

@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
-import zlib
 from collections.abc import Callable
 from dataclasses import dataclass, replace
+from io import BytesIO
 from typing import Any
+
+from PIL import Image
 
 from backend.core.ai.routing import AIImageContent, AITask
 
@@ -31,6 +33,12 @@ _REQUIRED_RESULT_KEYS = {
 _MAX_IMAGE_COUNT = 4
 _MAX_IMAGE_BYTES = 10 * 1024 * 1024
 _MAX_TOTAL_IMAGE_BYTES = 20 * 1024 * 1024
+_SUPPORTED_IMAGE_FORMATS = {
+    "PNG": "image/png",
+    "JPEG": "image/jpeg",
+    "GIF": "image/gif",
+    "WEBP": "image/webp",
+}
 _UNSUPPORTED_VISUAL_EXPLANATION = (
     "Vérification IA indisponible : le support visuel requis n'a pas pu être "
     "fourni intégralement au modèle."
@@ -136,98 +144,23 @@ Références d'items ou externes : {refs}
 Contexte : {source_notice}"""
 
 
-def _png_mime_type(data: bytes) -> str | None:
-    if not data.startswith(b"\x89PNG\r\n\x1a\n"):
-        return None
-    offset = 8
-    saw_header = False
-    while offset + 12 <= len(data):
-        length = int.from_bytes(data[offset : offset + 4], "big")
-        chunk_type = data[offset + 4 : offset + 8]
-        chunk_end = offset + 12 + length
-        if chunk_end > len(data):
-            return None
-        chunk_data = data[offset + 8 : offset + 8 + length]
-        expected_crc = int.from_bytes(data[offset + 8 + length : chunk_end], "big")
-        actual_crc = zlib.crc32(chunk_type)
-        actual_crc = zlib.crc32(chunk_data, actual_crc) & 0xFFFFFFFF
-        if actual_crc != expected_crc:
-            return None
-        if not saw_header:
-            if chunk_type != b"IHDR" or length != 13:
-                return None
-            width = int.from_bytes(chunk_data[:4], "big")
-            height = int.from_bytes(chunk_data[4:8], "big")
-            if width < 1 or height < 1:
-                return None
-            saw_header = True
-        if chunk_type == b"IEND":
-            return "image/png" if length == 0 and chunk_end == len(data) else None
-        offset = chunk_end
-    return None
-
-
-def _jpeg_mime_type(data: bytes) -> str | None:
-    if len(data) < 8 or not data.startswith(b"\xff\xd8") or not data.endswith(b"\xff\xd9"):
-        return None
-    offset = 2
-    saw_frame = False
-    while offset < len(data) - 2:
-        if data[offset] != 0xFF:
-            return None
-        while offset < len(data) and data[offset] == 0xFF:
-            offset += 1
-        if offset >= len(data):
-            return None
-        marker = data[offset]
-        offset += 1
-        if marker == 0xD9:
-            break
-        if marker in {0x01, *range(0xD0, 0xD8)}:
-            continue
-        if offset + 2 > len(data):
-            return None
-        segment_length = int.from_bytes(data[offset : offset + 2], "big")
-        if segment_length < 2 or offset + segment_length > len(data):
-            return None
-        if marker in {*range(0xC0, 0xC4), *range(0xC5, 0xC8), *range(0xC9, 0xCC), *range(0xCD, 0xD0)}:
-            if segment_length < 7:
-                return None
-            height = int.from_bytes(data[offset + 3 : offset + 5], "big")
-            width = int.from_bytes(data[offset + 5 : offset + 7], "big")
-            if width < 1 or height < 1:
-                return None
-            saw_frame = True
-        if marker == 0xDA:
-            return "image/jpeg" if saw_frame else None
-        offset += segment_length
-    return None
-
-
 def _detected_image_mime_type(data: bytes) -> str | None:
-    png = _png_mime_type(data)
-    if png:
-        return png
-    jpeg = _jpeg_mime_type(data)
-    if jpeg:
-        return jpeg
-    if (
-        len(data) >= 14
-        and data[:6] in {b"GIF87a", b"GIF89a"}
-        and int.from_bytes(data[6:8], "little") > 0
-        and int.from_bytes(data[8:10], "little") > 0
-        and data.endswith(b";")
-    ):
-        return "image/gif"
-    if (
-        len(data) >= 20
-        and data.startswith(b"RIFF")
-        and data[8:12] == b"WEBP"
-        and int.from_bytes(data[4:8], "little") + 8 == len(data)
-        and data[12:16] in {b"VP8 ", b"VP8L", b"VP8X"}
-    ):
-        return "image/webp"
-    return None
+    try:
+        with Image.open(BytesIO(data)) as image:
+            mime_type = _SUPPORTED_IMAGE_FORMATS.get(image.format or "")
+            if mime_type is None:
+                return None
+            image.verify()
+        with Image.open(BytesIO(data)) as image:
+            while True:
+                image.load()
+                try:
+                    image.seek(image.tell() + 1)
+                except EOFError:
+                    break
+    except (OSError, SyntaxError, ValueError, Image.DecompressionBombError):
+        return None
+    return mime_type
 
 
 def _local_image_content(question: UnessQuestion) -> tuple[

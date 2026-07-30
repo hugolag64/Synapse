@@ -200,6 +200,13 @@ def assert_verified_exam(exam: UnessExam) -> None:
                 f"Échec de vérification IA pour la question {question.id} : "
                 "vérification visuelle non prise en charge"
             )
+        if question.verification_status == "verified":
+            for index, image in enumerate(question.images, start=1):
+                if image.metadata.get("verification_status") != "provided_to_ai":
+                    raise ValueError(
+                        f"Échec de vérification IA pour la question {question.id} : "
+                        f"image {index} sans verification_status 'provided_to_ai'"
+                    )
         for proposition in question.propositions:
             error_prefix = (
                 f"Échec de vérification IA pour la question {question.id}, "

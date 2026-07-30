@@ -6,7 +6,7 @@ import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, Literal
-from urllib.parse import unquote, urlparse
+from urllib.parse import parse_qsl, unquote, urlparse
 
 UnessStatus = Literal["concordant", "desaccord", "incertain", "valide_manuellement"]
 UnessQuestionType = Literal["QRM", "QRU", "QRP/L", "DP", "KFP", "QROC"]
@@ -46,6 +46,8 @@ _URL_PARAMETER_PATTERN = re.compile(
     r"(?:[?&#;])\s*([A-Za-z0-9_.%+-]+)\s*=",
     re.IGNORECASE,
 )
+_MAX_URL_DECODE_ROUNDS = 6
+_MAX_NESTED_URL_CANDIDATES = 64
 
 
 def _normalized_key(value: Any) -> str:
@@ -61,23 +63,57 @@ def _is_sensitive_url_parameter(key: Any) -> bool:
     )
 
 
+def _percent_decoded_candidates(value: str) -> tuple[tuple[str, ...], bool]:
+    candidates = []
+    current = value
+    for _ in range(_MAX_URL_DECODE_ROUNDS):
+        candidates.append(current)
+        decoded = unquote(current)
+        if decoded == current:
+            return tuple(candidates), True
+        current = decoded
+    candidates.append(current)
+    return tuple(candidates), unquote(current) == current
+
+
 def _url_contains_sensitive_data(value: str) -> bool:
-    decoded = unquote(value)
-    if any(
-        _is_sensitive_url_parameter(match.group(1))
-        for match in _URL_PARAMETER_PATTERN.finditer(decoded)
-    ):
-        return True
-    candidates = [value, *_HTTP_URL_PATTERN.findall(value)]
-    for candidate in candidates:
-        parsed = urlparse(candidate.rstrip(".,);]}"))
-        if (
-            parsed.scheme in {"http", "https"}
-            and parsed.netloc
-            and (parsed.username or parsed.password)
-        ):
+    pending = [value]
+    seen: set[str] = set()
+    while pending and len(seen) < _MAX_NESTED_URL_CANDIDATES:
+        raw_candidate = pending.pop()
+        decoded_candidates, reached_fixed_point = _percent_decoded_candidates(raw_candidate)
+        if not reached_fixed_point:
             return True
-    return False
+        for candidate in decoded_candidates:
+            if candidate in seen:
+                continue
+            seen.add(candidate)
+            if any(
+                _is_sensitive_url_parameter(match.group(1))
+                for match in _URL_PARAMETER_PATTERN.finditer(candidate)
+            ):
+                return True
+            pending.extend(_HTTP_URL_PATTERN.findall(candidate))
+            parsed = urlparse(candidate.rstrip(".,);]}"))
+            if (
+                parsed.scheme in {"http", "https"}
+                and parsed.netloc
+                and (parsed.username or parsed.password)
+            ):
+                return True
+            query_candidates = [candidate]
+            for component in (parsed.query, parsed.fragment):
+                if not component:
+                    continue
+                pending.append(component)
+                query_candidates.append(component)
+            for component in query_candidates:
+                for key, nested_value in parse_qsl(component, keep_blank_values=True):
+                    if _is_sensitive_url_parameter(key):
+                        return True
+                    if nested_value:
+                        pending.append(nested_value)
+    return bool(pending)
 
 
 def _optional_bool(value: Any, field_name: str) -> bool | None:

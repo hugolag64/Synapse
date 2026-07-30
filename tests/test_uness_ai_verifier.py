@@ -1,4 +1,6 @@
 import json
+import struct
+import zlib
 from base64 import b64decode
 from dataclasses import replace
 
@@ -14,6 +16,30 @@ _VALID_PNG = b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk"
     "+A8AAQUBAScY42YAAAAASUVORK5CYII="
 )
+
+
+def _png_chunk(kind: bytes, payload: bytes) -> bytes:
+    return (
+        struct.pack(">I", len(payload))
+        + kind
+        + payload
+        + struct.pack(">I", zlib.crc32(kind + payload) & 0xFFFFFFFF)
+    )
+
+
+_CORRUPT_IMAGE_PAYLOADS = {
+    "png": (
+        b"\x89PNG\r\n\x1a\n"
+        + _png_chunk(b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0))
+        + _png_chunk(b"IDAT", b"not-zlib")
+        + _png_chunk(b"IEND", b"")
+    ),
+    "jpeg": bytes.fromhex(
+        "FFD8 FFC0 000B 08 0001 0001 01 01 1100 FFDA 0008 01 01 00 00 3F00 FFD9"
+    ),
+    "gif": b"GIF89a\x01\x00\x01\x00\x00\x00\x00;",
+    "webp": b"RIFF" + (12).to_bytes(4, "little") + b"WEBPVP8 " + (0).to_bytes(4, "little"),
+}
 
 
 class FakeAIService:
@@ -211,6 +237,38 @@ def test_verifier_rejects_corrupt_image_content_instead_of_trusting_the_filename
     assert all(proposition.verdict_ia is None for proposition in verified.propositions)
 
 
+@pytest.mark.parametrize(
+    ("suffix", "payload"),
+    _CORRUPT_IMAGE_PAYLOADS.items(),
+    ids=_CORRUPT_IMAGE_PAYLOADS,
+)
+def test_verifier_rejects_structurally_plausible_but_undecodable_images(
+    tmp_path, monkeypatch, suffix: str, payload: bytes
+) -> None:
+    """Catches signature/structure checks accepting bytes no image decoder can read."""
+    artifact_root = tmp_path / "artifacts"
+    image_path = artifact_root / f"crafted.{suffix}"
+    artifact_root.mkdir()
+    image_path.write_bytes(payload)
+    monkeypatch.setattr(import_service, "ARTIFACT_DIR", artifact_root)
+    question = replace(
+        _question(),
+        images=(
+            UnessImage(
+                source_url=f"images/crafted.{suffix}",
+                local_path=str(image_path),
+            ),
+        ),
+    )
+    service = FakeAIService(_answer_payload())
+
+    verified = verify_question(question, VerificationContext("Cours", [], []), service)
+
+    assert service.calls == []
+    assert verified.verification_status == "unsupported"
+    assert verified.images[0].metadata["verification_status"] == "unsupported"
+
+
 def test_verifier_bounds_the_number_of_multimodal_images(
     tmp_path, monkeypatch
 ) -> None:
@@ -348,6 +406,39 @@ def test_verifier_and_verified_import_both_reject_a_null_ia_verdict() -> None:
     )
     with pytest.raises(ValueError, match="verdict_ia"):
         assert_verified_exam(_exam(unverified))
+
+
+@pytest.mark.parametrize(
+    "metadata",
+    [
+        {"verification_status": "unsupported"},
+        {"verification_status": "not_provided_to_ai"},
+        {},
+    ],
+    ids=["unsupported", "not-provided-to-ai", "missing"],
+)
+def test_assert_verified_exam_requires_every_attached_image_to_be_provided_to_ai(
+    metadata: dict[str, str],
+) -> None:
+    """Catches a question-level verified flag masking an unverified attached image."""
+    service = FakeAIService(_answer_payload())
+    verified_question = verify_question(
+        _question(),
+        VerificationContext("Cours", [], []),
+        service,
+    )
+    inconsistent_question = replace(
+        verified_question,
+        images=(
+            UnessImage(
+                source_url="images/scan.png",
+                metadata=metadata,
+            ),
+        ),
+    )
+
+    with pytest.raises(ValueError, match="image.*provided_to_ai"):
+        assert_verified_exam(_exam(inconsistent_question))
 
 
 def test_verifier_marks_results_context_limited_without_course_or_references() -> None:

@@ -248,6 +248,41 @@ def test_exam_rejects_fragment_embedded_and_signed_secret_urls(secret_text: str)
 
 
 @pytest.mark.parametrize(
+    "secret_text",
+    [
+        (
+            "https://uness.example/redirect?"
+            "next=https%253A%252F%252Fstorage.example%252Fscan.png"
+            "%253Faccess_token%253Dsecret"
+        ),
+        (
+            "https://uness.example/#/redirect?"
+            "next=https%253A%252F%252Flogin.example%252Fcallback"
+            "%2523id_token%253Dsecret"
+        ),
+        (
+            "https://uness.example/redirect?"
+            "next=https%253A%252F%252Fstorage.example%252Fscan.png"
+            "%253Fredirect%253Daccess_token%25253Dsecret"
+        ),
+        (
+            "https://uness.example/#/redirect?"
+            "next=https%253A%252F%252Flogin.example%252Fcallback"
+            "%2523redirect%253Did_token%25253Dsecret"
+        ),
+    ],
+)
+def test_exam_rejects_double_encoded_token_urls_in_nested_query_or_fragment(
+    secret_text: str,
+) -> None:
+    """Catches nested redirect secrets hidden behind repeated percent-encoding."""
+    payload = _valid_exam_payload(metadata={"redirect": secret_text})
+
+    with pytest.raises(ValueError, match="sensible"):
+        UnessExam.from_dict(payload)
+
+
+@pytest.mark.parametrize(
     "source_url",
     [
         "images/scan.png?access_token=secret",

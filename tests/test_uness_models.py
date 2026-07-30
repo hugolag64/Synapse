@@ -96,7 +96,9 @@ def test_exam_rejects_unknown_status_and_question_type() -> None:
         )
 
 
-@pytest.mark.parametrize("sensitive_key", ["Credentials", "session-token", "localStorage"])
+@pytest.mark.parametrize(
+    "sensitive_key", ["Credentials", "session-token", "localStorage", "COOKIE"]
+)
 def test_exam_rejects_sensitive_data_from_import_regardless_of_key_spelling(
     sensitive_key: str,
 ) -> None:
@@ -123,3 +125,28 @@ def test_proposition_rejects_final_answer_without_manual_user_validation() -> No
     """Catches final answers being recorded before a user validates the proposition."""
     with pytest.raises(ValueError, match="validation utilisateur"):
         UnessProposition(id="A", texte="Réponse", reponse_finale=True, statut="incertain")
+
+
+def test_proposition_rejects_final_answer_when_manual_status_lacks_user_validation() -> None:
+    """Catches a final answer marked manually valid without an actual user validation."""
+    with pytest.raises(ValueError, match="validation utilisateur"):
+        UnessProposition(
+            id="A",
+            texte="Réponse",
+            reponse_finale=True,
+            statut="valide_manuellement",
+            validation_utilisateur=False,
+        )
+
+
+def test_proposition_accepts_final_answer_after_manual_user_validation() -> None:
+    """Catches an invariant that would prevent a legitimately user-validated answer."""
+    proposition = UnessProposition(
+        id="A",
+        texte="Réponse",
+        reponse_finale=True,
+        statut="valide_manuellement",
+        validation_utilisateur=True,
+    )
+
+    assert proposition.reponse_finale is True

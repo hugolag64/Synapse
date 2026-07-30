@@ -407,6 +407,7 @@ def init_db() -> None:
     _migrate_routine_tables()
     _migrate_oic_anythingllm_validation()
     _migrate_ai_practice_v1()
+    _migrate_uness_annales()
     logger.info(f"SQLite initialisé : {DB_PATH}")
 
 
@@ -431,6 +432,31 @@ def _migrate_ai_practice_v1() -> None:
             con.execute(
                 "ALTER TABLE ai_practice_questions "
                 "ADD COLUMN import_metadata_json TEXT NOT NULL DEFAULT '{}'"
+            )
+
+
+def _migrate_uness_annales() -> None:
+    """Ajoute la table de regroupement des annales UNESS et son lien depuis les sessions."""
+    with _conn() as con:
+        con.execute(
+            """CREATE TABLE IF NOT EXISTS uness_annales (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                source_url   TEXT NOT NULL UNIQUE,
+                collected_at TEXT NOT NULL,
+                faculte      TEXT NOT NULL,
+                niveau       TEXT NOT NULL,
+                annee        INTEGER,
+                matiere      TEXT NOT NULL DEFAULT '',
+                titre        TEXT NOT NULL,
+                type_annale  TEXT NOT NULL,
+                created_at   TEXT NOT NULL
+            )"""
+        )
+        columns = {row[1] for row in con.execute("PRAGMA table_info(ai_practice_sessions)").fetchall()}
+        if "annale_id" not in columns:
+            con.execute(
+                "ALTER TABLE ai_practice_sessions ADD COLUMN annale_id INTEGER "
+                "REFERENCES uness_annales(id)"
             )
 
 
@@ -1257,6 +1283,107 @@ def create_ai_practice_session(*, spec, questions: list[dict], model: str) -> in
                 (session_id, int(cur.lastrowid), position),
             )
     return session_id
+
+
+def create_uness_annale(
+    *,
+    source_url: str,
+    collected_at: str,
+    faculte: str,
+    niveau: str,
+    annee: int | None,
+    matiere: str,
+    titre: str,
+    type_annale: str,
+) -> int:
+    """Create one grouping row for a UNESS partiel. Raises sqlite3.IntegrityError on a duplicate source_url."""
+    with _conn() as con:
+        cur = con.execute(
+            """INSERT INTO uness_annales
+               (source_url, collected_at, faculte, niveau, annee, matiere, titre, type_annale, created_at)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
+            (source_url, collected_at, faculte, niveau, annee, matiere, titre, type_annale, _now()),
+        )
+        return int(cur.lastrowid)
+
+
+def get_uness_annale_by_source_url(source_url: str) -> dict | None:
+    with _conn() as con:
+        row = con.execute(
+            "SELECT * FROM uness_annales WHERE source_url = ?", (source_url,)
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def get_uness_annale(annale_id: int) -> dict | None:
+    with _conn() as con:
+        row = con.execute("SELECT * FROM uness_annales WHERE id = ?", (annale_id,)).fetchone()
+    return dict(row) if row else None
+
+
+def list_uness_annales(
+    *,
+    query: str = "",
+    matiere: str = "",
+    faculte: str = "",
+    annee: int | None = None,
+    type_annale: str = "",
+) -> list[dict]:
+    """List annale groups with aggregated sub-part counts and average completed score."""
+    clauses = []
+    params: list = []
+    if query.strip():
+        pattern = f"%{query.strip().lower()}%"
+        clauses.append("(LOWER(a.titre) LIKE ? OR LOWER(a.matiere) LIKE ?)")
+        params.extend((pattern, pattern))
+    if matiere:
+        clauses.append("a.matiere = ?")
+        params.append(matiere)
+    if faculte:
+        clauses.append("a.faculte = ?")
+        params.append(faculte)
+    if annee is not None:
+        clauses.append("a.annee = ?")
+        params.append(annee)
+    if type_annale:
+        clauses.append("a.type_annale = ?")
+        params.append(type_annale)
+    where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    with _conn() as con:
+        rows = con.execute(
+            f"""SELECT a.*,
+                       COUNT(s.id) AS total_parts,
+                       COALESCE(SUM(CASE WHEN s.completed_at IS NOT NULL THEN 1 ELSE 0 END), 0) AS completed_parts,
+                       AVG(CASE WHEN s.completed_at IS NOT NULL THEN s.score_percent END) AS avg_score
+                FROM uness_annales a
+                LEFT JOIN ai_practice_sessions s ON s.annale_id = a.id
+                {where}
+                GROUP BY a.id
+                ORDER BY a.created_at DESC, a.id DESC""",
+            params,
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def list_annale_sessions(annale_id: int) -> list[dict]:
+    """Sub-part sessions for one annale, ordered as imported, with a pending/completed status."""
+    with _conn() as con:
+        rows = con.execute(
+            """SELECT s.*,
+                      CASE WHEN s.completed_at IS NULL THEN 'pending' ELSE 'completed' END AS status
+               FROM ai_practice_sessions s
+               WHERE s.annale_id = ?
+               ORDER BY s.id ASC""",
+            (annale_id,),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def set_session_annale_id(session_id: int, annale_id: int) -> None:
+    with _conn() as con:
+        con.execute(
+            "UPDATE ai_practice_sessions SET annale_id = ? WHERE id = ?", (annale_id, session_id)
+        )
 
 
 def replay_ai_practice_session(session_id: int) -> int:

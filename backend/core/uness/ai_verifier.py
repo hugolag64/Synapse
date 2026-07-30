@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import struct
+import warnings
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 from io import BytesIO
@@ -43,6 +45,148 @@ _UNSUPPORTED_VISUAL_EXPLANATION = (
     "Vérification IA indisponible : le support visuel requis n'a pas pu être "
     "fourni intégralement au modèle."
 )
+
+
+def _png_has_exact_end(data: bytes) -> bool:
+    if not data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return False
+    offset = 8
+    while offset + 12 <= len(data):
+        chunk_length = int.from_bytes(data[offset : offset + 4], "big")
+        chunk_type = data[offset + 4 : offset + 8]
+        chunk_end = offset + 12 + chunk_length
+        if chunk_end > len(data):
+            return False
+        if chunk_type == b"IEND":
+            return chunk_length == 0 and chunk_end == len(data)
+        offset = chunk_end
+    return False
+
+
+def _jpeg_has_exact_end(data: bytes) -> bool:
+    if not data.startswith(b"\xff\xd8"):
+        return False
+    offset = 2
+    in_scan = False
+    saw_scan = False
+    while offset < len(data):
+        if in_scan:
+            marker_start = data.find(b"\xff", offset)
+            if marker_start < 0:
+                return False
+            offset = marker_start
+        elif data[offset] != 0xFF:
+            return False
+
+        while offset < len(data) and data[offset] == 0xFF:
+            offset += 1
+        if offset >= len(data):
+            return False
+        marker = data[offset]
+        offset += 1
+
+        if in_scan and (marker == 0x00 or 0xD0 <= marker <= 0xD7):
+            continue
+        in_scan = False
+        if marker == 0xD9:
+            return saw_scan and offset == len(data)
+        if marker == 0x00 or marker == 0xD8:
+            return False
+        if marker == 0x01 or 0xD0 <= marker <= 0xD7:
+            continue
+        if offset + 2 > len(data):
+            return False
+        segment_length = int.from_bytes(data[offset : offset + 2], "big")
+        if segment_length < 2 or offset + segment_length > len(data):
+            return False
+        offset += segment_length
+        if marker == 0xDA:
+            saw_scan = True
+            in_scan = True
+    return False
+
+
+def _gif_sub_blocks_end(data: bytes, offset: int) -> int | None:
+    while offset < len(data):
+        block_length = data[offset]
+        offset += 1
+        if block_length == 0:
+            return offset
+        offset += block_length
+        if offset > len(data):
+            return None
+    return None
+
+
+def _gif_has_exact_end(data: bytes) -> bool:
+    if len(data) < 13 or data[:6] not in {b"GIF87a", b"GIF89a"}:
+        return False
+    packed_fields = data[10]
+    offset = 13
+    if packed_fields & 0x80:
+        offset += 3 * (2 ** ((packed_fields & 0x07) + 1))
+    if offset > len(data):
+        return False
+
+    while offset < len(data):
+        block_type = data[offset]
+        offset += 1
+        if block_type == 0x3B:
+            return offset == len(data)
+        if block_type == 0x21:
+            if offset >= len(data):
+                return False
+            offset += 1
+            sub_blocks_end = _gif_sub_blocks_end(data, offset)
+            if sub_blocks_end is None:
+                return False
+            offset = sub_blocks_end
+            continue
+        if block_type != 0x2C or offset + 9 > len(data):
+            return False
+        packed_fields = data[offset + 8]
+        offset += 9
+        if packed_fields & 0x80:
+            offset += 3 * (2 ** ((packed_fields & 0x07) + 1))
+        if offset >= len(data):
+            return False
+        offset += 1
+        sub_blocks_end = _gif_sub_blocks_end(data, offset)
+        if sub_blocks_end is None:
+            return False
+        offset = sub_blocks_end
+    return False
+
+
+def _webp_has_exact_end(data: bytes) -> bool:
+    if (
+        len(data) < 20
+        or not data.startswith(b"RIFF")
+        or data[8:12] != b"WEBP"
+        or int.from_bytes(data[4:8], "little") + 8 != len(data)
+    ):
+        return False
+    offset = 12
+    while offset < len(data):
+        if offset + 8 > len(data):
+            return False
+        chunk_length = int.from_bytes(data[offset + 4 : offset + 8], "little")
+        offset += 8 + chunk_length
+        if offset > len(data):
+            return False
+        if chunk_length & 1:
+            offset += 1
+            if offset > len(data):
+                return False
+    return offset == len(data)
+
+
+_EXACT_END_CHECKS: dict[str, Callable[[bytes], bool]] = {
+    "PNG": _png_has_exact_end,
+    "JPEG": _jpeg_has_exact_end,
+    "GIF": _gif_has_exact_end,
+    "WEBP": _webp_has_exact_end,
+}
 
 
 @dataclass(frozen=True)
@@ -146,19 +290,38 @@ Contexte : {source_notice}"""
 
 def _detected_image_mime_type(data: bytes) -> str | None:
     try:
-        with Image.open(BytesIO(data)) as image:
-            mime_type = _SUPPORTED_IMAGE_FORMATS.get(image.format or "")
-            if mime_type is None:
-                return None
-            image.verify()
-        with Image.open(BytesIO(data)) as image:
-            while True:
-                image.load()
-                try:
-                    image.seek(image.tell() + 1)
-                except EOFError:
-                    break
-    except (OSError, SyntaxError, ValueError, Image.DecompressionBombError):
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            with Image.open(BytesIO(data)) as image:
+                image_format = image.format or ""
+                mime_type = _SUPPORTED_IMAGE_FORMATS.get(image_format)
+                exact_end_check = _EXACT_END_CHECKS.get(image_format)
+                if (
+                    mime_type is None
+                    or exact_end_check is None
+                    or not exact_end_check(data)
+                ):
+                    return None
+                image.verify()
+            with Image.open(BytesIO(data)) as image:
+                frame = 0
+                while True:
+                    try:
+                        image.seek(frame)
+                    except EOFError:
+                        break
+                    image.load()
+                    frame += 1
+    except (
+        EOFError,
+        IndexError,
+        OSError,
+        struct.error,
+        SyntaxError,
+        ValueError,
+        Image.DecompressionBombError,
+        Image.DecompressionBombWarning,
+    ):
         return None
     return mime_type
 

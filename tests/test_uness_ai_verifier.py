@@ -3,8 +3,10 @@ import struct
 import zlib
 from base64 import b64decode
 from dataclasses import replace
+from io import BytesIO
 
 import pytest
+from PIL import Image
 
 from backend.core.ai.routing import AIImageContent, AIModel, AIResponse, AITask
 from backend.core.uness import import_service
@@ -16,6 +18,38 @@ _VALID_PNG = b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk"
     "+A8AAQUBAScY42YAAAAASUVORK5CYII="
 )
+
+
+def _encoded_image(
+    format_name: str,
+    *,
+    frames: int = 1,
+    size: tuple[int, int] = (2, 1),
+) -> bytes:
+    buffer = BytesIO()
+    image = Image.new("RGB", size, "red")
+    if frames > 1:
+        image.save(
+            buffer,
+            format=format_name,
+            save_all=True,
+            append_images=[Image.new("RGB", size, "blue") for _ in range(frames - 1)],
+            duration=10,
+            loop=0,
+        )
+    else:
+        image.save(buffer, format=format_name)
+    return buffer.getvalue()
+
+
+_VALID_IMAGE_PAYLOADS = {
+    "png": ("image/png", _VALID_PNG),
+    "jpeg": ("image/jpeg", _encoded_image("JPEG")),
+    "gif": ("image/gif", _encoded_image("GIF")),
+    "webp": ("image/webp", _encoded_image("WEBP")),
+}
+_VALID_MULTI_FRAME_GIF = _encoded_image("GIF", frames=2)
+_DECOMPRESSION_WARNING_PNG = _encoded_image("PNG")
 
 
 def _png_chunk(kind: bytes, payload: bytes) -> bytes:
@@ -87,6 +121,34 @@ def _answer_payload() -> dict:
             },
         ]
     }
+
+
+def _verify_local_image_payload(
+    tmp_path,
+    monkeypatch,
+    *,
+    suffix: str,
+    payload: bytes,
+) -> tuple[FakeAIService, UnessQuestion]:
+    artifact_root = tmp_path / "artifacts"
+    artifact_root.mkdir()
+    image_path = artifact_root / f"fixture.{suffix}"
+    image_path.write_bytes(payload)
+    monkeypatch.setattr(import_service, "ARTIFACT_DIR", artifact_root)
+    question = replace(
+        _question(),
+        images=(
+            UnessImage(
+                source_url=f"images/fixture.{suffix}",
+                local_path=str(image_path),
+            ),
+        ),
+    )
+    service = FakeAIService(_answer_payload())
+
+    verified = verify_question(question, VerificationContext("Cours", [], []), service)
+
+    return service, verified
 
 
 def _exam(*questions: UnessQuestion, dp_context: dict | None = None) -> UnessExam:
@@ -235,6 +297,103 @@ def test_verifier_rejects_corrupt_image_content_instead_of_trusting_the_filename
     assert verified.verification_status == "unsupported"
     assert verified.images[0].metadata["verification_status"] == "unsupported"
     assert all(proposition.verdict_ia is None for proposition in verified.propositions)
+
+
+@pytest.mark.parametrize(
+    ("suffix", "mime_type", "payload"),
+    [
+        (suffix, mime_type, payload)
+        for suffix, (mime_type, payload) in _VALID_IMAGE_PAYLOADS.items()
+    ],
+    ids=_VALID_IMAGE_PAYLOADS,
+)
+def test_verifier_accepts_complete_supported_image_containers(
+    tmp_path,
+    monkeypatch,
+    suffix: str,
+    mime_type: str,
+    payload: bytes,
+) -> None:
+    """Catches strict container checks rejecting complete supported images."""
+    service, verified = _verify_local_image_payload(
+        tmp_path,
+        monkeypatch,
+        suffix=suffix,
+        payload=payload,
+    )
+
+    assert service.calls[0][4] == (AIImageContent(mime_type=mime_type, data=payload),)
+    assert verified.verification_status == "verified"
+    assert verified.images[0].metadata["verification_status"] == "provided_to_ai"
+
+
+@pytest.mark.parametrize(
+    ("suffix", "payload"),
+    [
+        (suffix, payload + b"\naccess_token=secret")
+        for suffix, (_mime_type, payload) in _VALID_IMAGE_PAYLOADS.items()
+    ],
+    ids=_VALID_IMAGE_PAYLOADS,
+)
+def test_verifier_rejects_supported_images_with_trailing_token_bytes(
+    tmp_path,
+    monkeypatch,
+    suffix: str,
+    payload: bytes,
+) -> None:
+    """Catches valid image containers being used as prefixes for trailing payloads."""
+    service, verified = _verify_local_image_payload(
+        tmp_path,
+        monkeypatch,
+        suffix=suffix,
+        payload=payload,
+    )
+
+    assert service.calls == []
+    assert verified.verification_status == "unsupported"
+    assert verified.images[0].metadata["verification_status"] == "unsupported"
+
+
+@pytest.mark.parametrize(
+    "trailing_bytes_removed",
+    [9, 23],
+    ids=["index-error-boundary", "struct-error-boundary"],
+)
+def test_verifier_classifies_truncated_multi_frame_gif_as_unsupported(
+    tmp_path,
+    monkeypatch,
+    trailing_bytes_removed: int,
+) -> None:
+    """Catches malformed later GIF frames escaping the unsupported-image boundary."""
+    service, verified = _verify_local_image_payload(
+        tmp_path,
+        monkeypatch,
+        suffix="gif",
+        payload=_VALID_MULTI_FRAME_GIF[:-trailing_bytes_removed],
+    )
+
+    assert service.calls == []
+    assert verified.verification_status == "unsupported"
+    assert verified.images[0].metadata["verification_status"] == "unsupported"
+
+
+def test_verifier_rejects_images_that_trigger_a_decompression_bomb_warning(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    """Catches risky pixel expansion being decoded after Pillow emits only a warning."""
+    monkeypatch.setattr(Image, "MAX_IMAGE_PIXELS", 1)
+
+    service, verified = _verify_local_image_payload(
+        tmp_path,
+        monkeypatch,
+        suffix="png",
+        payload=_DECOMPRESSION_WARNING_PNG,
+    )
+
+    assert service.calls == []
+    assert verified.verification_status == "unsupported"
+    assert verified.images[0].metadata["verification_status"] == "unsupported"
 
 
 @pytest.mark.parametrize(

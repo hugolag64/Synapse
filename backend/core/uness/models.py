@@ -74,6 +74,10 @@ class UnessProposition:
     texte: str
     reponse_uness: bool | None = None
     verdict_ia: bool | None = None
+    explication_ia: str = ""
+    sources_ia: tuple[str, ...] = ()
+    confiance_ia: float | None = None
+    commentaire_desaccord: str = ""
     reponse_finale: bool | None = None
     statut: UnessStatus = "incertain"
     validation_utilisateur: bool = False
@@ -81,6 +85,17 @@ class UnessProposition:
     def __post_init__(self) -> None:
         for field_name in ("reponse_uness", "verdict_ia", "reponse_finale"):
             _optional_bool(getattr(self, field_name), field_name)
+        if not isinstance(self.explication_ia, str):
+            raise ValueError("explication_ia doit être une chaîne")
+        if not all(isinstance(source, str) for source in self.sources_ia):
+            raise ValueError("sources_ia doit contenir des chaînes")
+        if self.confiance_ia is not None and (
+            isinstance(self.confiance_ia, bool)
+            or not isinstance(self.confiance_ia, (int, float))
+        ):
+            raise ValueError("confiance_ia doit être un nombre ou null")
+        if not isinstance(self.commentaire_desaccord, str):
+            raise ValueError("commentaire_desaccord doit être une chaîne")
         if self.statut not in _STATUTS:
             raise ValueError(f"statut inconnu: {self.statut}")
         if not isinstance(self.validation_utilisateur, bool):
@@ -99,13 +114,17 @@ class UnessProposition:
             texte=str(payload.get("texte", payload.get("text", ""))),
             reponse_uness=payload.get("reponse_uness"),
             verdict_ia=payload.get("verdict_ia"),
+            explication_ia=str(payload.get("explication_ia", "")),
+            sources_ia=tuple(str(source) for source in payload.get("sources_ia", [])),
+            confiance_ia=payload.get("confiance_ia"),
+            commentaire_desaccord=str(payload.get("commentaire_desaccord", "")),
             reponse_finale=payload.get("reponse_finale"),
             statut=payload.get("statut", "incertain"),
             validation_utilisateur=payload.get("validation_utilisateur", False),
         )
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        payload = {
             "id": self.id,
             "texte": self.texte,
             "reponse_uness": self.reponse_uness,
@@ -114,6 +133,21 @@ class UnessProposition:
             "statut": self.statut,
             "validation_utilisateur": self.validation_utilisateur,
         }
+        if (
+            self.explication_ia
+            or self.sources_ia
+            or self.confiance_ia is not None
+            or self.commentaire_desaccord
+        ):
+            payload.update(
+                {
+                    "explication_ia": self.explication_ia,
+                    "sources_ia": list(self.sources_ia),
+                    "confiance_ia": self.confiance_ia,
+                    "commentaire_desaccord": self.commentaire_desaccord,
+                }
+            )
+        return payload
 
 
 @dataclass(frozen=True)

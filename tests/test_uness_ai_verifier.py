@@ -3,18 +3,22 @@ from dataclasses import replace
 
 import pytest
 
-from backend.core.ai.routing import AIModel, AIResponse, AITask
+from backend.core.ai.routing import AIImageContent, AIModel, AIResponse, AITask
+from backend.core.uness import import_service
 from backend.core.uness.ai_verifier import VerificationContext, verify_exam, verify_question
+from backend.core.uness.import_service import assert_verified_exam
 from backend.core.uness.models import UnessExam, UnessImage, UnessProposition, UnessQuestion
 
 
 class FakeAIService:
     def __init__(self, payload: dict) -> None:
         self.payload = payload
-        self.calls: list[tuple[AITask, str, str, str | None]] = []
+        self.calls: list[
+            tuple[AITask, str, str, str | None, tuple[AIImageContent, ...]]
+        ] = []
 
-    def generate(self, task, prompt, *, context=None, response_format="text"):
-        self.calls.append((task, prompt, response_format, context))
+    def generate(self, task, prompt, *, context=None, response_format="text", images=()):
+        self.calls.append((task, prompt, response_format, context, tuple(images)))
         return AIResponse(json.dumps(self.payload), AIModel.FLASH_LITE)
 
 
@@ -110,15 +114,22 @@ def test_verifier_prompt_supplies_official_answers_as_non_authoritative_comparis
     assert "raisonnement indépendant" in prompt
 
 
-def test_verify_exam_supplies_general_dp_question_context_and_image_metadata_to_ai() -> None:
-    """Catches clinically relevant dossier or visual context being omitted from verification."""
+def test_verify_exam_supplies_general_dp_context_and_local_image_content_to_ai(
+    tmp_path, monkeypatch
+) -> None:
+    """Catches clinically relevant local visual content being omitted from verification."""
+    artifact_root = tmp_path / "artifacts"
+    image_path = artifact_root / "courbe-poids.png"
+    artifact_root.mkdir()
+    image_path.write_bytes(b"fixture-image")
+    monkeypatch.setattr(import_service, "ARTIFACT_DIR", artifact_root)
     question = replace(
         _question(),
         dp_context={"step": 2, "text": "Perte de poids de 8 kg."},
         images=(
             UnessImage(
-                source_url="images/courbe-poids.png",
-                local_path="imports/media/courbe-poids.png",
+                source_url="https://uness.example/images/courbe-poids.png",
+                local_path=str(image_path),
                 alt_text="Courbe pondérale",
                 caption="Évolution sur six mois",
             ),
@@ -137,10 +148,60 @@ def test_verify_exam_supplies_general_dp_question_context_and_image_metadata_to_
     assert "Contexte général du dossier" in prompt
     assert "Personne de 86 ans" in prompt
     assert "Perte de poids de 8 kg." in prompt
-    assert "images/courbe-poids.png" in prompt
-    assert "Courbe pondérale" in prompt
+    assert "https://uness.example/images/courbe-poids.png" not in prompt
+    assert str(image_path) not in prompt
     assert "support visuel uniquement" in prompt
-    assert "imports/media/courbe-poids.png" not in prompt
+    assert service.calls[0][4] == (
+        AIImageContent(mime_type="image/png", data=b"fixture-image"),
+    )
+
+
+def test_verifier_marks_unavailable_visual_verification_unsupported() -> None:
+    """Catches text-only verification being presented as a visual verification."""
+    question = replace(
+        _question(),
+        images=(
+            UnessImage(
+                source_url="images/unavailable.png",
+                local_path="data/uness/artifacts/missing.png",
+            ),
+        ),
+    )
+    service = FakeAIService(_answer_payload())
+
+    verified = verify_question(question, VerificationContext("Cours", [], []), service)
+
+    assert service.calls[0][4] == ()
+    assert "Vérification visuelle non prise en charge" in service.calls[0][1]
+    assert verified.images[0].metadata["verification_status"] == "unsupported"
+
+
+def test_verifier_rejects_sensitive_nested_context_before_calling_ai() -> None:
+    """Catches secrets reaching the prompt through direct question verification."""
+    question = replace(
+        _question(),
+        dp_context={"nested": [("safe", {"client_secret": "secret"})]},
+    )
+    service = FakeAIService(_answer_payload())
+
+    with pytest.raises(ValueError, match="sensible"):
+        verify_question(question, VerificationContext("Cours", [], []), service)
+
+    assert service.calls == []
+
+
+def test_verifier_rejects_token_bearing_image_url_before_calling_ai() -> None:
+    """Catches token-bearing image URLs reaching a remote prompt or payload."""
+    question = replace(
+        _question(),
+        images=(UnessImage(source_url="https://uness.example/a.png?id_token=secret"),),
+    )
+    service = FakeAIService(_answer_payload())
+
+    with pytest.raises(ValueError, match="sensible"):
+        verify_question(question, VerificationContext("Cours", [], []), service)
+
+    assert service.calls == []
 
 
 def test_verifier_rejects_a_response_missing_a_proposition() -> None:
@@ -148,6 +209,33 @@ def test_verifier_rejects_a_response_missing_a_proposition() -> None:
 
     with pytest.raises(ValueError, match="résultat IA manquant.*B"):
         verify_question(_question(), VerificationContext("", [], []), service)
+
+
+def test_verifier_and_verified_import_both_reject_a_null_ia_verdict() -> None:
+    """Catches disagreement between the verification and verified-import contracts."""
+    payload = _answer_payload()
+    payload["propositions"][0]["verdict_ia"] = None
+    service = FakeAIService(payload)
+
+    with pytest.raises(ValueError, match="verdict_ia"):
+        verify_question(_question(), VerificationContext("Cours", [], []), service)
+
+    unverified = replace(
+        _question(),
+        propositions=(
+            UnessProposition(
+                id="A",
+                texte="Il est toujours irréversible.",
+                reponse_uness=False,
+                verdict_ia=None,
+                explication_ia="Explication présente.",
+                confiance_ia=0.8,
+                statut="incertain",
+            ),
+        ),
+    )
+    with pytest.raises(ValueError, match="verdict_ia"):
+        assert_verified_exam(_exam(unverified))
 
 
 def test_verifier_marks_results_context_limited_without_course_or_references() -> None:

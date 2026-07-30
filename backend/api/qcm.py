@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -116,20 +114,13 @@ def get_uness_question_image(
     raw_path = str(images[image_index].get("local_path") or "").strip()
     if not raw_path:
         raise HTTPException(status_code=404, detail="Image UNESS locale introuvable")
-    requested = Path(raw_path)
-    candidate = (
-        (import_service.IMPORT_DIR / requested).resolve()
-        if not requested.is_absolute()
-        else requested.resolve()
-    )
-    allowed_roots = (
-        import_service.IMPORT_DIR.resolve(),
-        (Path(__file__).resolve().parents[2] / "data" / "uness" / "artifacts").resolve(),
-    )
-    if not any(candidate == root or candidate.is_relative_to(root) for root in allowed_roots):
-        raise HTTPException(status_code=404, detail="Image UNESS hors du stockage local autorisé")
-    if not candidate.is_file():
-        raise HTTPException(status_code=404, detail="Image UNESS locale introuvable")
+    try:
+        candidate = import_service.resolve_local_media_path(raw_path)
+    except (FileNotFoundError, PermissionError):
+        raise HTTPException(
+            status_code=404,
+            detail="Image UNESS locale introuvable",
+        ) from None
     return FileResponse(candidate)
 
 

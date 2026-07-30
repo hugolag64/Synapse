@@ -12,7 +12,15 @@ beforeAll(async () => {
 
 const unessQuestion = {
   exam: {
+    faculty: 'Université Paris Cité',
+    level: 'DFASM3',
+    year: 2026,
     dp_context: { text: 'Une personne âgée présente une confusion aiguë.' },
+  },
+  provenance: {
+    source_url: 'https://entrainement.uness.example/review/42',
+    collected_at: '2026-07-30T09:15:00+02:00',
+    collection_status: 'complete',
   },
   question: {
     dp_context: { text: 'Les symptômes fluctuent au cours de la journée.' },
@@ -103,6 +111,12 @@ describe('UNESS replay disclosure', () => {
     expect(markup).toContain('Le cours local contredit la correction officielle.')
     expect(markup).toContain('Correction officielle UNESS')
     expect(markup).toContain('Réponse officielle')
+    expect(markup).toContain('https://entrainement.uness.example/review/42')
+    expect(markup).toContain('Université Paris Cité')
+    expect(markup).toContain('DFASM3')
+    expect(markup).toContain('2026')
+    expect(markup).toContain('2026-07-30T09:15:00+02:00')
+    expect(markup).toContain('complete')
   })
 
   it('keeps the divergence warning visible while a correct row is collapsed', () => {

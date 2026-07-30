@@ -33,6 +33,20 @@ class AIResponse:
     output_tokens: int | None = None
 
 
+@dataclass(frozen=True)
+class AIImageContent:
+    """Local image bytes passed to a multimodal provider without filesystem metadata."""
+
+    mime_type: str
+    data: bytes
+
+    def __post_init__(self) -> None:
+        if not self.mime_type.startswith("image/"):
+            raise ValueError("Le type MIME doit décrire une image")
+        if not self.data:
+            raise ValueError("Le contenu image ne peut pas être vide")
+
+
 def model_for_task(task: AITask | str, difficulty=None) -> AIModel:
     try:
         normalized = task if isinstance(task, AITask) else AITask(task)

@@ -20,6 +20,9 @@ from .models import UnessExam, UnessProposition, UnessQuestion, _assert_no_sensi
 
 _ROOT = Path(__file__).resolve().parents[3]
 IMPORT_DIR = Path(os.environ.get("UNESS_IMPORT_DIR", _ROOT / "data" / "uness" / "imports"))
+ARTIFACT_DIR = Path(
+    os.environ.get("UNESS_ARTIFACT_DIR", _ROOT / "data" / "uness" / "artifacts")
+)
 
 
 def load_local_exam(path: str | Path) -> UnessExam:
@@ -37,6 +40,32 @@ def load_local_exam(path: str | Path) -> UnessExam:
         return load_exam(candidate)
     except (AttributeError, TypeError) as exc:
         raise ValueError("Artéfact UNESS invalide : structure JSON attendue") from exc
+
+
+def resolve_local_media_path(path: str | Path) -> Path:
+    """Resolve imported media under configured roots, including workspace-relative defaults."""
+    requested = Path(path)
+    roots = (IMPORT_DIR.resolve(), ARTIFACT_DIR.resolve())
+    candidates = (
+        [requested.resolve()]
+        if requested.is_absolute()
+        else [
+            (_ROOT / requested).resolve(),
+            (IMPORT_DIR / requested).resolve(),
+            (ARTIFACT_DIR / requested).resolve(),
+        ]
+    )
+    allowed_candidates = [
+        candidate
+        for candidate in dict.fromkeys(candidates)
+        if any(candidate == root or candidate.is_relative_to(root) for root in roots)
+    ]
+    if not allowed_candidates:
+        raise PermissionError(path)
+    for candidate in allowed_candidates:
+        if candidate.is_file():
+            return candidate
+    raise FileNotFoundError(path)
 
 
 def _effective_answer(proposition: UnessProposition) -> bool | None:

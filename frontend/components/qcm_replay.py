@@ -277,6 +277,35 @@ def open_qcm_correction(
                     with ui.expansion(title, icon=icon).classes("w-full border rounded"):
                         ui.label(row["question"]["prompt"]).classes("font-medium whitespace-pre-wrap")
                         ui.label(label).classes(f"text-xs font-semibold mt-2 {colour}")
+                        exam_metadata = uness.get("exam") or {}
+                        provenance = uness.get("provenance") or {}
+                        source_url = str(provenance.get("source_url") or "").strip()
+                        if source_url:
+                            ui.label(f"Source : {source_url}").classes(
+                                "text-xs text-slate-500 dark:text-slate-400 whitespace-pre-wrap mt-2"
+                            )
+                        identity = [
+                            str(value).strip()
+                            for value in (
+                                exam_metadata.get("faculty"),
+                                exam_metadata.get("level"),
+                                exam_metadata.get("year"),
+                            )
+                            if value is not None and str(value).strip()
+                        ]
+                        if identity:
+                            ui.label(" · ".join(identity)).classes(
+                                "text-xs text-slate-500 dark:text-slate-400"
+                            )
+                        collected_at = str(provenance.get("collected_at") or "").strip()
+                        collection_status = str(
+                            provenance.get("collection_status") or ""
+                        ).strip()
+                        if collected_at or collection_status:
+                            ui.label(
+                                f"Collecté le {collected_at or '—'} · "
+                                f"Statut : {collection_status or '—'}"
+                            ).classes("text-xs text-slate-500 dark:text-slate-400")
                         ui.label(f"Votre réponse : {row['response'] or '—'}").classes(
                             "text-sm whitespace-pre-wrap mt-2"
                         )

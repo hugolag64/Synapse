@@ -3,13 +3,21 @@
 from __future__ import annotations
 
 import json
+import mimetypes
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 from typing import Any
 
-from backend.core.ai.routing import AITask
+from backend.core.ai.routing import AIImageContent, AITask
 
-from .models import UnessExam, UnessProposition, UnessQuestion
+from . import import_service
+from .models import (
+    UnessExam,
+    UnessImage,
+    UnessProposition,
+    UnessQuestion,
+    _assert_no_sensitive_data,
+)
 
 _CONTEXT_LIMITED_SOURCE = "Contexte limité : aucune source pédagogique fournie."
 _REQUIRED_RESULT_KEYS = {
@@ -20,6 +28,7 @@ _REQUIRED_RESULT_KEYS = {
     "confiance_ia",
     "commentaire_desaccord",
 }
+_MAX_IMAGE_BYTES = 20 * 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -57,6 +66,7 @@ def _prompt(
     question: UnessQuestion,
     context: VerificationContext,
     exam_context: dict[str, Any] | None = None,
+    image_statuses: tuple[str, ...] = (),
 ) -> str:
     propositions = "\n".join(
         f"- {proposition.id}: {proposition.texte}" for proposition in question.propositions
@@ -77,29 +87,34 @@ def _prompt(
     images = json.dumps(
         [
             {
-                "source_url": image.source_url,
-                "alt_text": image.alt_text,
-                "caption": image.caption,
-                "metadata": image.metadata,
-                "local_copy_available": bool(image.local_path),
+                "index": index,
+                "delivery": image_statuses[index - 1],
             }
-            for image in question.images
+            for index, _image in enumerate(question.images, start=1)
         ],
         ensure_ascii=False,
         sort_keys=True,
     )
-    visual_warning = (
-        "Cette question est conservée comme support visuel uniquement : "
-        "l'interaction UNESS originale n'est pas reconstruite."
-        if question.support_visuel_seul
-        else "Interaction standard."
-    )
+    visual_notices = []
+    if any(status == "unsupported" for status in image_statuses):
+        visual_notices.append(
+            "Vérification visuelle non prise en charge pour les images non jointes. "
+            "Ne prétends pas les avoir vues et ne fonde aucun verdict sur leur contenu."
+        )
+    elif image_statuses:
+        visual_notices.append("Les contenus image locaux sont joints à cette requête.")
+    if question.support_visuel_seul:
+        visual_notices.append(
+            "Cette question est conservée comme support visuel uniquement : "
+            "l'interaction UNESS originale n'est pas reconstruite."
+        )
+    visual_warning = " ".join(visual_notices) or "Interaction standard."
     return f"""Vérifie indépendamment chaque proposition d'une question UNESS.
 La correction officielle sert de comparaison non autoritative : produis d'abord ton
 raisonnement indépendant, puis signale toute divergence sans la résoudre silencieusement.
 Retourne exclusivement un objet JSON avec la clé `propositions`, contenant exactement un
 résultat par identifiant de proposition. Chaque résultat doit contenir les clés : id,
-verdict_ia (booléen ou null), explication_ia (explication non vide), sources_ia (liste),
+verdict_ia (booléen), explication_ia (explication non vide), sources_ia (liste),
 confiance_ia (nombre), commentaire_desaccord (chaîne, vide seulement sans désaccord).
 
 Question {question.id} ({question.type_question}) : {question.enonce}
@@ -113,6 +128,35 @@ Métadonnées des images : {images}
 Contrainte visuelle : {visual_warning}
 Références d'items ou externes : {refs}
 Contexte : {source_notice}"""
+
+
+def _local_image_content(question: UnessQuestion) -> tuple[
+    tuple[AIImageContent, ...],
+    tuple[str, ...],
+    tuple[UnessImage, ...],
+]:
+    parts: list[AIImageContent] = []
+    statuses: list[str] = []
+    images: list[UnessImage] = []
+    for image in question.images:
+        status = "unsupported"
+        if image.local_path:
+            try:
+                path = import_service.resolve_local_media_path(image.local_path)
+                mime_type = mimetypes.guess_type(path.name)[0] or ""
+                if mime_type.startswith("image/") and path.stat().st_size <= _MAX_IMAGE_BYTES:
+                    parts.append(AIImageContent(mime_type=mime_type, data=path.read_bytes()))
+                    status = "provided_to_ai"
+            except (FileNotFoundError, OSError, PermissionError, ValueError):
+                status = "unsupported"
+        statuses.append(status)
+        images.append(
+            replace(
+                image,
+                metadata={**image.metadata, "verification_status": status},
+            )
+        )
+    return tuple(parts), tuple(statuses), tuple(images)
 
 
 def _json_payload(text: str) -> dict[str, Any]:
@@ -165,7 +209,7 @@ def _verified_proposition(
     proposition: UnessProposition, result: dict[str, Any], context: VerificationContext
 ) -> UnessProposition:
     verdict = result["verdict_ia"]
-    if verdict is not None and not isinstance(verdict, bool):
+    if not isinstance(verdict, bool):
         raise ValueError("verdict_ia invalide")
     explanation = result["explication_ia"]
     if not isinstance(explanation, str) or not explanation.strip():
@@ -202,11 +246,22 @@ def verify_question(
 ) -> UnessQuestion:
     """Return a verified copy; the official UNESS answer is never changed."""
     resolved_context = context.with_loaded_course_text()
+    _assert_no_sensitive_data(
+        {
+            "question": question.to_dict(),
+            "exam_context": exam_context or {},
+            "course_text": resolved_context.course_text,
+            "item_refs": resolved_context.item_refs,
+            "external_refs": resolved_context.external_refs,
+        }
+    )
+    image_parts, image_statuses, verified_images = _local_image_content(question)
     response = ai_service.generate(
         AITask.QCM,
-        _prompt(question, resolved_context, exam_context),
+        _prompt(question, resolved_context, exam_context, image_statuses),
         context=resolved_context.course_text or None,
         response_format="json",
+        images=image_parts,
     )
     results = _result_by_id(_json_payload(response.text), question)
     return replace(
@@ -215,6 +270,7 @@ def verify_question(
             _verified_proposition(proposition, results[proposition.id], resolved_context)
             for proposition in question.propositions
         ),
+        images=verified_images,
     )
 
 

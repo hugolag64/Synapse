@@ -39,13 +39,28 @@ function imageSource(sessionId: number, questionId: number, index: number, image
   return image.source_url
 }
 
+function UnessProvenance({ question }: { question: Question }) {
+  const exam = question.uness?.exam
+  const provenance = question.uness?.provenance
+  const identity = [exam?.faculty, exam?.level, exam?.year].filter((value) => value != null && value !== '')
+  if (!identity.length && !provenance?.source_url && !provenance?.collected_at && !provenance?.collection_status) return null
+  return <section className="uness-provenance">
+    <strong>Provenance UNESS</strong>
+    {identity.length > 0 && <span>{identity.join(' · ')}</span>}
+    {provenance?.source_url && <a href={provenance.source_url} target="_blank" rel="noreferrer">{provenance.source_url}</a>}
+    {(provenance?.collected_at || provenance?.collection_status) && <span>Collecté le {provenance.collected_at || '—'} · Statut : {provenance.collection_status || '—'}</span>}
+  </section>
+}
+
 function QuestionVisualContext({ question, sessionId }: { question: Question; sessionId: number }) {
   const examContext = contextText(question.uness?.exam?.dp_context)
   const questionContext = contextText(question.uness?.question?.dp_context)
   const images = question.uness?.question?.images || []
   const contexts = [...new Set([examContext, questionContext].filter(Boolean))]
-  if (!contexts.length && !images.length && !question.uness?.question?.support_visuel_seul) return null
+  const hasProvenance = Boolean(question.uness?.provenance || question.uness?.exam)
+  if (!contexts.length && !images.length && !question.uness?.question?.support_visuel_seul && !hasProvenance) return null
   return <div className="uness-context">
+    <UnessProvenance question={question} />
     {contexts.length > 0 && <section className="clinical-context"><strong>Contexte du dossier</strong>{contexts.map((context) => <p key={context}>{context}</p>)}</section>}
     {images.length > 0 && <div className="question-images">{images.map((image, index) => <figure key={`${image.source_url}-${index}`}>
       <img src={imageSource(sessionId, question.id, index, image)} alt={image.alt_text || image.caption || `Support visuel ${index + 1}`} />

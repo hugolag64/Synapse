@@ -41,6 +41,15 @@ def import_dir(tmp_path, monkeypatch):
     return directory
 
 
+@pytest.fixture
+def artifact_dir(tmp_path, monkeypatch):
+    directory = tmp_path / "data" / "uness" / "artifacts"
+    directory.mkdir(parents=True)
+    monkeypatch.setattr(import_service, "_ROOT", tmp_path)
+    monkeypatch.setattr(import_service, "ARTIFACT_DIR", directory)
+    return directory
+
+
 def _exam_payload() -> dict:
     return {
         "faculty": "Université Paris Cité",
@@ -128,6 +137,14 @@ def test_import_endpoint_creates_local_qcm_session_with_verified_correction(clie
         "La correction officielle semble inversée."
     ]
     assert question["uness"]["provenance"]["source"] == "UNESS"
+    assert question["uness"]["provenance"]["source_url"] == (
+        "https://entrainement.uness.example/review/42"
+    )
+    assert question["uness"]["provenance"]["collected_at"] == "2026-07-30T09:15:00+02:00"
+    assert question["uness"]["provenance"]["collection_status"] == "complete"
+    assert question["uness"]["exam"]["faculty"] == "Université Paris Cité"
+    assert question["uness"]["exam"]["level"] == "DFASM3"
+    assert question["uness"]["exam"]["year"] == 2026
     assert question["uness"]["exam"]["dp_context"]["text"].startswith("Une personne âgée")
     assert question["uness"]["question"]["images"][0]["alt_text"] == (
         "Horloge dessinée par le patient"
@@ -273,6 +290,36 @@ def test_imported_local_image_is_available_to_the_react_reader(client, import_di
 
     assert response.status_code == 200
     assert response.content == b"png-fixture"
+
+
+def test_normalized_relative_artifact_image_is_available_to_the_react_reader(
+    client, import_dir, artifact_dir
+):
+    """Catches default normalized paths being incorrectly anchored under the import inbox."""
+    media = artifact_dir / "geriatry"
+    media.mkdir()
+    image = media / "q01-horloge.png"
+    image.write_bytes(b"relative-png-fixture")
+    payload = _exam_payload()
+    payload["questions"][0]["images"][0]["local_path"] = (
+        "data/uness/artifacts/geriatry/q01-horloge.png"
+    )
+    _write_exam(import_dir, "with-relative-image.json", payload)
+
+    imported = client.post(
+        "/api/qcm/uness/import",
+        json={"path": "with-relative-image.json", "verify": True},
+    )
+    assert imported.status_code == 200
+    session_id = imported.json()["session_id"]
+    question = client.get(f"/api/qcm/sessions/{session_id}").json()["questions"][0]
+
+    response = client.get(
+        f"/api/qcm/sessions/{session_id}/questions/{question['id']}/images/0"
+    )
+
+    assert response.status_code == 200
+    assert response.content == b"relative-png-fixture"
 
 
 def test_import_endpoint_rejects_paths_outside_local_import_directory(client, import_dir, tmp_path):

@@ -1,12 +1,14 @@
 """Transport HTTP minimal vers la Gemini Developer API."""
 from __future__ import annotations
 
+import base64
+from collections.abc import Sequence
 from typing import Any
 
 import requests
 
 from backend.config.settings import settings
-from backend.core.ai.routing import AIModel, AIResponse, AIServiceError
+from backend.core.ai.routing import AIImageContent, AIModel, AIResponse, AIServiceError
 
 
 class GeminiClientError(AIServiceError):
@@ -37,6 +39,8 @@ class GeminiClient:
         prompt: str,
         model: AIModel,
         response_format: str = "text",
+        *,
+        images: Sequence[AIImageContent] = (),
     ) -> AIResponse:
         if not self.api_key:
             raise GeminiClientError("Aucune clé Gemini configurée")
@@ -46,7 +50,17 @@ class GeminiClient:
         generation_config: dict[str, Any] = {}
         if response_format == "json":
             generation_config["responseMimeType"] = "application/json"
-        payload: dict[str, Any] = {"contents": [{"parts": [{"text": prompt}]}]}
+        parts: list[dict[str, Any]] = [{"text": prompt}]
+        parts.extend(
+            {
+                "inlineData": {
+                    "mimeType": image.mime_type,
+                    "data": base64.b64encode(image.data).decode("ascii"),
+                }
+            }
+            for image in images
+        )
+        payload: dict[str, Any] = {"contents": [{"parts": parts}]}
         if generation_config:
             payload["generationConfig"] = generation_config
 

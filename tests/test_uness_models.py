@@ -134,7 +134,12 @@ def test_exam_rejects_unknown_status_and_question_type() -> None:
         "sessionStorage",
         "COOKIE",
         "password",
+        "client_secret",
+        "id_token",
+        "token",
+        "auth_token",
         "access_token",
+        "refresh_token",
         "Authorization",
         "api-key",
     ],
@@ -153,6 +158,15 @@ def test_save_exam_rejects_sensitive_data_on_directly_constructed_model(tmp_path
     """Catches direct model construction bypassing loader-only secret validation."""
     exam = UnessExam.from_dict(_valid_exam_payload())
     exam.metadata["Credentials"] = "secret"
+    with pytest.raises(ValueError, match="sensible"):
+        save_exam(exam, tmp_path / "exam.json")
+
+
+def test_save_exam_rejects_sensitive_data_nested_in_tuples(tmp_path) -> None:
+    """Catches tuple-contained secrets bypassing the final persistence boundary."""
+    exam = UnessExam.from_dict(_valid_exam_payload())
+    exam.metadata["nested"] = ({"client_secret": "secret"},)
+
     with pytest.raises(ValueError, match="sensible"):
         save_exam(exam, tmp_path / "exam.json")
 
@@ -198,6 +212,22 @@ def test_exam_rejects_source_url_with_embedded_access_token() -> None:
     )
 
     with pytest.raises(ValueError, match="source_url"):
+        UnessExam.from_dict(payload)
+
+
+@pytest.mark.parametrize(
+    "token_url",
+    [
+        "https://uness.example/image.png?token=secret",
+        "https://uness.example/callback#id_token=secret",
+        "https://user:password@uness.example/review",
+    ],
+)
+def test_exam_rejects_token_bearing_urls_anywhere_in_nested_data(token_url: str) -> None:
+    """Catches credential-bearing URLs outside the top-level provenance field."""
+    payload = _valid_exam_payload(metadata={"nested": [("safe", {"url": token_url})]})
+
+    with pytest.raises(ValueError, match="sensible"):
         UnessExam.from_dict(payload)
 
 

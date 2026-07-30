@@ -2,7 +2,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from backend.core.ai.routing import AIModel, AIResponse, AITask
+from backend.core.ai.routing import AIImageContent, AIModel, AIResponse, AITask
 from backend.core.ai.service import MAX_CONTEXT_CHARS, AIService
 
 
@@ -30,6 +30,23 @@ def test_service_adds_bounded_context_with_explicit_markers():
     assert prompt.startswith("Question\n\n--- CONTEXTE DOCUMENTAIRE ---\n")
     assert prompt.endswith("\n--- FIN CONTEXTE ---")
     assert len(prompt) < len(context) + 100
+
+
+def test_service_forwards_local_image_content_without_a_path_or_url():
+    """Catches multimodal verification silently dropping locally loaded image bytes."""
+    client = Mock()
+    client.generate.return_value = AIResponse("OK", AIModel.FLASH_LITE)
+    service = AIService(client)
+    image = AIImageContent(mime_type="image/png", data=b"local-image")
+
+    service.generate(AITask.QCM, "Question", images=(image,))
+
+    client.generate.assert_called_once_with(
+        "Question",
+        AIModel.FLASH_LITE,
+        "text",
+        images=(image,),
+    )
 
 
 def test_service_does_not_route_score_tasks():

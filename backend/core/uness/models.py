@@ -17,6 +17,10 @@ _SENSITIVE_KEYS = {
     "cookie",
     "cookies",
     "password",
+    "clientsecret",
+    "idtoken",
+    "token",
+    "authtoken",
     "localstorage",
     "sessionstorage",
     "sessiontoken",
@@ -28,6 +32,23 @@ _SENSITIVE_KEYS = {
 }
 
 
+def _normalized_key(value: Any) -> str:
+    return "".join(character for character in str(value).lower() if character.isalnum())
+
+
+def _url_contains_sensitive_data(value: str) -> bool:
+    parsed = urlparse(value)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return False
+    if parsed.username or parsed.password:
+        return True
+    parameters = [
+        *parse_qsl(parsed.query, keep_blank_values=True),
+        *parse_qsl(parsed.fragment, keep_blank_values=True),
+    ]
+    return any(_normalized_key(key) in _SENSITIVE_KEYS for key, _value in parameters)
+
+
 def _optional_bool(value: Any, field_name: str) -> bool | None:
     if value is not None and not isinstance(value, bool):
         raise ValueError(f"{field_name} doit être un booléen ou null")
@@ -37,30 +58,25 @@ def _optional_bool(value: Any, field_name: str) -> bool | None:
 def _assert_no_sensitive_data(value: Any) -> None:
     if isinstance(value, dict):
         for key in value:
-            normalized_key = "".join(
-                character for character in str(key).lower() if character.isalnum()
-            )
-            if normalized_key in _SENSITIVE_KEYS:
+            if _normalized_key(key) in _SENSITIVE_KEYS:
                 raise ValueError(f"Donnée sensible interdite: {key}")
         for child in value.values():
             _assert_no_sensitive_data(child)
-    elif isinstance(value, list):
+    elif isinstance(value, (list, tuple)):
         for child in value:
             _assert_no_sensitive_data(child)
+    elif isinstance(value, str) and _url_contains_sensitive_data(value):
+        raise ValueError(
+            "Donnée sensible interdite dans une URL (source_url ou métadonnée)"
+        )
 
 
 def _assert_safe_source_url(source_url: str) -> None:
     parsed = urlparse(source_url)
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         raise ValueError("source_url doit être une URL HTTP(S) non vide")
-    if parsed.username or parsed.password:
-        raise ValueError("source_url ne doit contenir aucun identifiant")
-    for key, _value in parse_qsl(parsed.query, keep_blank_values=True):
-        normalized_key = "".join(
-            character for character in key.lower() if character.isalnum()
-        )
-        if normalized_key in _SENSITIVE_KEYS:
-            raise ValueError("source_url ne doit contenir aucune donnée sensible")
+    if _url_contains_sensitive_data(source_url):
+        raise ValueError("source_url ne doit contenir aucune donnée sensible")
 
 
 @dataclass(frozen=True)

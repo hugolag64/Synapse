@@ -14,6 +14,12 @@ export type UnessQuestionMetadata = {
     title?: string
     dp_context?: Record<string, unknown>
   }
+  provenance?: {
+    source?: string
+    source_url?: string
+    collected_at?: string
+    collection_status?: string
+  }
   question?: {
     id?: string
     type_question?: string

@@ -21,7 +21,7 @@ FIXTURE = Path(__file__).parent / "fixtures" / "uness" / "geriatry_review.html"
 class FixtureAIService:
     """Deterministic local response provider for the verification boundary."""
 
-    def generate(self, task, prompt, *, context=None, response_format="text"):
+    def generate(self, task, prompt, *, context=None, response_format="text", images=()):
         return AIResponse(
             json.dumps(
                 {

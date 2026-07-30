@@ -26,6 +26,8 @@ h1 { margin:0; font-size:36px; letter-spacing:-.04em; line-height:1.08; }
 .question-images figure { margin:0; padding:12px; border:1px solid #e2e6ef; border-radius:14px; background:#fff; }
 .question-images img { display:block; width:100%; max-height:420px; object-fit:contain; border-radius:9px; background:#f4f5f8; }
 .question-images figcaption { color:#737d96; font-size:13px; margin-top:9px; }
+.uness-provenance { display:flex; flex-direction:column; gap:4px; margin-bottom:14px; color:#566078; font-size:13px; }
+.uness-provenance a { color:#3457d5; overflow-wrap:anywhere; }
 .visual-warning,.uness-warning { display:flex; flex-direction:column; gap:4px; border:1px solid #eed99d; border-left:4px solid #d6a62c; border-radius:12px; background:#fff9e9; padding:13px 16px; color:#765b17; font-size:14px; }
 .visual-warning span,.uness-warning p { margin:0; line-height:1.45; }
 .answer-hint { color:#8d95aa; margin:0 0 26px; }

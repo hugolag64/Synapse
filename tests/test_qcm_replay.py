@@ -244,6 +244,16 @@ def test_qcm_correction_discloses_official_uness_correction(monkeypatch):
             "official": {"source": "UNESS", "answer": ["Réponse officielle"], "available": True}
         },
         "uness": {
+            "exam": {
+                "faculty": "Université Paris Cité",
+                "level": "DFASM3",
+                "year": 2026,
+            },
+            "provenance": {
+                "source_url": "https://entrainement.uness.example/review/42",
+                "collected_at": "2026-07-30T09:15:00+02:00",
+                "collection_status": "complete",
+            },
             "question": {
                 "images": [
                     {
@@ -276,6 +286,9 @@ def test_qcm_correction_discloses_official_uness_correction(monkeypatch):
     assert "Correction officielle UNESS : Réponse officielle" in labels
     assert "Divergence avec la correction officielle UNESS" in labels
     assert "Le cours local contredit la correction officielle." in labels
+    assert "Source : https://entrainement.uness.example/review/42" in labels
+    assert "Université Paris Cité · DFASM3 · 2026" in labels
+    assert "Collecté le 2026-07-30T09:15:00+02:00 · Statut : complete" in labels
     assert (
         "Support visuel uniquement : l’interaction UNESS originale n’est pas reconstruite."
         in labels

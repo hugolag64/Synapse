@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from backend.core.ai.gemini_client import GeminiClient, GeminiClientError
-from backend.core.ai.routing import AIModel
+from backend.core.ai.routing import AIImageContent, AIModel
 
 
 def _response(payload, status_code=200):
@@ -46,6 +46,33 @@ def test_generate_requests_json_response_format():
 
     config = post.call_args.kwargs["json"]["generationConfig"]
     assert config["responseMimeType"] == "application/json"
+
+
+def test_generate_serializes_image_bytes_as_inline_content_without_local_identifiers():
+    """Catches local image paths or source URLs leaking into the provider payload."""
+    client = GeminiClient(api_key="secret")
+    response = {"candidates": [{"content": {"parts": [{"text": "{}"}]}}]}
+
+    with patch("requests.post", return_value=_response(response)) as post:
+        client.generate(
+            "Inspecte le support joint",
+            AIModel.FLASH,
+            response_format="json",
+            images=(AIImageContent(mime_type="image/png", data=b"png-fixture"),),
+        )
+
+    parts = post.call_args.kwargs["json"]["contents"][0]["parts"]
+    assert parts == [
+        {"text": "Inspecte le support joint"},
+        {
+            "inlineData": {
+                "mimeType": "image/png",
+                "data": "cG5nLWZpeHR1cmU=",
+            }
+        },
+    ]
+    assert "local_path" not in str(parts)
+    assert "source_url" not in str(parts)
 
 
 def test_generate_wraps_http_errors_without_exposing_key():

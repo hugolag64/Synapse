@@ -145,7 +145,25 @@ def extract_question_images(html: str, base_url: str) -> list[dict[str, str]]:
         question_id = question_div.get("id", "")
         for img in question_div.find_all("img"):
             src = (img.get("src") or "").strip()
-            if not src or src.startswith("data:") or _IGNORED_IMAGE_PATTERN.search(src):
+            if not src or _IGNORED_IMAGE_PATTERN.search(src):
+                continue
+            if src.startswith("data:"):
+                # Some questions (DP/scanner images especially) embed the image
+                # directly as a plain <img src="data:image/...;base64,...">, with
+                # no pluginfile URL and no qzone <script> wrapper — decodable in
+                # place, unlike an unrecognized/non-image data URI which we skip.
+                if not src.startswith("data:image/") or ";base64," not in src:
+                    continue
+                if src in seen_urls:
+                    continue
+                seen_urls.add(src)
+                images.append(
+                    {
+                        "question_id": question_id,
+                        "data_uri": src,
+                        "alt_text": (img.get("alt") or "").strip(),
+                    }
+                )
                 continue
             absolute_url = urljoin(base_url, src)
             if absolute_url in seen_urls:

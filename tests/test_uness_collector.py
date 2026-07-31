@@ -26,7 +26,42 @@ def test_extract_question_images_finds_content_images_per_question():
             "absolute_url": "https://entrainement.uness.fr/annales/pluginfile.php/123/question/questiontext/2/radio.png",
             "alt_text": "Radio thorax",
         },
+        {
+            "question_id": "question-16814955-2",
+            "data_uri": "data:image/png;base64,AAAA",
+            "alt_text": "inline",
+        },
     ]
+
+
+def test_extract_question_images_captures_plain_img_with_inline_base64_data_uri():
+    # Real-world UNESS DP/scanner questions embed the image directly as a plain
+    # <img src="data:image/webp;base64,..."> — no pluginfile URL, no qzone <script>
+    # wrapper. This must not be silently dropped like a theme/UI icon would be.
+    html = """
+    <div id="question-1-1" class="que description informationitem complete">
+      <div class="qtext"><p>Vous réalisez des examens complémentaires (cf. image).</p></div>
+      <img src="data:image/webp;base64,UklGRlZIREFTQQ==" alt="Scanner thoracique">
+    </div>
+    """
+    images = extract_question_images(html, "https://entrainement.uness.fr/annales/")
+    assert images == [
+        {
+            "question_id": "question-1-1",
+            "data_uri": "data:image/webp;base64,UklGRlZIREFTQQ==",
+            "alt_text": "Scanner thoracique",
+        }
+    ]
+
+
+def test_extract_question_images_ignores_non_image_or_malformed_data_uris():
+    html = """
+    <div id="question-1-1" class="que">
+      <img src="data:text/plain;base64,AAAA" alt="not an image">
+      <img src="data:image/png" alt="missing base64 marker">
+    </div>
+    """
+    assert extract_question_images(html, "https://entrainement.uness.fr/annales/") == []
 
 
 def test_extract_question_images_ignores_duplicate_urls():

@@ -1,4 +1,4 @@
-from scripts.uness.collector import extract_question_images
+from scripts.uness.collector import _stage_review_images, extract_question_images
 
 
 def test_extract_question_images_finds_content_images_per_question():
@@ -66,3 +66,29 @@ def test_extract_question_images_decodes_qzone_embedded_base64_image():
             "alt_text": "",
         }
     ]
+
+
+def test_stage_review_images_copies_into_both_staging_and_review_dirs(tmp_path):
+    images_dir = tmp_path / "artifact" / "images"
+    images_dir.mkdir(parents=True)
+    (images_dir / "dermato1.jpg").write_bytes(b"fake-image-bytes")
+    staging_dir = tmp_path / "UNESS" / "images" / "20260731T140000Z"
+    review_dir = tmp_path / "UNESS" / "a_verifier" / "session-20260731T140000Z"
+    review_dir.mkdir(parents=True)
+
+    copied = _stage_review_images(images_dir, staging_dir, review_dir)
+
+    assert copied == ["dermato1.jpg"]
+    assert (staging_dir / "dermato1.jpg").read_bytes() == b"fake-image-bytes"
+    assert (review_dir / "dermato1.jpg").read_bytes() == b"fake-image-bytes"
+
+
+def test_stage_review_images_returns_empty_list_when_no_images(tmp_path):
+    images_dir = tmp_path / "artifact" / "images"
+    images_dir.mkdir(parents=True)
+    staging_dir = tmp_path / "UNESS" / "images" / "stamp"
+    review_dir = tmp_path / "UNESS" / "a_verifier" / "session-stamp"
+    review_dir.mkdir(parents=True)
+
+    assert _stage_review_images(images_dir, staging_dir, review_dir) == []
+    assert not staging_dir.exists()

@@ -45,6 +45,22 @@ def _slug(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-") or "content"
 
 
+def _stage_review_images(images_dir: Path, staging_dir: Path, review_dir: Path) -> list[str]:
+    """Copy collected images into both the staging folder (cleaned up by
+    import_service after import) and the review folder, alongside the bridge
+    JSON — so both the manual ChatGPT/Gemini paste flow and the Gemini
+    auto-correct button can find every image in one place without forgetting any."""
+    if not images_dir.is_dir() or not any(images_dir.iterdir()):
+        return []
+    staging_dir.mkdir(parents=True, exist_ok=True)
+    copied = []
+    for image_file in sorted(images_dir.iterdir()):
+        shutil.copy2(image_file, staging_dir / image_file.name)
+        shutil.copy2(image_file, review_dir / image_file.name)
+        copied.append(image_file.name)
+    return copied
+
+
 async def _click_first(page, names: tuple[str, ...]) -> bool:
     for name in names:
         locator = page.get_by_role("button", name=re.compile(name, re.I))
@@ -330,13 +346,14 @@ async def collect_annale(
             quiz_path.write_text(json.dumps(quiz_payload, ensure_ascii=False) + "\n", encoding="utf-8")
             upload_paths.append(quiz_path)
         await browser.close()
-    if images_dir.is_dir() and any(images_dir.iterdir()):
-        staging_dir = Path("UNESS") / "images" / subfolder_name / stamp
-        staging_dir.mkdir(parents=True, exist_ok=True)
-        for image_file in images_dir.iterdir():
-            shutil.copy2(image_file, staging_dir / image_file.name)
+    staging_dir = Path("UNESS") / "images" / subfolder_name / stamp
+    copied_images = _stage_review_images(images_dir, staging_dir, review_dir)
+    if copied_images:
         names = ", ".join(path.name for path in upload_paths)
-        print(f"Images trouvées : joins le dossier {staging_dir} à Gemini avec le(s) fichier(s) concerné(s) ({names}).")
+        print(
+            f"Images trouvées : dossier {review_dir} prêt à corriger "
+            f"(JSON + {len(copied_images)} image(s)) ({names})."
+        )
     return upload_paths
 
 

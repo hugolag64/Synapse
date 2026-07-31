@@ -8,12 +8,17 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import base64
 import json
+import mimetypes
 import os
 import re
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
+
+from bs4 import BeautifulSoup
 
 try:
     from dotenv import load_dotenv
@@ -100,14 +105,113 @@ async def _fetch_html(page) -> str:
         return raw.decode("cp1252")
 
 
+_IGNORED_IMAGE_PATTERN = re.compile(
+    r"/theme/|/pix/|spacer\.(gif|png)|smiley|favicon|yui_combo", re.I
+)
+
+# Moodle's "qzone" (click-a-zone) question type doesn't put its background image in
+# an <img> tag at all: the qzone-player.js widget embeds it as a base64 data URI
+# inside an inline <script>, e.g. `const imageUrl = 'data:image/webp;base64,...'`.
+_QZONE_IMAGE_PATTERN = re.compile(
+    r"imageUrl\s*=\s*['\"]data:image/(?P<ext>[a-zA-Z0-9.+-]+);base64,(?P<data>[A-Za-z0-9+/=]+)['\"]"
+)
+
+
+def extract_question_images(html: str, base_url: str) -> list[dict[str, str]]:
+    """Find real content images (dermato photos, radios, qzone scan crops...) inside
+    each Moodle question container, skipping theme/UI icons. Plain <img> entries carry
+    an "absolute_url" for the caller to download with an authenticated session; qzone's
+    embedded images carry a ready-to-decode "data_uri" instead."""
+    soup = BeautifulSoup(html, "html.parser")
+    images: list[dict[str, str]] = []
+    seen_urls: set[str] = set()
+    for question_div in soup.select('div[id^="question-"]'):
+        question_id = question_div.get("id", "")
+        for img in question_div.find_all("img"):
+            src = (img.get("src") or "").strip()
+            if not src or src.startswith("data:") or _IGNORED_IMAGE_PATTERN.search(src):
+                continue
+            absolute_url = urljoin(base_url, src)
+            if absolute_url in seen_urls:
+                continue
+            seen_urls.add(absolute_url)
+            images.append(
+                {
+                    "question_id": question_id,
+                    "absolute_url": absolute_url,
+                    "alt_text": (img.get("alt") or "").strip(),
+                }
+            )
+        for script in question_div.find_all("script"):
+            for match in _QZONE_IMAGE_PATTERN.finditer(script.get_text() or ""):
+                images.append(
+                    {
+                        "question_id": question_id,
+                        "data_uri": f"data:image/{match.group('ext')};base64,{match.group('data')}",
+                        "alt_text": "",
+                    }
+                )
+    return images
+
+
+async def _download_question_images(
+    page, html: str, base_url: str, images_dir: Path, quiz_slug: str
+) -> list[dict[str, str]]:
+    """Materialize images found in `html`: plain <img> ones are fetched via the
+    authenticated Playwright session, qzone's embedded ones are just base64-decoded."""
+    found = extract_question_images(html, base_url)
+    downloaded: list[dict[str, str]] = []
+    for index, image in enumerate(found, start=1):
+        if "data_uri" in image:
+            header, _, encoded = image["data_uri"].partition(",")
+            try:
+                body = base64.b64decode(encoded)
+            except (ValueError, base64.binascii.Error):
+                continue
+            content_type = header.split(":", 1)[1].split(";", 1)[0] if ":" in header else ""
+            extension = mimetypes.guess_extension(content_type) or ".webp"
+        else:
+            try:
+                response = await page.context.request.get(image["absolute_url"])
+                if not response.ok:
+                    continue
+                body = await response.body()
+            except Exception:
+                continue
+            extension = (
+                mimetypes.guess_extension(response.headers.get("content-type", "").split(";")[0].strip()) or ".bin"
+            )
+        filename = f"{quiz_slug}-{_slug(image['question_id'])}-{index}{extension}"
+        images_dir.mkdir(parents=True, exist_ok=True)
+        (images_dir / filename).write_bytes(body)
+        downloaded.append(
+            {
+                "question_id": image["question_id"],
+                # Relative to ARTIFACT_DIR (the parent of every "uness-<stamp>" run
+                # folder) so `import_service.resolve_local_media_path` can find it
+                # later — a bare "images/<file>" would miss the run subfolder.
+                "filename": f"{images_dir.parent.name}/images/{filename}",
+                "alt_text": image["alt_text"],
+            }
+        )
+    return downloaded
+
+
 async def collect_annale(
     source_url: str,
     *,
     profile_dir: Path = Path("data/uness/browser-profile"),
     output_dir: Path = Path("data/uness/artifacts"),
     submit: bool = False,
-) -> Path:
-    """Collect visible UNESS review HTML into a local artifact directory."""
+) -> list[Path]:
+    """Collect visible UNESS review HTML into a local artifact directory.
+
+    Writes one bridge JSON per quiz (not one bundled file for the whole course):
+    a course can have several heavy quizzes, and handing the AI one bundle with
+    all of them risks it truncating or hallucinating the heaviest one (seen in
+    practice on a 4-quiz, ~600KB course). One file per quiz keeps each exchange
+    small, and each is unambiguous to auto-match on import (see gemini_conversion).
+    """
     source_url = validate_annale_url(source_url)
     try:
         from playwright.async_api import TimeoutError as PlaywrightTimeoutError
@@ -121,6 +225,7 @@ async def collect_annale(
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     artifact_dir = output_dir / f"uness-{stamp}"
     artifact_dir.mkdir(parents=True, exist_ok=True)
+    images_dir = artifact_dir / "images"
     contents: list[dict[str, str]] = []
 
     async with async_playwright() as playwright:
@@ -182,7 +287,10 @@ async def collect_annale(
             html = await _fetch_html(page)
             filename = f"{index + 1:02d}-{_slug(title)}.html"
             (artifact_dir / filename).write_text(html, encoding="utf-8")
-            contents.append({"title": title, "url": page.url, "html": filename, "status": status})
+            images = await _download_question_images(page, html, page.url, images_dir, _slug(title))
+            contents.append(
+                {"title": title, "url": page.url, "html": filename, "status": status, "images": images}
+            )
             await page.goto(source_url, wait_until="domcontentloaded")
             await _ensure_enrolled(page)
 
@@ -195,25 +303,41 @@ async def collect_annale(
         (artifact_dir / "manifest.json").write_text(
             json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )
-        review_dir = Path("UNESS/à_vérifier")
+        # Unique subfolder per collected exam session (e.g. UNESS/à_vérifier/session-20260731T141700Z/)
+        subfolder_name = f"session-{stamp}"
+        review_dir = Path("UNESS/à_vérifier") / subfolder_name
         review_dir.mkdir(parents=True, exist_ok=True)
-        upload_payload = {
-            "bridge_schema_version": 1,
-            "source": manifest,
-            "instructions": "Extraire chaque question et proposition du HTML, conserver la correction officielle, puis appliquer le prompt fourni.",
-            "prompt": Path("prompts/uness_correction_prompt.txt").read_text(encoding="utf-8") if Path("prompts/uness_correction_prompt.txt").is_file() else "",
-            "contents": [
-                {
-                    **content,
-                    "html": (artifact_dir / content["html"]).read_text(encoding="utf-8"),
-                }
-                for content in contents
-            ],
-        }
-        upload_path = review_dir / f"uness-{stamp}.json"
-        upload_path.write_text(json.dumps(upload_payload, ensure_ascii=False) + "\n", encoding="utf-8")
+        prompt_text = (
+            Path("prompts/uness_correction_prompt.txt").read_text(encoding="utf-8")
+            if Path("prompts/uness_correction_prompt.txt").is_file()
+            else ""
+        )
+        upload_paths: list[Path] = []
+        for content in contents:
+            quiz_payload = {
+                "bridge_schema_version": 1,
+                "source": manifest,
+                "instructions": "Extraire chaque question et proposition du HTML, conserver la correction officielle, puis appliquer le prompt fourni.",
+                "prompt": prompt_text,
+                "contents": [
+                    {
+                        **content,
+                        "html": (artifact_dir / content["html"]).read_text(encoding="utf-8"),
+                    }
+                ],
+            }
+            quiz_path = review_dir / f"{_slug(content['title'])}-{stamp}.json"
+            quiz_path.write_text(json.dumps(quiz_payload, ensure_ascii=False) + "\n", encoding="utf-8")
+            upload_paths.append(quiz_path)
         await browser.close()
-    return upload_path
+    if images_dir.is_dir() and any(images_dir.iterdir()):
+        staging_dir = Path("UNESS") / "images" / subfolder_name / stamp
+        staging_dir.mkdir(parents=True, exist_ok=True)
+        for image_file in images_dir.iterdir():
+            shutil.copy2(image_file, staging_dir / image_file.name)
+        names = ", ".join(path.name for path in upload_paths)
+        print(f"Images trouvées : joins le dossier {staging_dir} à Gemini avec le(s) fichier(s) concerné(s) ({names}).")
+    return upload_paths
 
 
 def main() -> None:
@@ -231,7 +355,8 @@ def main() -> None:
             submit=args.submit,
         )
     )
-    print(result)
+    for path in result:
+        print(path)
 
 
 if __name__ == "__main__":

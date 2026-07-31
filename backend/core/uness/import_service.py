@@ -15,6 +15,7 @@ from backend.core.practice.models import (
 )
 from backend.core.reviews import local_store
 
+from .gemini_conversion import convert_raw_payload, is_raw_ai_response
 from .json_io import load_exam
 from .models import UnessExam, UnessProposition, UnessQuestion, _assert_no_sensitive_data
 
@@ -31,9 +32,51 @@ ARTIFACT_DIR = Path(
 ANNALE_TYPE_LABELS = {
     "matiere": "Matière",
     "concours_blanc": "Concours blanc",
-    "vrai_concours": "Vrai concours",
     "edn_complet": "EDN complet",
 }
+
+
+def _slug(value: str) -> str:
+    import re
+    return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-") or "content"
+
+# Facultés de médecine françaises (UFR Santé), pour corriger manuellement une
+# annale dont la faculté n'a pas pu être extraite automatiquement. Liste non
+# garantie exhaustive/à jour — "Autre" reste toujours disponible en saisie libre.
+UNIVERSITES = [
+    "Aix-Marseille Université",
+    "Université d'Angers",
+    "Université de Bordeaux",
+    "Université de Brest (UBO)",
+    "Université de Caen Normandie",
+    "Université Clermont Auvergne",
+    "Université de Bourgogne (Dijon)",
+    "Université Grenoble Alpes",
+    "Université de Lille",
+    "Université de Limoges",
+    "Université Claude Bernard Lyon 1",
+    "Université de Montpellier",
+    "Université de Nantes",
+    "Université Côte d'Azur (Nice)",
+    "Université Paris Cité",
+    "Sorbonne Université (Paris)",
+    "Université Paris-Saclay",
+    "Université Sorbonne Paris Nord (Bobigny)",
+    "Université de Versailles Saint-Quentin-en-Yvelines (UVSQ)",
+    "Université de Picardie Jules Verne (Amiens)",
+    "Université de Poitiers",
+    "Université de Reims Champagne-Ardenne",
+    "Université de Rennes 1",
+    "Université de Rouen Normandie",
+    "Université Jean Monnet (Saint-Étienne)",
+    "Université de Strasbourg",
+    "Université Toulouse III - Paul Sabatier",
+    "Université de Tours",
+    "Université de Franche-Comté (Besançon)",
+    "Université de Lorraine (Nancy)",
+    "Université des Antilles",
+    "Université de La Réunion",
+]
 
 
 def load_local_exam(path: str | Path) -> UnessExam:
@@ -56,7 +99,7 @@ def load_local_exam(path: str | Path) -> UnessExam:
 def scan_verified_exams() -> list[Path]:
     """List JSON outputs manually returned by ChatGPT, excluding the index."""
     VERIFIED_DIR.mkdir(parents=True, exist_ok=True)
-    return sorted(path for path in VERIFIED_DIR.glob("*.json") if path.name != ".imported.json")
+    return sorted(path for path in VERIFIED_DIR.rglob("*.json") if path.name != ".imported.json")
 
 
 def _exam_fingerprint(exam: UnessExam) -> str:
@@ -65,18 +108,92 @@ def _exam_fingerprint(exam: UnessExam) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
+def _staged_image_paths(exam: UnessExam) -> list[str]:
+    """`local_path` values (e.g. "uness-<stamp>/images/<file>") for every image
+    attached to `exam`, question-level and leftover dossier-level alike."""
+    paths = [image.local_path for question in exam.questions for image in question.images if image.local_path]
+    for image in exam.dp_context.get("images", []) or []:
+        local_path = image.get("local_path") if isinstance(image, dict) else None
+        if local_path:
+            paths.append(local_path)
+    return paths
+
+
+def _cleanup_staged_images(exam: UnessExam) -> None:
+    """Delete this exam's convenience copy under UNESS/images/<stamp>/ (see
+    collector.py) now that it's been imported — the permanent copy under
+    ARTIFACT_DIR, which the app actually serves images from, is untouched. A
+    bridge can bundle several quizzes sharing one <stamp> folder, so this only
+    removes the files this specific exam used, and the folder itself once empty."""
+    staging_root = UNESS_ROOT / "images"
+    touched_dirs: set[Path] = set()
+    for local_path in _staged_image_paths(exam):
+        parts = Path(local_path).parts
+        if len(parts) != 3 or parts[1] != "images" or not parts[0].startswith("uness-"):
+            continue
+        staged_file = staging_root / parts[0].removeprefix("uness-") / parts[2]
+        try:
+            staged_file.unlink(missing_ok=True)
+        except OSError:
+            continue
+        touched_dirs.add(staged_file.parent)
+    for directory in touched_dirs:
+        try:
+            if directory.is_dir() and not any(directory.iterdir()):
+                directory.rmdir()
+        except OSError:
+            pass
+
+
+def format_annale_title(matiere: str | None, faculte: str | None, annee: int | None, raw_title: str | None = None) -> str:
+    """Format title according to the standard convention: Matière — Université — Année."""
+    parts = []
+    if matiere and matiere.strip():
+        parts.append(matiere.strip())
+    if faculte and faculte.strip():
+        parts.append(faculte.strip())
+    if annee:
+        parts.append(str(annee))
+    if parts:
+        return " — ".join(parts)
+    clean_raw = str(raw_title or "").strip()
+    return clean_raw if clean_raw else "Annale UNESS"
+
+
 def _annale_group_title(exam: UnessExam) -> str:
-    """Recover the shared course title from convert_chatgpt_export.py's '{course} — {part}' convention."""
-    return exam.title.rsplit(" — ", 1)[0] if " — " in exam.title else exam.title
+    """Recover and format standard title."""
+    raw = exam.title.rsplit(" — ", 1)[0] if " — " in exam.title else exam.title
+    matiere = str(exam.metadata.get("subject", "")).strip() or raw
+    return format_annale_title(matiere, exam.faculty, exam.year, raw)
 
 
-def _group_files_by_source_url(paths: list[Path]) -> dict[str, list[tuple[Path, UnessExam]]]:
+def _load_exams_from_verified_file(path: Path) -> list[UnessExam]:
+    """Accept both already-canonical exam files and raw AI (ChatGPT/Gemini) responses,
+    auto-converting the latter by matching them against a pending bridge file."""
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if is_raw_ai_response(payload):
+        try:
+            return convert_raw_payload(payload, [TO_REVIEW_DIR])
+        except ValueError:
+            return convert_raw_payload(payload, [TO_REVIEW_DIR, ARCHIVE_DIR])
+    return [UnessExam.from_dict(payload)]
+
+
+def _group_files_by_source_url(
+    paths: list[Path],
+) -> tuple[dict[str, list[tuple[Path, UnessExam]]], list[dict[str, str]]]:
     groups: dict[str, list[tuple[Path, UnessExam]]] = {}
+    errors: list[dict[str, str]] = []
     for path in paths:
-        exam = load_exam(path)
-        source_url = str(exam.provenance.get("source_url", "")).strip()
-        groups.setdefault(source_url, []).append((path, exam))
-    return groups
+        try:
+            exams = _load_exams_from_verified_file(path)
+        except (ValueError, OSError, KeyError) as exc:
+            errors.append({"file": path.name, "error": str(exc)})
+            continue
+        for exam in exams:
+            source_url = str(exam.provenance.get("source_url", "")).strip()
+            groups.setdefault(source_url, []).append((path, exam))
+    return groups, errors
 
 
 def import_verified_directory(tags: dict[str, str] | None = None) -> dict[str, Any]:
@@ -88,8 +205,11 @@ def import_verified_directory(tags: dict[str, str] | None = None) -> dict[str, A
     except (FileNotFoundError, json.JSONDecodeError, TypeError):
         imported = set()
     result: dict[str, Any] = {"imported": [], "skipped": [], "errors": [], "pending_tag": []}
+    groups, load_errors = _group_files_by_source_url(scan_verified_exams())
+    result["errors"].extend(load_errors)
+    archived_paths: set[Path] = set()
 
-    for source_url, entries in _group_files_by_source_url(scan_verified_exams()).items():
+    for source_url, entries in groups.items():
         annale = local_store.get_uness_annale_by_source_url(source_url) if source_url else None
         if annale is None and source_url:
             type_annale = tags.get(source_url)
@@ -103,7 +223,7 @@ def import_verified_directory(tags: dict[str, str] | None = None) -> dict[str, A
                         "annee": first_exam.year,
                         "matiere": str(first_exam.metadata.get("subject", "")),
                         "titre": _annale_group_title(first_exam),
-                        "files": [path.name for path, _ in entries],
+                        "files": sorted({path.name for path, _ in entries}),
                     }
                 )
                 continue
@@ -130,19 +250,42 @@ def import_verified_directory(tags: dict[str, str] | None = None) -> dict[str, A
                 if annale is not None:
                     local_store.set_session_annale_id(session_id, annale["id"])
                 imported.add(fingerprint)
+                _cleanup_staged_images(exam)
                 result["imported"].append(
                     {"file": path.name, "session_id": session_id, "disagreements": count_disagreements(exam)}
                 )
-                ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
-                path.replace(ARCHIVE_DIR / path.name)
-                collected_at = str(exam.provenance.get("collected_at", "")).strip()
-                for candidate in TO_REVIEW_DIR.glob("*.json"):
-                    try:
-                        source = json.loads(candidate.read_text(encoding="utf-8")).get("source", {})
-                    except (OSError, json.JSONDecodeError, AttributeError):
-                        continue
-                    if collected_at and source.get("collected_at") == collected_at:
-                        candidate.replace(ARCHIVE_DIR / f"a_verifier-{candidate.name}")
+                if path not in archived_paths:
+                    # Determine subfolder relative to VERIFIED_DIR (or use slugified course title)
+                    rel_subfolder = path.parent.relative_to(VERIFIED_DIR) if path.is_relative_to(VERIFIED_DIR) and path.parent != VERIFIED_DIR else Path(_slug(exam.faculty or exam.title or "partiel"))
+                    target_archive_dir = ARCHIVE_DIR / rel_subfolder
+                    target_archive_dir.mkdir(parents=True, exist_ok=True)
+
+                    path.replace(target_archive_dir / path.name)
+                    archived_paths.add(path)
+                    collected_at = str(exam.provenance.get("collected_at", "")).strip()
+                    for candidate in TO_REVIEW_DIR.rglob("*.json"):
+                        try:
+                            source = json.loads(candidate.read_text(encoding="utf-8")).get("source", {})
+                        except (OSError, json.JSONDecodeError, AttributeError):
+                            continue
+                        if collected_at and source.get("collected_at") == collected_at:
+                            cand_subfolder = candidate.parent.relative_to(TO_REVIEW_DIR) if candidate.is_relative_to(TO_REVIEW_DIR) and candidate.parent != TO_REVIEW_DIR else rel_subfolder
+                            cand_target_dir = ARCHIVE_DIR / cand_subfolder
+                            cand_target_dir.mkdir(parents=True, exist_ok=True)
+                            cand_parent = candidate.parent
+                            candidate.replace(cand_target_dir / f"a_verifier-{candidate.name}")
+                            # Clean up empty parent folder if no JSONs remain
+                            if cand_parent != TO_REVIEW_DIR and cand_parent.is_dir() and not any(cand_parent.iterdir()):
+                                try:
+                                    cand_parent.rmdir()
+                                except OSError:
+                                    pass
+                    path_parent = path.parent
+                    if path_parent != VERIFIED_DIR and path_parent.is_dir() and not any(path_parent.iterdir()):
+                        try:
+                            path_parent.rmdir()
+                        except OSError:
+                            pass
             except (ValueError, OSError, PermissionError) as exc:
                 result["errors"].append({"file": path.name, "error": str(exc)})
 

@@ -90,6 +90,28 @@ def _images(node: Tag) -> tuple[UnessImage, ...]:
     return tuple(images)
 
 
+def _formatted_context_text(node: Tag) -> str:
+    lines: list[str] = []
+    for element in node.descendants:
+        if isinstance(element, Tag):
+            if element.name == "li":
+                text = element.get_text(" ", strip=True)
+                if text:
+                    lines.append(f"• {text}")
+            elif element.name in ("p", "div", "h1", "h2", "h3", "h4", "br"):
+                lines.append("\n")
+        elif isinstance(element, str):
+            parent = element.parent
+            if parent and parent.name not in ("li", "script", "style"):
+                text = element.strip()
+                if text:
+                    lines.append(text)
+    raw = " ".join(lines)
+    # Clean multi-newlines and spaces
+    paragraphs = [p.strip() for p in raw.split("\n") if p.strip()]
+    return "\n".join(paragraphs)
+
+
 def _dp_context(node: Tag) -> dict[str, str]:
     context = node.find_previous(class_=lambda value: value and "dp-context" in value)
     score = _text(_first(node, ".review-score, .score, [data-score]"))
@@ -98,7 +120,8 @@ def _dp_context(node: Tag) -> dict[str, str]:
         context_id = str(context.get("data-dp-id", ""))
         if context_id:
             result["id"] = context_id
-        result["text"] = _text(context)
+        text = _formatted_context_text(context)
+        result["text"] = text or _text(context)
     if score:
         result["score_text"] = score
     return result

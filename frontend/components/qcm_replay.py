@@ -175,7 +175,12 @@ def format_correction_summary(summary: dict) -> tuple[str, str]:
     total_questions = int(summary.get("total_questions", scored_count + unanswered_count))
     answered_count = int(summary.get("answered_count", total_questions - unanswered_count))
     unscored_count = max(0, answered_count - scored_count)
-    score_text = "Score non disponible" if score is None else f"Score : {score:g} %"
+    if score is None:
+        score_text = "Score non disponible"
+    else:
+        score_20 = round(float(score) / 5.0, 1)
+        score_20_str = f"{score_20:g}".replace(".", ",")
+        score_text = f"Note : {score_20_str}/20 ({score:g} %)"
     counts_text = (
         f"{summary.get('correct_count', 0)}/{total_questions} bonnes réponses · "
         f"{unanswered_count} sans réponse"

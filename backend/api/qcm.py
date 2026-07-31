@@ -114,7 +114,18 @@ def get_uness_question_image(
     question = next((item for item in questions if int(item["id"]) == question_id), None)
     if question is None:
         raise HTTPException(status_code=404, detail="Question QCM introuvable")
-    images = ((question.get("uness") or {}).get("question") or {}).get("images") or []
+    uness = question.get("uness") or (question.get("import_metadata") or {}).get("uness") or {}
+    q_images = (uness.get("question") or {}).get("images") or []
+    dp_images = ((uness.get("exam") or {}).get("dp_context") or {}).get("images") or []
+    images = []
+    seen = set()
+    for img in list(q_images) + list(dp_images):
+        lp = str(img.get("local_path") or "").strip()
+        su = str(img.get("source_url") or "").strip()
+        key = (lp, su)
+        if key not in seen:
+            seen.add(key)
+            images.append(img)
     if image_index < 0 or image_index >= len(images):
         raise HTTPException(status_code=404, detail="Image UNESS introuvable")
     raw_path = str(images[image_index].get("local_path") or "").strip()

@@ -248,7 +248,12 @@ def render_settings_cockpit() -> None:
                 dialog.open()
 
             def _scan_verified() -> None:
-                _finalize_scan()
+                try:
+                    _finalize_scan()
+                except Exception as e:
+                    status.set_text(f"Erreur lors du scan : {str(e)}")
+                    status.style("color:var(--danger)")
+                    ui.notify(f"Erreur du scanner : {str(e)}", type="negative")
 
             ui.button(
                 "Scanner les JSON vérifiés",

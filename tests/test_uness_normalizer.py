@@ -33,7 +33,7 @@ def test_extract_review_content_preserves_visible_correction_score_context_and_i
     assert question.enonce == "Quels éléments sont des critères de dénutrition chez la personne âgée ?"
     assert question.dp_context == {
         "id": "dp-geriatrie-1",
-        "text": "Dossier progressif — Évaluation nutritionnelle Une personne âgée vivant à domicile consulte pour une perte de poids récente.",
+        "text": "Dossier progressif — Évaluation nutritionnelle\nUne personne âgée vivant à domicile consulte pour une perte de poids récente.",
         "score_text": "Score : 1,00 / 1,00",
     }
     assert [(item.id, item.texte, item.reponse_uness) for item in question.propositions] == [

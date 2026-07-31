@@ -111,6 +111,7 @@ def _get_replayable_history(
             limit=limit,
             query=query,
             status=status,
+            exclude_uness=True,
         )
         if session.get("has_questions")
     ]

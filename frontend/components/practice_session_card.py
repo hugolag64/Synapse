@@ -32,8 +32,10 @@ def render_session_actions(
     with ui.row().classes("gap-2 flex-wrap mt-2"):
         actions = session_action_keys(session)
         if "resume" in actions:
+            has_started = bool(session.get("answered_count")) or bool(session.get("last_attempt_at"))
+            label = "Reprendre" if has_started else "Lancer"
             ui.button(
-                "Reprendre",
+                label,
                 icon="play_arrow",
                 on_click=lambda: on_resume(session_id),
             ).props("flat color=primary")

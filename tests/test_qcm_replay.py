@@ -165,7 +165,7 @@ def test_correction_rows_render_a_finished_two_out_of_three_session():
 
     rows = build_correction_rows(questions, summary)
 
-    assert format_correction_summary(summary) == ("Score : 66.67 %", "2/3 bonnes réponses · 0 sans réponse")
+    assert format_correction_summary(summary) == ("Note : 13,3/20 (66.67 %)", "2/3 bonnes réponses · 0 sans réponse")
     assert [row["status"] for row in rows] == ["correct", "correct", "incorrect"]
     assert [row["response"] for row in rows] == ["A", "B", "B"]
 
@@ -309,7 +309,7 @@ def test_correction_summary_counts_answered_open_questions_without_marking_them_
     }
 
     assert format_correction_summary(summary) == (
-        "Score : 100 %",
+        "Note : 20/20 (100 %)",
         "2/3 bonnes réponses · 0 sans réponse · 1 réponse non évaluée",
     )
 

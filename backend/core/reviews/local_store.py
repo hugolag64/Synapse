@@ -1307,6 +1307,33 @@ def create_uness_annale(
         return int(cur.lastrowid)
 
 
+def update_uness_annale(
+    annale_id: int,
+    *,
+    titre: str | None = None,
+    faculte: str | None = None,
+    matiere: str | None = None,
+    annee: int | None = None,
+) -> None:
+    """Patch a UNESS annale's editable metadata (rename, or correct fields the
+    automatic import couldn't extract). Only non-None arguments are updated."""
+    updates = {
+        "titre": titre,
+        "faculte": faculte,
+        "matiere": matiere,
+        "annee": annee,
+    }
+    fields = {key: value for key, value in updates.items() if value is not None}
+    if not fields:
+        return
+    assignments = ", ".join(f"{key} = ?" for key in fields)
+    with _conn() as con:
+        con.execute(
+            f"UPDATE uness_annales SET {assignments} WHERE id = ?",
+            (*fields.values(), annale_id),
+        )
+
+
 def get_uness_annale_by_source_url(source_url: str) -> dict | None:
     with _conn() as con:
         row = con.execute(
@@ -1363,6 +1390,24 @@ def list_uness_annales(
             params,
         ).fetchall()
     return [dict(row) for row in rows]
+
+
+def delete_uness_annale(annale_id: int) -> bool:
+    """Delete an annale and every imported sub-part session under it."""
+    with _conn() as con:
+        exists = con.execute("SELECT 1 FROM uness_annales WHERE id = ?", (annale_id,)).fetchone()
+        if exists is None:
+            return False
+        session_ids = [
+            row[0]
+            for row in con.execute(
+                "SELECT id FROM ai_practice_sessions WHERE annale_id = ?", (annale_id,)
+            ).fetchall()
+        ]
+        for session_id in session_ids:
+            con.execute("DELETE FROM ai_practice_sessions WHERE id = ?", (session_id,))
+        con.execute("DELETE FROM uness_annales WHERE id = ?", (annale_id,))
+    return True
 
 
 def list_annale_sessions(annale_id: int) -> list[dict]:
@@ -1530,9 +1575,13 @@ def get_ai_practice_session_summary(session_id: int) -> dict | None:
 
 
 def get_ai_practice_sessions_history(
-    limit: int = 100, query: str = "", status: str = "all"
+    limit: int = 100, query: str = "", status: str = "all", exclude_uness: bool = False
 ) -> list[dict]:
-    """Retourne l'historique borne des sessions avec leurs compteurs."""
+    """Retourne l'historique borne des sessions avec leurs compteurs.
+
+    `exclude_uness` drops sessions attached to a UNESS annale (`annale_id` set) —
+    those already have their own dedicated view under /annales and would otherwise
+    clutter the regular QCM history."""
     clauses = []
     params: list = []
     if query.strip():
@@ -1543,6 +1592,8 @@ def get_ai_practice_sessions_history(
         clauses.append("s.completed_at IS NULL")
     elif status == "completed":
         clauses.append("s.completed_at IS NOT NULL")
+    if exclude_uness:
+        clauses.append("s.annale_id IS NULL")
     where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
     params.append(max(0, limit))
     with _conn() as con:

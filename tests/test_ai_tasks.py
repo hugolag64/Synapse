@@ -50,21 +50,21 @@ def test_extract_grid_marks_result_for_human_validation():
     )
 
 
-def test_generate_uness_correction_uses_flash_json_route_and_forwards_images():
+def test_generate_uness_correction_uses_visual_flash_route_when_images_present():
     service = _service()
     images = (AIImageContent(mime_type="image/png", data=b"fixture"),)
 
     generate_uness_correction("corrige ce quiz", images=images, service=service)
 
     service.generate.assert_called_once_with(
-        AITask.UNESS_CORRECTION,
+        AITask.UNESS_CORRECTION_VISUAL,
         "corrige ce quiz",
         response_format="json",
         images=images,
     )
 
 
-def test_generate_uness_correction_defaults_to_no_images():
+def test_generate_uness_correction_uses_lite_route_when_no_images():
     service = _service()
 
     generate_uness_correction("corrige ce quiz", service=service)

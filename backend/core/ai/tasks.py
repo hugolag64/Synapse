@@ -41,8 +41,12 @@ def generate_uness_correction(
     images: Sequence[AIImageContent] = (),
     service: AIService | None = None,
 ) -> AIResponse:
+    # Only worth the pricier visual-reasoning model when there's actually an image
+    # to analyze (DP/scanner questions) — plain text corrections stay on the cheap
+    # Lite tier, which is most of a typical partiel's sub-parts.
+    task = AITask.UNESS_CORRECTION_VISUAL if images else AITask.UNESS_CORRECTION
     return (service or _default_service()).generate(
-        AITask.UNESS_CORRECTION, prompt, response_format="json", images=images
+        task, prompt, response_format="json", images=images
     )
 
 

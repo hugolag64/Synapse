@@ -7,7 +7,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from backend.core.ai.routing import AIModel, AIResponse, AIServiceError
+from backend.core.ai.routing import AIModel, AIResponse, AIServiceError, AITask
 from backend.core.uness import gemini_autocorrect, gemini_conversion, import_service
 
 
@@ -122,6 +122,25 @@ def test_correct_directory_sends_images_found_by_basename(tmp_path, _isolated_ve
     assert len(sent_images) == 1
     assert sent_images[0].mime_type == "image/jpeg"
     assert sent_images[0].data == b"fake-jpeg-bytes"
+
+
+def test_correct_directory_uses_lite_model_without_images_and_flash_with_images(tmp_path, _isolated_verified_dir):
+    (tmp_path / "dermato1.jpg").write_bytes(b"fake-jpeg-bytes")
+    _bridge_file(
+        tmp_path,
+        title="DP1\nTest",
+        images=[{"question_id": "q1", "filename": "uness-stamp/images/dermato1.jpg"}],
+        name="dp1-20260730T090000Z.json",
+    )
+    _bridge_file(tmp_path, title="KFP\nTest", name="kfp-20260730T090000Z.json")
+    service = Mock()
+    service.generate.side_effect = [_quiz_response("DP1\nTest"), _quiz_response("KFP\nTest")]
+
+    gemini_autocorrect.correct_directory(tmp_path, service=service)
+
+    tasks_used = [call.args[0] for call in service.generate.call_args_list]
+    assert AITask.UNESS_CORRECTION_VISUAL in tasks_used
+    assert AITask.UNESS_CORRECTION in tasks_used
 
 
 def test_correct_directory_reports_missing_image_but_still_writes_correction(tmp_path, _isolated_verified_dir):

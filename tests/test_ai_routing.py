@@ -14,7 +14,8 @@ from backend.core.practice.models import PracticeDifficulty
         (AITask.KFP, AIModel.FLASH),
         (AITask.ECOS_COMPLEX, AIModel.FLASH),
         (AITask.EXTRACTION_GRILLE, AIModel.FLASH),
-        (AITask.UNESS_CORRECTION, AIModel.FLASH),
+        (AITask.UNESS_CORRECTION, AIModel.FLASH_LITE),
+        (AITask.UNESS_CORRECTION_VISUAL, AIModel.FLASH),
     ],
 )
 def test_model_for_task_uses_the_expected_quality_tier(task, expected):

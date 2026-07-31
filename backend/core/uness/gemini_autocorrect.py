@@ -1,8 +1,10 @@
 """Automate the manual ChatGPT/Gemini correction step for UNESS annales: call the
-Gemini API directly for every bridge JSON in a folder and write its raw response
-into UNESS/vérifiés/, exactly as a manual copy-paste would — the existing
-import_verified_directory() pipeline then converts, validates and imports it
-without knowing whether a human or the API produced the file."""
+Gemini API directly for every bridge JSON in a folder and convert its response
+immediately, using the exact bridge this module already read — unlike a manual
+ChatGPT/Gemini paste, this never needs the downstream title-based bridge search
+(gemini_conversion.find_bridge_for_title), which raises an ambiguity error as soon
+as two à_vérifier sessions happen to share a quiz title (e.g. the same course
+collected twice)."""
 
 from __future__ import annotations
 
@@ -13,7 +15,7 @@ from pathlib import Path
 from backend.core.ai.routing import AIImageContent, AIServiceError
 from backend.core.ai.service import AIService
 from backend.core.ai.tasks import generate_uness_correction
-from backend.core.uness import import_service
+from backend.core.uness import gemini_conversion, import_service
 
 _PROMPT_PATH = Path(__file__).resolve().parents[3] / "prompts" / "uness_correction_prompt.txt"
 _IMAGE_MIME_TYPES = {
@@ -75,7 +77,8 @@ def _parsed_response(text: str) -> object:
 
 def correct_directory(folder: Path, *, service: AIService | None = None) -> dict:
     """Call Gemini once per quiz for every bridge JSON directly in `folder`,
-    writing each raw response into UNESS/vérifiés/."""
+    converting each response with its own bridge on the spot and writing the
+    already-canonical exam into UNESS/vérifiés/."""
     folder = Path(folder)
     corrected: list[str] = []
     errors: list[dict[str, str]] = []
@@ -105,9 +108,17 @@ def correct_directory(folder: Path, *, service: AIService | None = None) -> dict
                 )
                 response = generate_uness_correction(message, images=images, service=service)
                 payload = _parsed_response(response.text)
-                out_path = import_service.VERIFIED_DIR / f"{_slug(title)}-{bridge_path.stem}.json"
-                out_path.write_text(json.dumps(payload, ensure_ascii=False) + "\n", encoding="utf-8")
-                corrected.append(out_path.name)
+                quiz_objects = payload if isinstance(payload, list) else [payload]
+                exams = gemini_conversion.convert_with_bridge(quiz_objects, bridge)
+                for index, exam in enumerate(exams):
+                    suffix = f"-{index}" if len(exams) > 1 else ""
+                    out_path = (
+                        import_service.VERIFIED_DIR / f"{_slug(title)}-{bridge_path.stem}{suffix}.json"
+                    )
+                    out_path.write_text(
+                        json.dumps(exam.to_dict(), ensure_ascii=False) + "\n", encoding="utf-8"
+                    )
+                    corrected.append(out_path.name)
                 input_tokens += response.input_tokens or 0
                 output_tokens += response.output_tokens or 0
                 if missing:
@@ -117,7 +128,7 @@ def correct_directory(folder: Path, *, service: AIService | None = None) -> dict
                             "error": f"Images manquantes (ignorées) : {', '.join(missing)}",
                         }
                     )
-            except (AIServiceError, ValueError, json.JSONDecodeError, OSError) as exc:
+            except (AIServiceError, ValueError, KeyError, json.JSONDecodeError, OSError) as exc:
                 errors.append({"file": bridge_path.name, "error": str(exc)})
 
     return {

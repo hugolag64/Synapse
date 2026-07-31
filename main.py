@@ -31,6 +31,8 @@ from frontend.pages.health import health_page
 from frontend.pages.stats import stats_page
 from frontend.pages.weak_points import weak_points_page
 from frontend.pages.qcm import qcm_page
+from frontend.pages.annales import annales_page
+from frontend.pages.annale_detail import annale_detail_page
 from frontend.pages.planning import planning_page
 from frontend.pages.externat import externat_page
 from frontend.pages.triage import triage_page

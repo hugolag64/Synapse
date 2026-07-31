@@ -8,6 +8,24 @@ import datetime
 import subprocess
 import shutil
 from pathlib import Path
+from urllib.parse import urlparse
+
+
+def _validate_uness_annale_url(value: str) -> str:
+    """Validate and normalize a public UNESS annales URL."""
+    candidate = (value or "").strip()
+    parsed = urlparse(candidate)
+    if (
+        parsed.scheme != "https"
+        or parsed.netloc.lower() != "entrainement.uness.fr"
+        or not parsed.path.startswith("/annales/")
+    ):
+        raise ValueError(
+            "Utilisez une URL HTTPS d'annale UNESS "
+            "(entrainement.uness.fr/annales/...)."
+        )
+    return candidate
+
 
 def _show_uncertain_dialog(uncertain_matches: list) -> None:
     from backend.core.obsidian.sync import vault_sync_service

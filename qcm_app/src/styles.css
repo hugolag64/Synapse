@@ -36,8 +36,12 @@ h1 { margin:0; font-size:36px; letter-spacing:-.04em; line-height:1.08; }
 .choice:hover, .choice.selected { border-color:#6b61d8; background:#f1efff; color:#393285; }
 .choice-letter { display:grid; place-items:center; width:30px; height:30px; border-radius:9px; background:#e9ebf3; font-weight:800; color:#69728b; }
 .choice.selected .choice-letter { background:#6b61d8; color:white; }
-.choice-check { margin-left:auto; color:#6b61d8; font-weight:800; }
-.reader-actions, .correction-actions { display:flex; justify-content:space-between; gap:14px; margin-top:28px; }
+.timer-bar { display:flex; align-items:center; justify-content:space-between; background:#faf9ff; border:1px solid #e2ddfe; border-radius:12px; padding:10px 18px; margin-bottom:20px; font-weight:700; color:#5c50c9; }
+.timer-clock { font-size:18px; font-family:monospace; background:#6b61d8; color:white; padding:4px 10px; border-radius:8px; }
+.timer-clock.warning { background:#d9534f; animation:pulse 1s infinite; }
+.qroc-container { display:flex; flex-direction:column; gap:10px; margin-top:14px; }
+.qroc-input { width:100%; border:1px solid #dcdfe8; border-radius:12px; padding:14px 16px; font:inherit; font-size:15px; background:#fafbfe; color:#20253a; outline:0; resize:vertical; transition:border-color .16s ease; }
+.qroc-input:focus { border-color:#6b61d8; background:#fff; box-shadow:0 0 0 3px rgba(107,97,216,.12); }
 .button { border:0; border-radius:9px; padding:11px 18px; font-weight:750; }
 .button.primary { background:#6b61d8; color:white; }
 .button.secondary, .filter { background:#f2f3f8; color:#5c657b; }

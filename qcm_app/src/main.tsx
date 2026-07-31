@@ -77,15 +77,46 @@ export function Reader({ payload, onCorrection }: { payload: SessionPayload; onC
   const [index, setIndex] = useState(0)
   const [answers, setAnswers] = useState(payload.answers)
   const [busy, setBusy] = useState(false)
+  
+  // Mode Concours / Chronomètre (ex: 2 min par question par défaut)
+  const totalSeconds = useMemo(() => payload.questions.length * 120, [payload.questions.length])
+  const [timeLeft, setTimeLeft] = useState(totalSeconds)
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [])
+
   const question = payload.questions[index]
   if (!question) return <main className="state"><Header /><h1>QCM vide</h1><p>Cette session ne contient aucune question.</p></main>
+
+  const isQroc = question.question_kind === 'open' || question.choices.length === 0 || question.uness?.question?.support_visuel_seul || question.uness?.question?.type_question === 'QROC'
+  
   const selected = useMemo(() => {
+    if (isQroc) return []
     try { return JSON.parse(answers[String(question.id)] || '[]') as string[] } catch { return [] }
-  }, [answers, question.id])
+  }, [answers, question.id, isQroc])
+
+  const textAnswer = useMemo(() => {
+    if (!isQroc) return ''
+    return answers[String(question.id)] || ''
+  }, [answers, question.id, isQroc])
 
   function toggle(choice: string) {
     const next = selected.includes(choice) ? selected.filter((item) => item !== choice) : [...selected, choice]
     setAnswers({ ...answers, [String(question.id)]: JSON.stringify(next) })
+  }
+
+  function handleTextChange(val: string) {
+    setAnswers({ ...answers, [String(question.id)]: val })
   }
 
   async function next() {
@@ -97,8 +128,18 @@ export function Reader({ payload, onCorrection }: { payload: SessionPayload; onC
     setBusy(false)
   }
 
+  const formatTimer = (seconds: number) => {
+    const m = Math.floor(seconds / 60)
+    const s = seconds % 60
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+  }
+
   return <main className="reader-page">
     <Header onExit />
+    <div className="timer-bar">
+      <span className="timer-label">⏱ MODE CONCOURS</span>
+      <span className={`timer-clock ${timeLeft < 180 ? 'warning' : ''}`}>{formatTimer(timeLeft)}</span>
+    </div>
     <div className="reader-kicker">SESSION QCM · ITEM {payload.session.item_number || '—'}</div>
     <h1>{payload.session.course_title || 'Session QCM'}</h1>
     <p className="reader-subtitle">Réponds aux questions, puis consulte ta correction détaillée.</p>
@@ -107,12 +148,28 @@ export function Reader({ payload, onCorrection }: { payload: SessionPayload; onC
     <section className="question-card">
       <QuestionVisualContext question={question} sessionId={payload.session.id} />
       <h2 className="question-prompt">{question.prompt}</h2>
-      <p className="answer-hint">Plusieurs réponses possibles</p>
-      <div className="choices">
-        {question.choices.map((choice, choiceIndex) => <button className={`choice ${selected.includes(choice) ? 'selected' : ''}`} key={choice} onClick={() => toggle(choice)}>
-          <span className="choice-letter">{String.fromCharCode(65 + choiceIndex)}</span><span>{choice}</span><span className="choice-check">{selected.includes(choice) ? '✓' : ''}</span>
-        </button>)}
-      </div>
+      
+      {isQroc ? (
+        <div className="qroc-container">
+          <p className="answer-hint">Réponse ouverte / QROC / Zone à désigner (saisie libre) :</p>
+          <textarea
+            className="qroc-input"
+            rows={4}
+            placeholder="Tape ta réponse ou désigne la structure anatomique/zone visuelle..."
+            value={textAnswer}
+            onChange={(e) => handleTextChange(e.target.value)}
+          />
+        </div>
+      ) : (
+        <>
+          <p className="answer-hint">Plusieurs réponses possibles</p>
+          <div className="choices">
+            {question.choices.map((choice, choiceIndex) => <button className={`choice ${selected.includes(choice) ? 'selected' : ''}`} key={choice} onClick={() => toggle(choice)}>
+              <span className="choice-letter">{String.fromCharCode(65 + choiceIndex)}</span><span>{choice}</span><span className="choice-check">{selected.includes(choice) ? '✓' : ''}</span>
+            </button>)}
+          </div>
+        </>
+      )}
     </section>
     <footer className="reader-actions"><button className="button secondary" onClick={() => index && setIndex(index - 1)} disabled={!index}>Précédente</button><button className="button primary" onClick={next} disabled={busy}>{index === payload.questions.length - 1 ? 'Corriger mes réponses' : 'Suivante'}</button></footer>
   </main>

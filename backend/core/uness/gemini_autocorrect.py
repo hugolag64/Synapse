@@ -182,17 +182,21 @@ def correct_directory(folder: Path, *, service: AIService | None = None) -> dict
                     f"{json.dumps({'title': quiz.get('title'), 'content': cleaned_content}, ensure_ascii=False)}"
                 )
                 
-                # Retry loop for rate limits (429)
-                max_retries = 3
+                # Retry loop for rate limits (429) - Free Tier friendly
+                max_retries = 5
                 response = None
                 for attempt in range(max_retries):
                     try:
+                        # Free Tier limit: 15 Requests Per Minute (RPM). Pause 6s between calls to leave margin.
+                        import time
+                        time.sleep(6)
                         response = generate_uness_correction(message, images=images, service=service)
                         break
                     except AIServiceError as err:
-                        if "429" in str(err) and attempt < max_retries - 1:
+                        if ("429" in str(err) or "Too Many Requests" in str(err)) and attempt < max_retries - 1:
                             import time
-                            time.sleep(2 * (attempt + 1))
+                            wait_time = 25 * (attempt + 1)  # 25s, 50s, 75s, 100s
+                            time.sleep(wait_time)
                             continue
                         raise err
 

@@ -35,6 +35,9 @@ from frontend.components.qcm_replay import (
     open_qcm_session,
     replay_qcm_session,
 )
+from frontend.components.qcm_replay import (
+    session_action_keys as _session_action_keys,
+)
 from frontend.pages.qcm import (
     _ADD_DIALOG_CSS,
     _build_item_college_map,

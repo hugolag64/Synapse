@@ -34,6 +34,12 @@ class UnessImportPayload(BaseModel):
     verify: bool = True
 
 
+@router.post("/uness/import-directory")
+def import_uness_directory() -> dict:
+    """Scan the local verified ChatGPT output directory."""
+    return import_service.import_verified_directory()
+
+
 def _follow_up(session_id: int, summary: dict, rows: list[dict]) -> dict | None:
     score = summary.get("score_percent")
     if score is None or float(score) >= 70 or local_store.get_ai_practice_failure_streak(session_id) < 2:

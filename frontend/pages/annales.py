@@ -67,6 +67,9 @@ def annales_page() -> None:
                 annee=int(annee_filter.value) if annee_filter.value else None,
                 type_annale=str(type_filter.value or ""),
             )
+            # Exclut les vrais concours sauf si l'utilisateur les filtre explicitement
+            if not type_filter.value:
+                rows = [r for r in rows if r["type_annale"] != "vrai_concours"]
             with rows_column:
                 if not rows:
                     ui.label("Aucune annale ne correspond à ces filtres.").classes("text-sm text-slate-500")
@@ -80,10 +83,10 @@ def annales_page() -> None:
                     with ui.card().classes("w-full p-4"):
                         with ui.row().classes("w-full items-center justify-between gap-4"):
                             with ui.column().classes("gap-1"):
-                                ui.label(str(row["titre"])).classes("font-semibold")
+                                ui.label(str(row["matiere"] or "—")).classes("font-semibold")
                                 ui.label(
-                                    f"{row['matiere'] or '—'} · {row['faculte'] or '—'} · "
-                                    f"{row['annee'] or '—'} · {ANNALE_TYPE_LABELS.get(row['type_annale'], row['type_annale'])}"
+                                    f"{row['faculte'] or '—'} · {row['annee'] or '—'} · "
+                                    f"{ANNALE_TYPE_LABELS.get(row['type_annale'], row['type_annale'])}"
                                 ).classes("text-xs text-slate-500")
                                 ui.label(
                                     f"{completed}/{total} sous-parties terminées · Score moyen : {score_label}"

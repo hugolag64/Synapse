@@ -1,7 +1,7 @@
 """weak_points_cockpit.py — Vue « Lacunes » cockpit (refonte, session 11 puis
 recentrage du 28/07/2026, cf. docs/superpowers/specs/2026-07-28-lacunes-cockpit-refonte-design.md).
 
-Rendu quand preferences['ui_mode'] == 'cockpit' (early-return depuis
+Vue principale de l'écran Lacunes.
 weak_points.py). Topbar (titre, compteurs, actions) + chips de filtre
 (remplacent la sidebar interne d'origine) + colonne centrée de lignes
 `weak_point_row` (tokens cockpit). Le chemin classic (kanban 4 colonnes +

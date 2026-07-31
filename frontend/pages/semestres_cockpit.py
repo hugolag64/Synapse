@@ -1,6 +1,6 @@
 """semestres_cockpit.py — Vue « Semestres » cockpit (refonte, session 8).
 
-Rendu quand preferences['ui_mode'] == 'cockpit' (early-return depuis
+Vue principale de l'écran Semestres.
 semestres.py). Une carte par semestre : titre « Semestre N — UE1 · UE2 · … »
 + pourcentage (couleur santé), barre de progression, nombre d'items. Le
 chemin classic (onglets Semestre → filtre UE → grille de CourseCard) reste

@@ -1,7 +1,4 @@
-"""App shell « cockpit » — sidebar groupée réductible (refonte, session 2).
-
-Rendu uniquement quand preferences['ui_mode'] == 'cockpit'. Le chemin classic
-(theme.frame) reste strictement inchangé. Backend intact.
+"""App shell cockpit — sidebar groupée réductible.
 
 Écart NiceGUI/Quasar (Journal) : le shell N'utilise PAS q-drawer. Un q-drawer
 « standard » calcule sa hauteur depuis le q-layout et s'effondre à 0px sans
@@ -45,6 +42,7 @@ _NAV_GROUPS = [
         ("◫", "Semestres", "/semestres", None),
         ("≡", "Items",     "/items",     None),
         ("✓", "QCM",       "/qcm",       None),
+        ("▧", "Annales",   "/annales",   None),
         ("⚑", "Points faibles", "/lacunes", ("dot", "warning")),
     ]),
     ("Analyse", [
@@ -62,7 +60,7 @@ _TITLE_TO_NAV = {
     "Dashboard": "Aujourd'hui", "Tableau de Bord": "Aujourd'hui",
     "Planning": "Planning",
     "Suivi Quotidien": "Révisions",
-    "Collèges": "Collèges", "Semestres": "Semestres", "QCM": "QCM",
+    "Collèges": "Collèges", "Semestres": "Semestres", "QCM": "QCM", "Annales": "Annales",
     "Lacunes": "Points faibles", "Points faibles": "Points faibles", "Fiche cours": "Aujourd'hui",
     "Ma Progression": "Statistiques", "Stats": "Statistiques",
     "Statistiques": "Statistiques", "Externat": "Externat",
@@ -246,16 +244,8 @@ def cockpit_frame(page_title: str):
         _nav_item("○", "Item 221 · Athérome", "/", None, active="")
         _nav_item("○", "Item 330 · Prescription", "/", None, active="")
 
-        # Pied : bascule vers l'UI classic
+        # Pied de la navigation
         ui.element("div").style("flex:1 1 auto;min-height:12px")
-
-        def _back_classic():
-            data_store.set_preference("ui_mode", "classic")
-            ui.navigate.reload()
-
-        with ui.element("div").classes("cockpit-nav-item").on("click", _back_classic):
-            ui.label("◐").classes("glyph")
-            ui.label("Vue classic").classes("lbl")
 
     with topbar_mobile:
         with ui.row().classes("items-center gap-2"):

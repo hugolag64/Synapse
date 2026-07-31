@@ -196,7 +196,7 @@ Repris du design system **Linear Editorial**. Charger via `ui.add_head_html` sur
 | Planning | `pages/planning.py` | grille semaine + événements Google Calendar |
 | QCM | `pages/qcm.py` | analytique + série adaptative |
 | Lacunes | `pages/weak_points.py` | liste par statut + sync Obsidian + backlink vivant |
-| Statistiques | `pages/stats.py` · `bilan.py` | métriques + temps/collège + activité |
+| Statistiques | `pages/stats.py` | métriques + temps/collège + activité |
 | Revue hebdo | `pages/revue.py` (nouveau) | consolidé / régression + focus semaine |
 | Externat | `pages/externat.py` | stages + items rattachés |
 | App shell / thème | `frontend/theme.py` | sidebar groupée, tokens, clair/sombre, command palette |

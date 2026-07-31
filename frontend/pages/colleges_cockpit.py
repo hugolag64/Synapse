@@ -1,6 +1,6 @@
 """colleges_cockpit.py — Vue « Collèges » cockpit (refonte, session 7).
 
-Rendu quand preferences['ui_mode'] == 'cockpit' (early-return depuis
+Vue principale de l'écran Collèges.
 colleges.py). Liste dense, une ligne par collège : lus/total · barre de
 progression · pourcentage · retard (cliquable) · fragiles · prochaine
 révision · QCM moyen. Le chemin classic (grille de cartes + sélection +

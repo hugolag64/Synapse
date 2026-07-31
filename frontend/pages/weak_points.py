@@ -76,20 +76,13 @@ def _is_unlinked_obsidian(w) -> bool:
 def weak_points_page(item_filter: str | None = None):
     _state = {"item": item_filter}
 
-    # Sortable.js via CDN (chargé une seule fois grâce à shared=True)
-    ui.add_head_html(
-        '<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>',
-        shared=True,
-    )
-
     with frame("Points faibles"):
         logger.info("ENTERING WEAK POINTS PAGE")
 
-        # ── Refonte : liste de cartes cockpit (feature-flag ui_mode) ───────────
-        if data_store.preferences.get("ui_mode", "cockpit") == "cockpit":
-            from frontend.pages.weak_points_cockpit import render_weak_points_cockpit
-            render_weak_points_cockpit()
-            return
+        # ── Vue cockpit ───────────────────────────────────────────────────────
+        from frontend.pages.weak_points_cockpit import render_weak_points_cockpit
+        render_weak_points_cockpit()
+        return
 
         try:
             with ui.column().classes("w-full gap-5 max-w-full"):

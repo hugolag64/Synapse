@@ -1,6 +1,6 @@
 """course_detail_cockpit.py — Détail d'un item, vue cockpit (refonte, session 4).
 
-Rendu quand preferences['ui_mode'] == 'cockpit' (early-return depuis
+Vue principale du détail item.
 course_detail.py). Le chemin classic reste strictement inchangé, backend intact.
 
 Structure (README § « 2. Détail d'un item ») :

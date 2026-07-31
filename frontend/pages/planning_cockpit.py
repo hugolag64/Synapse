@@ -1,6 +1,6 @@
 """planning_cockpit.py — Vue « Planning » cockpit (refonte, session 6).
 
-Rendu quand preferences['ui_mode'] == 'cockpit' (early-return depuis
+Vue principale de l'écran Planning.
 planning.py). Grille semaine 7 colonnes : tâches Synapse (bord plein accent)
 + événements Google Calendar réels (bord pointillé) empilés par jour, pied
 = charge du jour, navigation semaine, légende. Écran purement visuel —

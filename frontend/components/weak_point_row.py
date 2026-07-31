@@ -1,9 +1,7 @@
 """weak_point_row.py — Ligne cockpit pour une lacune (refonte, écran Lacunes).
 
 Ligne plate sur tokens `--*`, actions révélées au survol — même grammaire que
-`study_task_row` (Révisions). Distinct de `weak_point_card.py` (carte
-Tailwind du classic), qui reste inchangé et sert uniquement le kanban
-`frontend/pages/weak_points.py`.
+`study_task_row` (Révisions).
 """
 from __future__ import annotations
 

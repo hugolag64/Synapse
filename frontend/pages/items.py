@@ -1,9 +1,6 @@
 """items.py — Vue « Items » (refonte, session 9, écran nouveau).
 
-Liste transverse filtrable de tous les items médicaux. N'existe pas côté
-classic (README : « pages/items.py, nouveau ») — le contenu est donc
-invariant quel que soit `ui_mode` ; seul le chrome (sidebar cockpit vs
-top-nav classic) varie via `frame()`.
+Liste transverse filtrable de tous les items médicaux.
 
 Point d'entrée attendu par la « retard » cliquable de Collèges (session 7,
 `?college=`) : filtre initial sur ce collège, colonne Collège masquée au

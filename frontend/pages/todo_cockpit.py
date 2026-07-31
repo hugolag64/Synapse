@@ -1,6 +1,6 @@
 """todo_cockpit.py — Vue « Révisions » cockpit (refonte, session 5).
 
-Rendu quand preferences['ui_mode'] == 'cockpit' (early-return depuis todo.py).
+Vue principale de la file de révisions.
 File des tâches de répétition espacée (J3/J7/J14/J30) — chips de filtre par
 cycle, ligne dense par tâche, bouton Réviser → Mode Focus existant (aucun
 dialog de validation réimplémenté). Le chemin classic (routine/ajouté/note)

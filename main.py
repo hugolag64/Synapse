@@ -249,10 +249,6 @@ def qcm():
     qcm_page()
 
 
-@ui.page('/semestres')
-async def semestres():
-    semestres_page()
-
 @ui.page('/todo')
 async def todo():
     await todo_page()
@@ -263,9 +259,7 @@ async def planning():
         await planning_page()
 
 # Détail d'un item. La route n'avait jamais été déclarée alors que la command
-# palette, dashboard_card et search_bar y naviguent déjà — la fiche était donc
-# injoignable. Enregistrée ici pour la refonte (étape 4) ; la vue rendue dépend
-# du flag ui_mode (cockpit par défaut, classic conservé).
+# palette, dashboard_card et search_bar y naviguent déjà.
 @ui.page('/cours/{course_id}')
 def cours(course_id: str):
     course_detail_page(course_id)

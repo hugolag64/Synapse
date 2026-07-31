@@ -1,6 +1,6 @@
 """stats_cockpit.py — Vue « Statistiques » cockpit (refonte, session 12).
 
-Rendu quand preferences['ui_mode'] == 'cockpit' (early-return depuis
+Vue principale de l'écran Statistiques.
 stats.py). Bandeau (temps travaillé · révisions faites · maîtrise moyenne)
 + toggle 7j/30j/Tout + « Temps par collège » (barres) + « Activité récente »
 (timeline). Le chemin classic (bandeau fragiles + onglets Activité/À

@@ -1,12 +1,7 @@
 """focus_mode_cockpit.py — Mode focus plein écran cockpit (refonte, session 16).
 
-`open_focus_mode()` (`frontend/pages/dashboard/_reviews.py`) est un dialog
-partagé, appelé aussi bien depuis les pages classic (`dashboard_legacy.py`,
-`dashboard/__init__.py`) que cockpit (`_cockpit_today.py`, `todo_cockpit.py`,
-`course_detail_cockpit.py`). Impossible de le restyler sur place sans
-casser le classic : `open_focus_mode` délègue donc désormais ici quand
-`ui_mode == 'cockpit'`, sans toucher au rendu classic
-(`render_review_card`) pour `ui_mode == 'classic'`.
+`open_focus_mode()` (`frontend/pages/dashboard/_reviews.py`) délègue ici
+le rendu du dialogue de focus utilisé par les écrans cockpit.
 
 Contrat conservé à l'identique (mêmes attributs `state` que le classic,
 zéro changement côté appelants) : `state.focus_tasks`, `state.focus_cache`,

@@ -720,11 +720,10 @@ def _render_hero_stats(
 
 async def todo_page():
     with frame("Suivi Quotidien"):
-        # ── Refonte : file de révisions cockpit (feature-flag ui_mode) ─────────
-        if data_store.preferences.get("ui_mode", "cockpit") == "cockpit":
-            from frontend.pages.todo_cockpit import render_revisions_cockpit
-            await render_revisions_cockpit()
-            return
+        # ── Vue cockpit ───────────────────────────────────────────────────────
+        from frontend.pages.todo_cockpit import render_revisions_cockpit
+        await render_revisions_cockpit()
+        return
 
         state: dict = {'date': datetime.date.today()}
         cache: dict = {}

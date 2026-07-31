@@ -431,11 +431,10 @@ def _render_stage_lacunes(stage: Stage):
 @ui.page('/externat')
 @frame('Externat')
 def externat_page():
-    # ── Refonte : cartes de stage cockpit (feature-flag ui_mode) ───────────────
-    if data_store.preferences.get("ui_mode", "cockpit") == "cockpit":
-        from frontend.pages.externat_cockpit import render_externat_cockpit
-        render_externat_cockpit()
-        return
+    # ── Vue cockpit ───────────────────────────────────────────────────────────
+    from frontend.pages.externat_cockpit import render_externat_cockpit
+    render_externat_cockpit()
+    return
 
     container = ui.column().classes("w-full gap-6 max-w-4xl mx-auto")
 

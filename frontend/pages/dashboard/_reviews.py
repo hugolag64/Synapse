@@ -996,11 +996,10 @@ def open_focus_mode(state: DashboardState) -> None:
         return
 
     # Récupérer les callbacks depuis state (injectés par __init__.py)
-    if data_store.preferences.get("ui_mode", "classic") == "cockpit":
-        from frontend.components.focus_mode_cockpit import open_focus_mode_cockpit
+    from frontend.components.focus_mode_cockpit import open_focus_mode_cockpit
 
-        open_focus_mode_cockpit(state)
-        return
+    open_focus_mode_cockpit(state)
+    return
 
     _on_done      = getattr(state, "_on_done",     None)
     _on_postpone  = getattr(state, "_on_postpone", None)

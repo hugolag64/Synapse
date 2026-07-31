@@ -1,8 +1,8 @@
 """Feuille de surcharge de tokens — Refonte UI « cockpit » (Linear Editorial).
 
 Chargée globalement via ui.add_head_html (shared). NE définit QUE des variables
-CSS + la police mono : aucune règle appliquée aux éléments, donc 100% non-destructif
-pour l'UI « classic » existante. Le shell cockpit (ui_mode='cockpit') les consomme.
+CSS + la police mono : aucune règle appliquée directement aux composants.
+Le shell cockpit consomme ces variables.
 
 Valeurs = section « Design Tokens » du handoff. Les 4 tokens marqués « cf. DS »
 dans le README (_ds/ non livré) sont DÉRIVÉS et notés dans le Journal du CLAUDE.md

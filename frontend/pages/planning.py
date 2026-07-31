@@ -386,11 +386,10 @@ def _render_week_plan(plans: list[DailyPlan], selected: dict[str, bool], contain
 # ── Page principale ───────────────────────────────────────────────────────────
 
 async def planning_page():
-    # ── Refonte : grille semaine cockpit (feature-flag ui_mode) ────────────────
-    if data_store.preferences.get("ui_mode", "cockpit") == "cockpit":
-        from frontend.pages.planning_cockpit import render_planning_cockpit
-        await render_planning_cockpit()
-        return
+    # ── Vue cockpit ───────────────────────────────────────────────────────────
+    from frontend.pages.planning_cockpit import render_planning_cockpit
+    await render_planning_cockpit()
+    return
 
     today = datetime.date.today()
     days_str = f"{days_fr[today.weekday()]} {today.day} {months_fr[today.month - 1]}"

@@ -1,6 +1,6 @@
 """_cockpit_today.py — Vue « Aujourd'hui » cockpit (refonte, session 3).
 
-Rendu quand preferences['ui_mode'] == 'cockpit' (branché depuis __init__.py).
+Vue principale de l'écran Aujourd'hui.
 Réutilise le pipeline de données existant (review_service / recommendation_service)
 et le Mode Focus existant (open_focus_mode) pour la validation.
 

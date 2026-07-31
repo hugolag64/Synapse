@@ -55,14 +55,13 @@ Synapse/
 │   │   └── background.py         # Tâches de fond au démarrage (syncs Obsidian)
 │   └── features/daily_routine.py  # Routine quotidienne automatique
 ├── frontend/
-│   ├── theme.py                   # Frame NiceGUI (sidebar, navigation)
+│   ├── theme.py                   # Frame NiceGUI vers le shell cockpit
 │   ├── pages/
 │   │   ├── dashboard.py           # Dashboard principal (révisions du jour)
 │   │   ├── colleges.py            # Vue par collège médical
 │   │   ├── semestres.py           # Vue par semestre/UE
 │   │   ├── course_detail.py       # Détail d'un cours
 │   │   ├── stats.py               # Statistiques de révision
-│   │   ├── bilan.py               # Bilan de progression
 │   │   ├── weak_points.py         # Gestion des lacunes
 │   │   ├── qcm.py                 # Interface QCM
 │   │   ├── planning.py            # Vue planning

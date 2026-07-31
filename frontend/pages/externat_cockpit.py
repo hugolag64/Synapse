@@ -1,11 +1,9 @@
 """externat_cockpit.py — Vue « Externat » cockpit (refonte, session 14).
 
-Rendu quand preferences['ui_mode'] == 'cockpit' (early-return depuis
+Vue principale de l'écran Externat.
 externat.py). Cartes de stage clinique : nom, statut, dates, items
 rattachés. Écran purement visuel — le README §12 ne décrit qu'une liste de
-cartes, pas d'action ; le classic garde la gestion complète (créer/éditer/
-supprimer un stage, cours/lacunes/QCM du stage) accessible via
-« Vue classic ».
+cartes, sans action d'édition dans cette vue.
 
 Écarts assumés (voir Journal du CLAUDE.md de la refonte) :
   • pas de champ « lieu » dans `Stage` (seulement `specialty`) — la capture

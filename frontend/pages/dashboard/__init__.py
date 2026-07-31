@@ -51,11 +51,10 @@ logger.info("LOADING DASHBOARD PACKAGE")
 async def dashboard_page() -> None:
     logger.info("ENTERING DASHBOARD PAGE")
     try:
-        # ── Refonte : vue Aujourd'hui cockpit (feature-flag ui_mode) ──────────
-        if data_store.preferences.get("ui_mode", "classic") == "cockpit":
-            from ._cockpit_today import render_today_cockpit
-            await render_today_cockpit()
-            return
+        # ── Vue cockpit ───────────────────────────────────────────────────────
+        from ._cockpit_today import render_today_cockpit
+        await render_today_cockpit()
+        return
 
         # ── State ─────────────────────────────────────────────────────────────
         state = DashboardState()

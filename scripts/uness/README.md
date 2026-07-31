@@ -49,3 +49,14 @@ le contenu comme nécessitant une adaptation du normaliseur.
 
 La checklist opérationnelle est dans
 [geriatry_collect_checklist.md](geriatry_collect_checklist.md).
+
+## ExÃ©cuteur local
+
+Installer une fois : `pip install playwright` puis `playwright install chromium`.
+Le bouton **Lancer la collecte et soumettre** utilise `scripts/uness/collector.py`,
+ouvre Chrome avec un profil persistant dans `data/uness/browser-profile` et Ã©crit les
+relectures dans `data/uness/artifacts`. Le mot de passe n'est jamais lu par le collecteur.
+\n+Flux sans API : le collecteur crée un paquet JSON dans `data/uness/to_review/`. Après
+traitement manuel avec ChatGPT et `prompts/uness_correction_prompt.txt`, déposez le
+JSON retourné dans `data/uness/verified/`, puis cliquez sur **Scanner les JSON vérifiés**
+dans Paramètres. Synapse valide le contrat, signale les désaccords et ignore les doublons.

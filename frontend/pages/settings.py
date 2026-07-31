@@ -26,7 +26,6 @@ def _validate_uness_annale_url(value: str) -> str:
         )
     return candidate
 
-
 def _show_uncertain_dialog(uncertain_matches: list) -> None:
     from backend.core.obsidian.sync import vault_sync_service
     selected: dict[str, bool] = {str(m.path): True for m in uncertain_matches}
@@ -174,10 +173,9 @@ async def _run_vault_scan(vault_path_input) -> None:
 @frame('Paramètres')
 def settings_page():
     # ── Refonte : liste de connexions + apparence cockpit (feature-flag) ──────
-    if data_store.preferences.get("ui_mode", "cockpit") == "cockpit":
-        from frontend.pages.settings_cockpit import render_settings_cockpit
-        render_settings_cockpit()
-        return
+    from frontend.pages.settings_cockpit import render_settings_cockpit
+    render_settings_cockpit()
+    return
 
     def _section_header(label: str) -> None:
         with ui.row().classes("items-center gap-3 mt-8 mb-3"):
@@ -413,6 +411,50 @@ def settings_page():
                             else:
                                 ui.notify('Erreur écriture .env', type='negative')
                         ui.button('Sauvegarder cookie', icon='save', on_click=_save_cookie_manual).props('outline color=teal size=sm rounded')
+
+                ui.separator()
+                with ui.column().classes('w-full gap-2'):
+                    ui.label('Importer une annale UNESS').classes(
+                        'text-sm font-semibold text-teal-700 dark:text-teal-300'
+                    )
+                    ui.label(
+                        "Collez l'URL de l'annale. La collecte locale réutilisera votre session UNESS "
+                        "sans afficher ni transmettre votre mot de passe."
+                    ).classes('text-xs text-slate-500')
+                    uness_url_input = ui.input(
+                        label='URL de l’annale UNESS',
+                        value=data_store.preferences.get('uness_annale_url', ''),
+                        placeholder='https://entrainement.uness.fr/annales/course/view.php?id=29135',
+                    ).props('outlined').classes('w-full')
+                    uness_import_status = ui.label(
+                        'Aucune URL préparée.'
+                    ).classes('text-xs text-slate-400')
+
+                    def _prepare_uness_import():
+                        try:
+                            url = _validate_uness_annale_url(uness_url_input.value)
+                        except ValueError as exc:
+                            uness_import_status.set_text(str(exc))
+                            uness_import_status.classes(
+                                'text-red-500', remove='text-slate-400 text-emerald-600'
+                            )
+                            ui.notify(str(exc), type='negative')
+                            return
+                        data_store.set_preference('uness_annale_url', url)
+                        data_store.set_preference('uness_import_status', 'prepared')
+                        uness_import_status.set_text(
+                            'URL enregistrée ✓ — prête pour le collecteur local et la génération du JSON.'
+                        )
+                        uness_import_status.classes(
+                            'text-emerald-600', remove='text-slate-400 text-red-500'
+                        )
+                        ui.notify('URL UNESS enregistrée', type='positive', icon='school')
+
+                    ui.button(
+                        'Préparer l’import UNESS',
+                        icon='download',
+                        on_click=_prepare_uness_import,
+                    ).props('unelevated color=teal size=sm rounded')
 
 
         # --- ANYTHINGLLM ---

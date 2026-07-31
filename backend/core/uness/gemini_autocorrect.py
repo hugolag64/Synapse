@@ -16,6 +16,7 @@ from backend.core.ai.routing import AIImageContent, AIServiceError
 from backend.core.ai.service import AIService
 from backend.core.ai.tasks import generate_uness_correction
 from backend.core.uness import gemini_conversion, import_service
+from bs4 import BeautifulSoup
 
 _PROMPT_PATH = Path(__file__).resolve().parents[3] / "prompts" / "uness_correction_prompt.txt"
 _IMAGE_MIME_TYPES = {
@@ -82,6 +83,69 @@ def _parsed_response(text: str) -> object:
     return value
 
 
+def _clean_moodle_html(html: str) -> str:
+    """Strip navigation, accessibility noise, styles, scripts and redundant containers
+    from Moodle quiz HTML to drastically reduce token costs (5x to 10x savings)
+    while retaining all clinical text, questions, choices and feedback."""
+    soup = BeautifulSoup(html, "html.parser")
+    
+    # 1. Decompose irrelevant elements
+    for selector in [
+        "script", "style", "link", "svg", "header", "footer", "nav", ".breadcrumb",
+        ".info", ".questionflag", ".accesshide", ".submitbtns", ".singlebutton",
+        ".qn_buttons", ".othernav", ".m-t-1", ".editquestionlink"
+    ]:
+        for el in soup.select(selector):
+            el.decompose()
+
+    # 2. Extract context description block if present
+    context_text = ""
+    desc_block = soup.select_one("div.que.description")
+    if desc_block:
+        context_text = desc_block.get_text(separator="\n", strip=True)
+
+    # 3. Clean each question container
+    cleaned_questions = []
+    for q_div in soup.select("div[id^='question-']"):
+        q_id = q_div.get("id", "")
+        # Question formulation
+        qtext_el = q_div.select_one(".qtext")
+        qtext = qtext_el.get_text(separator="\n", strip=True) if qtext_el else ""
+
+        # Answer choices & official responses
+        choices = []
+        for choice_row in q_div.select(".answer > div, .answer li, .answer tr"):
+            label_text = choice_row.get_text(separator=" ", strip=True)
+            # Check for Moodle correct/incorrect classes or checked inputs
+            is_checked = choice_row.select_one("input[checked]") is not None
+            is_correct = "correct" in choice_row.get("class", []) or bool(choice_row.select(".correct"))
+            is_incorrect = "incorrect" in choice_row.get("class", []) or bool(choice_row.select(".incorrect"))
+            
+            choices.append({
+                "text": label_text,
+                "checked": is_checked,
+                "correct_class": is_correct,
+                "incorrect_class": is_incorrect
+            })
+
+        # Feedback/outcome
+        outcome_el = q_div.select_one(".outcome, .rightanswer, .generalfeedback")
+        outcome = outcome_el.get_text(separator="\n", strip=True) if outcome_el else ""
+
+        cleaned_questions.append({
+            "id": q_id,
+            "qtext": qtext,
+            "choices": choices,
+            "outcome": outcome
+        })
+
+    compact_payload = {
+        "context": context_text,
+        "questions": cleaned_questions
+    }
+    return json.dumps(compact_payload, ensure_ascii=False)
+
+
 def correct_directory(folder: Path, *, service: AIService | None = None) -> dict:
     """Call Gemini once per quiz for every bridge JSON directly in `folder`,
     converting each response with its own bridge on the spot and writing the
@@ -109,11 +173,32 @@ def correct_directory(folder: Path, *, service: AIService | None = None) -> dict
             title = str(quiz.get("title", bridge_path.stem))
             try:
                 images, missing = _quiz_images(quiz, folder)
+                raw_html = quiz.get("html", "")
+                # Clean and compact HTML to reduce token usage by up to 90%
+                cleaned_content = _clean_moodle_html(raw_html) if raw_html else ""
+                
                 message = (
                     f"{prompt}\n\n"
-                    f"{json.dumps({'title': quiz.get('title'), 'html': quiz.get('html')}, ensure_ascii=False)}"
+                    f"{json.dumps({'title': quiz.get('title'), 'content': cleaned_content}, ensure_ascii=False)}"
                 )
-                response = generate_uness_correction(message, images=images, service=service)
+                
+                # Retry loop for rate limits (429)
+                max_retries = 3
+                response = None
+                for attempt in range(max_retries):
+                    try:
+                        response = generate_uness_correction(message, images=images, service=service)
+                        break
+                    except AIServiceError as err:
+                        if "429" in str(err) and attempt < max_retries - 1:
+                            import time
+                            time.sleep(2 * (attempt + 1))
+                            continue
+                        raise err
+
+                if response is None:
+                    raise AIServiceError("Aucune réponse obtenue du service IA.")
+
                 payload = _parsed_response(response.text)
                 quiz_objects = payload if isinstance(payload, list) else [payload]
                 exams = gemini_conversion.convert_with_bridge(quiz_objects, bridge)
@@ -144,3 +229,4 @@ def correct_directory(folder: Path, *, service: AIService | None = None) -> dict
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
     }
+

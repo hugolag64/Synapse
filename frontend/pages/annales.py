@@ -41,6 +41,27 @@ def _distinct_values(rows: list[dict], key: str) -> list[str]:
     return sorted({str(row[key]) for row in rows if row.get(key)})
 
 
+# Tarif Google officiel pour gemini-3-flash-preview au 2026-07-31 (ai.google.dev/gemini-api/docs/pricing) :
+# 0,50 $ / M tokens entrée, 3,00 $ / M tokens sortie — à revérifier périodiquement.
+_GEMINI_FLASH_PRICE_PER_M_INPUT = 0.50
+_GEMINI_FLASH_PRICE_PER_M_OUTPUT = 3.00
+
+
+def _format_gemini_summary(result: dict) -> str:
+    corrected = len(result["corrected"])
+    errors = len(result["errors"])
+    input_tokens = result["input_tokens"]
+    output_tokens = result["output_tokens"]
+    cost = (
+        input_tokens / 1_000_000 * _GEMINI_FLASH_PRICE_PER_M_INPUT
+        + output_tokens / 1_000_000 * _GEMINI_FLASH_PRICE_PER_M_OUTPUT
+    )
+    return (
+        f"{corrected} quiz corrigé(s), {errors} erreur(s) — "
+        f"~{input_tokens} tokens entrée / {output_tokens} sortie (≈ {cost:.4f} $)"
+    )
+
+
 def _confirm_delete(annale_id: int, titre: str, on_deleted) -> None:
     with ui.dialog() as dialog, ui.card().classes("w-[420px] max-w-[95vw] p-5 gap-3").style("border-radius: 8px;"):
         ui.label("Supprimer cette annale ?").classes("text-lg font-semibold")
@@ -64,6 +85,7 @@ def _open_import_dialog(refresh_fn) -> None:
     import asyncio
     import sys
     from pathlib import Path
+    from backend.core.uness import gemini_autocorrect
     from backend.core.uness.import_service import (
         ANNALE_TYPE_LABELS,
         import_verified_directory,
@@ -84,6 +106,13 @@ def _open_import_dialog(refresh_fn) -> None:
         ).props("outlined dense").classes("w-full")
 
         status_lbl = ui.label("").classes("text-xs text-slate-500 min-h-[18px]")
+
+        ui.separator().classes("my-2")
+        ui.label("Ou corriger un dossier existant avec Gemini").classes("text-xs text-slate-500")
+        folder_input = ui.input(
+            label="Dossier du partiel (JSON + images)",
+            placeholder="UNESS/à_vérifier/session-...",
+        ).props("outlined dense").classes("w-full")
 
         def _finalize_scan(tags: dict[str, str] | None = None) -> None:
             result = import_verified_directory(tags=tags)
@@ -167,10 +196,28 @@ def _open_import_dialog(refresh_fn) -> None:
                 status_lbl.set_text(f"Échec collecte : {message}")
                 status_lbl.classes("text-negative", remove="text-primary text-positive")
 
+        async def _run_gemini_autocorrect() -> None:
+            raw_path = (folder_input.value or "").strip()
+            if not raw_path:
+                status_lbl.set_text("Indique le dossier à corriger.")
+                status_lbl.classes("text-negative", remove="text-slate-500 text-primary")
+                return
+            status_lbl.set_text("Correction Gemini en cours (peut prendre 1-2 min)…")
+            status_lbl.classes("text-primary", remove="text-negative")
+            result = await asyncio.to_thread(gemini_autocorrect.correct_directory, Path(raw_path))
+            status_lbl.set_text(_format_gemini_summary(result))
+            status_lbl.classes(
+                "text-positive" if result["corrected"] else "text-negative",
+                remove="text-primary text-slate-500",
+            )
+            if result["corrected"]:
+                _finalize_scan()
+
         with ui.row().classes("w-full justify-between items-center mt-3"):
             ui.button("Scanner les JSON existants", icon="fact_check", on_click=lambda: _finalize_scan()).props("flat size=sm color=slate")
             with ui.row().classes("gap-2"):
                 ui.button("Annuler", on_click=dialog.close).props("flat")
+                ui.button("Corriger avec Gemini", icon="auto_awesome", on_click=_run_gemini_autocorrect).props("flat color=primary")
                 ui.button("Lancer la collecte", icon="play_arrow", on_click=_launch_collect_and_import).props("unelevated color=primary")
     dialog.open()
 

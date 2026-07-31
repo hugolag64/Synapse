@@ -42,3 +42,37 @@ def test_annales_list_filters_by_matiere_faculte_annee_and_type() -> None:
     assert len(_filtered_annales(annee=2024)) == 1
     assert len(_filtered_annales(type_annale="concours_blanc")) == 1
     assert len(_filtered_annales()) == 2
+
+
+def test_format_gemini_summary_reports_counts_and_estimated_cost() -> None:
+    from frontend.pages.annales import _format_gemini_summary
+
+    result = {
+        "corrected": ["dp1-x.json", "kfp-x.json"],
+        "errors": [],
+        "input_tokens": 40_000,
+        "output_tokens": 6_000,
+    }
+
+    summary = _format_gemini_summary(result)
+
+    assert "2 quiz corrigé" in summary
+    assert "0 erreur" in summary
+    assert "40" in summary  # input token count, in thousands or raw form
+    assert "$" in summary
+
+
+def test_format_gemini_summary_reports_errors() -> None:
+    from frontend.pages.annales import _format_gemini_summary
+
+    result = {
+        "corrected": [],
+        "errors": [{"file": "dp1.json", "error": "Dossier introuvable"}],
+        "input_tokens": 0,
+        "output_tokens": 0,
+    }
+
+    summary = _format_gemini_summary(result)
+
+    assert "0 quiz corrigé" in summary
+    assert "1 erreur" in summary

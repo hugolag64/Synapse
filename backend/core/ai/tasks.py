@@ -1,10 +1,11 @@
 """Points d'entrée IA réutilisables par les futurs parcours métier."""
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from backend.core.ai.gemini_client import GeminiClient
-from backend.core.ai.routing import AIResponse, AITask
+from backend.core.ai.routing import AIImageContent, AIResponse, AITask
 from backend.core.ai.service import AIService
 
 
@@ -32,6 +33,17 @@ def generate_dp(prompt: str, *, service: AIService | None = None) -> AIResponse:
 
 def generate_kfp(prompt: str, *, service: AIService | None = None) -> AIResponse:
     return (service or _default_service()).generate(AITask.KFP, prompt, response_format="json")
+
+
+def generate_uness_correction(
+    prompt: str,
+    *,
+    images: Sequence[AIImageContent] = (),
+    service: AIService | None = None,
+) -> AIResponse:
+    return (service or _default_service()).generate(
+        AITask.UNESS_CORRECTION, prompt, response_format="json", images=images
+    )
 
 
 @dataclass(frozen=True)

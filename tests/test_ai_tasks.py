@@ -1,12 +1,13 @@
 from unittest.mock import Mock
 
-from backend.core.ai.routing import AIModel, AIResponse, AITask
+from backend.core.ai.routing import AIImageContent, AIModel, AIResponse, AITask
 from backend.core.ai.tasks import (
     extract_grid,
     generate_dp,
     generate_ecos,
     generate_kfp,
     generate_qcm,
+    generate_uness_correction,
 )
 
 
@@ -46,4 +47,31 @@ def test_extract_grid_marks_result_for_human_validation():
     assert result.requires_human_validation is True
     service.generate.assert_called_once_with(
         AITask.EXTRACTION_GRILLE, "grille", response_format="json"
+    )
+
+
+def test_generate_uness_correction_uses_flash_json_route_and_forwards_images():
+    service = _service()
+    images = (AIImageContent(mime_type="image/png", data=b"fixture"),)
+
+    generate_uness_correction("corrige ce quiz", images=images, service=service)
+
+    service.generate.assert_called_once_with(
+        AITask.UNESS_CORRECTION,
+        "corrige ce quiz",
+        response_format="json",
+        images=images,
+    )
+
+
+def test_generate_uness_correction_defaults_to_no_images():
+    service = _service()
+
+    generate_uness_correction("corrige ce quiz", service=service)
+
+    service.generate.assert_called_once_with(
+        AITask.UNESS_CORRECTION,
+        "corrige ce quiz",
+        response_format="json",
+        images=(),
     )

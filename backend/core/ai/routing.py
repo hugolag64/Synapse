@@ -13,6 +13,7 @@ class AITask(StrEnum):
     KFP = "kfp"
     ECOS_COMPLEX = "ecos_complex"
     EXTRACTION_GRILLE = "extraction_grille"
+    UNESS_CORRECTION = "uness_correction"
     SCORE = "score"
 
 

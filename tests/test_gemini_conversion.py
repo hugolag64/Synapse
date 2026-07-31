@@ -67,3 +67,43 @@ def test_vignette_without_propositions_is_excluded_from_questions():
     exam = exams[0]
     assert [q.id for q in exam.questions] == ["question-1-2"]
     assert exam.dp_context.get("enonce_general", "").startswith("Un homme de 27 ans")
+
+
+def test_question_dp_context_never_leaks_the_answer_key_before_answering():
+    # question.dp_context is rendered by the frontend BEFORE the learner answers
+    # (shared clinical vignette / extra pre-answer context). The AI's own
+    # correction commentary (correction_globale, reponse_officielle_texte,
+    # statut_verification, reponse_ia) must never end up there — it already
+    # leaked once, revealing "Réponses officiellement exactes : ..." in the
+    # question card before any answer was given.
+    quiz = {
+        "quiz_title": "DP1\nTest",
+        "questions": [
+            {
+                "id": "question-1-2",
+                "type_question": "QRU",
+                "enonce": "Quel est le diagnostic le plus probable ?",
+                "verification_status": "verified",
+                "propositions": [
+                    {
+                        "id": "p1",
+                        "texte": "Colique néphrétique",
+                        "reponse_officielle": True,
+                        "verdict_ia": True,
+                        "avis_ia": "valide",
+                        "confiance_ia": 1.0,
+                        "explication": "Tableau typique.",
+                        "desaccord_officiel": False,
+                    }
+                ],
+                "correction_globale": "Réponses officiellement exactes : Colique néphrétique.",
+                "reponse_officielle_texte": "Colique néphrétique",
+                "statut_verification": "validee",
+                "reponse_ia": "Colique néphrétique",
+            }
+        ],
+    }
+    exams = convert_with_bridge([quiz], _bridge(_HTML))
+    question = exams[0].questions[0]
+    assert "Colique néphrétique" not in str(question.dp_context)
+    assert "validee" not in str(question.dp_context)

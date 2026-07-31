@@ -174,12 +174,13 @@ def _question(raw: dict, bridge_images: list[dict]) -> dict:
         "images": [_image(media_by_filename.get(img["filename"], {}), img) for img in question_images],
         "support_visuel_seul": bool(question_images) and not propositions,
         "verification_status": verification_status,
-        "dp_context": {
-            "correction_globale": raw.get("correction_globale", ""),
-            "reponse_officielle_texte": raw.get("reponse_officielle_texte") or "",
-            "statut_verification": raw.get("statut_verification", ""),
-            "reponse_ia": raw.get("reponse_ia", ""),
-        },
+        # Deliberately empty: question.dp_context is rendered before the learner
+        # answers (shared vignette / pre-answer context). The AI's own correction
+        # commentary (correction_globale, reponse_officielle_texte, etc.) must never
+        # go here — nothing downstream reads it from this field anyway, and it
+        # previously leaked "Réponses officiellement exactes : ..." into the
+        # question card before any answer was given.
+        "dp_context": {},
     }
 
 

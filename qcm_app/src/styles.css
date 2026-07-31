@@ -17,8 +17,8 @@ h1 { margin:0; font-size:36px; letter-spacing:-.04em; line-height:1.08; }
 .progress-line span { display:block; height:100%; background:#6b61d8; border-radius:8px; transition:width .2s ease; }
 .reader-meta { color:#7d87a2; font-size:15px; margin-bottom:22px; }
 .question-card { border:1px solid #e4e7f0; border-radius:16px; padding:26px; box-shadow:0 10px 28px rgba(33,39,73,.06); }
-.question-card h2 { max-width:1000px; font-size:23px; line-height:1.4; margin:0 0 10px; }
-.uness-context { display:grid; gap:16px; margin:18px 0 22px; }
+.question-card h2, .question-prompt { max-width:1000px; font-size:18px; font-weight:600; line-height:1.45; color:#1e2338; margin:16px 0 12px; }
+.uness-context { display:grid; gap:14px; margin:0 0 18px; }
 .clinical-context { border-left:4px solid #8176e8; background:#f7f6ff; border-radius:0 12px 12px 0; padding:15px 18px; color:#555e76; }
 .clinical-context strong { color:#4e479c; font-size:13px; letter-spacing:.06em; text-transform:uppercase; }
 .clinical-context p { margin:7px 0 0; line-height:1.55; }

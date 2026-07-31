@@ -105,8 +105,8 @@ export function Reader({ payload, onCorrection }: { payload: SessionPayload; onC
     <div className="progress-line"><span style={{ width: `${((index + 1) / payload.questions.length) * 100}%` }} /></div>
     <div className="reader-meta">Question {index + 1} sur {payload.questions.length}</div>
     <section className="question-card">
-      <h2>{question.prompt}</h2>
       <QuestionVisualContext question={question} sessionId={payload.session.id} />
+      <h2 className="question-prompt">{question.prompt}</h2>
       <p className="answer-hint">Plusieurs réponses possibles</p>
       <div className="choices">
         {question.choices.map((choice, choiceIndex) => <button className={`choice ${selected.includes(choice) ? 'selected' : ''}`} key={choice} onClick={() => toggle(choice)}>

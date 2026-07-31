@@ -107,3 +107,44 @@ def test_question_dp_context_never_leaks_the_answer_key_before_answering():
     question = exams[0].questions[0]
     assert "Colique néphrétique" not in str(question.dp_context)
     assert "validee" not in str(question.dp_context)
+
+
+def test_convert_with_bridge_matches_a_simplified_ai_returned_title():
+    # Real Gemini responses routinely drop everything after the first line of a
+    # multi-line bridge title (e.g. "mDP1\nTest" -> "mDP1"), even though the prompt
+    # is given the exact title. An exact-match lookup then wrongly reports the quiz
+    # as "absent du bridge" despite it being the obvious match.
+    bridge = {
+        "contents": [{"title": "mDP1\nTest", "html": _HTML, "images": []}],
+        "source": {
+            "source_url": "https://entrainement.uness.fr/annales/course/view.php?id=1",
+            "collected_at": "2026-01-01T00:00:00+00:00",
+            "collection_status": "submitted",
+        },
+    }
+    quiz = {
+        "quiz_title": "mDP1",
+        "questions": [
+            {
+                "id": "question-1-2",
+                "type_question": "QRU",
+                "enonce": "Quel est le diagnostic le plus probable ?",
+                "verification_status": "verified",
+                "propositions": [
+                    {
+                        "id": "p1",
+                        "texte": "Colique néphrétique",
+                        "reponse_officielle": True,
+                        "verdict_ia": True,
+                        "avis_ia": "valide",
+                        "confiance_ia": 1.0,
+                        "explication": "Tableau typique.",
+                        "desaccord_officiel": False,
+                    }
+                ],
+            }
+        ],
+    }
+    exams = convert_with_bridge([quiz], bridge)
+    assert len(exams) == 1
+    assert [q.id for q in exams[0].questions] == ["question-1-2"]

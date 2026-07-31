@@ -71,6 +71,26 @@ def test_correct_directory_writes_already_canonical_exam_and_sums_tokens(tmp_pat
     assert written_payload["questions"] == []
 
 
+def test_correct_directory_tolerates_trailing_extra_data_after_valid_json(tmp_path, _isolated_verified_dir):
+    # Seen live: Gemini sometimes appends extra content after a fully valid JSON
+    # response, which json.loads rejects outright ("Extra data: line N column 1").
+    # A response is still usable as long as the JSON value itself parses cleanly.
+    _bridge_file(tmp_path)
+    service = Mock()
+    payload = json.dumps({"quiz_title": "DP1\nTest", "questions": []})
+    service.generate.return_value = AIResponse(
+        text=payload + "\n\nNote: correction terminée.",
+        model=AIModel.FLASH,
+        input_tokens=100,
+        output_tokens=20,
+    )
+
+    result = gemini_autocorrect.correct_directory(tmp_path, service=service)
+
+    assert result["errors"] == []
+    assert len(result["corrected"]) == 1
+
+
 def test_correct_directory_output_never_needs_bridge_title_lookup(tmp_path, _isolated_verified_dir):
     # Two à_vérifier session folders sharing the exact same quiz title (e.g. the
     # same course collected twice) used to make the downstream scan's title-based

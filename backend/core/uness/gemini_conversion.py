@@ -236,9 +236,17 @@ def find_bridge_for_title(quiz_title: str, search_dirs: list[Path], target_quest
     return candidates[0]
 
 
+def _normalize_title(title: str) -> str:
+    # Real Gemini responses routinely echo back only the first line of a
+    # multi-line bridge title (e.g. "mDP1\nTest" -> "mDP1"), even when given the
+    # exact title in the prompt. Match on that first line so a simplified
+    # AI-returned title still resolves to its bridge instead of erroring out.
+    return str(title).splitlines()[0].strip() if title else ""
+
+
 def convert_with_bridge(quiz_objects: list[dict], bridge: dict) -> list[UnessExam]:
     """Merge already-parsed quiz responses with an already-parsed bridge dict."""
-    bridge_by_title = {item["title"]: item for item in bridge["contents"]}
+    bridge_by_title = {_normalize_title(item["title"]): item for item in bridge["contents"]}
     source = bridge["source"]
     collected_year_match = re.match(r"(\d{4})", str(source.get("collected_at", "")))
     fallback_year = (
@@ -248,7 +256,7 @@ def convert_with_bridge(quiz_objects: list[dict], bridge: dict) -> list[UnessExa
     exams: list[UnessExam] = []
     for quiz in quiz_objects:
         title = str(quiz["quiz_title"])
-        bridge_entry = bridge_by_title.get(title)
+        bridge_entry = bridge_by_title.get(_normalize_title(title))
         if bridge_entry is None:
             raise ValueError(f"Quiz {title!r} absent du bridge (titres disponibles : {sorted(bridge_by_title)})")
         html = bridge_entry.get("html", "")

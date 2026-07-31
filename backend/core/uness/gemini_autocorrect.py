@@ -66,13 +66,20 @@ def _quiz_images(quiz: dict, folder: Path) -> tuple[list[AIImageContent], list[s
     return parts, missing
 
 
+_json_decoder = json.JSONDecoder()
+
+
 def _parsed_response(text: str) -> object:
     cleaned = text.strip()
     if cleaned.startswith("```"):
         cleaned = cleaned.split("\n", 1)[1] if "\n" in cleaned else ""
         if cleaned.rstrip().endswith("```"):
             cleaned = cleaned.rstrip()[:-3]
-    return json.loads(cleaned)
+    # Seen live: Gemini sometimes appends extra content after a fully valid JSON
+    # value (e.g. a trailing note). json.loads rejects that outright, so parse
+    # just the leading JSON value and ignore whatever follows it.
+    value, _ = _json_decoder.raw_decode(cleaned.strip())
+    return value
 
 
 def correct_directory(folder: Path, *, service: AIService | None = None) -> dict:

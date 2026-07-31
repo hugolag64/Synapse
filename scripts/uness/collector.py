@@ -284,13 +284,27 @@ async def collect_annale(
             await page.goto(href, wait_until="domcontentloaded")
             await _ensure_enrolled(page)
             status = "captured"
+            reviewed_via_relecture = False
+            relecture_expired = False
             relecture = page.get_by_role("link", name=re.compile("Relecture", re.I))
             if await relecture.count():
                 # Attempt already completed earlier: read the existing review instead of resubmitting.
                 await relecture.first.click()
                 await page.wait_for_load_state("domcontentloaded")
-                status = "reviewed" if "/mod/quiz/review.php" in page.url else "incomplete"
-            elif submit:
+                if "/mod/quiz/review.php" in page.url:
+                    status = "reviewed"
+                    reviewed_via_relecture = True
+                else:
+                    # UNESS only keeps a completed attempt's review browsable for 4
+                    # months ("La relecture d'une tentative terminée est disponible
+                    # pendant 4 mois."); past that, the "Relecture" link is still
+                    # shown but leads nowhere usable. Go back to the quiz page and
+                    # fall through to retaking it instead of giving up as
+                    # "incomplete" — this is the only way to get a fresh review.
+                    relecture_expired = True
+                    await page.goto(href, wait_until="domcontentloaded")
+                    await _ensure_enrolled(page)
+            if not reviewed_via_relecture and submit:
                 await _click_first(
                     page,
                     ("Effectuer le test", "Effectuer de nouveau le test", "Continuer votre tentative"),
@@ -318,6 +332,8 @@ async def collect_annale(
                         status = "incomplete"
                 else:
                     status = "incomplete"
+            elif relecture_expired:
+                status = "incomplete"
             html = await _fetch_html(page)
             filename = f"{index + 1:02d}-{_slug(title)}.html"
             (artifact_dir / filename).write_text(html, encoding="utf-8")

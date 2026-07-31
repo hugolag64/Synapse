@@ -187,6 +187,7 @@ def items_page(request: Request) -> None:
             if cur is None or t.due_date < cur.due_date:
                 next_by_course[t.course_id] = t
 
+        qcm_trends = local_store.get_qcm_latest_by_course()
         rows = []
         for c in courses:
             sessions = sessions_map.get(c.id, [])
@@ -195,10 +196,13 @@ def items_page(request: Request) -> None:
                 total_postpone=postpone_map.get(c.id, 0),
                 qcm_done_local=(c.id in qcm_done_set),
             )
+            qcm_info = qcm_trends.get(c.id, {})
             rows.append({
                 "course": c,
                 "mastery_score": mastery.score,
                 "mastery_level": mastery.level,
+                "qcm_score": qcm_info.get("last_score"),
+                "qcm_trend": qcm_info.get("trend"),
                 "type_tag": _type_tag(c, lacune_ids),
                 "next_task": next_by_course.get(c.id),
                 "sessions": sessions,
@@ -312,8 +316,12 @@ def items_page(request: Request) -> None:
                     ui.element("span").classes("it-last-dot").style(f"background:{color}")
                     ui.label(label)
             ui.label(r["type_tag"]).classes("it-type")
-            with ui.element("div").classes("it-mastery"):
+            with ui.element("div").classes("it-mastery flex items-center gap-2"):
                 mastery_indicator(r["mastery_score"], r["mastery_level"])
+                q_score = r.get("qcm_score")
+                if q_score is not None:
+                    trend = r.get("qcm_trend") or ""
+                    ui.label(f"{int(q_score)}% {trend}").classes("text-[11px] font-mono text-slate-500 font-semibold bg-slate-100 px-1.5 py-0.5 rounded")
             with ui.element("div").classes("it-next"):
                 nt = r["next_task"]
                 if nt is None:

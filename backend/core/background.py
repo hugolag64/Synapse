@@ -132,6 +132,9 @@ async def run_background_tasks():
             # L'auto-fetch toutes les heures créait des sessions fantômes.
             # Appeler ednpro_sync.sync() depuis le bouton "Importer QCM".
 
+            # ── 8. Retry des corrections UNESS en échec (borné, silencieux) ───────
+            await _retry_pending_uness_corrections()
+
             logger.success(f"[Cycle {_CYCLE}] Sync terminée. Prochain cycle dans 5 min.")
 
         except Exception as e:
@@ -399,6 +402,23 @@ async def _fetch_ednpro_background() -> None:
 
     except Exception as exc:
         logger.warning(f"EDN Pro fetch arrière-plan : {exc}")
+
+
+async def _retry_pending_uness_corrections() -> None:
+    """Retente en silence chaque correction UNESS en échec dont le délai de
+    retry est passé (borné à 3 tentatives — cf. record_uness_correction_failure
+    dans local_store.py). Une entrée qui a épuisé ses tentatives reste visible
+    dans le bandeau /annales mais n'est plus reprise ici tant qu'un clic
+    manuel "Relancer" ne lui redonne pas 3 tentatives fraîches."""
+    from backend.core.reviews import local_store
+    from backend.core.uness import gemini_autocorrect
+
+    due = local_store.list_pending_uness_correction_failures(due_only=True)
+    for failure in due:
+        try:
+            await asyncio.to_thread(gemini_autocorrect.retry_failed_quiz, failure["id"])
+        except Exception as exc:
+            logger.warning(f"Retry correction UNESS #{failure['id']} échoué : {exc}")
 
 
 def reset_autolink_cache() -> None:

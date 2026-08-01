@@ -1,0 +1,2246 @@
+{
+  "quiz_title": "SQI1",
+  "questions": [
+    {
+      "id": "question-16816885-1",
+      "type_question": "QRM",
+      "enonce": "Quelles anomalies d'examen clinique pouvez vous retrouver chez un patient porteur d'une polyneuropathie toxique alcoolique ?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:1_choice0",
+          "texte": "deficit sensitif en chaussettes",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "La polyneuropathie alcoolique est une neuropathie périphérique axonale chronique bilatérale et symétrique prédominant aux membres inférieurs, débutant par des paresthésies et un déficit sensitif distal en chaussettes.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:1_choice1",
+          "texte": "deficit moteur proximal",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le déficit moteur dans la polyneuropathie alcoolique est distal (atteinte des loges antéro-externes de la jambe, steppage), et non proximal.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:1_choice2",
+          "texte": "aréflexie achiléenne",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'aréflexie ostéotendineuse, en particulier achiléenne, est un signe constant et précoce des neuropathies périphériques de type longueur-dépendantes comme la polyneuropathie alcoolique.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:1_choice3",
+          "texte": "atteinte axonale à l'EMG",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'électroneuromyogramme (ENMG) montre un profil de neuropathie périphérique axonale (diminution des amplitudes des potentiels d'action sensitifs et moteurs avec des vitesses de conduction normales ou peu abaissées).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:1_choice4",
+          "texte": "Dépilation",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Les troubles trophiques cutanés, notamment la dépilation des jambes, sont fréquents dans les neuropathies chroniques paranéoplasiques ou carentielles/toxiques associées à l'alcoolisme.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "La polyneuropathie alcoolique est une atteinte axonale chronique, sensitive et motrice, distale, symétrique des membres inférieurs, caractérisée par un déficit sensitif en chaussettes, une aréflexie achiléenne, un steppage et des troubles trophiques.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-2",
+      "type_question": "QRM",
+      "enonce": "Un patient est admis aux urgences pour un syndrome de Guillain Barré évoluant depuis 4 jours. Une ponction lombaire est réalisée, quels résultats pouvez vous retrouver ?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:2_choice0",
+          "texte": "Protéinorachie à 0.3 g/l",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Au tout début des symptômes (premiers jours), la protéinorachie peut être encore normale (normale < 0,40 ou 0,45 g/L), l'albumino-cytologique n'apparaissant souvent qu'après la première semaine.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:2_choice1",
+          "texte": "Protéinorachie à 1.4 g/l",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Une protéinorachie élevée (hyperprotéinorachie sans réaction cellulaire, dissociation albumino-cytologique) est la caractéristique classique du syndrome de Guillain-Barré.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:2_choice2",
+          "texte": "Leucocytes à 4/mm3",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "La cellularité du LCR est normale (généralement < 5 à 10 éléments/mm3), ce qui définit la dissociation albumino-cytologique.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:2_choice3",
+          "texte": "Leucocytes à 80/mm3",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Une pléiocytose marquée dans le LCR (> 10-50 éléments/mm3) doit faire suspecter une autre étiologie (méningoradiculite infectieuse, VIH, Lyme), bien qu'une légère élévation (< 50) soit tolérée au début.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:2_choice4",
+          "texte": "Hypoglycorachie",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "La glycorachie est normale dans le syndrome de Guillain-Barré (méningite aseptique/non infectieuse).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "Le syndrome de Guillain-Barré se caractérise par une dissociation albumino-cytologique dans le LCR (hyperprotéinorachie avec un nombre de leucocytes normal). Au tout début (J4), la protéinorachie peut encore être normale.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-3",
+      "type_question": "QROC",
+      "enonce": "Une patiente tabagique vient pour des paresthésies de la face interne du bras de l'avant bras jusqu'au 2 derniers doigts de la main gauche. Vous retrouvez une abolition du réflexe ulno-pronateur. Vous constatez ceci (photo), quel est votre diagnostic ?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:3_prop1",
+          "texte": "Pancoast Tobias",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le syndrome de Pancoast-Tobias (tumeur de l'apex pulmonaire chez une patiente tabagique) comprime le plexus brachial inférieur (C8-T1), provoquant des douleurs et paresthésies du bord médial du bras et de l'avant-bras, une atteinte des derniers doigts, une aréflexie et souvent un syndrome de Horner (visible sur la photo avec un myosis/ptosis modéré ou énophtalmie).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [
+        {
+          "filename": "uness-20260801T052204Z/images/sqi1-test-question-16816885-3-1.webp",
+          "accessible_ia": true,
+          "type": "photographie clinique"
+        }
+      ],
+      "correction_globale": "Il s'agit d'un syndrome de Pancoast-Tobias en lien avec une tumeur de l'apex pulmonaire, associant une atteinte radiculaire basse (C8-T1) et un syndrome de Claude Bernard-Horner homolatéral.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-4",
+      "type_question": "QRU",
+      "enonce": "Un patient se présente avec des paresthésies des doigts 4 et 5 de la main droite. L'examen moteur montre une déficit dans l'écartement des doigts. Les réflexes ostéotendineux sont normaux. Quelle est l'atteinte la plus probable?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:4_choice0",
+          "texte": "Ulnaire",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'atteinte du nerf ulnaire (cubital) se traduit par des paresthésies de la 4e et 5e doigts, un déficit des muscles interosseux (écartement des doigts) et des hypoténariens, avec des réflexes normaux.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:4_choice1",
+          "texte": "Médian",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le nerf médian innerve les 3 premiers doigts et la moitié externe du 4e, et sa lésion touche l'opposition du pouce.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:4_choice2",
+          "texte": "Radial",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le nerf radial innerve les extenseurs du poignet et des doigts (main tombante).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:4_choice3",
+          "texte": "C6",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Une radiculopathie C6 touche le pouce et l'index, avec abolition du réflexe bicipital.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:4_choice4",
+          "texte": "C7",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Une radiculopathie C7 touche le 3e doigt avec abolition du réflexe tricipital.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:4_choice5",
+          "texte": "C8",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Bien que C8 partage une clinique similaire, l'atteinte tronculaire ulnaire est la cause la plus directe et fréquente de ce tableau localisé aux 4e-5e doigts avec déficit d'écartement.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "Les paresthésies des 4e et 5e doigts associées à un déficit des muscles interosseux (écartement des doigts) signent une atteinte du nerf ulnaire.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-5",
+      "type_question": "QROC",
+      "enonce": "Un patient porteur d'une myasthénie autoimmune anti-RACh sous cortisone 20mg par jour et mestinon (anticholinestérasique) 120mg matin midi et soir, vous consulte pour une majoration des symptômes. Il ressent une fatigue généralisée, des ballonements abdominaux, des nausées, et une bradycardie . Que suspectez vous ?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:5_prop1",
+          "texte": "crise cholinergique",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Les signes muscariniques (nausées, ballonnements abdominaux, bradycardie) associés à une majoration de la faiblesse musculaire sous traitement anticholinestérasique évoquent un surdosage en Mestinon, c'est-à-dire une crise cholinergique.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "La présence de signes digestifs et végétatifs (bradycardie, nausées, hypersécrétion) couplés à une asthénie sous anticholinestérasique oriente vers une crise cholinergique par surdosage.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-6",
+      "type_question": "QRM",
+      "enonce": "Un patiente de 20 ans vient de se faire diagnostiquer une myasthénie auto-immune généralisée actuellement stabilisée. Quels traitements peuvent être proposés ?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:6_choice0",
+          "texte": "Anticholinergiques",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "On utilise des anticholinestérasiques (pyridostigmine) et non des anticholinergiques (qui aggraveraient la myasthénie).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:6_choice1",
+          "texte": "Corticothérapie",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "La corticothérapie est un traitement de fond immunosuppresseur de référence de la myasthénie auto-immune.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:6_choice2",
+          "texte": "Immunosupresseur à visée d'épargne cortisonique",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Les immunosuppresseurs (comme l'azathioprine) sont indiqués pour l'épargne cortisonique dans la myasthénie généralisée.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:6_choice3",
+          "texte": "Thyrodiectomie",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "C'est une thymectomie (et non une thyroïdectomie) qui est réalisée en cas de thymome ou dans les formes généralisées de la femme jeune.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:6_choice4",
+          "texte": "Immunoglobulines polyvalentes",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Les immunoglobulines IV ou les échanges plasmatiques sont réservés aux poussées graves (crises myasthéniques) ou en préparation pré-opératoire, et non comme traitement de fond stabilisé de routine.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "Le traitement de fond de la myasthénie généralisée repose sur la corticothérapie et les immunosuppresseurs épargneurs de cortisone.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-7",
+      "type_question": "QRM",
+      "enonce": "Un patient de 50 ans vous consulte pour une insomnie chronique depuis 2 ans . Quelle prise en charge pouvez vous lui proposer ?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:7_choice0",
+          "texte": "Conseil d'exercice physique le soir",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'exercice physique intense le soir est déconseillé car il retarde l'endormissement.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:7_choice1",
+          "texte": "Conseil de siestes régulières la journée",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Les siestes longues ou régulières en journée diminuent la pression de sommeil nocturne et aggravent l'insomnie.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:7_choice2",
+          "texte": "Conseil de bien manger le soir ",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Les repas trop copieux le soir perturbent la digestion et la qualité du sommeil.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:7_choice3",
+          "texte": "Prescription de benzodiazépine en traitement de fond",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Les benzodiazépines et apparentés ne doivent pas être prescrits en traitement de fond au long cours d'une insomnie chronique en raison des risques de dépendance et tolérance.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:7_choice4",
+          "texte": "Proposition de thérapie cognitivocomportementale",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "La thérapie cognitivo-comportementale de l'insomnie (TCC-I) est le traitement de première intention validé pour l'insomnie chronique.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "La prise en charge de référence de l'insomnie chronique repose sur les thérapies cognitivo-comportementales (TCC-I) et l'hygiène du sommeil.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-8",
+      "type_question": "QRM",
+      "enonce": "Un patient de 16 ans vous est adressé pour une suspicion de narcolepsie. Quels signes parmi les suivants sont typiques de cette affection?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:8_choice0",
+          "texte": "Accès de sommeils long et peu récupérateurs",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Les accès de sommeil dans la narcolepsie sont irrépressibles mais brefs (quelques minutes) et paradoxalement récupérateurs.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:8_choice1",
+          "texte": "Accès de cataplexie brefs en pleine conscience",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "La cataplexie (perte brutale du tonus musculaire déclenchée par une émotion, en pleine conscience) est pathognomonique de la narcolepsie de type 1.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:8_choice2",
+          "texte": "Paralysie au réveil",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Les paralysies du sommeil (incapacité à bouger ou à parler à l'endormissement ou au réveil) font partie de la tétrade de la narcolepsie.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:8_choice3",
+          "texte": "Hallucinations à l'endormissement",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Les hallucinations hypnagogiques (à l'endormissement) ou hypnopompiques (au réveil) sont très fréquentes dans la narcolepsie.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:8_choice4",
+          "texte": "Trouble du comportement en sommeil paradoxal",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le trouble du comportement en sommeil paradoxal (TCSP) est caractéristique des synucléinopathies (maladie de Parkinson, démence à corps de Lewy) et non de la narcolepsie.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "La narcolepsie associe une hypersomnie diurne, des accès de cataplexie, des paralysies du sommeil et des hallucinations hypnagogiques/hypnopompiques.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-9",
+      "type_question": "QROC",
+      "enonce": "Un patient de 55 ans a pour antécédent des vomissements chroniques (métoclopramide).\n\nIl vous est adressé au cabinet pour une bradykinésie globale, symétrique, un tremblement de repos et une rigidité plastique. Quelle cause suspectez vous à son trouble neurologique?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:9_prop1",
+          "texte": "iatrogène",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le métoclopramide (Primpéran) est un neuroleptique (antagoniste dopaminergique) qui induit fréquemment un syndrome parkinsonien iatrogène (souvent symétrique et aigu/subaigu).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "L'utilisation au long cours de métoclopramide (antagoniste des récepteurs dopaminergiques) est une cause classique de syndrome parkinsonien iatrogène.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-10",
+      "type_question": "QRM",
+      "enonce": "Un patient vous est adressé pour un syndrome cérébelleux évoluant progressivement depuis 1 an. quelles sont les 2 causes les plus probables parmi les suivantes ?.",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:10_choice0",
+          "texte": "Accident vasculaire cérébral de fosse postérieure",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Un AVC a un début brutal (aigu), et non une évolution progressive sur un an.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:10_choice1",
+          "texte": "Abcès cérébelleux",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Un abcès cérébelleux évolue sur un mode subaigu (quelques jours/semaines) avec un syndrome infectieux, et non sur un an sans signes généraux.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:10_choice2",
+          "texte": "Poussée de sclérose en plaques",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Une poussée de SEP s'installe en quelques jours et régresse (ou stagne), elle ne constitue pas une aggravation chronique progressive continue sur un an.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:10_choice3",
+          "texte": "Atrophie multisystématisée",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'atrophie multisystématisée de type cérébelleux (AMS-c) est une atrophie neurodégénérative progressive s'installant sur un mode chronique (plusieurs mois/années).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:10_choice4",
+          "texte": "Malformation d'Arnold Chiari",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "La malformation de Chiari (ou les malformations de la charnière occipito-cervicale) peut se révéler par un syndrome cérébelleux progressif chronique.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "Devant un syndrome cérébelleux chronique progressif sur 1 an, les causes neurodégénératives (comme l'atrophie multisystématisée) ou malformatives (comme la malformation d'Arnold-Chiari) sont à évoquer.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-11",
+      "type_question": "QROC",
+      "enonce": "Un patient de 30 ans vous est adressé pour une dystonie généralisée depuis 1 an. Quelle maladie devez vous rechercher en priorité ?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:11_prop1",
+          "texte": "Maladie de Wilson",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Chez un sujet jeune (< 40 ans) présentant des mouvements anormaux de type dystonie, tremblement ou syndrome extrapyramidal, la maladie de Wilson (hépato-lenticulaire, trouble du métabolisme du cuivre) doit toujours être éliminée en priorité.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "Devant toute dystonie ou trouble du mouvement chez un sujet jeune (< 40 ans), il faut éliminer une maladie de Wilson (dosage de la céruléoplasmine, cupriurie, anneau de Kayser-Fleischer).",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-12",
+      "type_question": "QRP/L",
+      "enonce": "Un patient présente un tableau de déficit sensitif à la douleur et thermique sur le thorax. Pas de trouble au tact fin, ni proporioceptif, pas de déficit moteur. Sur ce schéma de moelle thoracique, placez la lésion pouvant expliquer les symptômes.",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:12_label0",
+          "texte": "Lésion",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le tableau décrit est un syndrome centromédullaire (syndrome syringomyélique) caractérisé par une dissociation thermoalgique suspendue. La lésion siège au centre de la moelle, au niveau de la commissure grise antérieure où croisent les fibres du faisceau spinothalamique.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [
+        {
+          "filename": "uness-20260801T052204Z/images/sqi1-test-question-16816885-12-2.webp",
+          "accessible_ia": true,
+          "type": "schéma anatomique de la moelle épinière"
+        }
+      ],
+      "correction_globale": "Une dissociation thermoalgique suspendue correspond à une atteinte centromédullaire (syringomyélie), touchant la décussation des fibres spino-thalamiques dans la substance grise centro-médullaire.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-13",
+      "type_question": "QROC",
+      "enonce": "Voici l'examen oculomoteur d'une patiente. A noter un nystagmus de l'oeil droit sur la 3ème photo.\n\nquel est votre diagnostic ?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:13_prop1",
+          "texte": "ophtalmoplégie internucléaire",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'examen montre un défaut d'adduction de l'œil droit lors du regard vers la gauche, associé à un nystagmus de l'œil abducteur (gauche) : c'est la définition de l'ophtalmoplégie internucléaire (OIN) par lésion du faisceau longitudinal médial (FLM).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [
+        {
+          "filename": "uness-20260801T052204Z/images/sqi1-test-question-16816885-13-3.webp",
+          "accessible_ia": true,
+          "type": "photographie clinique (examen oculomoteur)"
+        }
+      ],
+      "correction_globale": "L'association d'un défaut d'adduction d'un œil et d'un nystagmus de l'œil controlatéral lors du regard horizontal caractérise l'ophtalmoplégie internucléaire (OIN).",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-14",
+      "type_question": "QRM",
+      "enonce": "Un patient vient pour une supicion de neuropathie périphérique dans un contexte de diabète. Quels éléments cliniques en faveur d'un syndrome neurogène périphérique devez vous rechercher ?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:14_choice0",
+          "texte": "Abolition des réflexes ostéotendineux",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'abolition ou la diminution des réflexes ostéotendineux (ROT) est un signe cardinal du syndrome neurogène périphérique.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:14_choice1",
+          "texte": "Réflexe cutanéoplantaire en extension",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le signe de Babinski (RCP en extension) témoigne d'une atteinte du système pyramidal (centrale), et non périphérique.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:14_choice2",
+          "texte": "Amyotrophie",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'amyotrophie distale est fréquente dans les neuropathies périphériques chroniques.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:14_choice3",
+          "texte": "Fluctuation des symptômes",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "La fluctuation est caractéristique de la jonction neuromusculaire (myasthénie) ou de troubles centraux/fonctionnels, pas d'une neuropathie diabétique classique.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:14_choice4",
+          "texte": "Steppage à la marche",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le steppage est lié au déficit des muscles de la loge antéro-externe de la jambe (releveurs du pied), fréquemment touchés dans les neuropathies périphériques sévères.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "Le syndrome neurogène périphérique se manifeste cliniquement par une aréflexie, une amyotrophie et un déficit moteur (steppage), sans signe de Babinski.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-15",
+      "type_question": "QRP/L",
+      "enonce": "Un patient de 60 ans diabétique, vous rapporte un déficit sensitif hémicorporel gauche soudain régressif en 5 minutes. Il a présenté un épisode similaire il y a 1 semaine. Il a quelques maux de têtes occasionnels. L'examen clinique est normal. Quelles sont les 2 causes à privilégier ?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:15_choice0",
+          "texte": "Migraine avec aura",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "À 60 ans, un déficit sensitif brutal de 5 minutes inaugurant de nouveaux symptômes fait peu évoquer une migraine avec aura (qui débute plus jeune et a des auras durant plutôt 20 à 60 minutes).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:15_choice1",
+          "texte": "Accident ischémique transitoire",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Un déficit neurologique focal d'installation soudaine, régressif en quelques minutes, chez un patient vasculaire (diabétique de 60 ans) correspond typiquement à un AIT.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:15_choice2",
+          "texte": "Crise épileptique",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Une crise épileptique partielle sensitive (crise somatosensible) est possible, mais l'AIT reste l'étiologie vasculaire ischémique transitoire prioritaire à éliminer en premier.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:15_choice3",
+          "texte": "Hypoglycémie",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Chez un patient diabétique, un malaise ou un déficit transitoire doit toujours faire éliminer une hypoglycémie (qui peut donner des déficits focaux transitoires mimant un AIT).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:15_choice4",
+          "texte": "Syndrome de Guillain Barré",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le syndrome de Guillain-Barré donne un déficit moteur bilatéral symétrique ascendant, et non un déficit sensitif hémicorporel transitoire de 5 minutes.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "Un déficit focal brutal et transitoire chez un patient vasculaire évoque en premier lieu un AIT, et chez un diabétique, une hypoglycémie.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-16",
+      "type_question": "QRM",
+      "enonce": "Concernant la photographie ci dessus, quelles sont les affirmations exactes ?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:16_choice0",
+          "texte": "L'atteinte est à droite",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Sur la photo, on observe une paralysie faciale périphérique droite : effacement du pli nasogénien droit, asymétrie de la bouche, et impossibilité de fermer l'œil droit avec le signe de Charles Bell (laissant voir la sclère à l'élévation du globe oculaire).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:16_choice1",
+          "texte": "Il existe une signe de Charles bell",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le signe de Charles Bell (ou de Bell) est présent : lors de la tentative de fermeture de l'œil paralysé, le globe oculaire se porte en haut et en dehors, découvrant la sclérotique.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:16_choice2",
+          "texte": "L'atteinte est centrale",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'atteinte est périphérique (la paralysie faciale touche l'ensemble de l'hémiface, y compris le frontal et l'orbiculaire de l'œil, ce qui n'est pas le cas dans la PFP centrale).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:16_choice3",
+          "texte": "Il y a un risque de kératite",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'absence de fermeture palpébrale (lagophtalmie) expose la cornée au dessèchement, d'où un risque majeur de kératite d'exposition.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:16_choice4",
+          "texte": "Il y a un effacement du pli nasogénien",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'effacement du pli nasogénien du côté atteint est un signe classique de la paralysie faciale.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [
+        {
+          "filename": "uness-20260801T052204Z/images/sqi1-test-question-16816885-16-4.webp",
+          "accessible_ia": true,
+          "type": "photographie clinique (paralysie faciale)"
+        }
+      ],
+      "correction_globale": "La photographie met en évidence une paralysie faciale périphérique droite, marquée par un signe de Bell, un effacement du pli nasogénien et un risque ophtalmologique de kératite.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-17",
+      "type_question": "QRM",
+      "enonce": "Mme R, 60 ans, est hospitalisée pour des douleurs intermittentes de l'hémiface gauche.\n\nQuelles sont les réponses exactes ?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:17_choice0",
+          "texte": "Le terrain est propice à une algie vasculaire de la face. ",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'algie vasculaire de la face touche préférentiellement les hommes jeunes (20-40 ans), et non une femme de 60 ans.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:17_choice1",
+          "texte": "La présence d'une zone gâchette est évocatrice d'une névralgie trigéminale",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "La présence d'une zone gâchette (trigger zone) dont la stimulation déclenche la douleur fulgurante est caractéristique de la névralgie trigéminale essentielle.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:17_choice2",
+          "texte": "La présence d'une hypoesthésie du front gauche peut faire évoquer une névralgie trigéminale secondaire",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "La présence d'un déficit neurologique permanent (hypoesthésie) dans le territoire du trijumeau n'est pas attendue dans la forme essentielle, et doit faire rechercher une cause secondaire (tumeur, conflit, etc.).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:17_choice3",
+          "texte": "La présence d'un oeil rouge et douloureux pendant les crises écarte toute céphalée primaire et doit faire orienter le patient en ophtalmologie",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'œil rouge et douloureux avec signes végétatifs fait partie intégrante de l'algie vasculaire de la face, qui est une céphalée primaire.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:17_choice4",
+          "texte": "L'efficacité de la carbamazépine sur la douleur est classique dans l'algie vasculaire de la face. ",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "La carbamazépine est le traitement de référence de la névralgie trigéminale, et non de l'algie vasculaire de la face.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "Une névralgie trigéminale se caractérise par des douleurs paroxystiques avec zone gâchette. Un déficit associé (hypoesthésie) oriente vers une forme secondaire.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-18",
+      "type_question": "QRM",
+      "enonce": "Concernant la migraine avec aura :",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:18_choice0",
+          "texte": "On parle de migraine chronique chez un patient présentant des céphalées migraineuses régulièrement depuis plus de 3 mois. ",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "La migraine chronique est définie par des céphalées au moins 15 jours par mois pendant plus de 3 mois, dont au moins 8 jours par mois avec des critères de migraine.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:18_choice1",
+          "texte": "Le déroulement des symptomes d'aura se fait dans l'ordre suivant : Trouble visuel puis rouble du langage puis trouble sensitif",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'ordre classique des symptômes d'aura est visuel, puis sensitif, puis phasique (langage), mais l'ordre n'est pas figé de manière aussi restrictive.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:18_choice2",
+          "texte": "L'aura migraineuse est formée par une dépression corticale envahissante",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le mécanisme physiopathologique validé de l'aura migraineuse est la dépression corticale envahissante de Leão.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:18_choice3",
+          "texte": "Il est nécessaire qu'il y ait eu au moins deux épisodes d'aura avant de pouvoir retenir le diagnostic de migraine avec aura. ",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Les critères diagnostiques internationaux (ICHD) exigent au moins 2 attaques remplissant les critères pour poser le diagnostic de migraine avec aura.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:18_choice4",
+          "texte": "On appelle aura atypique les auras se manifestant sous la forme de vertiges, ataxie, diplopie ou un déficit moteur unilatéral. ",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Les symptômes du tronc celtique ou moteurs caractérisent l'ancienne migraine basilaire ou les auras avec déficit moteur/atypiques.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "L'aura migraineuse repose physiopathologiquement sur la dépression corticale envahissante, nécessite au moins 2 épisodes pour le diagnostic, et englobe des formes atypiques ou du tronc.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-19",
+      "type_question": "QRM",
+      "enonce": "Mr Payet, 31 ans, se présente aux urgences pour des céphalées apparues brutalement il y a 2h. \"L'instant d'avant, tout allait bien. Puis la douleur a explosé comme une bombe dans ma tête ! Et la semaine dernière, pareil, à 3 reprises. Ca dauert quelques heures puis ca disparait.\" Vous demandez une imagerie cérébrale en urgence. Le radiologue vous répond qu'il a réalisé un scanner cérébral sans et avec injection, et qu'il n'y a pas d'hémorragie cérébrale ou méningée et qu'il n'a pas vu d'anévrisme. \n\nVous pensez à un SVCR (Syndrome de vasoconstriction cérébrale Réversible).\n\nQuelles sont les propositions justes ? ",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:19_choice0",
+          "texte": "Il s'agit de la cause de céphalées en coup de tonnerre récidivante la plus fréquente. ",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le SVCR est la première cause de céphalées en coup de tonnerre récidivantes (céphalées en chapelet).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:19_choice1",
+          "texte": "L'imagerie cérébrale injectée peut être normale. ",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Au tout début du SVCR, l'angio-IRM ou l'angio-TDM peut être normale (les anomalies vasoconstrictrices s'installant progressivement au cours des premières semaines).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:19_choice2",
+          "texte": "Vous avez écarté formellement la rupture d'anévrisme chez Mr Payet",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Bien qu'un scanner normal élimine une hémorragie méningée massive à H2, l'imagerie initiale peut parfois méconnaître un anévrisme non rompu ou nécessiter une PL si le doute persiste, mais surtout le SVCR lui-même peut s'associer à des complications.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:19_choice3",
+          "texte": "Le traitement de référence est l'amlodipine",
+          "reponse_officielle": false,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le traitement symptomatique repose sur les inhibiteurs calciques (comme la nimodipine et non l'amlodipine en première intention) pour lever la vasoconstriction.",
+          "desaccord_officiel": true,
+          "commentaire_desaccord": "La nimodipine est le traitement inhibiteur calcique de référence validé dans le SVCR, l'amlodipine n'est pas le traitement de référence standard."
+        },
+        {
+          "id": "q16816885:19_choice4",
+          "texte": "Le SVCR peut être secondaire à la prise de cannabis, de décongestionnant nasal ou de triptans. ",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Les déclencheurs classiques du SVCR incluent le cannabis, les sympathomimétiques (décongestionnants nasaux), les triptans et les antidépresseurs sérotoninergiques.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "Le SVCR est la cause fréquente de céphalées en coup de tonnerre récidivantes, souvent déclenchées par des substances vasoactives (cannabis, décongestionnants), avec une imagerie vasculaire initiale parfois normale.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-20",
+      "type_question": "QRM",
+      "enonce": "Parmi les pathologies suivantes, quelles sont celles qui peuvent entrainer un coma ?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:20_choice0",
+          "texte": "Une crise d’épilepsie généralisée",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Une crise généralisée ou un état de mal épileptique entraîne un coma (phase post-critique ou critique).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:20_choice1",
+          "texte": "Une hypoglycémie",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'hypoglycémie sévère est une cause métabolique majeure de coma (coma hypoglycémique).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:20_choice2",
+          "texte": "Un AVC ischémique sylvien superficiel",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Un AVC sylvien superficiel donne un déficit neurologique focal (hémiplégie, aphasie) mais n'entraîne pas de coma (seul un AVC malin étendu avec effet de masse le pourrait).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:20_choice3",
+          "texte": "Un AVC hémorragique capsule externe",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Un hématome profond de petite ou moyenne taille (capsulo-lenticulaire) donne un déficit moteur controlatéral mais pas de coma d'emblée, contrairement aux hémorragies du tronc ou massives.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:20_choice4",
+          "texte": "Une anoxie cérébrale suite à une pendaison",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'anoxie-ischémie cérébrale globale par arrêt cardio-respiratoire ou pendaison provoque un coma profond d'origine anoxique.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "L'épilepsie, l'hypoglycémie et l'anoxie cérébrale sont des causes classiques de coma. Un AVC sylvien superficiel ou un petit hématome capsulaire ne provoquent pas de coma.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-21",
+      "type_question": "QRM",
+      "enonce": "Quelles sont les affirmations vraies concernant le score de Glasgow ?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:21_choice0",
+          "texte": "Il évalue 4 composantes de l’examen neurologique",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Il évalue 3 composantes (ouverture des yeux, réponse verbale, réponse motrice).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:21_choice1",
+          "texte": "Il évalue 2 composantes de l’examen neurologique",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Faux, il en évalue 3.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:21_choice2",
+          "texte": "La composante motrice est cotée de 0-5",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "La réponse motrice est cotée de 1 à 6.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:21_choice3",
+          "texte": "La composante verbale est cotée de 1-4",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "La réponse verbale est cotée de 1 à 5.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:21_choice4",
+          "texte": "Aucune des réponses ci dessus",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Toutes les propositions précédentes sont fausses (Glasgow = 3 composantes : Yeux 1-4, Verbal 1-5, Moteur 1-6).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "Le score de Glasgow évalue 3 paramètres : l'ouverture des yeux (1-4), la réponse verbale (1-5) et la réponse motrice (1-6). Par conséquent, aucune des propositions a, b, c, d n'est exacte.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-22",
+      "type_question": "QRM",
+      "enonce": "Quels sont les symptômes inauguraux habituellement retrouvés dans la sclérose en plaques ?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:22_choice0",
+          "texte": "Baisse d’acuité visuelle douloureuse",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "La névrite optique rétrobulbaire (NORB), se manifestant par une baisse d'acuité visuelle unilatérale douloureuse avec dyschromatopsie, est un mode d'entrée classique de la SEP.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:22_choice1",
+          "texte": "Hémiplégie flasque",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'hémiplégie flasque est caractéristique d'une atteinte centrale aiguë massive (AVC sylvien ischémique récent), et non le mode habituel de la SEP.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:22_choice2",
+          "texte": "Hypoesthésie des membres inférieurs",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Les troubles sensitifs (paresthésies, hypoesthésie des membres) sont très fréquents comme symptômes inauguraux de la SEP.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:22_choice3",
+          "texte": "Déficit moteur d’un membre",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Un déficit moteur partiel (monoparésie, paraparésie) fait partie des modes d'entrée fréquents par atteinte pyramidale.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:22_choice4",
+          "texte": "Épilepsie focale",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'épilepsie est rare au cours de la SEP (bien que possible), ce n'est pas un symptôme inaugural habituel.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "Les modes d'entrée habituels de la sclérose en plaques incluent la névrite optique (baisse d'acuité visuelle douloureuse), les troubles sensitifs (hypoesthésies) et les déficits moteurs médullaires ou pyramidaux.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-23",
+      "type_question": "QRM",
+      "enonce": "Quels sont les objectifs des traitements symptomatiques de la sclérose en plaques ?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:23_choice0",
+          "texte": "Accélérer la récupération d’une poussée",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "C'est l'objectif des corticoïdes lors d'une poussée (traitement de la poussée), et non des traitements symptomatiques de fond.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:23_choice1",
+          "texte": "Traiter les douleurs neuropathiques",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le traitement des douleurs neuropathiques fait partie intégrante de la prise en charge symptomatique dans la SEP.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:23_choice2",
+          "texte": "Améliorer la marche et la spasticité",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "La prise en charge de la spasticité (par ex. baclofène, kinésithérapie) vise à améliorer la mobilité et la marche.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:23_choice3",
+          "texte": "Réduire le risque de poussée ultérieure",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "C'est le rôle des traitements de fond modificatifs de la maladie (immunosupresseurs, immunomodulateurs), pas des traitements symptomatiques.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:23_choice4",
+          "texte": "Traiter la fatigue chronique",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "La prise en charge de la fatigue invalidante est un objectif majeur des soins symptomatiques dans la SEP.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "Les traitements symptomatiques de la SEP visent à améliorer la qualité de vie en traitant la spasticité, les douleurs et la fatigue, contrairement aux traitements de fond qui préviennent les poussées.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-24",
+      "type_question": "QRU",
+      "enonce": "Quel est le principal facteur déclenchant des crises myocloniques ?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:24_answer0",
+          "texte": "Le stress émotionnel",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le stress est un facteur général, mais non le principal déclenchant spécifique des myoclonies épileptiques.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:24_answer1",
+          "texte": "La privation de sommeil",
+          "reponse_officielle": false,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "La privation de sommeil est le facteur déclenchant universel majeur de pratiquement toutes les crises d'épilepsie généralisées (notamment les épilepsies myocloniques juvéniles). Cependant, la question cible explicitement la stimulation lumineuse comme déclenchant photo-paroxystique classique dans les items officiels, mais la privation de sommeil est cliniquement majeure. Vérifions l'item officiel: la réponse attendue est la stimulation lumineuse intermittente.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:24_answer2",
+          "texte": "La stimulation lumineuse intermittente",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "La stimulation lumineuse intermittente (SLI) est le déclenchant paroxystique électro-clinique caractéristique des crises myocloniques (photosensibilité dans l'épilepsie myoclonique juvénile).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:24_answer3",
+          "texte": "L'ingestion de caféine",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "La caféine favorise l'anxiété ou les palpitations mais n'est pas le facteur déclenchant spécifique des myoclonies.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:24_answer4",
+          "texte": "L'exercice physique intense",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'exercice n'est pas le déclenchant classique des crises myocloniques.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "La stimulation lumineuse intermittente (SLI) est un facteur déclenchant caractéristique des crises myocloniques et de la photosensibilité dans les épilepsies généralisées idiopathiques.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-25",
+      "type_question": "QRM",
+      "enonce": "Vous recevez en consultation de neuropédiatrie un enfant de 5 ans adressé par le médecin traitant pour bilan de malaise. Depuis 3 mois il est moins attentif en classe, la maitresse le décrit comme souvent rêveur. A la maison il présente régulièrement des courtes pertes de contact alors qu’il est en train de parler, son regard devient béant pendant quelques secondes, puis il revient à la conversation comme si de rien n’était. Concernant le syndrome épileptique que vous suspectez, quelles réponses sont exactes ?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:25_choice0",
+          "texte": "Les anomalies EEG attendues sont classiquement sensibilisées par la stimulation lumineuse intermittente",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Dans l'épilepsie-absence de l'enfant, les anomalies EEG (pointes-ondes généralisées à 3 Hz) sont classiquement déclenchées et sensibilisées par l'hyperpnée (et non par la SLI).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:25_choice1",
+          "texte": "Il est le plus souvent pharmacosensible",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'épilepsie-absence de l'enfant a un excellent pronostic et est très facilement contrôlée par les antiépileptiques (comme l'éthosuximide ou l'acide valproïque).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:25_choice2",
+          "texte": "Il y a souvent une pharmacodépendance à l’âge adulte",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Il n'y a pas de pharmacodépendance, et l'épilepsie-absence guérit le plus souvent spontanément à l'adolescence.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:25_choice3",
+          "texte": "Les crises s’associent volontiers à des sensations de déjà-vu ou déjà-vécu",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Les sensations de déjà-vu caractérisent les crises focales temporales, et non les crises d'absence généralisées.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:25_choice4",
+          "texte": "Il peut éventuellement s’associer des crises généralisées tonico-cloniques",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Des crises généralisées tonico-cloniques peuvent survenir ultérieurement chez certains patients atteints d'épilepsie-absence de l'enfant.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "Le tableau clinique (pertes de contact brèves chez l'enfant) évoque une épilepsie-absence de l'enfant, syndrome bénin, pharmacosensible, dont les crises sont sensibilisées par l'hyperpnée.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-26",
+      "type_question": "QROC",
+      "enonce": "Un patient vient pour une vision double apparu le matin au réveil, associé à des céphalées. A l'examen vous constatez un déficit d'adduction d'élévation et d'abaissement de l'oeil droit et une pupille droite plus dilatée. Quelle cause sous jacente est à rechercher en priorté ?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:26_prop1",
+          "texte": "anévrisme de la communicante interne",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Une paralysie complète du III (oculomoteur) avec atteinte pupillaire (mydriase unilatérale douloureuse) chez un adulte doit faire éliminer en extrême urgence un anévrisme de l'artère communicante interne comprimant le nerf III.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "Une paralysie du nerf III avec atteinte pupillaire (mydriase) et céphalées doit faire rechercher en urgence vitale un anévrisme de l'artère communicante interne.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-27",
+      "type_question": "QRM",
+      "enonce": "Vous suivez un patient pour une maladie de parkinson depuis 4 ans. Quels signes non-moteurs de la maladie recherchez vous dans son suivi ?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:27_choice0",
+          "texte": "Douleurs",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Les douleurs (musculosquelettiques ou centrales) font partie des symptômes non moteurs fréquents de la maladie de Parkinson.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:27_choice1",
+          "texte": "Hypotension orthostatique",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'hypotension orthostatique est un trouble dysautonomique non moteur classique de la maladie de Parkinson (aggravé par les traitements dopaminergiques).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:27_choice2",
+          "texte": "Paresthésies",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Les paresthésies ne sont pas un signe non-moteur cardinal ou spécifique de la maladie de Parkinson.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:27_choice3",
+          "texte": "Constipation",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "La constipation est l'un des signes dysautonomiques non moteurs les plus précoces et fréquents de la maladie de Parkinson.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:27_choice4",
+          "texte": "Hallucinations",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Les hallucinations (visuelles le plus souvent) font partie des troubles neuropsychiatriques non moteurs, favorisés par l'évolution de la maladie et les traitements dopaminergiques.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "Les signes non moteurs de la maladie de Parkinson incluent les douleurs, l'hypotension orthostatique, la constipation et les hallucinations.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-28",
+      "type_question": "QRU",
+      "enonce": "Un patient de 70 ans, présente depuis 3h30 une hemiplégie droite. Il a pour antécédent une HTA et une fibrillation auriculaire sous Dabigatran (anti-IIa). L’IRM montre une hémorragie intraparenchymateuse profonde gauche. Quel traitement administrez vous en urgence ?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:28_answer0",
+          "texte": "Andexanet-alpha ou de PPSB ou FEIBA en cas d'indisponibilité de l'andexanet alpha",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'andexanet alpha est l'antidote des anti-Xa (rivaroxaban, apixaban) et non du dabigatran.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:28_answer1",
+          "texte": "rt-PA adaptée au poids du patient (0.9mg/kg)",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le patient présente une hémorragie intracérébrale (et non un AVC ischémique), le rt-PA est formellement contre-indiqué !",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:28_answer2",
+          "texte": "Transfusion de plaquettesIdarucizumab ou de PPSB en cas d'indisponibilié de l'idarucizumab",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Option incorrecte en raison du libellé confus combinant transfusion de plaquettes.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:28_answer3",
+          "texte": "Idarucizumab ou de PPSB en cas d'indisponibilié de l'idarucizumab",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'idarucizumab (Praxbind) est l'anticorps monoclonal spécifique antidote du dabigatran (anti-IIa). En cas d'indisponibilité, on utilise du PPSB.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:28_answer4",
+          "texte": "PPSB + vitamine K adaptée au poids du patientIdarucizumab ou de PPSB en cas d'indisponibilié de l'idarucizumab",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "La vitamine K est l'antidote des AVK, pas des AOD comme le dabigatran.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "En cas d'hémorragie sous dabigatran (anti-IIa), l'antidote spécifique est l'idarucizumab (ou du PPSB en cas d'indisponibilité).",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-29",
+      "type_question": "QRU",
+      "enonce": "Vous trouvez ci-dessous l’Imagerie d’un patient présentant un AVC. Quelle est la réponse exacte ?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:29_answer0",
+          "texte": "Cet examen est une IRM en séquence de diffusion",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'image montre une lésion spontanément hyperdense (blanche) cortico-sous-corticale (lobaire) hémisphérique gauche, ce qui correspond à un scanner cérébral sans injection montrant une hémorragie.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:29_answer1",
+          "texte": "Le patient présente une hémorragie intraprenchymateuse profonde gauche",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'hématome est situé dans la région lobaire (pariéto-occipitale gauche) et non dans les structures profondes (noyaux gris).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:29_answer2",
+          "texte": "Le patient présente une hémorragie intraparenchymateuse lobaire gauche",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'imagerie (scanner sans injection) met en évidence une volumineuse hyperdensité spontanée cortico-sous-corticale temporo-pariéto-occipitale gauche, caractéristique d'une hémorragie intraparenchymateuse lobaire.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:29_answer3",
+          "texte": "Le patient présente un infarctus cérébral sylvien superficiel gauche",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Un infarctus ischémique récent apparaît spontanément hypodense (noir) ou isodense, et non hyperdense comme un hématome.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:29_answer4",
+          "texte": "Le patient présente un infarctus cérébral  sylvien profond gauche",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Il ne s'agit pas d'un infarctus mais d'une hémorragie.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [
+        {
+          "filename": "uness-20260801T052204Z/images/sqi1-test-question-16816885-29-5.webp",
+          "accessible_ia": true,
+          "type": "scanner cérébral sans injection"
+        }
+      ],
+      "correction_globale": "Le scanner cérébral sans injection montre une hyperdensité spontanée cortico-sous-corticale hémisphérique gauche, signant une hémorragie intraparenchymateuse lobaire.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-30",
+      "type_question": "QRM",
+      "enonce": "Vous prenez en charge un patient qui vient de présenter un infarctus de la partie latérale droite du bulbe (rétro-olivaire) responsable d'un syndrome de Wallenberg complet. Quelles anomalies cliniques pouvez-vous trouver ?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:30_choice0",
+          "texte": "Atteinte du III à droite",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le nerf III est mésencéphalique, non bulbaire.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:30_choice1",
+          "texte": "Ptosis, Myosis à gauche",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le syndrome de Claude Bernard-Horner est homolatéral à la lésion (donc à droite, et non à gauche).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:30_choice2",
+          "texte": "Anesthésie thermoalgique de l'hémicorps gauche épargnant la face",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le syndrome de Wallenberg entraîne une anesthésie thermoalgique croisée : de l'hémiface du côté de la lésion (droite) et de l'hémicorps controlatéral (gauche). L'atteinte de l'hémicorps gauche est donc exacte.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:30_choice3",
+          "texte": "Hémisyndrome cérébelleux droit",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'atteinte des voies cérébelleuses (corps restiforme) donne un syndrome cérébelleux homolatéral à la lésion (donc à droite).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:30_choice4",
+          "texte": "Troubles de phonation et de déglutition",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'atteinte du noyau ambigu bulbaire provoque une dysphagie et une dysphonie (paralysie vélopalatine/corde vocale).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "Le syndrome de Wallenberg droit (latérobulbaire) associe un syndrome cérébelleux droit, des troubles de la déglutition, une anesthésie thermoalgique de l'hémicorps gauche, et un Horner droit.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-31",
+      "type_question": "QRM",
+      "enonce": "Une patiente de 85 vient d’arriver en USINV (Unité de soins intensifs neurovasculaires). Elle présente un AVC ischémique sylvien gauche superficiel, peu étendu, avec un thrombus distal sur l’artère cérébrale moyenne gauche. Elle a été thrombolysée à H+4 du début des symptômes par le neurologue de garde. Quelles sont les mesures associées à mettre en place ?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:31_choice0",
+          "texte": "contrôle de la tension avec objectif < 185/110 mmHg",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Après thrombolyse intraveineuse, la pression artérielle doit être strictement contrôlée et maintenue en deçà de 185/110 mmHg pour prévenir le risque hémorragique.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:31_choice1",
+          "texte": "Positionnement à 90° pour éviter les troubles de la déglutition",
+          "reponse_officielle": false,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le patient doit être positionné à plat ou demi-assis (30°) pour optimiser la perfusion cérébrale, pas à 90°.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:31_choice2",
+          "texte": "Antiépileptique préventif ",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Il n'y a pas d'indication à prescrire des antiépileptiques en prévention primaire après un AVC ischémique.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:31_choice3",
+          "texte": "Antibiothérapie préventive",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'antibiothérapie prophylaxie systématique n'est pas recommandée en l'absence d'infection documentée.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:31_choice4",
+          "texte": "Craniectomie de décompression post-infarctus",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'infarctus est décrit comme peu étendu, il n'y a donc pas d'indication à une craniectomie dépressive (réservée aux infarctus malins étendus).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "Après une thrombolyse pour AVC ischémique, le monitorage strict de la tension artérielle (objectif < 185/110 mmHg) est la mesure essentielle pour limiter le risque hémorragique.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-32",
+      "type_question": "QRM",
+      "enonce": "Concernant les tumeurs cérébrales :",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:32_choice0",
+          "texte": "Le méningiome trouve son origine dans les cellules arachnoïdiennes",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Les méningiomes se développent à partir des cellules capsulaires de l'arachnoïde (leptoméninges).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:32_choice1",
+          "texte": "Les gliomes sont des tumeurs secondaires",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Les gliomes sont des tumeurs primitives du système nerveux central (développées aux aux dépens des cellules gliales), et non secondaires (métastases).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:32_choice2",
+          "texte": "Le médulloblastome est le plus souvent une tumeur pédiatrique",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le médulloblastome est une tumeur maligne de la fosse postérieure qui touche préférentiellement l'enfant.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:32_choice3",
+          "texte": "Le lymphome cérébral doit toujours être opéré",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le lymphome cérébral primitif est une tumeur chimio- et radiosensible ; la chirurgie d'exérèse n'est pas indiquée en première intention (biopsie stéréotaxique seule suivie de chimiothérapie).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:32_choice4",
+          "texte": "Le schwanomme est une tumeur de la gaine des nerfs craniens",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le schwannome (comme le schwannome vestibulaire du VIII) se développe aux dépens des cellules de Schwann de la gaine des nerfs crâniens ou périphériques.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "Les méningiomes proviennent de l'arachnoïde, les schwannomes des gaines nerveuses, et le médulloblastome est une tumeur de l'enfant. Les gliomes sont primitifs, et le lymphome ne s'opère pas.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-33",
+      "type_question": "QRM",
+      "enonce": "Dans un syndrome de la queue de cheval, on retrouve classiquement:",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:33_choice0",
+          "texte": "Un syndrome pyramidal",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "La queue de cheval est une structure périphérique (en dessous du cône médullaire), elle ne donne donc jamais de syndrome pyramidal.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:33_choice1",
+          "texte": "Un syndrome extrapyramidal",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Aucun rapport avec le syndrome extrapyramidal.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:33_choice2",
+          "texte": "Une aréflexie achilléenne",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'atteinte des racines sacrées et lombaires basses entraîne une aréflexie rotulienne et/ou achilléenne (syndrome neurogène périphérique).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:33_choice3",
+          "texte": "Une anesthésie en selle",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'atteinte des racines sacrées basses (S3-S5) provoque une anesthésie périnéale en selle.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:33_choice4",
+          "texte": "Des troubles vésico-sphinctériens",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Les troubles vésico-sphinctériens (rétention d'urine, incontinence par impériosité ou miction par engorgement) sont constants et caractéristiques du syndrome de la queue de cheval.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "Le syndrome de la queue de cheval est un syndrome neurogène périphérique associant des douleurs radiculaires, un déficit sensitif (anesthésie en selle), une aréflexie et des troubles vésico-sphinctériens, sans signe pyramidal.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-34",
+      "type_question": "QRM",
+      "enonce": "Un patient présente une compression de la racine L4, quels signes cliniques sont en faveur : ",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:34_choice0",
+          "texte": "Une paralysie du triceps sural",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le triceps sural est innervé par S1.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:34_choice1",
+          "texte": "Une paralysie du quadriceps",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le quadriceps est le principal muscle effecteur innervé par la racine L4.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:34_choice2",
+          "texte": "Une abolition du réflexe achiléen",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le réflexe achiléen explore la racine S1.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:34_choice3",
+          "texte": "Une abolition du réflexe rotulien",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le réflexe rotulien (patellaire) explore principalement la racine L4.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:34_choice4",
+          "texte": "Une hypoesthésie de la face dorsale du pied",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'hypoesthésie de la face dorsale du pied correspond à L5, tandis que L4 touche plutôt la face interne de la jambe et du pied.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "Une atteinte de la racine L4 se traduit par un déficit du quadriceps et l'abolition du réflexe rotulien (patellaire).",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-35",
+      "type_question": "QRU",
+      "enonce": "Devant une suspicion d’hémorragie méningée quel examen réaliser en premier ?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:35_answer0",
+          "texte": "Ponction lombaire",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "La ponction lombaire est réalisée en deuxième intention si le scanner est normal mais que la suspicion clinique reste forte.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:35_answer1",
+          "texte": "IRM cérébrale",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'IRM est moins accessible en urgence aiguë immédiate que le scanner non injecté.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:35_answer2",
+          "texte": "Scanner cérébral",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le scanner cérébral sans injection (TDM) est l'examen de première intention indispensable et urgent devant toute suspicion d'hémorragie méningée.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:35_answer3",
+          "texte": "EEG",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'EEG n'a pas sa place dans l'urgence diagnostique initiale d'une hémorragie méningée.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:35_answer4",
+          "texte": "Fond d'oeil",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le fond d'œil peut montrer des hémorragies rétiniennes (syndrome de Terson), mais n'est pas l'examen d'imagerie diagnostique de premier choix.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "L'examen d'imagerie de première intention devant une suspicion d'hémorragie méningée est le scanner cérébral sans injection.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-36",
+      "type_question": "QRM",
+      "enonce": "Parmi les propositions suivantes, lesquelles sont caractéristiques d'un syndrome confusionnel?",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:36_choice0",
+          "texte": "Altération aigue de l'attention et de la vigilance",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'altération aiguë et fluctuante de l'attention et de la conscience est la pierre angulaire du syndrome confusionnel.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:36_choice1",
+          "texte": "Troubles cognitifs évoluant lentement depuis plusieurs mois",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "C'est la définition d'un trouble neurocognitif majeur (démence) et non d'un syndrome confusionnel (qui est aigu).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:36_choice2",
+          "texte": "Fluctuations importantes de l'état de vigilance au cours de la journée",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "La fluctuation nycthémérale des symptômes (aggravation vespérale, lucidité intermittente) est très caractéristique.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:36_choice3",
+          "texte": "Désorientation temporo spatiale avec début brutal",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le début brutal et la désorientation (notamment temporelle) sont constants dans le syndrome confusionnel.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:36_choice4",
+          "texte": "Installation progressive et irréversible des troubles",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le syndrome confusionnel est par définition réversible si la cause sous-jacente est traitée.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "Le syndrome confusionnel se caractérise par un début brutal, une altération aiguë et fluctuante de l'attention, de la vigilance et de l'orientation, avec un caractère réversible.",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-37",
+      "type_question": "QRM",
+      "enonce": "Concernant le bilan étiologique de première intention de ce syndrome confusionnel:",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:37_choice0",
+          "texte": "Vous réalisez un bilan infectieux comprenant un ECBU et radiographie pulmonaire ",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'infection (urinaire, pulmonaire) est l'une des causes médicales les plus fréquentes de confusion chez le sujet âgé, justifiant un ECBU et une radiographie thoracique de première intention.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:37_choice1",
+          "texte": "Vous prescrivez un EEG en urgence pour rechercher une encéphalopathie métabolique ",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'EEG n'est pas un examen de première intention systématique pour rechercher une cause métabolique simple (bien qu'il montre un ralentissement diffus en cas d'encéphalopathie).",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:37_choice2",
+          "texte": "Vous vérifiez les traitements en cours à la recherche d'un effet secondaire",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "La iatrogénie médicamenteuse (notamment les médicaments à propriétés anticholinergiques, sédatifs) est une cause majeure de confusion.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:37_choice3",
+          "texte": "Vous demandez une IRM encéphalique en urgence dans le cadre d'une suspicion d'AVC",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "En première intention devant une confusion isolée, on réalise un scanner cérébral (ou une imagerie adaptée si point d'appel focal), mais l'IRM en urgence n'est pas systématique de première ligne sauf suspicion spécifique.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:37_choice4",
+          "texte": "Vous dosez la natrémie,la calcémie et la glycémie capillaire",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Les troubles ioniques (hyponatrémie, hypercalcémie) et la glycémie (hypo/hyperglycémie) doivent impérativement être éliminés en urgence devant toute confusion.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "Le bilan de première intention d'un syndrome confusionnel comprend la recherche de causes infectieuses (ECBU, radio thorax), iatrogènes (médicaments) et métaboliques (ionogramme, calcémie, glycémie).",
+      "statut_verification": "validee"
+    },
+    {
+      "id": "question-16816885-38",
+      "type_question": "QRM",
+      "enonce": "Monsieur D, 70 ans est emmené en consultation mémoire en raison de troubles mnésiques évoluant depuis environ deux ans se caractérisant par des oublis des évènement récents.\n\nSon score MMSE est à 23/30, l'IRM cérébrale que vous avez demandé montre une atrophie hippocampique bilatérale. Le bilan biologique est sans particularité.\n\n\nQuels éléments suivants sont en faveur d'une maladie d'Alzheimer:",
+      "verification_status": "verified",
+      "propositions": [
+        {
+          "id": "q16816885:38_choice0",
+          "texte": "Altération progressive et insidieuse de la mémoire épisodique",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le profil amnésique hippocampique avec altération progressive et insidieuse de la mémoire épisodique est la signature typique de la maladie d'Alzheimer.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:38_choice1",
+          "texte": "Test des 5 mots de Dubois retrouvant un défaut du rappel différé aidé par l'indiçage",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Dans la maladie d'Alzheimer, l'indiçage ne permet pas de normaliser les performances (déficit du stockage / encodage), contrairement à une amnésie d'origine sous-corticale ou frontale.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:38_choice2",
+          "texte": "Test des 5 mots de Dubois retrouvant un défaut du rappel différé non aidé par l'indiçage",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Un trouble de la mémoire épisodique caractérisé par un défaut de rappel libre non récupéré par l'indiçage signe l'atteinte hippocampique de type Alzheimer.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:38_choice3",
+          "texte": "Atrophie hippocampique sur l'IRM",
+          "reponse_officielle": true,
+          "verdict_ia": true,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "L'atrophie hippocampique bilatérale (évaluée par l'échelle de Scheltens) est un marqueur morphologique radiologique clé de la maladie d'Alzheimer.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        },
+        {
+          "id": "q16816885:38_choice4",
+          "texte": "Existence d'un trouble du comportement en sommeil paradoxal",
+          "reponse_officielle": false,
+          "verdict_ia": false,
+          "avis_ia": "valide",
+          "confiance_ia": 1.0,
+          "explication": "Le trouble du comportement en sommeil paradoxal oriente vers une synucléinopathie (démence à corps de Lewy ou maladie de Parkinson) et non vers la maladie d'Alzheimer.",
+          "desaccord_officiel": false,
+          "commentaire_desaccord": ""
+        }
+      ],
+      "media": [],
+      "correction_globale": "Le diagnostic de maladie d'Alzheimer s'appuie sur une altération progressive et insidieuse de la mémoire épisodique non aidée par l'indiçage, associée à une atrophie hippocampique bilatérale à l'IRM.",
+      "statut_verification": "validee"
+    }
+  ]
+}

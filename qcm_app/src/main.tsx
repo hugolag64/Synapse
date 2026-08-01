@@ -2,6 +2,7 @@ import { Component, useEffect, useMemo, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { completeSession, fetchSession, followUpAction, replaySession, saveAttempt } from './api'
 import type { CorrectionPayload, CorrectionRow, Question, SessionPayload, UnessImage } from './types'
+import { MedicalImageViewer } from './components/MedicalImageViewer'
 import './styles.css'
 
 const sessionId = Number(new URLSearchParams(window.location.search).get('session'))
@@ -64,10 +65,14 @@ function QuestionVisualContext({ question, sessionId }: { question: Question; se
   return <div className="uness-context">
     <UnessProvenance question={question} />
     {contexts.length > 0 && <section className="clinical-context"><strong>Contexte du dossier</strong>{contexts.map((context) => <p key={context}>{context}</p>)}</section>}
-    {images.length > 0 && <div className="question-images">{images.map((image, index) => <figure key={`${image.source_url}-${index}`}>
-      <img src={imageSource(sessionId, question.id, index, image)} alt={image.alt_text || image.caption || `Support visuel ${index + 1}`} />
-      {(image.caption || image.alt_text) && <figcaption>{image.caption || image.alt_text}</figcaption>}
-    </figure>)}</div>}
+    {images.length > 0 && <div className="question-images">{images.map((image, index) => (
+      <MedicalImageViewer
+        key={`${image.source_url}-${index}`}
+        src={imageSource(sessionId, question.id, index, image)}
+        alt={image.alt_text || image.caption || `Support visuel ${index + 1}`}
+        caption={image.caption || image.alt_text}
+      />
+    ))}</div>}
     {visualVerificationUnsupported && <div className="visual-warning" role="alert"><strong>Vérification IA visuelle indisponible</strong><span>Aucun verdict IA n’a été retenu pour cette question : un ou plusieurs supports visuels n’ont pas pu être fournis au modèle.</span></div>}
     {question.uness?.question?.support_visuel_seul && <div className="visual-warning" role="alert"><strong>Support visuel uniquement</strong><span>L’interaction UNESS originale n’est pas reconstruite ; utilise l’image comme support pédagogique.</span></div>}
   </div>
@@ -77,12 +82,14 @@ export function Reader({ payload, onCorrection }: { payload: SessionPayload; onC
   const [index, setIndex] = useState(0)
   const [answers, setAnswers] = useState(payload.answers)
   const [busy, setBusy] = useState(false)
+  const [examMode, setExamMode] = useState(false)
   
   // Mode Concours / Chronomètre (ex: 2 min par question par défaut)
   const totalSeconds = useMemo(() => payload.questions.length * 120, [payload.questions.length])
   const [timeLeft, setTimeLeft] = useState(totalSeconds)
 
   useEffect(() => {
+    if (!examMode) return
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
@@ -93,7 +100,7 @@ export function Reader({ payload, onCorrection }: { payload: SessionPayload; onC
       })
     }, 1000)
     return () => clearInterval(timer)
-  }, [])
+  }, [examMode])
 
   const question = payload.questions[index]
   if (!question) return <main className="state"><Header /><h1>QCM vide</h1><p>Cette session ne contient aucune question.</p></main>
@@ -136,9 +143,21 @@ export function Reader({ payload, onCorrection }: { payload: SessionPayload; onC
 
   return <main className="reader-page">
     <Header onExit />
-    <div className="timer-bar">
-      <span className="timer-label">⏱ MODE CONCOURS</span>
-      <span className={`timer-clock ${timeLeft < 180 ? 'warning' : ''}`}>{formatTimer(timeLeft)}</span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '8px 0' }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#a0a0ab' }}>
+        <input
+          type="checkbox"
+          checked={examMode}
+          onChange={(e) => setExamMode(e.target.checked)}
+        />
+        <span>Activer le mode Concours Blanc (Chronomètre & épreuve fermée)</span>
+      </label>
+      {examMode && (
+        <div className="timer-bar" style={{ margin: 0 }}>
+          <span className="timer-label">⏱ CHRONO</span>
+          <span className={`timer-clock ${timeLeft < 180 ? 'warning' : ''}`}>{formatTimer(timeLeft)}</span>
+        </div>
+      )}
     </div>
     <div className="reader-kicker">SESSION QCM · ITEM {payload.session.item_number || '—'}</div>
     <h1>{payload.session.course_title || 'Session QCM'}</h1>
@@ -179,14 +198,25 @@ function Correction({ payload, onReplay }: { payload: CorrectionPayload; onRepla
   const [errorsOnly, setErrorsOnly] = useState(false)
   const [followUp, setFollowUp] = useState(payload.follow_up)
   const rows = errorsOnly ? payload.rows.filter((row) => row.status !== 'correct') : payload.rows
-  const score = payload.session.score_percent == null ? '—' : `${payload.session.score_percent}%`
+  const scorePercent = payload.session.score_percent == null ? 0 : payload.session.score_percent
+  const score20 = ((scorePercent / 100) * 20).toFixed(1)
+  const isValidatedRangA = Number(score20) >= 14.0
+
   const followUpCard = followUp && <section className="follow-up"><div><strong>Plusieurs échecs sur ce contexte</strong><p>{followUp.failure_streak} sessions sous 70 %. Veux-tu transformer cette difficulté en support de révision ?</p></div><div className="follow-up-actions"><button className="button secondary" onClick={async () => { await followUpAction(payload.session.id, 'anchor', followUp.question_id); setFollowUp(null) }}>Ancrer la question</button><button className="button primary" onClick={async () => { await followUpAction(payload.session.id, 'lacune'); setFollowUp(null) }}>Créer une fiche lacune</button><button className="button quiet" onClick={async () => { await followUpAction(payload.session.id, 'ignore'); setFollowUp(null) }}>Ignorer</button></div></section>
   return <main className="correction-page">{followUpCard}
     <Header onExit />
     <div className="reader-kicker">CORRECTION TERMINÉE · {new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}</div>
     <h1>{payload.session.course_title || 'QCM'}</h1>
     <p className="reader-subtitle">Tu peux parcourir les erreurs, relire les explications et relancer ce QCM quand tu veux.</p>
-    <section className="kpis"><div><strong className="success">{score}</strong><span>score final</span></div><div><strong>{payload.session.correct_count || 0} / {payload.rows.length}</strong><span>bonnes réponses</span></div><div><strong className="danger">{payload.session.incorrect_count || 0}</strong><span>à retravailler</span></div><div><strong>—</strong><span>temps passé</span></div></section>
+    <section className="kpis">
+      <div>
+        <strong className={isValidatedRangA ? 'success' : 'danger'}>{score20} / 20</strong>
+        <span>Note EDN {isValidatedRangA ? '· Validé Rang A ✓' : '· Non validé Rang A'}</span>
+      </div>
+      <div><strong>{payload.session.correct_count || 0} / {payload.rows.length}</strong><span>bonnes réponses</span></div>
+      <div><strong className="danger">{payload.session.incorrect_count || 0}</strong><span>à retravailler</span></div>
+      <div><strong>{scorePercent}%</strong><span>score global</span></div>
+    </section>
     <div className="details-heading"><h2>Détail des réponses <span>· {payload.rows.length} questions</span></h2><button className={`filter ${errorsOnly ? 'active' : ''}`} onClick={() => setErrorsOnly(!errorsOnly)}>Afficher uniquement mes erreurs</button></div>
     <div className="correction-list">{rows.map((row) => <CorrectionCard key={row.position} row={row} sessionId={payload.session.id} />)}</div>
     <footer className="correction-actions"><button className="button secondary" onClick={() => window.history.back()}>Retour à l’historique</button><button className="button primary" onClick={async () => onReplay(await replaySession(payload.session.id))}>Rejouer ce QCM</button></footer>

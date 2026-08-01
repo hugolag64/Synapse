@@ -65,6 +65,8 @@ class GeminiClient:
             payload["generationConfig"] = generation_config
 
         url = f"{self._base_url}/{self.models[model]}:generateContent"
+        import time
+        start_time = time.perf_counter()
         try:
             response = requests.post(
                 url,
@@ -75,20 +77,36 @@ class GeminiClient:
             response.raise_for_status()
             data = response.json()
         except Exception as exc:
+            duration_ms = (time.perf_counter() - start_time) * 1000.0
+            from backend.core.ai.logger import log_ai_call
+            log_ai_call(task="gemini_generate", model=model, input_tokens=0, output_tokens=0, duration_ms=duration_ms, error=str(exc))
             raise GeminiClientError(f"Gemini inaccessible : {exc}") from exc
+
+        duration_ms = (time.perf_counter() - start_time) * 1000.0
 
         try:
             parts = data["candidates"][0]["content"]["parts"]
             text = "".join(part.get("text", "") for part in parts).strip()
         except (KeyError, IndexError, TypeError) as exc:
+            from backend.core.ai.logger import log_ai_call
+            log_ai_call(task="gemini_generate", model=model, input_tokens=0, output_tokens=0, duration_ms=duration_ms, error="Réponse Gemini invalide")
             raise GeminiClientError("Réponse Gemini invalide") from exc
+
         if not text:
+            from backend.core.ai.logger import log_ai_call
+            log_ai_call(task="gemini_generate", model=model, input_tokens=0, output_tokens=0, duration_ms=duration_ms, error="Réponse Gemini vide")
             raise GeminiClientError("Réponse Gemini vide")
 
         usage = data.get("usageMetadata") or {}
+        in_tok = usage.get("promptTokenCount")
+        out_tok = usage.get("candidatesTokenCount")
+
+        from backend.core.ai.logger import log_ai_call
+        log_ai_call(task="gemini_generate", model=model, input_tokens=in_tok, output_tokens=out_tok, duration_ms=duration_ms)
+
         return AIResponse(
             text=text,
             model=model,
-            input_tokens=usage.get("promptTokenCount"),
-            output_tokens=usage.get("candidatesTokenCount"),
+            input_tokens=in_tok,
+            output_tokens=out_tok,
         )

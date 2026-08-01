@@ -1,0 +1,3075 @@
+[
+  {
+    "quiz_title": "DP1\nTest",
+    "questions": [
+      {
+        "id": "question-16816434-2",
+        "type_question": "DP",
+        "enonce": "Quel est votre diagnostic ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816434:2_answer0",
+            "texte": "Pneumopathie infectieuse base droite",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Pneumopathie infectieuse base droite » n’est pas retenu ici. Les réponses attendues sont : Décompensation hypercapnique de bronchopneumopathie chronique obstructive.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:2_answer1",
+            "texte": "Embolie pulmonaire",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Embolie pulmonaire » n’est pas retenu ici. Les réponses attendues sont : Décompensation hypercapnique de bronchopneumopathie chronique obstructive.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:2_answer2",
+            "texte": "Décompensation hypercapnique de bronchopneumopathie chronique obstructive",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Décompensation hypercapnique de bronchopneumopathie chronique obstructive » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:2_answer3",
+            "texte": "Décompensation cardiaque avec pleurésie exsudative",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Décompensation cardiaque avec pleurésie exsudative » n’est pas retenu ici. Les réponses attendues sont : Décompensation hypercapnique de bronchopneumopathie chronique obstructive.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:2_answer4",
+            "texte": "Aucune de ces propositions.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Aucune de ces propositions. » n’est pas retenu ici. Les réponses attendues sont : Décompensation hypercapnique de bronchopneumopathie chronique obstructive.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Décompensation hypercapnique de bronchopneumopathie chronique obstructive.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816434-3",
+        "type_question": "DP",
+        "enonce": "Elle bénéficie d’une mise sous Ventilation Non Invasive apportant une amélioration clinique et gazométrique dans un premier temps (pH 7.34 ; pO2 78 mmHg ; pCO2 51 mmHg). 8h plus tard, échec de tentative de sevrage de Ventilation Non Invasive avec l'apparition d'une dyspnée inhibant la parole avec signes de lutte respiratoire. La patiente est également agitée avec des sueurs profuses et un balancement thoraco-abdominal. La radio suivante est réalisée: Quel est votre diagnostic ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816434:3_answer0",
+            "texte": "Embolie pulmonaire",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Embolie pulmonaire » n’est pas retenu ici. Les réponses attendues sont : Pneumothorax partielle droit.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:3_answer1",
+            "texte": "Exacerbation virale d’une BPCO",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Exacerbation virale d’une BPCO » n’est pas retenu ici. Les réponses attendues sont : Pneumothorax partielle droit.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:3_answer2",
+            "texte": "Pneumothorax partielle droit",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Pneumothorax partielle droit » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:3_answer3",
+            "texte": "Pneumopathie base droite",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Pneumopathie base droite » n’est pas retenu ici. Les réponses attendues sont : Pneumothorax partielle droit.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:3_answer4",
+            "texte": "Pleurésie gauche",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Pleurésie gauche » n’est pas retenu ici. Les réponses attendues sont : Pneumothorax partielle droit.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [
+          {
+            "filename": "uness-20260731T170140Z/images/dp1-test-question-16816434-3-1.webp",
+            "accessible_ia": true,
+            "type": "radiographie thoracique"
+          }
+        ],
+        "correction_globale": "Réponses officiellement exactes : Pneumothorax partielle droit.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816434-4",
+        "type_question": "DP",
+        "enonce": "La patiente est prise en charge en pneumologie puis regagne son domicile après 5 jours d’hospitalisation. Avec un traitement bronchodilatateur par beta 2 mimétiques pour sa BPCO Elle revient en consultation à 3 mois pour évaluation. Les EFR sous beta 2 mimétiques sont les suivantes : Quelle propositions est vraie ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816434:4_answer0",
+            "texte": "Syndrome obstructif sévère",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Syndrome obstructif sévère » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:4_answer1",
+            "texte": "Syndrome mixte",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Syndrome mixte » n’est pas retenu ici. Les réponses attendues sont : Syndrome obstructif sévère.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:4_answer2",
+            "texte": "Pas de syndrome restrictif",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Pas de syndrome restrictif » n’est pas retenu ici. Les réponses attendues sont : Syndrome obstructif sévère.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:4_answer3",
+            "texte": "Syndrome obstructif modéré",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Syndrome obstructif modéré » n’est pas retenu ici. Les réponses attendues sont : Syndrome obstructif sévère.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:4_answer4",
+            "texte": "Aucune de ces propositions n’est juste",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Aucune de ces propositions n’est juste » n’est pas retenu ici. Les réponses attendues sont : Syndrome obstructif sévère.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [
+          {
+            "filename": "uness-20260731T170140Z/images/dp1-test-question-16816434-4-2.webp",
+            "accessible_ia": true,
+            "type": "exploration fonctionnelle respiratoire"
+          }
+        ],
+        "correction_globale": "Réponses officiellement exactes : Syndrome obstructif sévère.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816434-5",
+        "type_question": "DP",
+        "enonce": "Elle ne rapporte aucune amélioration sur sa dyspnée, quelle modification thérapeutique peut être proposé ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816434:5_answer0",
+            "texte": "L’ajout d’un corticoïde inhalé",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « L’ajout d’un corticoïde inhalé » n’est pas retenu ici. Les réponses attendues sont : La mise en place d’une association fixe par bêta-2-mimétique et anticholinergique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:5_answer1",
+            "texte": "La mise en place d’une association fixe par bêta-2-mimétique et anticholinergique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « La mise en place d’une association fixe par bêta-2-mimétique et anticholinergique » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:5_answer2",
+            "texte": "La mise en place d’une association fixe par corticoïde inhalé et bêta-2-mimétique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « La mise en place d’une association fixe par corticoïde inhalé et bêta-2-mimétique » n’est pas retenu ici. Les réponses attendues sont : La mise en place d’une association fixe par bêta-2-mimétique et anticholinergique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:5_answer3",
+            "texte": "La mise en place d’un traitement par Ventoline systématique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « La mise en place d’un traitement par Ventoline systématique » n’est pas retenu ici. Les réponses attendues sont : La mise en place d’une association fixe par bêta-2-mimétique et anticholinergique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:5_answer4",
+            "texte": "La mise en place d’une antibiothérapie en cours",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « La mise en place d’une antibiothérapie en cours » n’est pas retenu ici. Les réponses attendues sont : La mise en place d’une association fixe par bêta-2-mimétique et anticholinergique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : La mise en place d’une association fixe par bêta-2-mimétique et anticholinergique.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816434-6",
+        "type_question": "DP",
+        "enonce": "Quels sont les autres éléments de la prise en charge de votre patiente ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816434:6_choice0",
+            "texte": "Arrêt du Tabac",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Arrêt du Tabac » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:6_choice1",
+            "texte": "La vaccination pour la grippe",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « La vaccination pour la grippe » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:6_choice2",
+            "texte": "Arrêter la marche à cause de la dyspnée",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Arrêter la marche à cause de la dyspnée » n’est pas retenu ici. Les réponses attendues sont : Arrêt du Tabac ; La vaccination pour la grippe ; La réhabilitation respiratoire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:6_choice3",
+            "texte": "Pas de vaccin pour le pneumocoque",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Pas de vaccin pour le pneumocoque » n’est pas retenu ici. Les réponses attendues sont : Arrêt du Tabac ; La vaccination pour la grippe ; La réhabilitation respiratoire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:6_choice4",
+            "texte": "La réhabilitation respiratoire",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « La réhabilitation respiratoire » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Arrêt du Tabac ; La vaccination pour la grippe ; La réhabilitation respiratoire.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816434-7",
+        "type_question": "DP",
+        "enonce": "La patiente reviens vous voir six mois plus tard, car elle décrit depuis plus de 48 heures une majoration de sa dyspnée et des expectorations purulente qui la conduisent à une majoration de la consommation de Ventoline. Vous faites le diagnostic d’exacerbation de sa BPCO. Quels signes de gravité recherchez vous ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816434:7_choice0",
+            "texte": "Une aggravation rapide des symptômes",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Une aggravation rapide des symptômes » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:7_choice1",
+            "texte": "Une fréquence respiratoire supérieur à 30 cycles par minute",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Une fréquence respiratoire supérieur à 30 cycles par minute » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:7_choice2",
+            "texte": "Un antécédent de séjour en réanimation pour exacerbation",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Un antécédent de séjour en réanimation pour exacerbation » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:7_choice3",
+            "texte": "L’absence de comorbidité",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « L’absence de comorbidité » n’est pas retenu ici. Les réponses attendues sont : Une aggravation rapide des symptômes ; Une fréquence respiratoire supérieur à 30 cycles par minute ; Un antécédent de séjour en réanimation pour exacerbation.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:7_choice4",
+            "texte": "L’absence de tachycardie",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « L’absence de tachycardie » n’est pas retenu ici. Les réponses attendues sont : Une aggravation rapide des symptômes ; Une fréquence respiratoire supérieur à 30 cycles par minute ; Un antécédent de séjour en réanimation pour exacerbation.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Une aggravation rapide des symptômes ; Une fréquence respiratoire supérieur à 30 cycles par minute ; Un antécédent de séjour en réanimation pour exacerbation.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816434-8",
+        "type_question": "DP",
+        "enonce": "Concernant les exacerbations de BPCO :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816434:8_choice0",
+            "texte": "La majorité des exacerbations ne sont pas d’origine infectieuse.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « La majorité des exacerbations ne sont pas d’origine infectieuse. » n’est pas retenu ici. Les réponses attendues sont : Le caractère purulent de l’expectoration est un élément en faveur d’une origine bactérienne. ; Haemophilus influenza est souvent mise en cause..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:8_choice1",
+            "texte": "Le caractère purulent de l’expectoration est un élément en faveur d’une origine bactérienne.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Le caractère purulent de l’expectoration est un élément en faveur d’une origine bactérienne. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:8_choice2",
+            "texte": "Haemophilus influenza est souvent mise en cause.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Haemophilus influenza est souvent mise en cause. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:8_choice3",
+            "texte": "Le Pseudomonas aeruginosa est souvent mise en cause.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Le Pseudomonas aeruginosa est souvent mise en cause. » n’est pas retenu ici. Les réponses attendues sont : Le caractère purulent de l’expectoration est un élément en faveur d’une origine bactérienne. ; Haemophilus influenza est souvent mise en cause..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:8_choice4",
+            "texte": "Les exacerbations sont toujours d’origine virale.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Les exacerbations sont toujours d’origine virale. » n’est pas retenu ici. Les réponses attendues sont : Le caractère purulent de l’expectoration est un élément en faveur d’une origine bactérienne. ; Haemophilus influenza est souvent mise en cause..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Le caractère purulent de l’expectoration est un élément en faveur d’une origine bactérienne. ; Haemophilus influenza est souvent mise en cause..",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816434-9",
+        "type_question": "DP",
+        "enonce": "Quels examens complémentaires peuvent être demandés dans un premier temps ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816434:9_choice0",
+            "texte": "Une radiographie thoracique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Une radiographie thoracique » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:9_choice1",
+            "texte": "Un bilan biologique avec NFS, CRP, ionogramme et créatinine",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Un bilan biologique avec NFS, CRP, ionogramme et créatinine » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:9_choice2",
+            "texte": "Une fibroscopie bronchique avec lavage broncho alvéolaire",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Une fibroscopie bronchique avec lavage broncho alvéolaire » n’est pas retenu ici. Les réponses attendues sont : Une radiographie thoracique ; Un bilan biologique avec NFS, CRP, ionogramme et créatinine ; Un électrocardiogramme.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:9_choice3",
+            "texte": "Un électrocardiogramme",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Un électrocardiogramme » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:9_choice4",
+            "texte": "Une recherche de BAAR",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Une recherche de BAAR » n’est pas retenu ici. Les réponses attendues sont : Une radiographie thoracique ; Un bilan biologique avec NFS, CRP, ionogramme et créatinine ; Un électrocardiogramme.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Une radiographie thoracique ; Un bilan biologique avec NFS, CRP, ionogramme et créatinine ; Un électrocardiogramme.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816434-10",
+        "type_question": "DP",
+        "enonce": "Il s’agit du troisième épisode de ce type survenu au cours des six derniers mois, quelles propositions thérapeutiques peuvent être envisagées ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816434:10_choice0",
+            "texte": "Un programme de réhabilitation respiratoire",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Un programme de réhabilitation respiratoire » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:10_choice1",
+            "texte": "Une trithérapie fixe, associant corticoïdes, inhalée , bêta-2-mimétique et anticholinergique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Une trithérapie fixe, associant corticoïdes, inhalée , bêta-2-mimétique et anticholinergique » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:10_choice2",
+            "texte": "La mise en place d’un traitement antibiotique prophylactique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « La mise en place d’un traitement antibiotique prophylactique » n’est pas retenu ici. Les réponses attendues sont : Un programme de réhabilitation respiratoire ; Une trithérapie fixe, associant corticoïdes, inhalée , bêta-2-mimétique et anticholinergique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:10_choice3",
+            "texte": "L’arrêt des séances de kinésithérapie",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « L’arrêt des séances de kinésithérapie » n’est pas retenu ici. Les réponses attendues sont : Un programme de réhabilitation respiratoire ; Une trithérapie fixe, associant corticoïdes, inhalée , bêta-2-mimétique et anticholinergique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816434:10_choice4",
+            "texte": "Aucune modification n’est envisagée.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Aucune modification n’est envisagée. » n’est pas retenu ici. Les réponses attendues sont : Un programme de réhabilitation respiratoire ; Une trithérapie fixe, associant corticoïdes, inhalée , bêta-2-mimétique et anticholinergique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Un programme de réhabilitation respiratoire ; Une trithérapie fixe, associant corticoïdes, inhalée , bêta-2-mimétique et anticholinergique.",
+        "statut_verification": "validee"
+      }
+    ]
+  },
+  {
+    "quiz_title": "mDP1\nTest",
+    "questions": [
+      {
+        "id": "question-9148958-2",
+        "type_question": "DP",
+        "enonce": "Quels sont les symptômes qui peuvent être compatibles avec un asthme ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q9148958:2_choice0",
+            "texte": "Une toux nocturne",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Une toux nocturne » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q9148958:2_choice1",
+            "texte": "Des ronchis",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Des ronchis » n’est pas retenu ici. Les réponses attendues sont : Une toux nocturne ; Une dyspnée ; Des oppressions thoraciques ; Des sifflements.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q9148958:2_choice2",
+            "texte": "Une dyspnée",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Une dyspnée » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q9148958:2_choice3",
+            "texte": "Des oppressions thoraciques",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Des oppressions thoraciques » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q9148958:2_choice4",
+            "texte": "Des sifflements",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Des sifflements » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Une toux nocturne ; Une dyspnée ; Des oppressions thoraciques ; Des sifflements.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-9148958-3",
+        "type_question": "DP",
+        "enonce": "Elle a une rhinite quotidienne persistante. Elle utilise des bougies parfumées et de l’encens chez elle tous les jours. Les facteurs aggravants son asthme chez elle sont ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q9148958:3_choice0",
+            "texte": "Sa profession",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Sa profession » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q9148958:3_choice1",
+            "texte": "L’absence de traitement de fond",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « L’absence de traitement de fond » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q9148958:3_choice2",
+            "texte": "La rhinite allergique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « La rhinite allergique » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q9148958:3_choice3",
+            "texte": "L'utilisation de composés volatiles organiques",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « L'utilisation de composés volatiles organiques » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q9148958:3_choice4",
+            "texte": "Aucun",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Aucun » n’est pas retenu ici. Les réponses attendues sont : Sa profession ; L’absence de traitement de fond ; La rhinite allergique ; L'utilisation de composés volatiles organiques.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Sa profession ; L’absence de traitement de fond ; La rhinite allergique ; L'utilisation de composés volatiles organiques.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-9148958-4",
+        "type_question": "DP",
+        "enonce": "Le bilan clinique et les EFR confirment l'asthme. Quels sont les éléments justes concernant le traitement à mettre en place pour cette patiente ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q9148958:4_choice0",
+            "texte": "Une corticothérapie inhalée à faible dose",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Une corticothérapie inhalée à faible dose » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q9148958:4_choice1",
+            "texte": "Une corticothérapie inhalée à forte dose et bronchodilatateur longue durée d'action",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Une corticothérapie inhalée à forte dose et bronchodilatateur longue durée d'action » n’est pas retenu ici. Les réponses attendues sont : Une corticothérapie inhalée à faible dose ; Une éducation thérapeutique ; Un traitement b ronchodilatateur de courte durée d'action ; L'éviction des facteurs aggravants.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q9148958:4_choice2",
+            "texte": "Une éducation thérapeutique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Une éducation thérapeutique » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q9148958:4_choice3",
+            "texte": "Un traitement b ronchodilatateur de courte durée d'action",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Un traitement b ronchodilatateur de courte durée d'action » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q9148958:4_choice4",
+            "texte": "L'éviction des facteurs aggravants",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « L'éviction des facteurs aggravants » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Une corticothérapie inhalée à faible dose ; Une éducation thérapeutique ; Un traitement b ronchodilatateur de courte durée d'action ; L'éviction des facteurs aggravants.",
+        "statut_verification": "validee"
+      }
+    ]
+  },
+  {
+    "quiz_title": "mDP2\nTest",
+    "questions": [
+      {
+        "id": "question-16816431-2",
+        "type_question": "DP",
+        "enonce": "Vous suspectez une embolie pulmonaire, quels examens demander ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816431:2_choice0",
+            "texte": "Une scintigraphie pulmonaire, ventilation/perfusion",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Une scintigraphie pulmonaire, ventilation/perfusion » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816431:2_choice1",
+            "texte": "Un dosage des D-dimères",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Un dosage des D-dimères » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816431:2_choice2",
+            "texte": "Un électrocardiogramme",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Un électrocardiogramme » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816431:2_choice3",
+            "texte": "Une échographie abdominale",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Une échographie abdominale » n’est pas retenu ici. Les réponses attendues sont : Une scintigraphie pulmonaire, ventilation/perfusion ; Un dosage des D-dimères ; Un électrocardiogramme.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816431:2_choice4",
+            "texte": "Aucun de ces examens",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Aucun de ces examens » n’est pas retenu ici. Les réponses attendues sont : Une scintigraphie pulmonaire, ventilation/perfusion ; Un dosage des D-dimères ; Un électrocardiogramme.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Une scintigraphie pulmonaire, ventilation/perfusion ; Un dosage des D-dimères ; Un électrocardiogramme.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816431-3",
+        "type_question": "DP",
+        "enonce": "Le diagnostic d’embolie pulmonaire et confirmé. Quelles affirmations sont vraies concernant le traitement anticoagulant chez ce patient ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816431:3_choice0",
+            "texte": "On peut débuter un traitement par une HBPM.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « On peut débuter un traitement par une HBPM. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816431:3_choice1",
+            "texte": "On peut débuter un traitement par un anticoagulant oral direct (AOD).",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « On peut débuter un traitement par un anticoagulant oral direct (AOD). » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816431:3_choice2",
+            "texte": "La durée de traitement est de trois mois.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « La durée de traitement est de trois mois. » n’est pas retenu ici. Les réponses attendues sont : On peut débuter un traitement par une HBPM. ; On peut débuter un traitement par un anticoagulant oral direct (AOD). ; La durée de traitement est d’au moins six mois et poursuivi le temps que la maladie est active..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816431:3_choice3",
+            "texte": "La durée de traitement est d’au moins six mois et poursuivi le temps que la maladie est active.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « La durée de traitement est d’au moins six mois et poursuivi le temps que la maladie est active. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816431:3_choice4",
+            "texte": "Aucune de ces propositions n’est vraie.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Aucune de ces propositions n’est vraie. » n’est pas retenu ici. Les réponses attendues sont : On peut débuter un traitement par une HBPM. ; On peut débuter un traitement par un anticoagulant oral direct (AOD). ; La durée de traitement est d’au moins six mois et poursuivi le temps que la maladie est active..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : On peut débuter un traitement par une HBPM. ; On peut débuter un traitement par un anticoagulant oral direct (AOD). ; La durée de traitement est d’au moins six mois et poursuivi le temps que la maladie est active..",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816431-4",
+        "type_question": "DP",
+        "enonce": "Concernant les D-dimères :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816431:4_choice0",
+            "texte": "Il s’agit d’un produit de dégradation de la fibrine.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Il s’agit d’un produit de dégradation de la fibrine. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816431:4_choice1",
+            "texte": "C’est un test très sensible.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « C’est un test très sensible. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816431:4_choice2",
+            "texte": "C’est un test très spécifique.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « C’est un test très spécifique. » n’est pas retenu ici. Les réponses attendues sont : Il s’agit d’un produit de dégradation de la fibrine. ; C’est un test très sensible. ; Sa valeur n’est pas interprétable chez les patients sous anticoagulants curatif..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816431:4_choice3",
+            "texte": "Sa valeur n’est pas interprétable chez les patients sous anticoagulants curatif.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Sa valeur n’est pas interprétable chez les patients sous anticoagulants curatif. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816431:4_choice4",
+            "texte": "Aucune de ces propositions n’est vraie.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Aucune de ces propositions n’est vraie. » n’est pas retenu ici. Les réponses attendues sont : Il s’agit d’un produit de dégradation de la fibrine. ; C’est un test très sensible. ; Sa valeur n’est pas interprétable chez les patients sous anticoagulants curatif..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Il s’agit d’un produit de dégradation de la fibrine. ; C’est un test très sensible. ; Sa valeur n’est pas interprétable chez les patients sous anticoagulants curatif..",
+        "statut_verification": "validee"
+      }
+    ]
+  },
+  {
+    "quiz_title": "mDP3\nTest",
+    "questions": [
+      {
+        "id": "question-16816432-2",
+        "type_question": "DP",
+        "enonce": "Interpréter la radio graphie thoracique, quelles sont les 3 propositions correctes ? — 3 réponses sont attendues —",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816432:2_choice0",
+            "texte": "On observe une opacité gauche dense et homogène.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « On observe une opacité gauche dense et homogène. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816432:2_choice1",
+            "texte": "On observe une ligne bordante pleurale.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « On observe une ligne bordante pleurale. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816432:2_choice2",
+            "texte": "La coupole diaphragmatique droite est ascensionnée.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « La coupole diaphragmatique droite est ascensionnée. » n’est pas retenu ici. Les réponses attendues sont : On observe une opacité gauche dense et homogène. ; On observe une ligne bordante pleurale. ; Il s’agit d’un épanchement pleural gauche..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816432:2_choice3",
+            "texte": "Il s’agit d’un épanchement pleural gauche.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Il s’agit d’un épanchement pleural gauche. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816432:2_choice4",
+            "texte": "Il s’agit d’une atélectasie lobaire inférieure gauche.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Il s’agit d’une atélectasie lobaire inférieure gauche. » n’est pas retenu ici. Les réponses attendues sont : On observe une opacité gauche dense et homogène. ; On observe une ligne bordante pleurale. ; Il s’agit d’un épanchement pleural gauche..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816432:2_choice5",
+            "texte": "Cette opacité est rétractile.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Cette opacité est rétractile. » n’est pas retenu ici. Les réponses attendues sont : On observe une opacité gauche dense et homogène. ; On observe une ligne bordante pleurale. ; Il s’agit d’un épanchement pleural gauche..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [
+          {
+            "filename": "uness-20260731T170140Z/images/mdp3-test-question-16816432-2-1.webp",
+            "accessible_ia": true,
+            "type": "radiographie thoracique"
+          }
+        ],
+        "correction_globale": "Réponses officiellement exactes : On observe une opacité gauche dense et homogène. ; On observe une ligne bordante pleurale. ; Il s’agit d’un épanchement pleural gauche..",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816432-3",
+        "type_question": "DP",
+        "enonce": "Quels signes physiques vous attendez-vous à retrouver à l’examen clinique ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816432:3_choice0",
+            "texte": "Diminution du murmure vésiculaire gauche",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Diminution du murmure vésiculaire gauche » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816432:3_choice1",
+            "texte": "Matité à la percussion de l’hémithorax gauche",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Matité à la percussion de l’hémithorax gauche » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816432:3_choice2",
+            "texte": "Augmentation des vibrations vocales à gauche",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Augmentation des vibrations vocales à gauche » n’est pas retenu ici. Les réponses attendues sont : Diminution du murmure vésiculaire gauche ; Matité à la percussion de l’hémithorax gauche ; Souffle pleurétique gauche.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816432:3_choice3",
+            "texte": "Souffle pleurétique gauche",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Souffle pleurétique gauche » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816432:3_choice4",
+            "texte": "Sibilants unilatéraux gauche",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Sibilants unilatéraux gauche » n’est pas retenu ici. Les réponses attendues sont : Diminution du murmure vésiculaire gauche ; Matité à la percussion de l’hémithorax gauche ; Souffle pleurétique gauche.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Diminution du murmure vésiculaire gauche ; Matité à la percussion de l’hémithorax gauche ; Souffle pleurétique gauche.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816432-4",
+        "type_question": "DP",
+        "enonce": "Quels sont les 2  examens paracliniques  que vous  envisagez en première intention ? — 2 réponses sont attendues —",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816432:4_choice0",
+            "texte": "Un bilan  biologique avec bilan de coagulation et  dosage de LDH sanguin",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Un bilan  biologique avec bilan de coagulation et  dosage de LDH sanguin » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816432:4_choice1",
+            "texte": "Une fibroscopie bronchique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Une fibroscopie bronchique » n’est pas retenu ici. Les réponses attendues sont : Un bilan  biologique avec bilan de coagulation et  dosage de LDH sanguin ; Une ponction pleurale.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816432:4_choice2",
+            "texte": "Une ponction pleurale",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Une ponction pleurale » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816432:4_choice3",
+            "texte": "Un scanner thoracique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Un scanner thoracique » n’est pas retenu ici. Les réponses attendues sont : Un bilan  biologique avec bilan de coagulation et  dosage de LDH sanguin ; Une ponction pleurale.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816432:4_choice4",
+            "texte": "Un TEP-scanner",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Un TEP-scanner » n’est pas retenu ici. Les réponses attendues sont : Un bilan  biologique avec bilan de coagulation et  dosage de LDH sanguin ; Une ponction pleurale.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816432:4_choice5",
+            "texte": "Un Examen Cyto-Bactériologique des Crachats (ECBC)",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Un Examen Cyto-Bactériologique des Crachats (ECBC) » n’est pas retenu ici. Les réponses attendues sont : Un bilan  biologique avec bilan de coagulation et  dosage de LDH sanguin ; Une ponction pleurale.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Un bilan  biologique avec bilan de coagulation et  dosage de LDH sanguin ; Une ponction pleurale.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816432-5",
+        "type_question": "DP",
+        "enonce": "La ponction pleurale ramène un liquide séro-hématique. La biochimie du liquide pleural est la suivante : Protides pleuraux 48g/L (protidémie 62g/L) LDH pleuraux 130 UI/L (LDH sanguin 200 UI/L) De quel type d’épanchement s’agit-il ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816432:5_answer0",
+            "texte": "Un exsudat",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Un exsudat » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816432:5_answer1",
+            "texte": "Un transsudat",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Un transsudat » n’est pas retenu ici. Les réponses attendues sont : Un exsudat.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Un exsudat.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816432-6",
+        "type_question": "DP",
+        "enonce": "Quelles sont les étiologies possibles d’un épanchement exsudatif ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816432:6_choice0",
+            "texte": "Pleurésie parapneumonique non compliquée",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Pleurésie parapneumonique non compliquée » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816432:6_choice1",
+            "texte": "Insuffisance ventriculaire gauche",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Insuffisance ventriculaire gauche » n’est pas retenu ici. Les réponses attendues sont : Pleurésie parapneumonique non compliquée ; Pleurésie maligne ; Pleurésie tuberculeuse ; Pleurésie médicamenteuse ; Pleurésie bénigne à l’amiante ; Pleurésie virale.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816432:6_choice2",
+            "texte": "Pleurésie maligne",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Pleurésie maligne » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816432:6_choice3",
+            "texte": "Pleurésie tuberculeuse",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Pleurésie tuberculeuse » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816432:6_choice4",
+            "texte": "Syndrome oedémato-ascitique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Syndrome oedémato-ascitique » n’est pas retenu ici. Les réponses attendues sont : Pleurésie parapneumonique non compliquée ; Pleurésie maligne ; Pleurésie tuberculeuse ; Pleurésie médicamenteuse ; Pleurésie bénigne à l’amiante ; Pleurésie virale.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816432:6_choice5",
+            "texte": "Pleurésie médicamenteuse",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Pleurésie médicamenteuse » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816432:6_choice6",
+            "texte": "Pleurésie bénigne à l’amiante",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Pleurésie bénigne à l’amiante » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816432:6_choice7",
+            "texte": "Syndrome Néphrotique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Syndrome Néphrotique » n’est pas retenu ici. Les réponses attendues sont : Pleurésie parapneumonique non compliquée ; Pleurésie maligne ; Pleurésie tuberculeuse ; Pleurésie médicamenteuse ; Pleurésie bénigne à l’amiante ; Pleurésie virale.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816432:6_choice8",
+            "texte": "Pleurésie virale",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Pleurésie virale » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Pleurésie parapneumonique non compliquée ; Pleurésie maligne ; Pleurésie tuberculeuse ; Pleurésie médicamenteuse ; Pleurésie bénigne à l’amiante ; Pleurésie virale.",
+        "statut_verification": "validee"
+      }
+    ]
+  },
+  {
+    "quiz_title": "mDP6\nTest",
+    "questions": [
+      {
+        "id": "question-16816436-2",
+        "type_question": "DP",
+        "enonce": "Vous suspectez un asthme et vous rechercher à l'interrogatoire ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816436:2_choice0",
+            "texte": "Des épisodes de dyspnée sifflante",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Des épisodes de dyspnée sifflante » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816436:2_choice1",
+            "texte": "Une toux sèche plutôt nocturne",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Une toux sèche plutôt nocturne » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816436:2_choice2",
+            "texte": "Des crachats purulents",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Des crachats purulents » n’est pas retenu ici. Les réponses attendues sont : Des épisodes de dyspnée sifflante ; Une toux sèche plutôt nocturne.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816436:2_choice3",
+            "texte": "Des épisodes d’hémoptysie",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Des épisodes d’hémoptysie » n’est pas retenu ici. Les réponses attendues sont : Des épisodes de dyspnée sifflante ; Une toux sèche plutôt nocturne.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816436:2_choice4",
+            "texte": "Aucun de ces symptômes",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Aucun de ces symptômes » n’est pas retenu ici. Les réponses attendues sont : Des épisodes de dyspnée sifflante ; Une toux sèche plutôt nocturne.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Des épisodes de dyspnée sifflante ; Une toux sèche plutôt nocturne.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816436-3",
+        "type_question": "DP",
+        "enonce": "À l'auscultation pulmonaire, vous allez entendre en faveur d'un asthme avec obstruction bronchique :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816436:3_answer0",
+            "texte": "Des sibilant bilatéraux",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Des sibilant bilatéraux » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816436:3_answer1",
+            "texte": "Des Ronchi bilatéraux",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Des Ronchi bilatéraux » n’est pas retenu ici. Les réponses attendues sont : Des sibilant bilatéraux.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816436:3_answer2",
+            "texte": "Des crépitants bilatéraux",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Des crépitants bilatéraux » n’est pas retenu ici. Les réponses attendues sont : Des sibilant bilatéraux.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816436:3_answer3",
+            "texte": "Un wheezing",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Un wheezing » n’est pas retenu ici. Les réponses attendues sont : Des sibilant bilatéraux.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816436:3_answer4",
+            "texte": "Aucun de ces symptômes",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Aucun de ces symptômes » n’est pas retenu ici. Les réponses attendues sont : Des sibilant bilatéraux.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Des sibilant bilatéraux.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816436-4",
+        "type_question": "DP",
+        "enonce": "Vous avez demandez des épreuves fonctionnelles respiratoires, ci-joint. A quoi correspond cet examen ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816436:4_choice0",
+            "texte": "Une spirométrie avec un test de réversibilité",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Une spirométrie avec un test de réversibilité » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816436:4_choice1",
+            "texte": "Un test de marche de six minutes",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Un test de marche de six minutes » n’est pas retenu ici. Les réponses attendues sont : Une spirométrie avec un test de réversibilité ; Une épreuve de pléthysmographie.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816436:4_choice2",
+            "texte": "Une épreuve de pléthysmographie",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Une épreuve de pléthysmographie » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816436:4_choice3",
+            "texte": "Une mesure de PicFlow",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Une mesure de PicFlow » n’est pas retenu ici. Les réponses attendues sont : Une spirométrie avec un test de réversibilité ; Une épreuve de pléthysmographie.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816436:4_choice4",
+            "texte": "Aucune de ces propositions n'est vraie",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Aucune de ces propositions n'est vraie » n’est pas retenu ici. Les réponses attendues sont : Une spirométrie avec un test de réversibilité ; Une épreuve de pléthysmographie.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [
+          {
+            "filename": "uness-20260731T170140Z/images/mdp6-test-question-16816436-4-1.webp",
+            "accessible_ia": true,
+            "type": "exploration fonctionnelle respiratoire"
+          }
+        ],
+        "correction_globale": "Réponses officiellement exactes : Une spirométrie avec un test de réversibilité ; Une épreuve de pléthysmographie.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816436-5",
+        "type_question": "DP",
+        "enonce": "Concernant les résultats de cette épreuve fonctionnelle respiratoire , lesquelles de ces propositions sont vraies ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816436:5_choice0",
+            "texte": "Il existe un syndrome obstructif.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Il existe un syndrome obstructif. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816436:5_choice1",
+            "texte": "Il existe une réversibilité significative après administration de Ventoline.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Il existe une réversibilité significative après administration de Ventoline. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816436:5_choice2",
+            "texte": "Il existe une restriction.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Il existe une restriction. » n’est pas retenu ici. Les réponses attendues sont : Il existe un syndrome obstructif. ; Il existe une réversibilité significative après administration de Ventoline..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816436:5_choice3",
+            "texte": "Ces résultats sont normaux.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Ces résultats sont normaux. » n’est pas retenu ici. Les réponses attendues sont : Il existe un syndrome obstructif. ; Il existe une réversibilité significative après administration de Ventoline..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816436:5_choice4",
+            "texte": "Il n'y a pas d’obstruction.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Il n'y a pas d’obstruction. » n’est pas retenu ici. Les réponses attendues sont : Il existe un syndrome obstructif. ; Il existe une réversibilité significative après administration de Ventoline..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Il existe un syndrome obstructif. ; Il existe une réversibilité significative après administration de Ventoline..",
+        "statut_verification": "validee"
+      }
+    ]
+  },
+  {
+    "quiz_title": "SQI1\nTest",
+    "questions": [
+      {
+        "id": "question-16816433-1",
+        "type_question": "QRM",
+        "enonce": "Concernant les pneumopathies interstitielles diffuses :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816433:1_choice0",
+            "texte": "Ces pathologies ne concernent pas les voies aériennes proximales.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Ces pathologies ne concernent pas les voies aériennes proximales. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:1_choice1",
+            "texte": "Les étiologies aiguës sont dominées par des causes infectieuses et cardiologiques.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Les étiologies aiguës sont dominées par des causes infectieuses et cardiologiques. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:1_choice2",
+            "texte": "La fibroscopie avec lavage broncho-alvéolaire est un examen diagnostic clinique.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « La fibroscopie avec lavage broncho-alvéolaire est un examen diagnostic clinique. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:1_choice3",
+            "texte": "Le scanner thoracique n'est d'aucune utilité.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Le scanner thoracique n'est d'aucune utilité. » n’est pas retenu ici. Les réponses attendues sont : Ces pathologies ne concernent pas les voies aériennes proximales. ; Les étiologies aiguës sont dominées par des causes infectieuses et cardiologiques. ; La fibroscopie avec lavage broncho-alvéolaire est un examen diagnostic clinique..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:1_choice4",
+            "texte": "Aucune des propositions",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Aucune des propositions » n’est pas retenu ici. Les réponses attendues sont : Ces pathologies ne concernent pas les voies aériennes proximales. ; Les étiologies aiguës sont dominées par des causes infectieuses et cardiologiques. ; La fibroscopie avec lavage broncho-alvéolaire est un examen diagnostic clinique..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Ces pathologies ne concernent pas les voies aériennes proximales. ; Les étiologies aiguës sont dominées par des causes infectieuses et cardiologiques. ; La fibroscopie avec lavage broncho-alvéolaire est un examen diagnostic clinique..",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816433-2",
+        "type_question": "QRM",
+        "enonce": "Donnez la(les) réponse(s) vraie(s) :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816433:2_choice0",
+            "texte": "L’oropharynx se situe en arrière du « V » lingual, en dessous du voile du palais et se termine au niveau de l’épiglotte.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « L’oropharynx se situe en arrière du « V » lingual, en dessous du voile du palais et se termine au niveau de l’épiglotte. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:2_choice1",
+            "texte": "Les tonsilles pharyngiennes (végétations adénoïdes) sont situées dans l’oropharynx.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Les tonsilles pharyngiennes (végétations adénoïdes) sont situées dans l’oropharynx. » n’est pas retenu ici. Les réponses attendues sont : L’oropharynx se situe en arrière du « V » lingual, en dessous du voile du palais et se termine au niveau de l’épiglotte. ; Le laryngopharynx appartient au pharynx et constitue le carrefour aérodigestif. ; Le cartilage cricoïde est le seul cartilage circulaire des voies aériennes respiratoires..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:2_choice2",
+            "texte": "Le laryngopharynx appartient au pharynx et constitue le carrefour aérodigestif.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Le laryngopharynx appartient au pharynx et constitue le carrefour aérodigestif. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:2_choice3",
+            "texte": "Le cartilage cricoïde est le seul cartilage circulaire des voies aériennes respiratoires.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Le cartilage cricoïde est le seul cartilage circulaire des voies aériennes respiratoires. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:2_choice4",
+            "texte": "Les cartilages aryténoïdes s’articulent sur la partie antérieure du cartilage cricoïde, leurs mobilités permettent la mobilité des cordes vocales",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Les cartilages aryténoïdes s’articulent sur la partie antérieure du cartilage cricoïde, leurs mobilités permettent la mobilité des cordes vocales » n’est pas retenu ici. Les réponses attendues sont : L’oropharynx se situe en arrière du « V » lingual, en dessous du voile du palais et se termine au niveau de l’épiglotte. ; Le laryngopharynx appartient au pharynx et constitue le carrefour aérodigestif. ; Le cartilage cricoïde est le seul cartilage circulaire des voies aériennes respiratoires..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : L’oropharynx se situe en arrière du « V » lingual, en dessous du voile du palais et se termine au niveau de l’épiglotte. ; Le laryngopharynx appartient au pharynx et constitue le carrefour aérodigestif. ; Le cartilage cricoïde est le seul cartilage circulaire des voies aériennes respiratoires.. les tonsilles pharyngiennes sont dans le nasopharynx ; les cartilages aryténoïdes s’articulent à la partie postérieure du cricoïde)",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816433-3",
+        "type_question": "QRM",
+        "enonce": "Un patient de 70 ans se présente à votre consultation pour asthénie. Il décrit des ronflements, un sommeil non réparateur et une somnolence diurne. Il vous explique qu’il se réveille souvent la nuit par manque d’air. Vous suspectez un syndrome d’apnée du sommeil et réalisez une polygraphie ventilatoire :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816433:3_choice0",
+            "texte": "On peut suspecter une somnolence diurne excessive si le score d’Epworth est supérieur à 11/24.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « On peut suspecter une somnolence diurne excessive si le score d’Epworth est supérieur à 11/24. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:3_choice1",
+            "texte": "L’obésité est un facteur de risque de syndrome d’apnée du sommeil obstructif.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « L’obésité est un facteur de risque de syndrome d’apnée du sommeil obstructif. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:3_choice2",
+            "texte": "La macroglossie est un facteur de risque de syndrome d’apnée du sommeil obstructif.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « La macroglossie est un facteur de risque de syndrome d’apnée du sommeil obstructif. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:3_choice3",
+            "texte": "Le syndrome d’apnée du sommeil est sévère si l’IAH est supérieur à 15/h.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Le syndrome d’apnée du sommeil est sévère si l’IAH est supérieur à 15/h. » n’est pas retenu ici. Les réponses attendues sont : On peut suspecter une somnolence diurne excessive si le score d’Epworth est supérieur à 11/24. ; L’obésité est un facteur de risque de syndrome d’apnée du sommeil obstructif. ; La macroglossie est un facteur de risque de syndrome d’apnée du sommeil obstructif. ; La dépression est un diagnostic différentiel chez un patient présentant une somnolence diurne excessive..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:3_choice4",
+            "texte": "La dépression est un diagnostic différentiel chez un patient présentant une somnolence diurne excessive.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « La dépression est un diagnostic différentiel chez un patient présentant une somnolence diurne excessive. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : On peut suspecter une somnolence diurne excessive si le score d’Epworth est supérieur à 11/24. ; L’obésité est un facteur de risque de syndrome d’apnée du sommeil obstructif. ; La macroglossie est un facteur de risque de syndrome d’apnée du sommeil obstructif. ; La dépression est un diagnostic différentiel chez un patient présentant une somnolence diurne excessive..",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816433-4",
+        "type_question": "QRM",
+        "enonce": "Parmi ces propositions, quels sont les signes cliniques caractéristiques d’une hypercapnie ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816433:4_choice0",
+            "texte": "Asterixis",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Asterixis » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:4_choice1",
+            "texte": "Sueurs",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Sueurs » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:4_choice2",
+            "texte": "Cyanose",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Cyanose » n’est pas retenu ici. Les réponses attendues sont : Asterixis ; Sueurs ; Agitation ; Céphalées.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:4_choice3",
+            "texte": "Agitation",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Agitation » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:4_choice4",
+            "texte": "Céphalées",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Céphalées » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Asterixis ; Sueurs ; Agitation ; Céphalées.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816433-5",
+        "type_question": "QRM",
+        "enonce": "Donnez la(les) réponse(s) vraie(s) :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816433:5_choice0",
+            "texte": "Le diaphragme comprend une partie centrale musculaire et une partie périphérique tendineuse.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Le diaphragme comprend une partie centrale musculaire et une partie périphérique tendineuse. » n’est pas retenu ici. Les réponses attendues sont : L’innervation du diaphragme se fait par les nerfs phréniques dont l’origine est cervicale. ; En expiration, le diaphragme remonte passivement. ; Le poumon droit comprend 3 lobes pulmonaires (supérieur, moyen, inférieur) et le poumon gauche 2 lobes (supérieur, inférieur)..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:5_choice1",
+            "texte": "L’innervation du diaphragme se fait par les nerfs phréniques dont l’origine est cervicale.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « L’innervation du diaphragme se fait par les nerfs phréniques dont l’origine est cervicale. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:5_choice2",
+            "texte": "En expiration, le diaphragme remonte passivement.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « En expiration, le diaphragme remonte passivement. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:5_choice3",
+            "texte": "Le hile pulmonaire est constitué d’une artère pulmonaire, d’une bronche souche et d’une veine pulmonaire.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Le hile pulmonaire est constitué d’une artère pulmonaire, d’une bronche souche et d’une veine pulmonaire. » n’est pas retenu ici. Les réponses attendues sont : L’innervation du diaphragme se fait par les nerfs phréniques dont l’origine est cervicale. ; En expiration, le diaphragme remonte passivement. ; Le poumon droit comprend 3 lobes pulmonaires (supérieur, moyen, inférieur) et le poumon gauche 2 lobes (supérieur, inférieur)..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:5_choice4",
+            "texte": "Le poumon droit comprend 3 lobes pulmonaires (supérieur, moyen, inférieur) et le poumon gauche 2 lobes (supérieur, inférieur).",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Le poumon droit comprend 3 lobes pulmonaires (supérieur, moyen, inférieur) et le poumon gauche 2 lobes (supérieur, inférieur). » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : L’innervation du diaphragme se fait par les nerfs phréniques dont l’origine est cervicale. ; En expiration, le diaphragme remonte passivement. ; Le poumon droit comprend 3 lobes pulmonaires (supérieur, moyen, inférieur) et le poumon gauche 2 lobes (supérieur, inférieur).. partie centrale du diaphragme est tendineux ; le hile pulmonaire contient deux veines pulmonaires).",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816433-6",
+        "type_question": "QRU",
+        "enonce": "Les 5 stades de développement de l’appareil respiratoire sont dans l’ordre chronologique ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816433:6_answer0",
+            "texte": "Stade embryonnaire, stade pseudo-glandulaire, stade sacculaire, stade canaliculaire, stade alvéolaire",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Stade embryonnaire, stade pseudo-glandulaire, stade sacculaire, stade canaliculaire, stade alvéolaire » n’est pas retenu ici. Les réponses attendues sont : Stade embryonnaire, stade pseudo-glandulaire, stade canaliculaire, stade sacculaire, stade alvéolaire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:6_answer1",
+            "texte": "Stade pseudo-glandulaire, stade embryonnaire, stade sacculaire, stade canaliculaire, stade alvéolaire",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Stade pseudo-glandulaire, stade embryonnaire, stade sacculaire, stade canaliculaire, stade alvéolaire » n’est pas retenu ici. Les réponses attendues sont : Stade embryonnaire, stade pseudo-glandulaire, stade canaliculaire, stade sacculaire, stade alvéolaire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:6_answer2",
+            "texte": "Stade embryonnaire, stade pseudo-glandulaire, stade canaliculaire, stade sacculaire, stade alvéolaire",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Stade embryonnaire, stade pseudo-glandulaire, stade canaliculaire, stade sacculaire, stade alvéolaire » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:6_answer3",
+            "texte": "Stade alvéolaire, stade pseudo-glandulaire, stade sacculaire, stade canaliculaire, stade embryonnaire",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Stade alvéolaire, stade pseudo-glandulaire, stade sacculaire, stade canaliculaire, stade embryonnaire » n’est pas retenu ici. Les réponses attendues sont : Stade embryonnaire, stade pseudo-glandulaire, stade canaliculaire, stade sacculaire, stade alvéolaire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:6_answer4",
+            "texte": "Stade pseudo-glandulaire, stade embryonnaire, stade canaliculaire, stade sacculaire, stade alvéolaire",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Stade pseudo-glandulaire, stade embryonnaire, stade canaliculaire, stade sacculaire, stade alvéolaire » n’est pas retenu ici. Les réponses attendues sont : Stade embryonnaire, stade pseudo-glandulaire, stade canaliculaire, stade sacculaire, stade alvéolaire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Stade embryonnaire, stade pseudo-glandulaire, stade canaliculaire, stade sacculaire, stade alvéolaire.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816433-7",
+        "type_question": "QRM",
+        "enonce": "Concernant le développement de la tuberculose maladie, quels sont les facteurs favorisant ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816433:7_choice0",
+            "texte": "Les âges extrêmes",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Les âges extrêmes » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:7_choice1",
+            "texte": "La précarité",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « La précarité » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:7_choice2",
+            "texte": "L'asthme",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « L'asthme » n’est pas retenu ici. Les réponses attendues sont : Les âges extrêmes ; La précarité ; La dénutrition.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:7_choice3",
+            "texte": "La dénutrition",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « La dénutrition » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:7_choice4",
+            "texte": "L’obésité",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « L’obésité » n’est pas retenu ici. Les réponses attendues sont : Les âges extrêmes ; La précarité ; La dénutrition.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Les âges extrêmes ; La précarité ; La dénutrition.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816433-8",
+        "type_question": "QRM",
+        "enonce": "Un patient de 50 ans consulte aux urgences pour des crachats de sang à la suite d’un effort de toux spontanée de plus de 250 cc :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816433:8_choice0",
+            "texte": "Il s’agit d’une hémoptysie de grande abondance.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Il s’agit d’une hémoptysie de grande abondance. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:8_choice1",
+            "texte": "Il s’agit d’une hématémèse de grande abondance.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Il s’agit d’une hématémèse de grande abondance. » n’est pas retenu ici. Les réponses attendues sont : Il s’agit d’une hémoptysie de grande abondance. ; Le scanner thoracique injecté est indispensable à la prise en charge. ; La tuberculose peut être une cause de ce symptôme. ; Le cancer broncho-pulmonaire peut être une cause de ce symptôme..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:8_choice2",
+            "texte": "Le scanner thoracique injecté est indispensable à la prise en charge.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Le scanner thoracique injecté est indispensable à la prise en charge. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:8_choice3",
+            "texte": "La tuberculose peut être une cause de ce symptôme.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « La tuberculose peut être une cause de ce symptôme. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:8_choice4",
+            "texte": "Le cancer broncho-pulmonaire peut être une cause de ce symptôme.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Le cancer broncho-pulmonaire peut être une cause de ce symptôme. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Il s’agit d’une hémoptysie de grande abondance. ; Le scanner thoracique injecté est indispensable à la prise en charge. ; La tuberculose peut être une cause de ce symptôme. ; Le cancer broncho-pulmonaire peut être une cause de ce symptôme..",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816433-9",
+        "type_question": "QRM",
+        "enonce": "Quels sont les principes de prise en charge de la pneumopathie du sujet jeune sans signe de gravité ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816433:9_choice0",
+            "texte": "Prise en charge urgente",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Prise en charge urgente » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:9_choice1",
+            "texte": "Prise en charge ambulatoire",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Prise en charge ambulatoire » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:9_choice2",
+            "texte": "Radiographie thoracique systématique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Radiographie thoracique systématique » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:9_choice3",
+            "texte": "Isolement aérien",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Isolement aérien » n’est pas retenu ici. Les réponses attendues sont : Prise en charge urgente ; Prise en charge ambulatoire ; Radiographie thoracique systématique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:9_choice4",
+            "texte": "Antibiothérapie après réception des résultats de l’ECBC",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Antibiothérapie après réception des résultats de l’ECBC » n’est pas retenu ici. Les réponses attendues sont : Prise en charge urgente ; Prise en charge ambulatoire ; Radiographie thoracique systématique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Prise en charge urgente ; Prise en charge ambulatoire ; Radiographie thoracique systématique.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816433-10",
+        "type_question": "QRM",
+        "enonce": "Donnez la(les) réponse(s) vraie(s) :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816433:10_choice0",
+            "texte": "La fièvre est systématique en cas de bronchite infectieuse.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « La fièvre est systématique en cas de bronchite infectieuse. » n’est pas retenu ici. Les réponses attendues sont : En cas de bronchite, l’absence d’antibiothérapie est la règle chez le sujet sain. ; Une pneumonie à Legionella Spp nécessite une déclaration obligatoire à l’ARS. ; Une pneumonie à Pneumocoque peut être compliquée d’un épanchement parapneumonique..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:10_choice1",
+            "texte": "En cas de bronchite, l’absence d’antibiothérapie est la règle chez le sujet sain.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « En cas de bronchite, l’absence d’antibiothérapie est la règle chez le sujet sain. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:10_choice2",
+            "texte": "Une pneumonie à Legionella Spp doit être traitée par Amoxicilline.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Une pneumonie à Legionella Spp doit être traitée par Amoxicilline. » n’est pas retenu ici. Les réponses attendues sont : En cas de bronchite, l’absence d’antibiothérapie est la règle chez le sujet sain. ; Une pneumonie à Legionella Spp nécessite une déclaration obligatoire à l’ARS. ; Une pneumonie à Pneumocoque peut être compliquée d’un épanchement parapneumonique..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:10_choice3",
+            "texte": "Une pneumonie à Legionella Spp nécessite une déclaration obligatoire à l’ARS.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Une pneumonie à Legionella Spp nécessite une déclaration obligatoire à l’ARS. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:10_choice4",
+            "texte": "Une pneumonie à Pneumocoque peut être compliquée d’un épanchement parapneumonique.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Une pneumonie à Pneumocoque peut être compliquée d’un épanchement parapneumonique. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : En cas de bronchite, l’absence d’antibiothérapie est la règle chez le sujet sain. ; Une pneumonie à Legionella Spp nécessite une déclaration obligatoire à l’ARS. ; Une pneumonie à Pneumocoque peut être compliquée d’un épanchement parapneumonique..",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816433-11",
+        "type_question": "QRM",
+        "enonce": "Dans l’alcalose métabolique, on retrouve ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816433:11_choice0",
+            "texte": "Un pH bas",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Un pH bas » n’est pas retenu ici. Les réponses attendues sont : Des bicarbonates augmentés ; Un pH > 7, 4.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:11_choice1",
+            "texte": "Des bicarbonates augmentés",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Des bicarbonates augmentés » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:11_choice2",
+            "texte": "Une PCO2 abaissée",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Une PCO2 abaissée » n’est pas retenu ici. Les réponses attendues sont : Des bicarbonates augmentés ; Un pH > 7, 4.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:11_choice3",
+            "texte": "Des bicarbonates abaissés",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Des bicarbonates abaissés » n’est pas retenu ici. Les réponses attendues sont : Des bicarbonates augmentés ; Un pH > 7, 4.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:11_choice4",
+            "texte": "Un pH > 7, 4",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Un pH > 7, 4 » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Des bicarbonates augmentés ; Un pH > 7, 4.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816433-12",
+        "type_question": "QRM",
+        "enonce": "Concernant la tuberculose pulmonaire commune, quels sont les signes cliniques évocateurs ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816433:12_choice0",
+            "texte": "Une altération de l’état général progressive",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Une altération de l’état général progressive » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:12_choice1",
+            "texte": "Une fébricule à prédominance nocturne",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Une fébricule à prédominance nocturne » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:12_choice2",
+            "texte": "Une fièvre élevée",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Une fièvre élevée » n’est pas retenu ici. Les réponses attendues sont : Une altération de l’état général progressive ; Une fébricule à prédominance nocturne ; Des crachats hémoptoïques.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:12_choice3",
+            "texte": "Des crachats hémoptoïques",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Des crachats hémoptoïques » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:12_choice4",
+            "texte": "Une douleur latéro-thoracique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Une douleur latéro-thoracique » n’est pas retenu ici. Les réponses attendues sont : Une altération de l’état général progressive ; Une fébricule à prédominance nocturne ; Des crachats hémoptoïques.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Une altération de l’état général progressive ; Une fébricule à prédominance nocturne ; Des crachats hémoptoïques.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816433-13",
+        "type_question": "QRM",
+        "enonce": "Quelles sont les anomalies pouvant être retrouvées sur la radiographie thoracique d’une pneumopathie aiguë communautaire ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816433:13_choice0",
+            "texte": "Opacité alvéolaire systématisée",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Opacité alvéolaire systématisée » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:13_choice1",
+            "texte": "Opacités alvéolo-interstitielles péri-hilaires",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Opacités alvéolo-interstitielles péri-hilaires » n’est pas retenu ici. Les réponses attendues sont : Opacité alvéolaire systématisée ; Opacités infiltratives non systématisées ; Epanchement pleural ; Aucune.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:13_choice2",
+            "texte": "Opacités infiltratives non systématisées",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Opacités infiltratives non systématisées » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:13_choice3",
+            "texte": "Epanchement pleural",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Epanchement pleural » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:13_choice4",
+            "texte": "Cardiomégalie",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Cardiomégalie » n’est pas retenu ici. Les réponses attendues sont : Opacité alvéolaire systématisée ; Opacités infiltratives non systématisées ; Epanchement pleural ; Aucune.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:13_choice5",
+            "texte": "Aucune",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Aucune » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Opacité alvéolaire systématisée ; Opacités infiltratives non systématisées ; Epanchement pleural ; Aucune.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816433-14",
+        "type_question": "QRM",
+        "enonce": "Concernant la radiographie thoracique de face :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816433:14_choice0",
+            "texte": "Un pneumothorax radiographique est caractérisé par une hyperclarté avasculaire périphérique.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Un pneumothorax radiographique est caractérisé par une hyperclarté avasculaire périphérique. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:14_choice1",
+            "texte": "L’arc médiastinal moyen gauche radiographique correspond anatomiquement à la veine cave supérieure.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « L’arc médiastinal moyen gauche radiographique correspond anatomiquement à la veine cave supérieure. » n’est pas retenu ici. Les réponses attendues sont : Un pneumothorax radiographique est caractérisé par une hyperclarté avasculaire périphérique. ; Le syndrome alvéolaire est caractérisé par la présence d’un bronchogramme aérique au sein d’une opacité. ; Dans le médiastin, 2 opacités de même densité au contact l’une de l’autre et effaçant leurs bords respectifs sont dans le même plan..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:14_choice2",
+            "texte": "Le syndrome alvéolaire est caractérisé par la présence d’un bronchogramme aérique au sein d’une opacité.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Le syndrome alvéolaire est caractérisé par la présence d’un bronchogramme aérique au sein d’une opacité. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:14_choice3",
+            "texte": "Dans le médiastin, 2 opacités de même densité au contact l’une de l’autre et effaçant leurs bords respectifs sont dans le même plan.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Dans le médiastin, 2 opacités de même densité au contact l’une de l’autre et effaçant leurs bords respectifs sont dans le même plan. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:14_choice4",
+            "texte": "L’appréciation de la réalisation d’une radiographie de face en inspiration profonde se fait sur la présence visible de la poche à air gastrique.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « L’appréciation de la réalisation d’une radiographie de face en inspiration profonde se fait sur la présence visible de la poche à air gastrique. » n’est pas retenu ici. Les réponses attendues sont : Un pneumothorax radiographique est caractérisé par une hyperclarté avasculaire périphérique. ; Le syndrome alvéolaire est caractérisé par la présence d’un bronchogramme aérique au sein d’une opacité. ; Dans le médiastin, 2 opacités de même densité au contact l’une de l’autre et effaçant leurs bords respectifs sont dans le même plan..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Un pneumothorax radiographique est caractérisé par une hyperclarté avasculaire périphérique. ; Le syndrome alvéolaire est caractérisé par la présence d’un bronchogramme aérique au sein d’une opacité. ; Dans le médiastin, 2 opacités de même densité au contact l’une de l’autre et effaçant leurs bords respectifs sont dans le même plan..",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816433-15",
+        "type_question": "QRM",
+        "enonce": "Quel(s) facteur(s) détermine(nt) la compliance des voies aériennes ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816433:15_choice0",
+            "texte": "La fréquence respiratoire",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « La fréquence respiratoire » n’est pas retenu ici. Les réponses attendues sont : Les structures musculaires et osseuses de la cage thoracique ; Le parenchyme pulmonaire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:15_choice1",
+            "texte": "Les structures musculaires et osseuses de la cage thoracique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Les structures musculaires et osseuses de la cage thoracique » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:15_choice2",
+            "texte": "La compression dynamique des voies aériennes",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « La compression dynamique des voies aériennes » n’est pas retenu ici. Les réponses attendues sont : Les structures musculaires et osseuses de la cage thoracique ; Le parenchyme pulmonaire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:15_choice3",
+            "texte": "Le parenchyme pulmonaire",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Le parenchyme pulmonaire » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:15_choice4",
+            "texte": "Le muscle lisse bronchique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Le muscle lisse bronchique » n’est pas retenu ici. Les réponses attendues sont : Les structures musculaires et osseuses de la cage thoracique ; Le parenchyme pulmonaire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Les structures musculaires et osseuses de la cage thoracique ; Le parenchyme pulmonaire.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816433-16",
+        "type_question": "QRM",
+        "enonce": "Concernant la tuberculose :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816433:16_choice0",
+            "texte": "C’est une maladie infectieuse transmissible.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « C’est une maladie infectieuse transmissible. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:16_choice1",
+            "texte": "C’est une infection à déclaration obligatoire.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « C’est une infection à déclaration obligatoire. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:16_choice2",
+            "texte": "Il n’existe pas de forme latente de l’infection.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Il n’existe pas de forme latente de l’infection. » n’est pas retenu ici. Les réponses attendues sont : C’est une maladie infectieuse transmissible. ; C’est une infection à déclaration obligatoire..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:16_choice3",
+            "texte": "Les principales localisations sont digestives.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Les principales localisations sont digestives. » n’est pas retenu ici. Les réponses attendues sont : C’est une maladie infectieuse transmissible. ; C’est une infection à déclaration obligatoire..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:16_choice4",
+            "texte": "Aucune des propositions n’est vraie",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Aucune des propositions n’est vraie » n’est pas retenu ici. Les réponses attendues sont : C’est une maladie infectieuse transmissible. ; C’est une infection à déclaration obligatoire..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : C’est une maladie infectieuse transmissible. ; C’est une infection à déclaration obligatoire..",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816433-17",
+        "type_question": "QRM",
+        "enonce": "Concernant les pneumopathies interstitielles diffuse lors d’exploration fonctionnelle respiratoire :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816433:17_choice0",
+            "texte": "On peut retrouver un trouble ventilatoire, restrictif pur.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « On peut retrouver un trouble ventilatoire, restrictif pur. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:17_choice1",
+            "texte": "Un syndrome obstructif est toujours présent.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Un syndrome obstructif est toujours présent. » n’est pas retenu ici. Les réponses attendues sont : On peut retrouver un trouble ventilatoire, restrictif pur. ; La diffusion du monoxyde de carbone (DLCO) peut être abaissée. ; Elles peuvent être normales..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:17_choice2",
+            "texte": "La diffusion du monoxyde de carbone (DLCO) peut être abaissée.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « La diffusion du monoxyde de carbone (DLCO) peut être abaissée. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:17_choice3",
+            "texte": "Elles peuvent être normales.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Elles peuvent être normales. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816433:17_choice4",
+            "texte": "Aucune des propositions n'est vraie.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Aucune des propositions n'est vraie. » n’est pas retenu ici. Les réponses attendues sont : On peut retrouver un trouble ventilatoire, restrictif pur. ; La diffusion du monoxyde de carbone (DLCO) peut être abaissée. ; Elles peuvent être normales..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : On peut retrouver un trouble ventilatoire, restrictif pur. ; La diffusion du monoxyde de carbone (DLCO) peut être abaissée. ; Elles peuvent être normales..",
+        "statut_verification": "validee"
+      }
+    ]
+  },
+  {
+    "quiz_title": "SQI2\nTest",
+    "questions": [
+      {
+        "id": "question-16816435-1",
+        "type_question": "QRM",
+        "enonce": "Le traitement de la crise d’asthme :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816435:1_choice0",
+            "texte": "repose sur des bétabloquants.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « repose sur des bétabloquants. » n’est pas retenu ici. Les réponses attendues sont : repose sur des bêta-2-agonistes..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816435:1_choice1",
+            "texte": "repose sur des bêta-2-agonistes.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « repose sur des bêta-2-agonistes. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816435:1_choice2",
+            "texte": "repose sur des anti-inflammatoires non-stéroïdiens.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « repose sur des anti-inflammatoires non-stéroïdiens. » n’est pas retenu ici. Les réponses attendues sont : repose sur des bêta-2-agonistes..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816435:1_choice3",
+            "texte": "repose sur des agonistes du récepteurs aux leucotriènes.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « repose sur des agonistes du récepteurs aux leucotriènes. » n’est pas retenu ici. Les réponses attendues sont : repose sur des bêta-2-agonistes..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816435:1_choice4",
+            "texte": "repose sur des methylxanthines inhalées.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « repose sur des methylxanthines inhalées. » n’est pas retenu ici. Les réponses attendues sont : repose sur des bêta-2-agonistes..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : repose sur des bêta-2-agonistes..",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816435-2",
+        "type_question": "QRM",
+        "enonce": "A propos des médicaments bronchodilatateurs, on retrouve :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816435:2_choice0",
+            "texte": "Des sympathomimétiques",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Des sympathomimétiques » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816435:2_choice1",
+            "texte": "Des sympatholytiques",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Des sympatholytiques » n’est pas retenu ici. Les réponses attendues sont : Des sympathomimétiques ; Des parasympatholytiques ; Des inhibiteurs des phosphodiesterases.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816435:2_choice2",
+            "texte": "Des parasympathomimétiques",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Des parasympathomimétiques » n’est pas retenu ici. Les réponses attendues sont : Des sympathomimétiques ; Des parasympatholytiques ; Des inhibiteurs des phosphodiesterases.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816435:2_choice3",
+            "texte": "Des parasympatholytiques",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Des parasympatholytiques » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816435:2_choice4",
+            "texte": "Des inhibiteurs des phosphodiesterases",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Des inhibiteurs des phosphodiesterases » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Des sympathomimétiques ; Des parasympatholytiques ; Des inhibiteurs des phosphodiesterases.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816435-3",
+        "type_question": "QRM",
+        "enonce": "Le traitement de fond de l’asthme :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816435:3_choice0",
+            "texte": "repose sur la mise en place de paliers d’intensité croissante adaptés selon sévérité de l’asthme.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « repose sur la mise en place de paliers d’intensité croissante adaptés selon sévérité de l’asthme. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816435:3_choice1",
+            "texte": "repose sur l'utilisation d'hormones stéroïdiennes substitutives.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « repose sur l'utilisation d'hormones stéroïdiennes substitutives. » n’est pas retenu ici. Les réponses attendues sont : repose sur la mise en place de paliers d’intensité croissante adaptés selon sévérité de l’asthme. ; implique la suppression de l'exposition aux facteurs d’aggravations..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816435:3_choice2",
+            "texte": "repose sur l'utilisation d'hormones stéroïdiennes substitutives.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « repose sur l'utilisation d'hormones stéroïdiennes substitutives. » n’est pas retenu ici. Les réponses attendues sont : repose sur la mise en place de paliers d’intensité croissante adaptés selon sévérité de l’asthme. ; implique la suppression de l'exposition aux facteurs d’aggravations..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816435:3_choice3",
+            "texte": "implique la suppression de l'exposition aux facteurs d’aggravations.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « implique la suppression de l'exposition aux facteurs d’aggravations. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816435:3_choice4",
+            "texte": "repose sur l'association de traitements anti-inflammatoires inhalés et de bronchoconstricteurs.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « repose sur l'association de traitements anti-inflammatoires inhalés et de bronchoconstricteurs. » n’est pas retenu ici. Les réponses attendues sont : repose sur la mise en place de paliers d’intensité croissante adaptés selon sévérité de l’asthme. ; implique la suppression de l'exposition aux facteurs d’aggravations..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : repose sur la mise en place de paliers d’intensité croissante adaptés selon sévérité de l’asthme. ; implique la suppression de l'exposition aux facteurs d’aggravations..",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816435-4",
+        "type_question": "QRM",
+        "enonce": "A propos des bêta-2 mimétiques :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816435:4_choice0",
+            "texte": "Ce sont des agonistes des récepteurs bêta-2 adrénergiques.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Ce sont des agonistes des récepteurs bêta-2 adrénergiques. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816435:4_choice1",
+            "texte": "Le formeterol est un médicament inhalé à courte durée d'action.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Le formeterol est un médicament inhalé à courte durée d'action. » n’est pas retenu ici. Les réponses attendues sont : Ce sont des agonistes des récepteurs bêta-2 adrénergiques. ; Leurs récepteurs β2 sont exprimés dans le muscle lisse bronchique. ; Ils induisent une relaxation musculaire dans un délais de 1 à 15 minutes après prise inhalée..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816435:4_choice2",
+            "texte": "Le salbutamol est un médicament inhalé à longue durée d'action.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Le salbutamol est un médicament inhalé à longue durée d'action. » n’est pas retenu ici. Les réponses attendues sont : Ce sont des agonistes des récepteurs bêta-2 adrénergiques. ; Leurs récepteurs β2 sont exprimés dans le muscle lisse bronchique. ; Ils induisent une relaxation musculaire dans un délais de 1 à 15 minutes après prise inhalée..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816435:4_choice3",
+            "texte": "Leurs récepteurs β2 sont exprimés dans le muscle lisse bronchique.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Leurs récepteurs β2 sont exprimés dans le muscle lisse bronchique. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816435:4_choice4",
+            "texte": "Ils induisent une relaxation musculaire dans un délais de 1 à 15 minutes après prise inhalée.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Ils induisent une relaxation musculaire dans un délais de 1 à 15 minutes après prise inhalée. » est retenu dans cette situation. Cette proposition correspond à l’élément diagnostique, physiopathologique ou thérapeutique attendu.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Ce sont des agonistes des récepteurs bêta-2 adrénergiques. ; Leurs récepteurs β2 sont exprimés dans le muscle lisse bronchique. ; Ils induisent une relaxation musculaire dans un délais de 1 à 15 minutes après prise inhalée..",
+        "statut_verification": "validee"
+      }
+    ]
+  }
+]

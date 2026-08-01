@@ -1,0 +1,2623 @@
+[
+  {
+    "quiz_title": "DP1\nTest",
+    "questions": [
+      {
+        "id": "question-16816440-2",
+        "type_question": "DP",
+        "enonce": "A l'examen clinique, vous notez les lésions cutanées suivantes (photo ci-dessous). Quel diagnostic évoquez vous ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816440:2_answer0",
+            "texte": "Un pemphigus",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Un pemphigus » n’est pas retenu ici. Les réponses attendues sont : Une pemphigoïde bulleuse.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816440:2_answer1",
+            "texte": "Une épidermolyse staphyloccocique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Une épidermolyse staphyloccocique » n’est pas retenu ici. Les réponses attendues sont : Une pemphigoïde bulleuse.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816440:2_answer2",
+            "texte": "Un syndrome de Lyell",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Un syndrome de Lyell » n’est pas retenu ici. Les réponses attendues sont : Une pemphigoïde bulleuse.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816440:2_answer3",
+            "texte": "Une pemphigoïde bulleuse",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Une pemphigoïde bulleuse » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816440:2_answer4",
+            "texte": "Un eczéma",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Un eczéma » n’est pas retenu ici. Les réponses attendues sont : Une pemphigoïde bulleuse.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [
+          {
+            "filename": "uness-20260731T170432Z/images/dp1-test-question-16816440-2-1.webp",
+            "accessible_ia": true,
+            "type": "photo dermatologique"
+          }
+        ],
+        "correction_globale": "Réponses officiellement exactes : Une pemphigoïde bulleuse. rang A",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816440-3",
+        "type_question": "DP",
+        "enonce": "Quels sont les signes cliniques associés à ce diagnostic ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816440:3_choice0",
+            "texte": "Un prurit cutané",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Un prurit cutané » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816440:3_choice1",
+            "texte": "Un signe de Nikolsky positif",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Un signe de Nikolsky positif » n’est pas retenu ici. Les réponses attendues sont : Un prurit cutané ; Des plaques urticariennes ; Des bulles tendues de grande taille.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816440:3_choice2",
+            "texte": "Une atteinte muqueuse systématique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Une atteinte muqueuse systématique » n’est pas retenu ici. Les réponses attendues sont : Un prurit cutané ; Des plaques urticariennes ; Des bulles tendues de grande taille.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816440:3_choice3",
+            "texte": "Des plaques urticariennes",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Des plaques urticariennes » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816440:3_choice4",
+            "texte": "Des bulles tendues de grande taille",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Des bulles tendues de grande taille » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Un prurit cutané ; Des plaques urticariennes ; Des bulles tendues de grande taille. rang A",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816440-4",
+        "type_question": "DP",
+        "enonce": "Quel(s) examen(s) complémentaire(s) proposez-vous ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816440:4_choice0",
+            "texte": "A. Une biopsie cutanée pour analyse histologique standard et immunofluorescence directe.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « A. Une biopsie cutanée pour analyse histologique standard et immunofluorescence directe. » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816440:4_choice1",
+            "texte": "Un écouvillon mycologique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Un écouvillon mycologique » n’est pas retenu ici. Les réponses attendues sont : A. Une biopsie cutanée pour analyse histologique standard et immunofluorescence directe. ; Une NFS ; Un dosage des anticorps anti-membrane basale.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816440:4_choice2",
+            "texte": "Une NFS",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Une NFS » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816440:4_choice3",
+            "texte": "Un dosage des anticorps anti-membrane basale",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Un dosage des anticorps anti-membrane basale » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816440:4_choice4",
+            "texte": "Un dosage des anticorps anti-desmogléine 1 et 3",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Un dosage des anticorps anti-desmogléine 1 et 3 » n’est pas retenu ici. Les réponses attendues sont : A. Une biopsie cutanée pour analyse histologique standard et immunofluorescence directe. ; Une NFS ; Un dosage des anticorps anti-membrane basale.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : A. Une biopsie cutanée pour analyse histologique standard et immunofluorescence directe. ; Une NFS ; Un dosage des anticorps anti-membrane basale. rang AB",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816440-5",
+        "type_question": "DP",
+        "enonce": "Parmi les propositions suivantes concernant notre patiente, quelles sont les affirmations exactes ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816440:5_choice0",
+            "texte": "L'histologie standard montre une bulle intra-épidermique par détachement des kératinocytes entre eux.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « L'histologie standard montre une bulle intra-épidermique par détachement des kératinocytes entre eux. » n’est pas retenu ici. Les réponses attendues sont : L'histologie standard montre une bulle sous-épidermique par clivage entre le derme et l'épiderme. ; L'examen en immunofluorescence directe de la biopsie cutanée montre un dépôt linéaire au niveau de la jonction dermo-épidermique..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816440:5_choice1",
+            "texte": "L'histologie standard montre une bulle sous-épidermique par clivage entre le derme et l'épiderme.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « L'histologie standard montre une bulle sous-épidermique par clivage entre le derme et l'épiderme. » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816440:5_choice2",
+            "texte": "L'examen en immunofluorescence directe de la biopsie cutanée montre un dépôt linéaire intra-épidermique.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « L'examen en immunofluorescence directe de la biopsie cutanée montre un dépôt linéaire intra-épidermique. » n’est pas retenu ici. Les réponses attendues sont : L'histologie standard montre une bulle sous-épidermique par clivage entre le derme et l'épiderme. ; L'examen en immunofluorescence directe de la biopsie cutanée montre un dépôt linéaire au niveau de la jonction dermo-épidermique..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816440:5_choice3",
+            "texte": "L'examen en immunofluorescence directe de la biopsie cutanée montre un dépôt linéaire au niveau de la jonction dermo-épidermique.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « L'examen en immunofluorescence directe de la biopsie cutanée montre un dépôt linéaire au niveau de la jonction dermo-épidermique. » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816440:5_choice4",
+            "texte": "L'examen en immunofluorescence directe de la biopsie cutanée montre un aspect en maille de filet interkératinocytaire.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « L'examen en immunofluorescence directe de la biopsie cutanée montre un aspect en maille de filet interkératinocytaire. » n’est pas retenu ici. Les réponses attendues sont : L'histologie standard montre une bulle sous-épidermique par clivage entre le derme et l'épiderme. ; L'examen en immunofluorescence directe de la biopsie cutanée montre un dépôt linéaire au niveau de la jonction dermo-épidermique..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : L'histologie standard montre une bulle sous-épidermique par clivage entre le derme et l'épiderme. ; L'examen en immunofluorescence directe de la biopsie cutanée montre un dépôt linéaire au niveau de la jonction dermo-épidermique.. rang A",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816440-6",
+        "type_question": "DP",
+        "enonce": "Concernant la réalisation de biopsie cutanée :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816440:6_choice0",
+            "texte": "Pour une pathologie bulleuse, réaliser la biopsie entièrement au sein de la bulle",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Pour une pathologie bulleuse, réaliser la biopsie entièrement au sein de la bulle » n’est pas retenu ici. Les réponses attendues sont : Dans la mesure du possible, il faut réaliser une biopsie avec un punch de bon diamètre, idéalement 4 mm. ; Si l’on utilise un patch d’emla avant de réaliser la biopsie, il faut  mentionner son utilisation au pathologiste du fait de possibles modifications histologiques provoquées. ; Lors de l’anesthésie cutanée, associer de la lidocaïne à de l’adrénaline permet de diminuer le saignement local..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816440:6_choice1",
+            "texte": "Pour l’étude des lésions hypodermiques, il faut privilégier la biopsie au punch plutôt qu’au bistouri.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Pour l’étude des lésions hypodermiques, il faut privilégier la biopsie au punch plutôt qu’au bistouri. » n’est pas retenu ici. Les réponses attendues sont : Dans la mesure du possible, il faut réaliser une biopsie avec un punch de bon diamètre, idéalement 4 mm. ; Si l’on utilise un patch d’emla avant de réaliser la biopsie, il faut  mentionner son utilisation au pathologiste du fait de possibles modifications histologiques provoquées. ; Lors de l’anesthésie cutanée, associer de la lidocaïne à de l’adrénaline permet de diminuer le saignement local..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816440:6_choice2",
+            "texte": "Dans la mesure du possible, il faut réaliser une biopsie avec un punch de bon diamètre, idéalement 4 mm.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Dans la mesure du possible, il faut réaliser une biopsie avec un punch de bon diamètre, idéalement 4 mm. » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816440:6_choice3",
+            "texte": "Si l’on utilise un patch d’emla avant de réaliser la biopsie, il faut  mentionner son utilisation au pathologiste du fait de possibles modifications histologiques provoquées.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Si l’on utilise un patch d’emla avant de réaliser la biopsie, il faut  mentionner son utilisation au pathologiste du fait de possibles modifications histologiques provoquées. » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816440:6_choice4",
+            "texte": "Lors de l’anesthésie cutanée, associer de la lidocaïne à de l’adrénaline permet de diminuer le saignement local.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Lors de l’anesthésie cutanée, associer de la lidocaïne à de l’adrénaline permet de diminuer le saignement local. » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Dans la mesure du possible, il faut réaliser une biopsie avec un punch de bon diamètre, idéalement 4 mm. ; Si l’on utilise un patch d’emla avant de réaliser la biopsie, il faut  mentionner son utilisation au pathologiste du fait de possibles modifications histologiques provoquées. ; Lors de l’anesthésie cutanée, associer de la lidocaïne à de l’adrénaline permet de diminuer le saignement local..",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816440-7",
+        "type_question": "DP",
+        "enonce": "En cas d'atteinte de plus de 50% de la surface corporelle, quelle serait votre prise en charge thérapeutique pour cette patiente ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816440:7_choice0",
+            "texte": "Il ne s'agit pas d'une maladie grave, aucun traitement n'est nécessaire en dehors d'émollient",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Il ne s'agit pas d'une maladie grave, aucun traitement n'est nécessaire en dehors d'émollient » n’est pas retenu ici. Les réponses attendues sont : Corticothérapie locale forte ; Hydratation pour compenser les pertes hydro-électrolytiques ; Correction d'une éventuelle dénutrition.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816440:7_choice1",
+            "texte": "Corticothérapie locale forte",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Corticothérapie locale forte » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816440:7_choice2",
+            "texte": "Hydratation pour compenser les pertes hydro-électrolytiques",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Hydratation pour compenser les pertes hydro-électrolytiques » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816440:7_choice3",
+            "texte": "Antibiothérapie par amoxicilline",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Antibiothérapie par amoxicilline » n’est pas retenu ici. Les réponses attendues sont : Corticothérapie locale forte ; Hydratation pour compenser les pertes hydro-électrolytiques ; Correction d'une éventuelle dénutrition.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816440:7_choice4",
+            "texte": "Correction d'une éventuelle dénutrition",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Correction d'une éventuelle dénutrition » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Corticothérapie locale forte ; Hydratation pour compenser les pertes hydro-électrolytiques ; Correction d'une éventuelle dénutrition. rang A",
+        "statut_verification": "validee"
+      }
+    ]
+  },
+  {
+    "quiz_title": "DP2\nTest",
+    "questions": [
+      {
+        "id": "question-16816442-2",
+        "type_question": "DP",
+        "enonce": "D'après les données cliniques, vous évoquez comme diagnostic le plus probable :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816442:2_answer0",
+            "texte": "poussée d'eczéma",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « poussée d'eczéma » n’est pas retenu ici. Les réponses attendues sont : gale commune du nourrisson.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816442:2_answer1",
+            "texte": "gale commune du nourrisson",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « gale commune du nourrisson » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816442:2_answer2",
+            "texte": "prurigo",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « prurigo » n’est pas retenu ici. Les réponses attendues sont : gale commune du nourrisson.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816442:2_answer3",
+            "texte": "impétigo",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « impétigo » n’est pas retenu ici. Les réponses attendues sont : gale commune du nourrisson.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816442:2_answer4",
+            "texte": "molluscum contagiosum",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « molluscum contagiosum » n’est pas retenu ici. Les réponses attendues sont : gale commune du nourrisson.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : gale commune du nourrisson. rang A",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816442-3",
+        "type_question": "DP",
+        "enonce": "Quels sont les arguments en faveur du diagnostic de gale chez Joseph ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816442:3_choice0",
+            "texte": "la prédominance nocturne du prurit",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « la prédominance nocturne du prurit » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816442:3_choice1",
+            "texte": "le terrain atopique avec antécédents d’eczéma",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « le terrain atopique avec antécédents d’eczéma » n’est pas retenu ici. Les réponses attendues sont : la prédominance nocturne du prurit ; le prurit chez ses cousins ; la présence de sillons ; la présence de pustules plantaires.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816442:3_choice2",
+            "texte": "le prurit chez ses cousins",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « le prurit chez ses cousins » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816442:3_choice3",
+            "texte": "la présence de sillons",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « la présence de sillons » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816442:3_choice4",
+            "texte": "la présence de pustules plantaires",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « la présence de pustules plantaires » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : la prédominance nocturne du prurit ; le prurit chez ses cousins ; la présence de sillons ; la présence de pustules plantaires. rang A",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816442-4",
+        "type_question": "DP",
+        "enonce": "Quelle image montre des sillons scabieux ?",
+        "verification_status": "verified",
+        "propositions": [],
+        "media": [
+          {
+            "filename": "uness-20260731T170432Z/images/dp2-test-question-16816442-4-1.webp",
+            "accessible_ia": true,
+            "type": "photo dermatologique"
+          }
+        ],
+        "correction_globale": "Réponses officiellement exactes : aucune proposition identifiée.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816442-5",
+        "type_question": "DP",
+        "enonce": "Quel(s) examen(s) complémentaire(s) pourraient avoir un intérêt pour Joseph pour confirmer le diagnostic?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816442:5_choice0",
+            "texte": "une prise de sang avec NFS, glycémie, IgE totales",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « une prise de sang avec NFS, glycémie, IgE totales » n’est pas retenu ici. Les réponses attendues sont : un examen au dermoscope pour visualiser les sarcoptes.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816442:5_choice1",
+            "texte": "une sérologie VIH",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « une sérologie VIH » n’est pas retenu ici. Les réponses attendues sont : un examen au dermoscope pour visualiser les sarcoptes.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816442:5_choice2",
+            "texte": "un bilan complet d’infections sexuellement transmissibles",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « un bilan complet d’infections sexuellement transmissibles » n’est pas retenu ici. Les réponses attendues sont : un examen au dermoscope pour visualiser les sarcoptes.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816442:5_choice3",
+            "texte": "une biopsie cutanée",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « une biopsie cutanée » n’est pas retenu ici. Les réponses attendues sont : un examen au dermoscope pour visualiser les sarcoptes.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816442:5_choice4",
+            "texte": "un examen au dermoscope pour visualiser les sarcoptes",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « un examen au dermoscope pour visualiser les sarcoptes » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : un examen au dermoscope pour visualiser les sarcoptes.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816442-6",
+        "type_question": "DP",
+        "enonce": "En dehors de Joseph, depuis 1 semaine, son cousin Ryan et sa cousine Selma, depuis 6 semaines, personne d’autre n’a de prurit : ni son père, ni sa mère, ni son oncle, ni sa tante (les parents de Ryan et Selma). Vous prescrivez :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816442:6_answer0",
+            "texte": "aux enfants seulement, un traitement antiscabieux local à renouveler 8 jours plus tard",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « aux enfants seulement, un traitement antiscabieux local à renouveler 8 jours plus tard » n’est pas retenu ici. Les réponses attendues sont : à toutes les personnes présentes dans la maison, un traitement antiscabieux local à faire simultanément et renouveler 8 jours plus tard.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816442:6_answer1",
+            "texte": "aux enfants, un traitement antiscabieux local à renouveler 8 jours plus tard et aux 4 adultes, simultanément, une dose préventive unique de traitement antiscabieux oral",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « aux enfants, un traitement antiscabieux local à renouveler 8 jours plus tard et aux 4 adultes, simultanément, une dose préventive unique de traitement antiscabieux oral » n’est pas retenu ici. Les réponses attendues sont : à toutes les personnes présentes dans la maison, un traitement antiscabieux local à faire simultanément et renouveler 8 jours plus tard.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816442:6_answer2",
+            "texte": "à toutes les personnes présentes dans la maison, un traitement antiscabieux local à faire simultanément et renouveler 8 jours plus tard",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « à toutes les personnes présentes dans la maison, un traitement antiscabieux local à faire simultanément et renouveler 8 jours plus tard » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816442:6_answer3",
+            "texte": "un traitement antiscabieux local à faire immédiatement et renouveler 8 jours plus tard pour les enfants, et à ne faire qu’en cas de prurit pour les 4 adultes",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « un traitement antiscabieux local à faire immédiatement et renouveler 8 jours plus tard pour les enfants, et à ne faire qu’en cas de prurit pour les 4 adultes » n’est pas retenu ici. Les réponses attendues sont : à toutes les personnes présentes dans la maison, un traitement antiscabieux local à faire simultanément et renouveler 8 jours plus tard.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816442:6_answer4",
+            "texte": "tout est faux",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « tout est faux » n’est pas retenu ici. Les réponses attendues sont : à toutes les personnes présentes dans la maison, un traitement antiscabieux local à faire simultanément et renouveler 8 jours plus tard.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : à toutes les personnes présentes dans la maison, un traitement antiscabieux local à faire simultanément et renouveler 8 jours plus tard. rang A",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816442-7",
+        "type_question": "DP",
+        "enonce": "Grâce à votre traitement, tous les enfants ont guéri. Selma revient vous voir 6 mois plus tard car elle passe ses journées à se gratter la tête. Elle n’a pas osé retirer son bonnet en entrant dans votre cabinet, car elle a peur que cela déclenche une nouvelle crise de démangeaisons. Vous finissez par lui faire entendre raison. A l’examen clinique, vous constatez des lésions excoriées au niveau de la nuque, derrière les oreilles et au niveau du cuir chevelu. En soulevant quelques cheveux, vous apercevez des petits grains blancs accrochés à la tige pilaire. Quel élément de l’examen clinique vous permette de diagnostiquer avec certitude une pédiculose du cuir chevelu ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816442:7_answer0",
+            "texte": "des adénopathies cervicales",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « des adénopathies cervicales » n’est pas retenu ici. Les réponses attendues sont : la présence de poux mobiles à la racine des cheveux.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816442:7_answer1",
+            "texte": "un prurit diffus associé",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « un prurit diffus associé » n’est pas retenu ici. Les réponses attendues sont : la présence de poux mobiles à la racine des cheveux.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816442:7_answer2",
+            "texte": "la présence de poux mobiles à la racine des cheveux",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « la présence de poux mobiles à la racine des cheveux » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816442:7_answer3",
+            "texte": "la présence de lentes accrochées à la tige pilaire",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « la présence de lentes accrochées à la tige pilaire » n’est pas retenu ici. Les réponses attendues sont : la présence de poux mobiles à la racine des cheveux.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816442:7_answer4",
+            "texte": "un prurit dans l’entourage",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « un prurit dans l’entourage » n’est pas retenu ici. Les réponses attendues sont : la présence de poux mobiles à la racine des cheveux.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : la présence de poux mobiles à la racine des cheveux. rang A",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816442-8",
+        "type_question": "DP",
+        "enonce": "Quelles sont les affirmations exactes concernant la pédiculose du cuir chevelu?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816442:8_choice0",
+            "texte": "elle est due à une infection par Pediculus humanus var. capitis",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « elle est due à une infection par Pediculus humanus var. capitis » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816442:8_choice1",
+            "texte": "elle peut se transmettre de façon indirecte par les objets (peignes, bonnets…)",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « elle peut se transmettre de façon indirecte par les objets (peignes, bonnets…) » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816442:8_choice2",
+            "texte": "elle doit faire évoquer une maltraitance chez l’enfant",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « elle doit faire évoquer une maltraitance chez l’enfant » n’est pas retenu ici. Les réponses attendues sont : elle est due à une infection par Pediculus humanus var. capitis ; elle peut se transmettre de façon indirecte par les objets (peignes, bonnets…) ; les lentes vivantes sont collées au cheveu et ne coulissent pas le long de la tige pilaire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816442:8_choice3",
+            "texte": "elle est souvent associée à une gale",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « elle est souvent associée à une gale » n’est pas retenu ici. Les réponses attendues sont : elle est due à une infection par Pediculus humanus var. capitis ; elle peut se transmettre de façon indirecte par les objets (peignes, bonnets…) ; les lentes vivantes sont collées au cheveu et ne coulissent pas le long de la tige pilaire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816442:8_choice4",
+            "texte": "les lentes vivantes sont collées au cheveu et ne coulissent pas le long de la tige pilaire",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « les lentes vivantes sont collées au cheveu et ne coulissent pas le long de la tige pilaire » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : elle est due à une infection par Pediculus humanus var. capitis ; elle peut se transmettre de façon indirecte par les objets (peignes, bonnets…) ; les lentes vivantes sont collées au cheveu et ne coulissent pas le long de la tige pilaire. rang A",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816442-9",
+        "type_question": "DP",
+        "enonce": "Vous proposez comme traitement :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816442:9_choice0",
+            "texte": "un traitement local par un produit  pédiculicide en lotion",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « un traitement local par un produit  pédiculicide en lotion » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816442:9_choice1",
+            "texte": "un shampooing antiseptique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « un shampooing antiseptique » n’est pas retenu ici. Les réponses attendues sont : un traitement local par un produit  pédiculicide en lotion ; un deuxième traitement 7 à 10 jours plus tard.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816442:9_choice2",
+            "texte": "un lavage du linge à 60°c",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « un lavage du linge à 60°c » n’est pas retenu ici. Les réponses attendues sont : un traitement local par un produit  pédiculicide en lotion ; un deuxième traitement 7 à 10 jours plus tard.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816442:9_choice3",
+            "texte": "un rasage des cheveux",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « un rasage des cheveux » n’est pas retenu ici. Les réponses attendues sont : un traitement local par un produit  pédiculicide en lotion ; un deuxième traitement 7 à 10 jours plus tard.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816442:9_choice4",
+            "texte": "un deuxième traitement 7 à 10 jours plus tard",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « un deuxième traitement 7 à 10 jours plus tard » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : un traitement local par un produit  pédiculicide en lotion ; un deuxième traitement 7 à 10 jours plus tard.",
+        "statut_verification": "validee"
+      }
+    ]
+  },
+  {
+    "quiz_title": "mDP1\nTest",
+    "questions": [
+      {
+        "id": "question-16816446-1",
+        "type_question": "DP",
+        "enonce": "Vous recevez en consultation Julie, 30 mois, en bonne santé, accompagnée de sa mère. Elle n’a pas d’antécédent particulier. Sa mère est asthmatique. Elle se plaint de plaques prurigineuses dans les plis des coudes et poplités, apparues il y a quelques semaines. Elle ne rapporte aucun facteur déclenchant, en particulier pas d’application de topiques sur la peau. Quelles sont les propositions exactes ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816446:1_choice0",
+            "texte": "Vous évoquez dans un premier temps un eczéma allergique de contact.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Vous évoquez dans un premier temps un eczéma allergique de contact. » n’est pas retenu ici. Les réponses attendues sont : L’âge, la localisation et l’antécédent familial d’atopie vous orientent vers une dermatite atopique. ; L’altération de l’état cutané avec l’inflammation risque d’augmenter l’absorption des topiques appliquées. ; Un topique dermocorticoïde de classe très forte est indiqué en première intention..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816446:1_choice1",
+            "texte": "L’âge, la localisation et l’antécédent familial d’atopie vous orientent vers une dermatite atopique.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « L’âge, la localisation et l’antécédent familial d’atopie vous orientent vers une dermatite atopique. » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816446:1_choice2",
+            "texte": "L’altération de l’état cutané avec l’inflammation risque d’augmenter l’absorption des topiques appliquées.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « L’altération de l’état cutané avec l’inflammation risque d’augmenter l’absorption des topiques appliquées. » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816446:1_choice3",
+            "texte": "Un topique dermocorticoïde de classe très forte est indiqué en première intention.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Un topique dermocorticoïde de classe très forte est indiqué en première intention. » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816446:1_choice4",
+            "texte": "Vous n’appliquez pas les dermocorticoïdes plus de 2 semaines à cause du risque d’atrophie et de surdosage.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Vous n’appliquez pas les dermocorticoïdes plus de 2 semaines à cause du risque d’atrophie et de surdosage. » n’est pas retenu ici. Les réponses attendues sont : L’âge, la localisation et l’antécédent familial d’atopie vous orientent vers une dermatite atopique. ; L’altération de l’état cutané avec l’inflammation risque d’augmenter l’absorption des topiques appliquées. ; Un topique dermocorticoïde de classe très forte est indiqué en première intention..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : L’âge, la localisation et l’antécédent familial d’atopie vous orientent vers une dermatite atopique. ; L’altération de l’état cutané avec l’inflammation risque d’augmenter l’absorption des topiques appliquées. ; Un topique dermocorticoïde de classe très forte est indiqué en première intention.. rang AB",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816446-2",
+        "type_question": "DP",
+        "enonce": "Les types d’hypersensibilités sont entre autres…",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816446:2_choice0",
+            "texte": "Le type IV, immédiate, responsable d’urticaire",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Le type IV, immédiate, responsable d’urticaire » n’est pas retenu ici. Les réponses attendues sont : Le type I, qui peut être testé par des prick-tests ; Le type IV, responsable de dermatite atopique et d’eczéma de contact allergique ; Le type IV, qui nécessite un contact asymptomatique préalable avec l’allergène, appelé la phase de « sensibilisation ».",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816446:2_choice1",
+            "texte": "Le type I, qui fait intervenir les lymphocytes T",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Le type I, qui fait intervenir les lymphocytes T » n’est pas retenu ici. Les réponses attendues sont : Le type I, qui peut être testé par des prick-tests ; Le type IV, responsable de dermatite atopique et d’eczéma de contact allergique ; Le type IV, qui nécessite un contact asymptomatique préalable avec l’allergène, appelé la phase de « sensibilisation ».",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816446:2_choice2",
+            "texte": "Le type I, qui peut être testé par des prick-tests",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Le type I, qui peut être testé par des prick-tests » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816446:2_choice3",
+            "texte": "Le type IV, responsable de dermatite atopique et d’eczéma de contact allergique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Le type IV, responsable de dermatite atopique et d’eczéma de contact allergique » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816446:2_choice4",
+            "texte": "Le type IV, qui nécessite un contact asymptomatique préalable avec l’allergène, appelé la phase de « sensibilisation »",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Le type IV, qui nécessite un contact asymptomatique préalable avec l’allergène, appelé la phase de « sensibilisation » » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Le type I, qui peut être testé par des prick-tests ; Le type IV, responsable de dermatite atopique et d’eczéma de contact allergique ; Le type IV, qui nécessite un contact asymptomatique préalable avec l’allergène, appelé la phase de « sensibilisation ». rang B",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816446-3",
+        "type_question": "DP",
+        "enonce": "Le système immunitaire cutané est composé de … :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816446:3_choice0",
+            "texte": "Un compartiment inné pour une réaction rapide mais non spécifique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Un compartiment inné pour une réaction rapide mais non spécifique » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816446:3_choice1",
+            "texte": "Un compartiment acquis pour une réaction adaptée avec une fonction mémoire",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Un compartiment acquis pour une réaction adaptée avec une fonction mémoire » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816446:3_choice2",
+            "texte": "De cellules de Merkel qui ont une fonction présentatrice d’antigène",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « De cellules de Merkel qui ont une fonction présentatrice d’antigène » n’est pas retenu ici. Les réponses attendues sont : Un compartiment inné pour une réaction rapide mais non spécifique ; Un compartiment acquis pour une réaction adaptée avec une fonction mémoire ; De polynucléaires éosinophiles ayant un rôle de défense anti parasitaire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816446:3_choice3",
+            "texte": "De lymphocytes T responsables de la production d’anticorps",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « De lymphocytes T responsables de la production d’anticorps » n’est pas retenu ici. Les réponses attendues sont : Un compartiment inné pour une réaction rapide mais non spécifique ; Un compartiment acquis pour une réaction adaptée avec une fonction mémoire ; De polynucléaires éosinophiles ayant un rôle de défense anti parasitaire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816446:3_choice4",
+            "texte": "De polynucléaires éosinophiles ayant un rôle de défense anti parasitaire",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « De polynucléaires éosinophiles ayant un rôle de défense anti parasitaire » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Un compartiment inné pour une réaction rapide mais non spécifique ; Un compartiment acquis pour une réaction adaptée avec une fonction mémoire ; De polynucléaires éosinophiles ayant un rôle de défense anti parasitaire.",
+        "statut_verification": "validee"
+      }
+    ]
+  },
+  {
+    "quiz_title": "mDP2\nTest",
+    "questions": [
+      {
+        "id": "question-16816441-2",
+        "type_question": "DP",
+        "enonce": "Les mesures à mettre en place sont :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816441:2_choice0",
+            "texte": "proposer un dépistage des infections sexuellement transmissibles",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « proposer un dépistage des infections sexuellement transmissibles » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816441:2_choice1",
+            "texte": "effectuer une sérologie VIH et hépatite B et un test tréponémique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « effectuer une sérologie VIH et hépatite B et un test tréponémique » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816441:2_choice2",
+            "texte": "effectuer une PCR urinaire ou génitale uniquement",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « effectuer une PCR urinaire ou génitale uniquement » n’est pas retenu ici. Les réponses attendues sont : proposer un dépistage des infections sexuellement transmissibles ; effectuer une sérologie VIH et hépatite B et un test tréponémique ; informer le patient sur les risques d'un rapport sexuel non protégé et sur l'importance d'utiliser un préservatif.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816441:2_choice3",
+            "texte": "informer le patient sur les risques d'un rapport sexuel non protégé et sur l'importance d'utiliser un préservatif",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « informer le patient sur les risques d'un rapport sexuel non protégé et sur l'importance d'utiliser un préservatif » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816441:2_choice4",
+            "texte": "aucune des réponses ci-dessus n'est exacte",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « aucune des réponses ci-dessus n'est exacte » n’est pas retenu ici. Les réponses attendues sont : proposer un dépistage des infections sexuellement transmissibles ; effectuer une sérologie VIH et hépatite B et un test tréponémique ; informer le patient sur les risques d'un rapport sexuel non protégé et sur l'importance d'utiliser un préservatif.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : proposer un dépistage des infections sexuellement transmissibles ; effectuer une sérologie VIH et hépatite B et un test tréponémique ; informer le patient sur les risques d'un rapport sexuel non protégé et sur l'importance d'utiliser un préservatif. grade A",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816441-3",
+        "type_question": "DP",
+        "enonce": "Quelques semaines plus tard il revient en présentant la lésion visible sur la figure ci-dessus. L'infection la plus probable est :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816441:3_answer0",
+            "texte": "treponema pallidum",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « treponema pallidum » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816441:3_answer1",
+            "texte": "neisseria gonorrhea",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « neisseria gonorrhea » n’est pas retenu ici. Les réponses attendues sont : treponema pallidum.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816441:3_answer2",
+            "texte": "chalmydia trachomatis",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « chalmydia trachomatis » n’est pas retenu ici. Les réponses attendues sont : treponema pallidum.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816441:3_answer3",
+            "texte": "HPV",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « HPV » n’est pas retenu ici. Les réponses attendues sont : treponema pallidum.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816441:3_answer4",
+            "texte": "trichomonas vaginalis",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « trichomonas vaginalis » n’est pas retenu ici. Les réponses attendues sont : treponema pallidum.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [
+          {
+            "filename": "uness-20260731T170432Z/images/mdp2-test-question-16816441-3-2.webp",
+            "accessible_ia": true,
+            "type": "photo dermatologique"
+          }
+        ],
+        "correction_globale": "Réponses officiellement exactes : treponema pallidum. grade A",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816441-4",
+        "type_question": "DP",
+        "enonce": "D'après votre hypothèse diagnostique, les deux examens complémentaires pour confirmer le diagnostic que vous envisagez sont : — 2 réponses sont attendues —",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816441:4_choice0",
+            "texte": "PCR sur premier jet urinaire",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « PCR sur premier jet urinaire » n’est pas retenu ici. Les réponses attendues sont : test tréponémique ; test non tréponémique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816441:4_choice1",
+            "texte": "culture bactériologique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « culture bactériologique » n’est pas retenu ici. Les réponses attendues sont : test tréponémique ; test non tréponémique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816441:4_choice2",
+            "texte": "test tréponémique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « test tréponémique » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816441:4_choice3",
+            "texte": "test non tréponémique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « test non tréponémique » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816441:4_choice4",
+            "texte": "aucun car le diagnostic ici est clinique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « aucun car le diagnostic ici est clinique » n’est pas retenu ici. Les réponses attendues sont : test tréponémique ; test non tréponémique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : test tréponémique ; test non tréponémique. grade A",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816441-5",
+        "type_question": "DP",
+        "enonce": "Quelle(s) complication(s) risque-t-il ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816441:5_choice0",
+            "texte": "prostatite",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « prostatite » n’est pas retenu ici. Les réponses attendues sont : neurosyphilis ; éruption cutanée.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816441:5_choice1",
+            "texte": "neurosyphilis",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « neurosyphilis » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816441:5_choice2",
+            "texte": "éruption cutanée",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « éruption cutanée » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816441:5_choice3",
+            "texte": "salpingite",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « salpingite » n’est pas retenu ici. Les réponses attendues sont : neurosyphilis ; éruption cutanée.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816441:5_choice4",
+            "texte": "syndrome occulo-uréthro-synovial",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « syndrome occulo-uréthro-synovial » n’est pas retenu ici. Les réponses attendues sont : neurosyphilis ; éruption cutanée.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : neurosyphilis ; éruption cutanée. grade A",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816441-6",
+        "type_question": "DP",
+        "enonce": "Les résultats des examens complémentaires effectués s'avèrent positifs : quel sera le traitement idéalement prescrit ? A noter que le patient ne présente pas d'autre localisation de la maladie.",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816441:6_answer0",
+            "texte": "ketoconazole",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « ketoconazole » n’est pas retenu ici. Les réponses attendues sont : benzathine benzylpénicilline (pénicilline G) en intra musculaire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816441:6_answer1",
+            "texte": "benzathine benzylpénicilline (pénicilline G) en intra musculaire",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « benzathine benzylpénicilline (pénicilline G) en intra musculaire » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816441:6_answer2",
+            "texte": "azythromycine",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « azythromycine » n’est pas retenu ici. Les réponses attendues sont : benzathine benzylpénicilline (pénicilline G) en intra musculaire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816441:6_answer3",
+            "texte": "ceftriaxone",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « ceftriaxone » n’est pas retenu ici. Les réponses attendues sont : benzathine benzylpénicilline (pénicilline G) en intra musculaire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816441:6_answer4",
+            "texte": "anti histaminiques",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « anti histaminiques » n’est pas retenu ici. Les réponses attendues sont : benzathine benzylpénicilline (pénicilline G) en intra musculaire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : benzathine benzylpénicilline (pénicilline G) en intra musculaire. grade A",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816441-7",
+        "type_question": "DP",
+        "enonce": "Concernant les causes d’ulcérations génitale infectieuses ou non infectieuses :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816441:7_choice0",
+            "texte": "Le chancre syphilitique est souvent une ulcération à fond sale et douloureuse",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Le chancre syphilitique est souvent une ulcération à fond sale et douloureuse » n’est pas retenu ici. Les réponses attendues sont : la maladie de Nicolas-Favre est associée aux signes suivant : anorectite, ulcérations ano-génitales, diarrhées trompeuses.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816441:7_choice1",
+            "texte": "On retrouve le plus souvent de multiples chancres syphilitiques chez la même personne infectée",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « On retrouve le plus souvent de multiples chancres syphilitiques chez la même personne infectée » n’est pas retenu ici. Les réponses attendues sont : la maladie de Nicolas-Favre est associée aux signes suivant : anorectite, ulcérations ano-génitales, diarrhées trompeuses.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816441:7_choice2",
+            "texte": "les lésions herpétiques sont profondes, douloureuses à contours polycycliques",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « les lésions herpétiques sont profondes, douloureuses à contours polycycliques » n’est pas retenu ici. Les réponses attendues sont : la maladie de Nicolas-Favre est associée aux signes suivant : anorectite, ulcérations ano-génitales, diarrhées trompeuses.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816441:7_choice3",
+            "texte": "une ulcération n'est jamais due à une cause mécanique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « une ulcération n'est jamais due à une cause mécanique » n’est pas retenu ici. Les réponses attendues sont : la maladie de Nicolas-Favre est associée aux signes suivant : anorectite, ulcérations ano-génitales, diarrhées trompeuses.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816441:7_choice4",
+            "texte": "la maladie de Nicolas-Favre est associée aux signes suivant : anorectite, ulcérations ano-génitales, diarrhées trompeuses",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « la maladie de Nicolas-Favre est associée aux signes suivant : anorectite, ulcérations ano-génitales, diarrhées trompeuses » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : la maladie de Nicolas-Favre est associée aux signes suivant : anorectite, ulcérations ano-génitales, diarrhées trompeuses. grade B",
+        "statut_verification": "validee"
+      }
+    ]
+  },
+  {
+    "quiz_title": "mDP3\nTest",
+    "questions": [
+      {
+        "id": "question-16816444-2",
+        "type_question": "DP",
+        "enonce": "Après un examen clinique, vous posez le diagnostic d'acné légère mixte du visage et vous expliquez à la patiente :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816444:2_choice0",
+            "texte": "L'acné est liée à une production importante de sébum par la glande sébacée et des anomalies de différenciation des kératinocytes de l'infudibulum pilaire",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « L'acné est liée à une production importante de sébum par la glande sébacée et des anomalies de différenciation des kératinocytes de l'infudibulum pilaire » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816444:2_choice1",
+            "texte": "Les points noirs correspondent à des comédons ouverts avec l’accumulation de kératine qui s’oxyde à l’air",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Les points noirs correspondent à des comédons ouverts avec l’accumulation de kératine qui s’oxyde à l’air » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816444:2_choice2",
+            "texte": "Cutibacterium acnes est une bactérie à Gram positif impliquée dans l'acné",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Cutibacterium acnes est une bactérie à Gram positif impliquée dans l'acné » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816444:2_choice3",
+            "texte": "L'acné nodulaire est la forme la plus fréquente de l'acné",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « L'acné nodulaire est la forme la plus fréquente de l'acné » n’est pas retenu ici. Les réponses attendues sont : L'acné est liée à une production importante de sébum par la glande sébacée et des anomalies de différenciation des kératinocytes de l'infudibulum pilaire ; Les points noirs correspondent à des comédons ouverts avec l’accumulation de kératine qui s’oxyde à l’air ; Cutibacterium acnes est une bactérie à Gram positif impliquée dans l'acné ; Les lésions inflammatoires correspondent aux pustules et nodules.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816444:2_choice4",
+            "texte": "Les lésions inflammatoires correspondent aux pustules et nodules",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Les lésions inflammatoires correspondent aux pustules et nodules » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : L'acné est liée à une production importante de sébum par la glande sébacée et des anomalies de différenciation des kératinocytes de l'infudibulum pilaire ; Les points noirs correspondent à des comédons ouverts avec l’accumulation de kératine qui s’oxyde à l’air ; Cutibacterium acnes est une bactérie à Gram positif impliquée dans l'acné ; Les lésions inflammatoires correspondent aux pustules et nodules.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816444-3",
+        "type_question": "DP",
+        "enonce": "Vous souhaitez mettre en place un traitement adapté à l'acné de la patiente, vous proposez :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816444:3_answer0",
+            "texte": "Un traitement par isotrétinoïne d'emblée",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Un traitement par isotrétinoïne d'emblée » n’est pas retenu ici. Les réponses attendues sont : Un traitement topique et des conseils hygiéno-diététiques.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816444:3_answer1",
+            "texte": "Un traitement par cyclines d'emblée",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Un traitement par cyclines d'emblée » n’est pas retenu ici. Les réponses attendues sont : Un traitement topique et des conseils hygiéno-diététiques.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816444:3_answer2",
+            "texte": "Aucun traitement, l'acné n'est pas une maladie grave",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Aucun traitement, l'acné n'est pas une maladie grave » n’est pas retenu ici. Les réponses attendues sont : Un traitement topique et des conseils hygiéno-diététiques.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816444:3_answer3",
+            "texte": "Un traitement topique et des conseils hygiéno-diététiques",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Un traitement topique et des conseils hygiéno-diététiques » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816444:3_answer4",
+            "texte": "Aucune de ces réponses",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Aucune de ces réponses » n’est pas retenu ici. Les réponses attendues sont : Un traitement topique et des conseils hygiéno-diététiques.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Un traitement topique et des conseils hygiéno-diététiques. rang B",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816444-4",
+        "type_question": "DP",
+        "enonce": "La mère de Marie, blonde aux yeux bleus, présente en consultation également, vous montre son visage (photo ci-dessous).",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816444:4_answer0",
+            "texte": "Il s'agit d'une dermatite séborrhéique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Il s'agit d'une dermatite séborrhéique » n’est pas retenu ici. Les réponses attendues sont : Il s'agit d'une rosacée papulo-pustuleuse.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816444:4_answer1",
+            "texte": "Il s'agit d'une rosacée hypertrophique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Il s'agit d'une rosacée hypertrophique » n’est pas retenu ici. Les réponses attendues sont : Il s'agit d'une rosacée papulo-pustuleuse.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816444:4_answer2",
+            "texte": "Il s'agit d'une rosacée papulo-pustuleuse",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Il s'agit d'une rosacée papulo-pustuleuse » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816444:4_answer3",
+            "texte": "Il s'agit d'une acné rétentionnelle",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Il s'agit d'une acné rétentionnelle » n’est pas retenu ici. Les réponses attendues sont : Il s'agit d'une rosacée papulo-pustuleuse.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816444:4_answer4",
+            "texte": "Aucune de ces réponses",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Aucune de ces réponses » n’est pas retenu ici. Les réponses attendues sont : Il s'agit d'une rosacée papulo-pustuleuse.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [
+          {
+            "filename": "uness-20260731T170432Z/images/mdp3-test-question-16816444-4-1.webp",
+            "accessible_ia": true,
+            "type": "photo dermatologique"
+          }
+        ],
+        "correction_globale": "Réponses officiellement exactes : Il s'agit d'une rosacée papulo-pustuleuse. rang A",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816444-5",
+        "type_question": "DP",
+        "enonce": "Concernant les dermatoses faciales :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816444:5_choice0",
+            "texte": "La rosacée est due à Malassezia furfur",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « La rosacée est due à Malassezia furfur » n’est pas retenu ici. Les réponses attendues sont : Le diagnostic de la dermatite séborrhéique est clinique ; Il existe des formes pédiatriques d'acné et de dermatite séborrhéique ; Le rhinophyma est la forme hypertrophique de la rosacée.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816444:5_choice1",
+            "texte": "Le diagnostic de la dermatite séborrhéique est clinique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Le diagnostic de la dermatite séborrhéique est clinique » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816444:5_choice2",
+            "texte": "Il existe des formes pédiatriques d'acné et de dermatite séborrhéique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Il existe des formes pédiatriques d'acné et de dermatite séborrhéique » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816444:5_choice3",
+            "texte": "Les bouffées vasomotrices sont constantes dans la rosacée",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Les bouffées vasomotrices sont constantes dans la rosacée » n’est pas retenu ici. Les réponses attendues sont : Le diagnostic de la dermatite séborrhéique est clinique ; Il existe des formes pédiatriques d'acné et de dermatite séborrhéique ; Le rhinophyma est la forme hypertrophique de la rosacée.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816444:5_choice4",
+            "texte": "Le rhinophyma est la forme hypertrophique de la rosacée",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Le rhinophyma est la forme hypertrophique de la rosacée » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Le diagnostic de la dermatite séborrhéique est clinique ; Il existe des formes pédiatriques d'acné et de dermatite séborrhéique ; Le rhinophyma est la forme hypertrophique de la rosacée.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816444-6",
+        "type_question": "DP",
+        "enonce": "Concernant les médicaments topiques en dermatologie :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816444:6_choice0",
+            "texte": "Les pommades sont surtout utilisées pour les lésions des plis.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Les pommades sont surtout utilisées pour les lésions des plis. » n’est pas retenu ici. Les réponses attendues sont : L’absorption d’un topique sera plus importante sur une peau lésée. ; La pénétration d’une topique sera d’autant plus importante que l’épaisseur de la peau de l’endroit concernée est fine..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816444:6_choice1",
+            "texte": "L’absorption percutanée des lésions ne dépend pas du poids moléculaire du produit en question.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « L’absorption percutanée des lésions ne dépend pas du poids moléculaire du produit en question. » n’est pas retenu ici. Les réponses attendues sont : L’absorption d’un topique sera plus importante sur une peau lésée. ; La pénétration d’une topique sera d’autant plus importante que l’épaisseur de la peau de l’endroit concernée est fine..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816444:6_choice2",
+            "texte": "Les excipients sont uniquement utilisés pour leur propriété de parfum",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Les excipients sont uniquement utilisés pour leur propriété de parfum » n’est pas retenu ici. Les réponses attendues sont : L’absorption d’un topique sera plus importante sur une peau lésée. ; La pénétration d’une topique sera d’autant plus importante que l’épaisseur de la peau de l’endroit concernée est fine..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816444:6_choice3",
+            "texte": "L’absorption d’un topique sera plus importante sur une peau lésée.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « L’absorption d’un topique sera plus importante sur une peau lésée. » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816444:6_choice4",
+            "texte": "La pénétration d’une topique sera d’autant plus importante que l’épaisseur de la peau de l’endroit concernée est fine.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « La pénétration d’une topique sera d’autant plus importante que l’épaisseur de la peau de l’endroit concernée est fine. » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : L’absorption d’un topique sera plus importante sur une peau lésée. ; La pénétration d’une topique sera d’autant plus importante que l’épaisseur de la peau de l’endroit concernée est fine..",
+        "statut_verification": "validee"
+      }
+    ]
+  },
+  {
+    "quiz_title": "mDP5\nTest",
+    "questions": [
+      {
+        "id": "question-16816447-2",
+        "type_question": "DP",
+        "enonce": "Que vous attendez-vous à voir au microscope si vous faites un prélèvement local ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816447:2_answer0",
+            "texte": "Des bacilles gram négatif",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Des bacilles gram négatif » n’est pas retenu ici. Les réponses attendues sont : Des cocci gram positif en amas.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816447:2_answer1",
+            "texte": "Des spirochètes",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Des spirochètes » n’est pas retenu ici. Les réponses attendues sont : Des cocci gram positif en amas.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816447:2_answer2",
+            "texte": "Des cocci gram positif groupés en chainette",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Des cocci gram positif groupés en chainette » n’est pas retenu ici. Les réponses attendues sont : Des cocci gram positif en amas.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816447:2_answer3",
+            "texte": "Des cocci gram positif en amas",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Des cocci gram positif en amas » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816447:2_answer4",
+            "texte": "Des bacilles gram positif",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Des bacilles gram positif » n’est pas retenu ici. Les réponses attendues sont : Des cocci gram positif en amas.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Des cocci gram positif en amas. grade A",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816447-3",
+        "type_question": "DP",
+        "enonce": "Vous proposez comme traitements :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816447:3_choice0",
+            "texte": "lavage à l’eau et au savon quotidien",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « lavage à l’eau et au savon quotidien » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816447:3_choice1",
+            "texte": "antiseptique topique type chlorhexidine 3 fois par jour",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « antiseptique topique type chlorhexidine 3 fois par jour » n’est pas retenu ici. Les réponses attendues sont : lavage à l’eau et au savon quotidien ; couper les ongles courts ; changer quotidiennement de vêtements ; ne pas manipuler les lésions ; utilisation de linge de toilette personnel.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816447:3_choice2",
+            "texte": "antibiotique topique type métronidazole",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « antibiotique topique type métronidazole » n’est pas retenu ici. Les réponses attendues sont : lavage à l’eau et au savon quotidien ; couper les ongles courts ; changer quotidiennement de vêtements ; ne pas manipuler les lésions ; utilisation de linge de toilette personnel.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816447:3_choice3",
+            "texte": "antibiotique per os type cycline",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « antibiotique per os type cycline » n’est pas retenu ici. Les réponses attendues sont : lavage à l’eau et au savon quotidien ; couper les ongles courts ; changer quotidiennement de vêtements ; ne pas manipuler les lésions ; utilisation de linge de toilette personnel.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816447:3_choice4",
+            "texte": "antibiotique per os type amoxicilline/acide clavulanique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « antibiotique per os type amoxicilline/acide clavulanique » n’est pas retenu ici. Les réponses attendues sont : lavage à l’eau et au savon quotidien ; couper les ongles courts ; changer quotidiennement de vêtements ; ne pas manipuler les lésions ; utilisation de linge de toilette personnel.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816447:3_choice5",
+            "texte": "antibiotique per os type pristinamycine",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « antibiotique per os type pristinamycine » n’est pas retenu ici. Les réponses attendues sont : lavage à l’eau et au savon quotidien ; couper les ongles courts ; changer quotidiennement de vêtements ; ne pas manipuler les lésions ; utilisation de linge de toilette personnel.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816447:3_choice6",
+            "texte": "couper les ongles courts",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « couper les ongles courts » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816447:3_choice7",
+            "texte": "changer quotidiennement de vêtements",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « changer quotidiennement de vêtements » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816447:3_choice8",
+            "texte": "ne pas manipuler les lésions",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « ne pas manipuler les lésions » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816447:3_choice9",
+            "texte": "utilisation de linge de toilette personnel",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « utilisation de linge de toilette personnel » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : lavage à l’eau et au savon quotidien ; couper les ongles courts ; changer quotidiennement de vêtements ; ne pas manipuler les lésions ; utilisation de linge de toilette personnel. grade A",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816447-4",
+        "type_question": "DP",
+        "enonce": "Grâce à votre traitement, les 2 furoncles ont cicatrisé rapidement et le patient n’a pas constaté de récidive par la suite. Il revient vous voir un an plus tard pour 3 lésions croûteuses jaunâtres prurigineuses touchant la jambe gauche ainsi que la cheville droite, s’étant développé suite à 2 piqûres de moustiques. Vous évoquez un impétigo. Quel(s) traitement(s) et conseils pouvez-vous proposer ? (5 propositions exactes) — 5 réponses sont attendues —",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816447:4_choice0",
+            "texte": "antiseptique topique type chlorhexidine",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « antiseptique topique type chlorhexidine » n’est pas retenu ici. Les réponses attendues sont : antibiotique topique type mupirocine ; couper les ongles courts ; changer quotidiennement de vêtements ; ne pas manipuler les lésions ; utilisation de linge de toilette personnel.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816447:4_choice1",
+            "texte": "antibiotique topique type mupirocine",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « antibiotique topique type mupirocine » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816447:4_choice2",
+            "texte": "antibiotique topique type métronidazole",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « antibiotique topique type métronidazole » n’est pas retenu ici. Les réponses attendues sont : antibiotique topique type mupirocine ; couper les ongles courts ; changer quotidiennement de vêtements ; ne pas manipuler les lésions ; utilisation de linge de toilette personnel.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816447:4_choice3",
+            "texte": "antibiotique per os type cycline",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « antibiotique per os type cycline » n’est pas retenu ici. Les réponses attendues sont : antibiotique topique type mupirocine ; couper les ongles courts ; changer quotidiennement de vêtements ; ne pas manipuler les lésions ; utilisation de linge de toilette personnel.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816447:4_choice4",
+            "texte": "antibiotique per os type amoxicilline/acide clavulanique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « antibiotique per os type amoxicilline/acide clavulanique » n’est pas retenu ici. Les réponses attendues sont : antibiotique topique type mupirocine ; couper les ongles courts ; changer quotidiennement de vêtements ; ne pas manipuler les lésions ; utilisation de linge de toilette personnel.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816447:4_choice5",
+            "texte": "antibiotique per os type pristinamycine",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « antibiotique per os type pristinamycine » n’est pas retenu ici. Les réponses attendues sont : antibiotique topique type mupirocine ; couper les ongles courts ; changer quotidiennement de vêtements ; ne pas manipuler les lésions ; utilisation de linge de toilette personnel.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816447:4_choice6",
+            "texte": "couper les ongles courts",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « couper les ongles courts » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816447:4_choice7",
+            "texte": "changer quotidiennement de vêtements",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « changer quotidiennement de vêtements » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816447:4_choice8",
+            "texte": "ne pas manipuler les lésions",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « ne pas manipuler les lésions » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816447:4_choice9",
+            "texte": "utilisation de linge de toilette personnel",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « utilisation de linge de toilette personnel » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : antibiotique topique type mupirocine ; couper les ongles courts ; changer quotidiennement de vêtements ; ne pas manipuler les lésions ; utilisation de linge de toilette personnel. grade A",
+        "statut_verification": "validee"
+      }
+    ]
+  },
+  {
+    "quiz_title": "SQI1\nTest",
+    "questions": [
+      {
+        "id": "question-16816445-1",
+        "type_question": "QRM",
+        "enonce": "Concernant les hémangiomes infantiles :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816445:1_choice0",
+            "texte": "Il s’agit de la malformation vasculaire bénigne, la plus fréquente de l’enfant touchant environ 30% des nourrissons.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Il s’agit de la malformation vasculaire bénigne, la plus fréquente de l’enfant touchant environ 30% des nourrissons. » n’est pas retenu ici. Les réponses attendues sont : Ils sont habituellement absents à la naissance ; Ils sont classés entre les formes cutanées superficielles, les formes sous-cutanées et les formes mixtes. ; Les formes superficielles nodulaires sont en relief et de couleur rouge. Ils sont non pulsatiles à la palpation. ; Les hémangiomes profonds correspondent à une tuméfaction de couleur bleutée ou couleur de la peau normale..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816445:1_choice1",
+            "texte": "Ils sont habituellement absents à la naissance",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Ils sont habituellement absents à la naissance » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816445:1_choice2",
+            "texte": "Ils sont classés entre les formes cutanées superficielles, les formes sous-cutanées et les formes mixtes.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Ils sont classés entre les formes cutanées superficielles, les formes sous-cutanées et les formes mixtes. » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816445:1_choice3",
+            "texte": "Les formes superficielles nodulaires sont en relief et de couleur rouge. Ils sont non pulsatiles à la palpation.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Les formes superficielles nodulaires sont en relief et de couleur rouge. Ils sont non pulsatiles à la palpation. » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816445:1_choice4",
+            "texte": "Les hémangiomes profonds correspondent à une tuméfaction de couleur bleutée ou couleur de la peau normale.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Les hémangiomes profonds correspondent à une tuméfaction de couleur bleutée ou couleur de la peau normale. » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Ils sont habituellement absents à la naissance ; Ils sont classés entre les formes cutanées superficielles, les formes sous-cutanées et les formes mixtes. ; Les formes superficielles nodulaires sont en relief et de couleur rouge. Ils sont non pulsatiles à la palpation. ; Les hémangiomes profonds correspondent à une tuméfaction de couleur bleutée ou couleur de la peau normale..",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816445-2",
+        "type_question": "QRU",
+        "enonce": "Une femme de 60 ans consulte à votre cabinet, car elle présente au niveau de son index, une infection du repli unguéal, érythémateux, chaud avec la peau tendue. Elle explique que son infection est apparue quelques jours après qu’elle ait fait son jardin. Selon vous, quel serait le diagnostic le plus probable à évoquer dans ce contexte :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816445:2_answer0",
+            "texte": "Un abcès",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Un abcès » n’est pas retenu ici. Les réponses attendues sont : Un panaris.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816445:2_answer1",
+            "texte": "Une dermohypodermite bactérienne",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Une dermohypodermite bactérienne » n’est pas retenu ici. Les réponses attendues sont : Un panaris.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816445:2_answer2",
+            "texte": "Un panaris",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Un panaris » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816445:2_answer3",
+            "texte": "Une leuconychie",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Une leuconychie » n’est pas retenu ici. Les réponses attendues sont : Un panaris.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816445:2_answer4",
+            "texte": "Un intertrigo",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Un intertrigo » n’est pas retenu ici. Les réponses attendues sont : Un panaris.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Un panaris.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816445-3",
+        "type_question": "QRU",
+        "enonce": "La sarcoïdose est une granulomatose systémique chronique d’étiologie inconnue touchant en majorité :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816445:3_answer0",
+            "texte": "Le poumon",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Le poumon » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816445:3_answer1",
+            "texte": "La peau",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « La peau » n’est pas retenu ici. Les réponses attendues sont : Le poumon.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816445:3_answer2",
+            "texte": "L’oeil",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « L’oeil » n’est pas retenu ici. Les réponses attendues sont : Le poumon.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816445:3_answer3",
+            "texte": "Les ganglions",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Les ganglions » n’est pas retenu ici. Les réponses attendues sont : Le poumon.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816445:3_answer4",
+            "texte": "Le système nerveux",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Le système nerveux » n’est pas retenu ici. Les réponses attendues sont : Le poumon.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Le poumon. rang A",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816445-4",
+        "type_question": "QRM",
+        "enonce": "A propos du traitement de la varicelle, quelles sont les propositions justes ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816445:4_choice0",
+            "texte": "antisepsie locale par chlorexidine en cas de surinfection (inflammation et suppuration d’une ou plusieurs lésions)",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « antisepsie locale par chlorexidine en cas de surinfection (inflammation et suppuration d’une ou plusieurs lésions) » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816445:4_choice1",
+            "texte": "valaciclovir per os",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « valaciclovir per os » n’est pas retenu ici. Les réponses attendues sont : antisepsie locale par chlorexidine en cas de surinfection (inflammation et suppuration d’une ou plusieurs lésions) ; couper les ongles courts et limiter le grattage ; Si il y avait une hospitalisation, isolement de type AIR et CONTACT jusqu’à la chute des croûtes qui marque la fin de la contagiosité.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816445:4_choice2",
+            "texte": "ibuprofène pour la fièvre et la douleur",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « ibuprofène pour la fièvre et la douleur » n’est pas retenu ici. Les réponses attendues sont : antisepsie locale par chlorexidine en cas de surinfection (inflammation et suppuration d’une ou plusieurs lésions) ; couper les ongles courts et limiter le grattage ; Si il y avait une hospitalisation, isolement de type AIR et CONTACT jusqu’à la chute des croûtes qui marque la fin de la contagiosité.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816445:4_choice3",
+            "texte": "couper les ongles courts et limiter le grattage",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « couper les ongles courts et limiter le grattage » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816445:4_choice4",
+            "texte": "Si il y avait une hospitalisation, isolement de type AIR et CONTACT jusqu’à la chute des croûtes qui marque la fin de la contagiosité",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Si il y avait une hospitalisation, isolement de type AIR et CONTACT jusqu’à la chute des croûtes qui marque la fin de la contagiosité » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : antisepsie locale par chlorexidine en cas de surinfection (inflammation et suppuration d’une ou plusieurs lésions) ; couper les ongles courts et limiter le grattage ; Si il y avait une hospitalisation, isolement de type AIR et CONTACT jusqu’à la chute des croûtes qui marque la fin de la contagiosité. rang A",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816445-5",
+        "type_question": "QRM",
+        "enonce": "Concernant l'urticaire chronique, quelles sont les propositions exactes ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816445:5_choice0",
+            "texte": "Il existe deux types d’urticaire chronique : les urticaires chroniques inductibles, provoquées par un stimulus et les urticaires chroniques spontanées.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Il existe deux types d’urticaire chronique : les urticaires chroniques inductibles, provoquées par un stimulus et les urticaires chroniques spontanées. » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816445:5_choice1",
+            "texte": "Les urticaires chroniques spontanées sont les plus fréquentes.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Les urticaires chroniques spontanées sont les plus fréquentes. » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816445:5_choice2",
+            "texte": "Les anti histaminiques (anti H1) de deuxième génération sont le traitement de première intention",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Les anti histaminiques (anti H1) de deuxième génération sont le traitement de première intention » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816445:5_choice3",
+            "texte": "Un bilan biologique ( NFS, bilan hépatique, bilan inflammatoire) et des tests allergologiques sont systématiquement prescrits pour une urticaire chronique spontanée",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Un bilan biologique ( NFS, bilan hépatique, bilan inflammatoire) et des tests allergologiques sont systématiquement prescrits pour une urticaire chronique spontanée » n’est pas retenu ici. Les réponses attendues sont : Il existe deux types d’urticaire chronique : les urticaires chroniques inductibles, provoquées par un stimulus et les urticaires chroniques spontanées. ; Les urticaires chroniques spontanées sont les plus fréquentes. ; Les anti histaminiques (anti H1) de deuxième génération sont le traitement de première intention ; Une urticaire cholinergique est une urticaire inductible, favorisée par les exercices physiques, la transpiration. Elle se manifeste par des petites papules érythémateuses et prurigineuses.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816445:5_choice4",
+            "texte": "Une urticaire cholinergique est une urticaire inductible, favorisée par les exercices physiques, la transpiration. Elle se manifeste par des petites papules érythémateuses et prurigineuses",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Une urticaire cholinergique est une urticaire inductible, favorisée par les exercices physiques, la transpiration. Elle se manifeste par des petites papules érythémateuses et prurigineuses » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Il existe deux types d’urticaire chronique : les urticaires chroniques inductibles, provoquées par un stimulus et les urticaires chroniques spontanées. ; Les urticaires chroniques spontanées sont les plus fréquentes. ; Les anti histaminiques (anti H1) de deuxième génération sont le traitement de première intention ; Une urticaire cholinergique est une urticaire inductible, favorisée par les exercices physiques, la transpiration. Elle se manifeste par des petites papules érythémateuses et prurigineuses.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816445-6",
+        "type_question": "QRM",
+        "enonce": "Concernant la réalisation de la biopsie cutanée :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816445:6_choice0",
+            "texte": "fixateur le plus communément utilisé est le formol acétique.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « fixateur le plus communément utilisé est le formol acétique. » n’est pas retenu ici. Les réponses attendues sont : L’intérêt de la congélation est multiple : réalisation d’étude en IFD, biologie moléculaire pour les pathologies tumorales et stockage des prélèvements. ; Parmi les colorations spéciales, la coloration de PAS et Grocott est utile pour les champignons et celle de Ziehl pour les BAAR..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816445:6_choice1",
+            "texte": "L’intérêt de la congélation est multiple : réalisation d’étude en IFD, biologie moléculaire pour les pathologies tumorales et stockage des prélèvements.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « L’intérêt de la congélation est multiple : réalisation d’étude en IFD, biologie moléculaire pour les pathologies tumorales et stockage des prélèvements. » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816445:6_choice2",
+            "texte": "Parmi les colorations spéciales, la coloration de PAS et Grocott est utile pour les champignons et celle de Ziehl pour les BAAR.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Parmi les colorations spéciales, la coloration de PAS et Grocott est utile pour les champignons et celle de Ziehl pour les BAAR. » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816445:6_choice3",
+            "texte": "L’étude en immunohistochimie est utile notamment pour les maladies bulleuses",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « L’étude en immunohistochimie est utile notamment pour les maladies bulleuses » n’est pas retenu ici. Les réponses attendues sont : L’intérêt de la congélation est multiple : réalisation d’étude en IFD, biologie moléculaire pour les pathologies tumorales et stockage des prélèvements. ; Parmi les colorations spéciales, la coloration de PAS et Grocott est utile pour les champignons et celle de Ziehl pour les BAAR..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816445:6_choice4",
+            "texte": "La coloration la plus communément réalisée est l'he (hématéine-éosine) ou l'hes (hématéine-éosine-safran)",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « La coloration la plus communément réalisée est l'he (hématéine-éosine) ou l'hes (hématéine-éosine-safran) » n’est pas retenu ici. Les réponses attendues sont : L’intérêt de la congélation est multiple : réalisation d’étude en IFD, biologie moléculaire pour les pathologies tumorales et stockage des prélèvements. ; Parmi les colorations spéciales, la coloration de PAS et Grocott est utile pour les champignons et celle de Ziehl pour les BAAR..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : L’intérêt de la congélation est multiple : réalisation d’étude en IFD, biologie moléculaire pour les pathologies tumorales et stockage des prélèvements. ; Parmi les colorations spéciales, la coloration de PAS et Grocott est utile pour les champignons et celle de Ziehl pour les BAAR..",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816445-7",
+        "type_question": "QRU",
+        "enonce": "Une femme se présente en consultation pour un prurit génital intense, des pertes génitales verdâtres et malodorantes. À l’examen clinique, on retrouve une vulve oedématiée ainsi qu’une colpite punctiforme. Le diagnostic le plus probable est :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816445:7_answer0",
+            "texte": "Infection génitale basse à Gonocoque",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Infection génitale basse à Gonocoque » n’est pas retenu ici. Les réponses attendues sont : Infection génitale basse à Trichomonas Vaginalis.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816445:7_answer1",
+            "texte": "Infection génitale basse à Mycoplasma genitalium",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Infection génitale basse à Mycoplasma genitalium » n’est pas retenu ici. Les réponses attendues sont : Infection génitale basse à Trichomonas Vaginalis.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816445:7_answer2",
+            "texte": "Infection génitale basse à Chlamydia trachomatis",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « Infection génitale basse à Chlamydia trachomatis » n’est pas retenu ici. Les réponses attendues sont : Infection génitale basse à Trichomonas Vaginalis.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816445:7_answer3",
+            "texte": "Infection génitale basse à Trichomonas Vaginalis",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.95,
+            "explication": "Vrai. « Infection génitale basse à Trichomonas Vaginalis » correspond à la réponse attendue dans ce contexte clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816445:7_answer4",
+            "texte": "aucune des réponses ci dessus",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. « aucune des réponses ci dessus » n’est pas retenu ici. Les réponses attendues sont : Infection génitale basse à Trichomonas Vaginalis.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Infection génitale basse à Trichomonas Vaginalis.",
+        "statut_verification": "validee"
+      }
+    ]
+  }
+]

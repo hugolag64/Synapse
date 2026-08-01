@@ -309,8 +309,9 @@ def annale_detail_page(annale_id: str) -> None:
                     score = s.get("score_percent")
                     is_completed = s.get("status") == "completed" or score is not None
                     score_label = f"{float(score):.0f} %" if score is not None else "pas encore de score"
-                    badge_class = "an-badge-done" if is_completed else "an-badge-todo"
-                    badge_text = f"Terminée ({score_label})" if is_completed else "À faire"
+                    is_exam_mode = bool(data_store.preferences.get("exam_mode", False))
+                    badge_class = "an-badge-todo" if is_exam_mode else ("an-badge-done" if is_completed else "an-badge-todo")
+                    badge_text = "Épreuve Neutre" if is_exam_mode else (f"Terminée ({score_label})" if is_completed else "À faire")
 
                     with ui.element("div").classes("an-part-card"):
                         with ui.row().classes("w-full items-center justify-between gap-4"):
@@ -322,12 +323,19 @@ def annale_detail_page(annale_id: str) -> None:
                                     f"ITEM {s.get('item_number') or '—'} · {s.get('total_questions', 0)} questions"
                                 ).classes("an-part-meta")
                             with ui.row().classes("gap-2 items-center shrink-0"):
-                                render_session_actions(
-                                    s,
-                                    on_resume=lambda _sid=sid: open_chained_dialog(page_slot, lambda: _show_session(_sid)),
-                                    on_correction=lambda _sid=sid: open_chained_dialog(page_slot, lambda: _show_correction(_sid)),
-                                    on_replay=lambda _sid=sid: _replay_session(_sid),
-                                )
+                                if is_exam_mode:
+                                    ui.button(
+                                        "LANCER ÉPREUVE",
+                                        icon="play_arrow",
+                                        on_click=lambda _sid=sid, _comp=is_completed: (_replay_session(_sid) if _comp else open_chained_dialog(page_slot, lambda: _show_session(_sid))),
+                                    ).props("unelevated color=primary")
+                                else:
+                                    render_session_actions(
+                                        s,
+                                        on_resume=lambda _sid=sid: open_chained_dialog(page_slot, lambda: _show_session(_sid)),
+                                        on_correction=lambda _sid=sid: open_chained_dialog(page_slot, lambda: _show_correction(_sid)),
+                                        on_replay=lambda _sid=sid: _replay_session(_sid),
+                                    )
 
         def _render() -> None:
             nonlocal annale, sessions

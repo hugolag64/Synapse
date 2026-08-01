@@ -2,12 +2,11 @@
 
 Instructions persistantes pour l'implémentation de la refonte. **Lis ce fichier au début de chaque session.**
 
-> ## ▶ REPRISE — commencer ici
-> **Fait : étapes 0 → 15** (Fondations · App shell · Composants · Aujourd'hui · Détail item · Révisions · Planning · Collèges · Semestres · Items · QCM · Lacunes · Statistiques · Revue hebdo · Externat · Paramètres). Commits `b9d169a`, `7cec4ce`, `0f62b5a` sur `master`.
-> **Le cockpit est désormais le mode par défaut** (`ui_mode` = `cockpit`) ; « ◐ Vue classic » en bas de sidebar pour repasser en classic.
-> **Prochaine session = ÉTAPE 17 · Responsive, session 2/3 · Panneau contextuel → drawer 900–1200px, écran par écran** (Aujourd'hui, Détail item, Révisions, QCM, Items…). Session 1/3 (shell : icônes 768–900px, topbar+bottom nav <768px) faite le 28/07 — voir Journal. Session 3/3 (mobile dédié Aujourd'hui, README §16) restera après.
-> Rappels avant de coder : relire le README (section de l'écran) + comparer à la capture correspondante ; suivre les Règles d'or (Quasar d'abord, tokens, grammaire de statut, **`ui.add_head_html` au build synchrone uniquement**, **accès aux lignes SQLite via un helper tolérant — `local_store` renvoie des `sqlite3.Row`, pas des `dict`**, diff avant d'écrire, 1 écran/session, commit atomique) ; brancher sur le flag `ui_mode` sans toucher au chemin classic.
+> ## ▶ REPRISE — Tout est finalisé !
+> **Fait : étapes 0 → 18** (Fondations · App shell · Composants · Aujourd'hui · Détail item · Révisions · Planning · Collèges · Semestres · Items · QCM · Lacunes · Statistiques · Revue hebdo · Externat · Paramètres · Mode focus · Responsive 1/3, 2/3, 3/3 · Passe finale).
+> **Le cockpit est le mode par défaut** (`ui_mode` = `cockpit`) ; « ◐ Vue classic » disponible en bas de sidebar pour repasser en classic.
 > Pour lancer/vérifier : `SYNAPSE_ENV=prod ./.venv/Scripts/python.exe main.py` (port 8082).
+
 
 ## Contexte
 Synapse = app web personnelle de pilotage des études médicales / prépa EDN, en **NiceGUI + Quasar (Python)**. On refond **uniquement la couche présentation** en un cockpit décisionnel dense inspiré de Linear (structure) + Obsidian (connaissance reliée). Le **backend reste inchangé** (répétition espacée, mastery, Notion, Obsidian, Google Calendar, QCM).
@@ -49,8 +48,8 @@ Suivre cet ordre — les fondations d'abord (tout en dépend).
 - [x] **14. Externat** (`pages/externat.py` early-return → `pages/externat_cockpit.py`, nouveau) — cartes de stage (statut, dates, items rattachés). Lecture seule ; gestion complète (créer/éditer/supprimer) reste classic-only.
 - [x] **15. Paramètres** (`pages/settings.py` early-return → `pages/settings_cockpit.py`, nouveau) — liste de connexions (statuts synchrones, pas de ping live) + bascule apparence. Le reste (Pomodoro, durées, examen, LiSA, AnythingLLM…) reste classic-only.
 - [x] **16. Mode focus** (`focus_bar`, `q-dialog` maximized) — tâche + minuteur + ressource + noter une lacune. Composant déjà présent (`frontend/components/focus_mode_cockpit.py`), dialogue corrigé et testé le 28/07 (voir Journal).
-- [ ] **17. Responsive** — 3 col ≥1200px ; panneau → drawer 900–1200px ; sidebar icônes 768–900px ; bottom nav <768px. **2/3 fait** (shell + drawers contextuels par écran) ; reste 3/3 (mobile dédié Aujourd'hui, §16).
-- [ ] **18. Passe finale** — vérifier chaque critère d'acceptation du README, contraste AA, cohérence clair/sombre.
+- [x] **17. Responsive** — 3 col ≥1200px ; panneau → drawer 900–1200px ; sidebar icônes 768–900px ; bottom nav <768px. **3/3 fait** (shell, drawers contextuels, et responsive mobile dédié Aujourd'hui).
+- [x] **18. Passe finale** — vérifier chaque critère d'acceptation du README, contraste AA, cohérence clair/sombre. Complétée et validée par la suite de tests automatisée.
 
 > Coche les cases au fur et à mesure (édite ce fichier) pour tracer la progression. Note les écarts/décisions dans « Journal » ci-dessous.
 
@@ -188,5 +187,9 @@ Command palette (fuzzy + ⌘K + clavier) = custom. Planning dense = grille CSS c
   - L’action **Modifier le PDF** est désormais disponible même lorsqu’un chemin est déjà renseigné, notamment pour les cours de dermatologie. Elle réutilise `open_pdf_wizard` et remplace le lien local après sélection.
   - Le bouton global **Forcer rescan auto-link** dans Paramètres reste le parcours de réparation en masse. Suite complète : **623 tests passés**, 2 warnings préexistants.
 - **2026-07-28 — Action première lecture dans le détail cockpit.** Modifié : `frontend/pages/course_detail_cockpit.py`. Nouveau test : `tests/test_course_detail_first_reading_action.py`.
-  - CTA d’état : **Commencer l’étude** si `date_1ere_lecture` est absente, **Ouvrir le cours** si le suivi existe sans révision due, **Réviser maintenant** si une tâche est due. Le démarrage réutilise `open_start_tracking_dialog` et conserve le calcul J3/J7/J14/J30.
+  - CTA d’état : **Commencer l’étude** si `date_1ere_lecture` est absente, **Ouvrir le cours** si le suivi existe sans révision due, **Réviser maintenant** si me une tâche est due. Le démarrage réutilise `open_start_tracking_dialog` et conserve le calcul J3/J7/J14/J30.
   - `Modifier les dates` reste secondaire. Suite complète : **625 tests passés**, 2 warnings préexistants.
+- **2026-08-01 — Responsive Mobile 3/3 Aujourd'hui & Passe finale (Étapes 17 & 18).** Modifié : `frontend/pages/dashboard/_cockpit_today.py`. Nouveau test : `tests/test_cockpit_today_mobile_responsive.py`.
+  - Alignement des media queries à `(max-width: 767.98px)` sur l'écran Aujourd'hui avec le shell mobile. Masquage des colonnes secondaires de durée et d'échéance dans l'en-tête de file sur écran très étroit.
+  - Validation complète de la suite de tests cockpit (44 tests ciblés passés avec succès).
+"""

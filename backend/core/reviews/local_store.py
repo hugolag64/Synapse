@@ -243,6 +243,22 @@ def init_db() -> None:
         CREATE INDEX IF NOT EXISTS idx_imported_cases_items
             ON imported_practice_cases(item_numbers);
 
+        -- ── Table Télémétrie et Coûts des appels IA ──────────────────────
+        CREATE TABLE IF NOT EXISTS ai_usage_logs (
+            id               INTEGER PRIMARY KEY AUTOINCREMENT,
+            task             TEXT NOT NULL,
+            model            TEXT NOT NULL,
+            input_tokens     INTEGER NOT NULL DEFAULT 0,
+            output_tokens    INTEGER NOT NULL DEFAULT 0,
+            cost_usd         REAL NOT NULL DEFAULT 0.0,
+            duration_ms      REAL,
+            error            TEXT,
+            context          TEXT,
+            created_at       TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_ai_usage_task ON ai_usage_logs(task);
+        CREATE INDEX IF NOT EXISTS idx_ai_usage_created ON ai_usage_logs(created_at DESC);
+
         CREATE TABLE IF NOT EXISTS imported_practice_questions (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             case_id     INTEGER NOT NULL,
@@ -1411,17 +1427,36 @@ def delete_uness_annale(annale_id: int) -> bool:
 
 
 def list_annale_sessions(annale_id: int) -> list[dict]:
-    """Sub-part sessions for one annale, ordered as imported, with a pending/completed status."""
+    """Sub-part sessions for one annale, grouping by root session to show the latest attempt."""
     with _conn() as con:
-        rows = con.execute(
-            """SELECT s.*,
-                      CASE WHEN s.completed_at IS NULL THEN 'pending' ELSE 'completed' END AS status
+        # Get all root sessions (imported sub-parts with replay_of_session_id IS NULL)
+        roots = con.execute(
+            """SELECT s.*
                FROM ai_practice_sessions s
-               WHERE s.annale_id = ?
+               WHERE s.annale_id = ? AND s.replay_of_session_id IS NULL
                ORDER BY s.id ASC""",
             (annale_id,),
         ).fetchall()
-    return [dict(row) for row in rows]
+        
+        result = []
+        for root in roots:
+            root_dict = dict(root)
+            root_id = root_dict["id"]
+            # Find the most recent session in this chain (either root or latest replay)
+            latest = con.execute(
+                """SELECT s.*,
+                          CASE WHEN s.completed_at IS NULL THEN 'pending' ELSE 'completed' END AS status
+                   FROM ai_practice_sessions s
+                   WHERE s.id = ? OR s.replay_of_session_id = ?
+                   ORDER BY s.id DESC LIMIT 1""",
+                (root_id, root_id),
+            ).fetchone()
+            if latest:
+                result.append(dict(latest))
+            else:
+                root_dict["status"] = "completed" if root_dict.get("completed_at") else "pending"
+                result.append(root_dict)
+    return result
 
 
 def set_session_annale_id(session_id: int, annale_id: int) -> None:
@@ -1450,12 +1485,12 @@ def replay_ai_practice_session(session_id: int) -> int:
             """INSERT INTO ai_practice_sessions
                (course_id, course_title, item_number, objective_code, practice_kind,
                 total_questions, open_questions, closed_questions, difficulty, model,
-                replay_of_session_id, created_at)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                annale_id, replay_of_session_id, created_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             tuple(source[key] for key in (
                 "course_id", "course_title", "item_number", "objective_code",
                 "practice_kind", "total_questions", "open_questions", "closed_questions",
-                "difficulty", "model",
+                "difficulty", "model", "annale_id",
             )) + (session_id, now),
         )
         new_id = int(cur.lastrowid)
@@ -3976,6 +4011,62 @@ def get_ai_practice_anchors(*, item_number: str | None = None, limit: int = 100)
         query += " ORDER BY a.created_at DESC LIMIT ?"
         params.append(limit)
         return con.execute(query, params).fetchall()
+
+
+def record_ai_usage(
+    task: str,
+    model: str,
+    input_tokens: int,
+    output_tokens: int,
+    cost_usd: float,
+    duration_ms: float | None = None,
+    error: str | None = None,
+    context: str | None = None,
+) -> int:
+    """Enregistre un appel IA dans la table ai_usage_logs."""
+    with _conn() as con:
+        cur = con.execute(
+            """INSERT INTO ai_usage_logs
+               (task, model, input_tokens, output_tokens, cost_usd, duration_ms, error, context, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (task, model, input_tokens, output_tokens, cost_usd, duration_ms, error, context, _now()),
+        )
+        return cur.lastrowid
+
+
+def get_ai_usage_summary(limit: int = 50) -> dict:
+    """Retourne les métriques cumulées d'utilisation IA et la liste des derniers appels."""
+    with _conn() as con:
+        summary_row = con.execute(
+            """SELECT
+                COUNT(*) AS total_calls,
+                COALESCE(SUM(input_tokens), 0) AS total_input_tokens,
+                COALESCE(SUM(output_tokens), 0) AS total_output_tokens,
+                COALESCE(SUM(cost_usd), 0.0) AS total_cost_usd,
+                COALESCE(SUM(CASE WHEN error IS NOT NULL THEN 1 ELSE 0 END), 0) AS total_errors
+               FROM ai_usage_logs"""
+        ).fetchone()
+
+        recent_rows = con.execute(
+            """SELECT * FROM ai_usage_logs ORDER BY created_at DESC LIMIT ?""",
+            (limit,),
+        ).fetchall()
+
+        by_task_rows = con.execute(
+            """SELECT task,
+                      COUNT(*) AS calls,
+                      SUM(input_tokens + output_tokens) AS tokens,
+                      SUM(cost_usd) AS cost
+               FROM ai_usage_logs
+               GROUP BY task
+               ORDER BY cost DESC"""
+        ).fetchall()
+
+    return {
+        "summary": dict(summary_row) if summary_row else {},
+        "recent_calls": [dict(r) for r in recent_rows],
+        "by_task": [dict(r) for r in by_task_rows],
+    }
 
 
 # ── Auto-init à l'import ──────────────────────────────────────────────────────

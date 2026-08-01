@@ -1,0 +1,3130 @@
+[
+  {
+    "quiz_title": "DP1\nTest",
+    "questions": [
+      {
+        "id": "question-16816387-2",
+        "type_question": "DP",
+        "enonce": "Son tracé ECG est le suivant, cochez les réponses vraies :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816387:2_choice0",
+            "texte": "Rythme sinusal, régulier",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Rythme sinusal, régulier. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816387:2_choice1",
+            "texte": "Bloc de branche gauche incomplet",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Bloc de branche gauche incomplet. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Rythme sinusal, régulier ; Aspect de miroir dans les dérivations inférieures ; La présence d’une onde Q dans le territoire antérieur est en faveur d’un infarctus constitué.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816387:2_choice2",
+            "texte": "Aspect de miroir dans les dérivations inférieures",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Aspect de miroir dans les dérivations inférieures. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816387:2_choice3",
+            "texte": "La présence d’une onde Q dans le territoire antérieur est en faveur d’un infarctus constitué",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. La présence d’une onde Q dans le territoire antérieur est en faveur d’un infarctus constitué. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816387:2_choice4",
+            "texte": "Probable occlusion de l'artère interventriculaire postérieure",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Probable occlusion de l'artère interventriculaire postérieure. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Rythme sinusal, régulier ; Aspect de miroir dans les dérivations inférieures ; La présence d’une onde Q dans le territoire antérieur est en faveur d’un infarctus constitué.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [
+          {
+            "filename": "uness-20260731T164753Z/images/dp1-test-question-16816387-2-1.webp",
+            "accessible_ia": true,
+            "type": "ECG"
+          }
+        ],
+        "correction_globale": "Réponses officiellement exactes : Rythme sinusal, régulier ; Aspect de miroir dans les dérivations inférieures ; La présence d’une onde Q dans le territoire antérieur est en faveur d’un infarctus constitué.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816387-3",
+        "type_question": "DP",
+        "enonce": "Le patient est pris en charge par le SAMU une vingtaine de minutes plus tard au cabinet, l'état clinique du patient est stable. Le centre de Cardiologie Interventionnel le plus proche se situe à 1 heure du cabinet. Quels traitements préconisez-vous dans le cadre de la prise en charge pré-hospitalière ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816387:3_choice0",
+            "texte": "Fibrinolyse IV",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Fibrinolyse IV. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Aspirine ASPEGIC° IV ; Ticagrelor BRILIQUE° PO ; Antalgie par MORPHINE IV.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816387:3_choice1",
+            "texte": "Aspirine ASPEGIC° IV",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Aspirine ASPEGIC° IV. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816387:3_choice2",
+            "texte": "Ticagrelor BRILIQUE° PO",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Ticagrelor BRILIQUE° PO. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816387:3_choice3",
+            "texte": "Fluindione PREVISCAN° PO",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Fluindione PREVISCAN° PO. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Aspirine ASPEGIC° IV ; Ticagrelor BRILIQUE° PO ; Antalgie par MORPHINE IV.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816387:3_choice4",
+            "texte": "Antalgie par MORPHINE IV",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Antalgie par MORPHINE IV. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Aspirine ASPEGIC° IV ; Ticagrelor BRILIQUE° PO ; Antalgie par MORPHINE IV.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816387-4",
+        "type_question": "DP",
+        "enonce": "Alors que le patient est sur le trajet, il perd connaissance dans l’ambulance. Le tracé du scope est le suivant : Quel est votre diagnostic ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816387:4_choice0",
+            "texte": "RIVA Rythme idio ventriculaire accéléré",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. RIVA Rythme idio ventriculaire accéléré. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : FV Fibrillation ventriculaire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816387:4_choice1",
+            "texte": "FV Fibrillation ventriculaire",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. FV Fibrillation ventriculaire. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816387:4_choice2",
+            "texte": "TV Tachycardie ventriculaire",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. TV Tachycardie ventriculaire. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : FV Fibrillation ventriculaire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816387:4_choice3",
+            "texte": "FA Fibrillation auriculaire",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. FA Fibrillation auriculaire. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : FV Fibrillation ventriculaire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816387:4_choice4",
+            "texte": "Tachycardie supraventriculaire avec aberration de conduction",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Tachycardie supraventriculaire avec aberration de conduction. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : FV Fibrillation ventriculaire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [
+          {
+            "filename": "uness-20260731T164753Z/images/dp1-test-question-16816387-4-2.webp",
+            "accessible_ia": true,
+            "type": "tracé de scope ECG"
+          }
+        ],
+        "correction_globale": "Réponses officiellement exactes : FV Fibrillation ventriculaire.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816387-5",
+        "type_question": "DP",
+        "enonce": "Apres un CEE, le patient a récupéré un rythme sinusal et régulier et a rapidement repris connaissance. Il n’a pas représenté d’arythmie par la suite. A son arrivée à l’hôpital, la coronarographie diagnostique révèle une occlusion thrombotique de l’IVA proximale. La revascularisation est effectuée par angioplastie et implantation d’un stent actif. Les suites de l’hospitalisation sont marquées par l’apparition de manifestations d’insuffisance cardiaque jugulées par le traitement médicamenteux. L’échographie avant sa sortie a mis en évidence : - FEVG diminuée à 38 % en rapport avec une akinésie de la couronne apicale et hypokésie des parois antéro-latérale et antérieure. Hyperkinésie compensative des zones saines. - Valve aortique tricuspide, calcifiée, sans effet sténosant significatif (surface 1.8 cm2), Aorte ascendante non dilatée. - Fuite mitrale de bas - Ventricule droit non dilaté, de fonction systolique normale - PAPS 30 + 10 mmHg - Péricarde sec, VCI dilatée, peu respirante Quel(s) traitement(s) de sortie doi(ven)t figurer sur l’ordonnance de ce patient ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816387:5_choice0",
+            "texte": "Sotalol SOTALEX",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Sotalol SOTALEX. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Spironolactone ALDACTONE.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816387:5_choice1",
+            "texte": "Verapamil ISOPTINE",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Verapamil ISOPTINE. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Spironolactone ALDACTONE.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816387:5_choice2",
+            "texte": "Cordarone CORDARONE",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Cordarone CORDARONE. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Spironolactone ALDACTONE.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816387:5_choice3",
+            "texte": "Spironolactone ALDACTONE",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Spironolactone ALDACTONE. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816387:5_choice4",
+            "texte": "Ivabradine PROCORALAN",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Ivabradine PROCORALAN. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Spironolactone ALDACTONE.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Spironolactone ALDACTONE.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816387-6",
+        "type_question": "DP",
+        "enonce": "Dans le cadre de son suivi, vous le revoyez en consultation après plusieurs années de bon contrôle des manifestations d’insuffisance cardiaque sous traitement médicamenteux. Cette fois-ci, le patient rapporte une dyspnée de stade III NYHA. Quelles hypothèses étiologiques peuvent coïncider avec les symptômes présentés par le patient ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816387:6_choice0",
+            "texte": "Aggravation de sa coronaropathie",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Aggravation de sa coronaropathie. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816387:6_choice1",
+            "texte": "Evolution de son rétrécissement aortique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Evolution de son rétrécissement aortique. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816387:6_choice2",
+            "texte": "Péricardite chronique constrictive post infarctus",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Péricardite chronique constrictive post infarctus. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Aggravation de sa coronaropathie ; Evolution de son rétrécissement aortique ; Insuffisance mitrale fonctionnelle.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816387:6_choice3",
+            "texte": "Insuffisance mitrale fonctionnelle",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Insuffisance mitrale fonctionnelle. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816387:6_choice4",
+            "texte": "Anévrisme de l’aorte ascendante",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Anévrisme de l’aorte ascendante. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Aggravation de sa coronaropathie ; Evolution de son rétrécissement aortique ; Insuffisance mitrale fonctionnelle.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Aggravation de sa coronaropathie ; Evolution de son rétrécissement aortique ; Insuffisance mitrale fonctionnelle.",
+        "statut_verification": "validee"
+      }
+    ]
+  },
+  {
+    "quiz_title": "DP2\nTest",
+    "questions": [
+      {
+        "id": "question-16816388-2",
+        "type_question": "DP",
+        "enonce": "Vous suspectez chez votre patiente ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816388:2_choice0",
+            "texte": "Une hypertension artérielle systolique isolée",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Une hypertension artérielle systolique isolée. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Une hypertension artérielle chronique ; Il est recommandé de mesurer la Pression artérielle en dehors du cabinet médical.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:2_choice1",
+            "texte": "Une hypertension artérielle chronique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Une hypertension artérielle chronique. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:2_choice2",
+            "texte": "Une sténose de l'artère sous-clavière droite",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Une sténose de l'artère sous-clavière droite. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Une hypertension artérielle chronique ; Il est recommandé de mesurer la Pression artérielle en dehors du cabinet médical.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:2_choice3",
+            "texte": "Une hypertension artérielle ambulatoire isolée",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Une hypertension artérielle ambulatoire isolée. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Une hypertension artérielle chronique ; Il est recommandé de mesurer la Pression artérielle en dehors du cabinet médical.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:2_choice4",
+            "texte": "Il est recommandé de mesurer la Pression artérielle en dehors du cabinet médical",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Il est recommandé de mesurer la Pression artérielle en dehors du cabinet médical. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Une hypertension artérielle chronique ; Il est recommandé de mesurer la Pression artérielle en dehors du cabinet médical.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816388-3",
+        "type_question": "DP",
+        "enonce": "Vous prévoyez une mesure ambulatoire de la pression artérielle sur 24h. Quelles sont les propositions exactes ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816388:3_choice0",
+            "texte": "La MAPA est systématique pour confirmer le diagnostic d'HTA.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. La MAPA est systématique pour confirmer le diagnostic d'HTA. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : LA MAPA est indiquée en cas d'HTA résistante. ; Le diagnostic d'HTA est confirmé si la pression artérielle sur 24h est supérieur ou égale à 130/80 mmHg..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:3_choice1",
+            "texte": "LA MAPA est indiquée en cas d'HTA résistante.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. LA MAPA est indiquée en cas d'HTA résistante. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:3_choice2",
+            "texte": "La MAPA est indiquée chez les patient à haut risque cardiovasculaire.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. La MAPA est indiquée chez les patient à haut risque cardiovasculaire. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : LA MAPA est indiquée en cas d'HTA résistante. ; Le diagnostic d'HTA est confirmé si la pression artérielle sur 24h est supérieur ou égale à 130/80 mmHg..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:3_choice3",
+            "texte": "Le diagnostic d'HTA est confirmé si la pression artérielle sur 24h est supérieur ou égale à 130/80 mmHg.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Le diagnostic d'HTA est confirmé si la pression artérielle sur 24h est supérieur ou égale à 130/80 mmHg. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:3_choice4",
+            "texte": "Le seuil nocturne pour le diagnostic d'HTA est supérieur ou égale à 120/80 mmHg.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Le seuil nocturne pour le diagnostic d'HTA est supérieur ou égale à 120/80 mmHg. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : LA MAPA est indiquée en cas d'HTA résistante. ; Le diagnostic d'HTA est confirmé si la pression artérielle sur 24h est supérieur ou égale à 130/80 mmHg..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : LA MAPA est indiquée en cas d'HTA résistante. ; Le diagnostic d'HTA est confirmé si la pression artérielle sur 24h est supérieur ou égale à 130/80 mmHg..",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816388-4",
+        "type_question": "DP",
+        "enonce": "Concernant l'hypertension artérielle :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816388:4_choice0",
+            "texte": "L'HTA augmente le risque de coronaropathie par 7.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. L'HTA augmente le risque de coronaropathie par 7. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : L'HTA est plus fréquente chez la femme. ; L'HTA est plus fréquente dans les couches défavorisés sur le plan socio-économique..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:4_choice1",
+            "texte": "L'HTA est plus fréquente chez la femme.",
+            "reponse_officielle": true,
+            "verdict_ia": null,
+            "avis_ia": "incertain",
+            "confiance_ia": 0.65,
+            "explication": "La prévalence dépend fortement de l’âge : elle est plutôt supérieure chez l’homme avant la ménopause, puis augmente chez la femme après la ménopause. L’énoncé non stratifié est trop général.",
+            "desaccord_officiel": true,
+            "commentaire_desaccord": "La prévalence dépend fortement de l’âge : elle est plutôt supérieure chez l’homme avant la ménopause, puis augmente chez la femme après la ménopause. L’énoncé non stratifié est trop général."
+          },
+          {
+            "id": "q16816388:4_choice2",
+            "texte": "L'HTA est majoritairement dite secondaire.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. L'HTA est majoritairement dite secondaire. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : L'HTA est plus fréquente chez la femme. ; L'HTA est plus fréquente dans les couches défavorisés sur le plan socio-économique..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:4_choice3",
+            "texte": "L'HTA est plus fréquente dans les couches défavorisés sur le plan socio-économique.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. L'HTA est plus fréquente dans les couches défavorisés sur le plan socio-économique. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:4_choice4",
+            "texte": "Le vieillissement normal est associé à une augmentation de la distensibilité des artères élastiques, ce qui entraine une hypertension artérielle systolique.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Le vieillissement normal est associé à une augmentation de la distensibilité des artères élastiques, ce qui entraine une hypertension artérielle systolique. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : L'HTA est plus fréquente chez la femme. ; L'HTA est plus fréquente dans les couches défavorisés sur le plan socio-économique..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : L'HTA est plus fréquente chez la femme. ; L'HTA est plus fréquente dans les couches défavorisés sur le plan socio-économique.. Une réserve ou un désaccord médical est signalé dans les propositions.",
+        "statut_verification": "a_revoir"
+      },
+      {
+        "id": "question-16816388-5",
+        "type_question": "DP",
+        "enonce": "Le bilan minimal systématique devant la découverte d'une hypertension artérielle comprend :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816388:5_choice0",
+            "texte": "Bilan lipidique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Bilan lipidique. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:5_choice1",
+            "texte": "Calcémie éventuellement sans garrot",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Calcémie éventuellement sans garrot. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Bilan lipidique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:5_choice2",
+            "texte": "Echocardiographie",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Echocardiographie. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Bilan lipidique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:5_choice3",
+            "texte": "ECG d'effort",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. ECG d'effort. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Bilan lipidique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:5_choice4",
+            "texte": "Echodoppler carotidien",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Echodoppler carotidien. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Bilan lipidique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Bilan lipidique.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816388-6",
+        "type_question": "DP",
+        "enonce": "Dans quel cas faut-il prévoir un bilan à la recherche d'une cause secondaire à l'HTA ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816388:6_choice0",
+            "texte": "Systématique au moment de la découverte",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Systématique au moment de la découverte. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Sur point d'appel clinique ou biologique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:6_choice1",
+            "texte": "Sur point d'appel clinique ou biologique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Sur point d'appel clinique ou biologique. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:6_choice2",
+            "texte": "En cas d'HTA avec histoire familiale",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. En cas d'HTA avec histoire familiale. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Sur point d'appel clinique ou biologique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:6_choice3",
+            "texte": "En cas d'HTA non contrôlée sous bithérapie à pleine dose",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. En cas d'HTA non contrôlée sous bithérapie à pleine dose. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Sur point d'appel clinique ou biologique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:6_choice4",
+            "texte": "Dans le cas du syndrome métabolique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Dans le cas du syndrome métabolique. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Sur point d'appel clinique ou biologique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Sur point d'appel clinique ou biologique.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816388-7",
+        "type_question": "DP",
+        "enonce": "Devant une hypertension artérielle avec hypokaliémie :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816388:7_choice0",
+            "texte": "Il faut rechercher un phéochromocytome.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Il faut rechercher un phéochromocytome. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Il faut rechercher une HTA par hyperaldostéronisme..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:7_choice1",
+            "texte": "Il faut rechercher une HTA par hyperaldostéronisme.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Il faut rechercher une HTA par hyperaldostéronisme. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:7_choice2",
+            "texte": "Cela évoque une HTA réno-vasculaire.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Cela évoque une HTA réno-vasculaire. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Il faut rechercher une HTA par hyperaldostéronisme..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:7_choice3",
+            "texte": "Le bilan a dû être fait avec un garrot.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Le bilan a dû être fait avec un garrot. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Il faut rechercher une HTA par hyperaldostéronisme..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:7_choice4",
+            "texte": "L'hyperaldostéronisme primaire est essentiellement dû à un adénome surrénalien.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. L'hyperaldostéronisme primaire est essentiellement dû à un adénome surrénalien. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Il faut rechercher une HTA par hyperaldostéronisme..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Il faut rechercher une HTA par hyperaldostéronisme..",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816388-8",
+        "type_question": "DP",
+        "enonce": "Vous recevez son bilan biologique : - Hémoglobine à 13,2g/dl - Créatinine à 60umol/l soit une clairance MDRD à 99ml/min. - Potassium à 4,4mmol/l - Sodium à 138mmol/l - Triglycérides à 1,2g/l - HDLc à 0,4g/l - LDL à 1,9g/l - HBA1c à 8,7% Vous suspectez un syndrome métabolique chez votre patiente, sur quels critères ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816388:8_choice0",
+            "texte": "HDL-C > 0,50 g/l pour une femme",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. HDL-C > 0,50 g/l pour une femme. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Périmètre abdominale supérieur ou égal à 80 cm pour une femme ; Hypertension artérielle.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:8_choice1",
+            "texte": "LDL-C > 1,5 g/l",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. LDL-C > 1,5 g/l. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Périmètre abdominale supérieur ou égal à 80 cm pour une femme ; Hypertension artérielle.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:8_choice2",
+            "texte": "IMC > 30 kg/m 2",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. IMC > 30 kg/m 2. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Périmètre abdominale supérieur ou égal à 80 cm pour une femme ; Hypertension artérielle.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:8_choice3",
+            "texte": "Périmètre abdominale supérieur ou égal à 80 cm pour une femme",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Périmètre abdominale supérieur ou égal à 80 cm pour une femme. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:8_choice4",
+            "texte": "Hypertension artérielle",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Hypertension artérielle. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Périmètre abdominale supérieur ou égal à 80 cm pour une femme ; Hypertension artérielle.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816388-9",
+        "type_question": "DP",
+        "enonce": "Quels sont les facteurs de risque cardiovasculaires de votre patiente ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816388:9_choice0",
+            "texte": "Tabagisme",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Tabagisme. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:9_choice1",
+            "texte": "Hérédité cardio-vasculaire",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Hérédité cardio-vasculaire. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Tabagisme ; Facteurs psycho-sociaux.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:9_choice2",
+            "texte": "Facteurs psycho-sociaux",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Facteurs psycho-sociaux. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:9_choice3",
+            "texte": "Consommation modérée d'alcool",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Consommation modérée d'alcool. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Tabagisme ; Facteurs psycho-sociaux.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:9_choice4",
+            "texte": "Obésité gynoïde",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Obésité gynoïde. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Tabagisme ; Facteurs psycho-sociaux.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Tabagisme ; Facteurs psycho-sociaux.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816388-10",
+        "type_question": "DP",
+        "enonce": "Concernant le tabagisme :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816388:10_choice0",
+            "texte": "Sa consommation est estimée à 15 PA (Paquet-année)",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Sa consommation est estimée à 15 PA (Paquet-année). Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:10_choice1",
+            "texte": "Sa consommation est estimée à 20 PA",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Sa consommation est estimée à 20 PA. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Sa consommation est estimée à 15 PA (Paquet-année) ; C'est la 1 ère cause de mortalité évitable. ; Au bout d'un an de sevrage, son risque d'AVC est équivalent à un non-fumeur..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:10_choice2",
+            "texte": "C'est la 1 ère cause de mortalité évitable.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. C'est la 1 ère cause de mortalité évitable. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:10_choice3",
+            "texte": "C'est le 1 er facteur de risque de l'infarctus du myocarde.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. C'est le 1 er facteur de risque de l'infarctus du myocarde. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Sa consommation est estimée à 15 PA (Paquet-année) ; C'est la 1 ère cause de mortalité évitable. ; Au bout d'un an de sevrage, son risque d'AVC est équivalent à un non-fumeur..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:10_choice4",
+            "texte": "Au bout d'un an de sevrage, son risque d'AVC est équivalent à un non-fumeur.",
+            "reponse_officielle": true,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.93,
+            "explication": "Après un an, le risque cardiovasculaire diminue nettement, mais le risque d’AVC ne devient généralement comparable à celui d’un non-fumeur qu’après plusieurs années de sevrage.",
+            "desaccord_officiel": true,
+            "commentaire_desaccord": "Après un an, le risque cardiovasculaire diminue nettement, mais le risque d’AVC ne devient généralement comparable à celui d’un non-fumeur qu’après plusieurs années de sevrage."
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Sa consommation est estimée à 15 PA (Paquet-année) ; C'est la 1 ère cause de mortalité évitable. ; Au bout d'un an de sevrage, son risque d'AVC est équivalent à un non-fumeur.. Une réserve ou un désaccord médical est signalé dans les propositions.",
+        "statut_verification": "a_revoir"
+      },
+      {
+        "id": "question-16816388-11",
+        "type_question": "DP",
+        "enonce": "Quels facteurs de risque cardiovasculaires spécifiques de la femme sont présent ou sont à rechercher chez votre patiente ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816388:11_choice0",
+            "texte": "Antécédent familial de néoplasie mammaire",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Antécédent familial de néoplasie mammaire. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Syndrome des ovaires polykystique ; Prééclampsie.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:11_choice1",
+            "texte": "Syndrome des ovaires polykystique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Syndrome des ovaires polykystique. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:11_choice2",
+            "texte": "Premières règles tardives",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Premières règles tardives. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Syndrome des ovaires polykystique ; Prééclampsie.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:11_choice3",
+            "texte": "Prééclampsie",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Prééclampsie. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:11_choice4",
+            "texte": "Ménopause tardive",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Ménopause tardive. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Syndrome des ovaires polykystique ; Prééclampsie.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Syndrome des ovaires polykystique ; Prééclampsie.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816388-12",
+        "type_question": "DP",
+        "enonce": "Vous expliquez à votre patiente qu'elle cumule les facteurs de risque cardiovasculaires. Elle vous questionne sur ce qu'est un facteur de risque cardiovasculaire ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816388:12_choice0",
+            "texte": "Il s'agit d'un élément strictement clinique.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Il s'agit d'un élément strictement clinique. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Il y a une relation de causalité entre le facteur de risque et la maladie cardiovasculaire. ; Il faut une liaison forte et indépendante entre le facteur et la pathologie..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:12_choice1",
+            "texte": "Il y a une relation de causalité entre le facteur de risque et la maladie cardiovasculaire.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Il y a une relation de causalité entre le facteur de risque et la maladie cardiovasculaire. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:12_choice2",
+            "texte": "Son taux augmente en même temps que s'aggrave la maladie sans influencer l'évolution de la maladie.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Son taux augmente en même temps que s'aggrave la maladie sans influencer l'évolution de la maladie. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Il y a une relation de causalité entre le facteur de risque et la maladie cardiovasculaire. ; Il faut une liaison forte et indépendante entre le facteur et la pathologie..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:12_choice3",
+            "texte": "Le facteur succède la maladie.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Le facteur succède la maladie. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Il y a une relation de causalité entre le facteur de risque et la maladie cardiovasculaire. ; Il faut une liaison forte et indépendante entre le facteur et la pathologie..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:12_choice4",
+            "texte": "Il faut une liaison forte et indépendante entre le facteur et la pathologie.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Il faut une liaison forte et indépendante entre le facteur et la pathologie. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Il y a une relation de causalité entre le facteur de risque et la maladie cardiovasculaire. ; Il faut une liaison forte et indépendante entre le facteur et la pathologie..",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816388-13",
+        "type_question": "DP",
+        "enonce": "La patiente vous questionne sur ce qu'elle doit faire pour éviter un AVC ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816388:13_choice0",
+            "texte": "La patiente est à risque élevé voir très élevé.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. La patiente est à risque élevé voir très élevé. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:13_choice1",
+            "texte": "Il faut une évaluation par l'outil SCORE ou SCORE2 pour préciser son risque cardiovasculaire.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Il faut une évaluation par l'outil SCORE ou SCORE2 pour préciser son risque cardiovasculaire. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:13_choice2",
+            "texte": "La patiente est en prévention secondaire.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. La patiente est en prévention secondaire. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : La patiente est à risque élevé voir très élevé. ; Il faut une évaluation par l'outil SCORE ou SCORE2 pour préciser son risque cardiovasculaire. ; Il faut encourager à l'activité physique régulière au moins 30 minutes 5 jours/semaine..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:13_choice3",
+            "texte": "Il faudra arrêter la NICOTINE en patch qui augmente les complications cardiovasculaires.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Il faudra arrêter la NICOTINE en patch qui augmente les complications cardiovasculaires. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : La patiente est à risque élevé voir très élevé. ; Il faut une évaluation par l'outil SCORE ou SCORE2 pour préciser son risque cardiovasculaire. ; Il faut encourager à l'activité physique régulière au moins 30 minutes 5 jours/semaine..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816388:13_choice4",
+            "texte": "Il faut encourager à l'activité physique régulière au moins 30 minutes 5 jours/semaine.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Il faut encourager à l'activité physique régulière au moins 30 minutes 5 jours/semaine. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : La patiente est à risque élevé voir très élevé. ; Il faut une évaluation par l'outil SCORE ou SCORE2 pour préciser son risque cardiovasculaire. ; Il faut encourager à l'activité physique régulière au moins 30 minutes 5 jours/semaine..",
+        "statut_verification": "validee"
+      }
+    ]
+  },
+  {
+    "quiz_title": "DP3\nTest",
+    "questions": [
+      {
+        "id": "question-16816390-2",
+        "type_question": "DP",
+        "enonce": "Quel est l'examen à réaliser en urgence ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816390:2_answer0",
+            "texte": "Une IRM cardiaque",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Une IRM cardiaque. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Une échographie transthoracique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816390:2_answer1",
+            "texte": "Une échographie transthoracique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Une échographie transthoracique. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816390:2_answer2",
+            "texte": "Une scintigraphie pulmonaire",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Une scintigraphie pulmonaire. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Une échographie transthoracique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816390:2_answer3",
+            "texte": "Un angioscanner thoracique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Un angioscanner thoracique. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Une échographie transthoracique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816390:2_answer4",
+            "texte": "Un doppler des membres inférieurs",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Un doppler des membres inférieurs. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Une échographie transthoracique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Une échographie transthoracique.",
+        "statut_verification": "validee"
+      }
+    ]
+  },
+  {
+    "quiz_title": "mDP1\nTest",
+    "questions": [
+      {
+        "id": "question-16816389-2",
+        "type_question": "DP",
+        "enonce": "Durant votre examen, vous percevez un souffle que vous suspectez être en rapport avec un rétrécissement aortique. Quelles sont ses caractéristiques ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816389:2_choice0",
+            "texte": "Souffle éjectionnel, perçu aux 4 foyers, maximal au foyer aortique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Souffle éjectionnel, perçu aux 4 foyers, maximal au foyer aortique. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816389:2_choice1",
+            "texte": "Souffle diastolique endapexien, avec éclat du B2",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Souffle diastolique endapexien, avec éclat du B2. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Souffle éjectionnel, perçu aux 4 foyers, maximal au foyer aortique ; Souffle systolique irradiant aux carotides.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816389:2_choice2",
+            "texte": "Souffle holosystolique piaulant",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Souffle holosystolique piaulant. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Souffle éjectionnel, perçu aux 4 foyers, maximal au foyer aortique ; Souffle systolique irradiant aux carotides.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816389:2_choice3",
+            "texte": "Souffle systolique irradiant aux carotides",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Souffle systolique irradiant aux carotides. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816389:2_choice4",
+            "texte": "Souffle diastolique au niveau du bord droit du sternum (2 ème espace intercostal droit)",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Souffle diastolique au niveau du bord droit du sternum (2 ème espace intercostal droit). Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Souffle éjectionnel, perçu aux 4 foyers, maximal au foyer aortique ; Souffle systolique irradiant aux carotides.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Souffle éjectionnel, perçu aux 4 foyers, maximal au foyer aortique ; Souffle systolique irradiant aux carotides.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816389-3",
+        "type_question": "DP",
+        "enonce": "Vous adressez Mme T au cardiologue pour étayer le diagnostic de rétrécissement aortique. Quel examen de première intention vous confirmera le diagnostic ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816389:3_answer0",
+            "texte": "Électrocardiogramme",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Électrocardiogramme. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Echographie cardiaque transthoracique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816389:3_answer1",
+            "texte": "Echographie cardiaque transthoracique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Echographie cardiaque transthoracique. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816389:3_answer2",
+            "texte": "Echographie cardiaque trans-œsophagienne",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Echographie cardiaque trans-œsophagienne. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Echographie cardiaque transthoracique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816389:3_answer3",
+            "texte": "Echographie d’effort",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Echographie d’effort. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Echographie cardiaque transthoracique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816389:3_answer4",
+            "texte": "IRM cardiaque",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. IRM cardiaque. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Echographie cardiaque transthoracique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Echographie cardiaque transthoracique.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816389-4",
+        "type_question": "DP",
+        "enonce": "Le diagnostic de rétrécissement aortique est confirmé chez votre patiente de 45 ans. Quelle est l’étiologie la plus probable ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816389:4_answer0",
+            "texte": "Endocardite infectieuse",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Endocardite infectieuse. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Bicuspidie aortique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816389:4_answer1",
+            "texte": "Bicuspidie aortique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Bicuspidie aortique. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816389:4_answer2",
+            "texte": "Maladie de Barlow",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Maladie de Barlow. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Bicuspidie aortique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816389:4_answer3",
+            "texte": "Rhumatisme articulaire aiguë",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Rhumatisme articulaire aiguë. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Bicuspidie aortique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816389:4_answer4",
+            "texte": "Rétrécissement calcifié dégénératif",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Rétrécissement calcifié dégénératif. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Bicuspidie aortique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Bicuspidie aortique.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816389-5",
+        "type_question": "DP",
+        "enonce": "Mme T, porteuse d’un rétrécissement aortique serré symptomatique, a été opérée. Elle a bénéficié d’un remplacement valvulaire par valve mécanique aortique. Quel traitement doit figurer dans son ordonnance de sortie ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816389:5_answer0",
+            "texte": "Anticoagulant oral direct",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Anticoagulant oral direct. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Antivitamines K.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816389:5_answer1",
+            "texte": "Antivitamines K associé à de l’acide acétylsalicylique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Antivitamines K associé à de l’acide acétylsalicylique. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Antivitamines K.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816389:5_answer2",
+            "texte": "Acide acétylsalicylique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Acide acétylsalicylique. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Antivitamines K.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816389:5_answer3",
+            "texte": "Antivitamines K",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Antivitamines K. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816389:5_answer4",
+            "texte": "Aucun de ces traitements",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Aucun de ces traitements. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Antivitamines K.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Antivitamines K.",
+        "statut_verification": "validee"
+      }
+    ]
+  },
+  {
+    "quiz_title": "mDP2\nTest",
+    "questions": [
+      {
+        "id": "question-16816391-1",
+        "type_question": "DP",
+        "enonce": "Madame H, patiente de 71 ans, est dialysée trois fois par semaine depuis l'évolution terminale de sa néphropathie diabétique diagnostiquée il y a 20 ans. Elle a perdu 15 kg en un an. Vous évoquez un tableau d'ischémie digestive chronique.",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816391:1_choice0",
+            "texte": "L'insuffisance rénale chronique et la dialyse augmentent le risque de calcification des artères notamment digestives et exposent à un risque majoré d'ischémie mésentérique.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. L'insuffisance rénale chronique et la dialyse augmentent le risque de calcification des artères notamment digestives et exposent à un risque majoré d'ischémie mésentérique. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : La prise alimentaire aggrave la symptomatologie..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816391:1_choice1",
+            "texte": "Le fractionnement des repas est souvent observé dans cette maladie.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Le fractionnement des repas est souvent observé dans cette maladie. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : La prise alimentaire aggrave la symptomatologie..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816391:1_choice2",
+            "texte": "La prise alimentaire aggrave la symptomatologie.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. La prise alimentaire aggrave la symptomatologie. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816391:1_choice3",
+            "texte": "Le sujet présente une classique faim douloureuse.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Le sujet présente une classique faim douloureuse. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : La prise alimentaire aggrave la symptomatologie..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816391:1_choice4",
+            "texte": "L'alimentation est responsable de douleur post prandiale surtout quand le repas est riche.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. L'alimentation est responsable de douleur post prandiale surtout quand le repas est riche. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : La prise alimentaire aggrave la symptomatologie..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : La prise alimentaire aggrave la symptomatologie..",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816391-2",
+        "type_question": "DP",
+        "enonce": "Effectivement, cette patiente mange 6 petits repas par jour. Elle aimerait manger plus mais n'y parvient pas car ça lui fait mal. Devant ce tableau :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816391:2_choice0",
+            "texte": "Il faut réaliser un angioscanner avec injection de l'aorte abdominale afin de confirmer le diagnostic d'ischémie digestive chronique.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Il faut réaliser un angioscanner avec injection de l'aorte abdominale afin de confirmer le diagnostic d'ischémie digestive chronique. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816391:2_choice1",
+            "texte": "Un échodoppler des artères digestives peut être utile.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Un échodoppler des artères digestives peut être utile. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816391:2_choice2",
+            "texte": "Le cancer de la tête du pancréas est un diagnostic différentiel à avoir en tête sur ce terrain.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Le cancer de la tête du pancréas est un diagnostic différentiel à avoir en tête sur ce terrain. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816391:2_choice3",
+            "texte": "Le traitement est chirurgical.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Le traitement est chirurgical. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816391:2_choice4",
+            "texte": "C'est une indication d'héparinisation systémique à dose curative.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. C'est une indication d'héparinisation systémique à dose curative. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Il faut réaliser un angioscanner avec injection de l'aorte abdominale afin de confirmer le diagnostic d'ischémie digestive chronique. ; Un échodoppler des artères digestives peut être utile. ; Le cancer de la tête du pancréas est un diagnostic différentiel à avoir en tête sur ce terrain. ; Le traitement est chirurgical..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Il faut réaliser un angioscanner avec injection de l'aorte abdominale afin de confirmer le diagnostic d'ischémie digestive chronique. ; Un échodoppler des artères digestives peut être utile. ; Le cancer de la tête du pancréas est un diagnostic différentiel à avoir en tête sur ce terrain. ; Le traitement est chirurgical..",
+        "statut_verification": "validee"
+      }
+    ]
+  },
+  {
+    "quiz_title": "mDP3\nTest",
+    "questions": [
+      {
+        "id": "question-16816392-2",
+        "type_question": "DP",
+        "enonce": "Lors de votre examen clinique (2 réponses attendues) : — 2 réponses sont attendues —",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816392:2_choice0",
+            "texte": "L’impossibilité de monter 2 étages est une dyspnée NYHA 2.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. L’impossibilité de monter 2 étages est une dyspnée NYHA 2. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Un tableau d’anasarque est compatible avec une atteinte cardiaque droite. ; Vous palpez les pouls périphériques..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816392:2_choice1",
+            "texte": "Des crépitants aux deux bases sont coté Killip 3.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Des crépitants aux deux bases sont coté Killip 3. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Un tableau d’anasarque est compatible avec une atteinte cardiaque droite. ; Vous palpez les pouls périphériques..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816392:2_choice2",
+            "texte": "Un tableau d’anasarque est compatible avec une atteinte cardiaque droite.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Un tableau d’anasarque est compatible avec une atteinte cardiaque droite. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816392:2_choice3",
+            "texte": "Vous palpez les pouls périphériques.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Vous palpez les pouls périphériques. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816392:2_choice4",
+            "texte": "La persistance d’un angor est normale chez elle.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. La persistance d’un angor est normale chez elle. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Un tableau d’anasarque est compatible avec une atteinte cardiaque droite. ; Vous palpez les pouls périphériques..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Un tableau d’anasarque est compatible avec une atteinte cardiaque droite. ; Vous palpez les pouls périphériques..",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816392-3",
+        "type_question": "DP",
+        "enonce": "Concernant le diagnostic d’insuffisance cardiaque en général :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816392:3_answer0",
+            "texte": "La coronarographie est toujours indispensable.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. La coronarographie est toujours indispensable. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Une élévation isolée des pressions cardiaques sans altération de la fonction systolique peut être à l’origine d’une insuffisance cardiaque..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816392:3_answer1",
+            "texte": "La première cause d’insuffisance cardiaque droite est l’infarctus du ventricule droit.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. La première cause d’insuffisance cardiaque droite est l’infarctus du ventricule droit. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Une élévation isolée des pressions cardiaques sans altération de la fonction systolique peut être à l’origine d’une insuffisance cardiaque..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816392:3_answer2",
+            "texte": "Une élévation isolée des pressions cardiaques sans altération de la fonction systolique peut être à l’origine d’une insuffisance cardiaque.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Une élévation isolée des pressions cardiaques sans altération de la fonction systolique peut être à l’origine d’une insuffisance cardiaque. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816392:3_answer3",
+            "texte": "Le NT proBNP a une forte valeur prédictive positive.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Le NT proBNP a une forte valeur prédictive positive. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Une élévation isolée des pressions cardiaques sans altération de la fonction systolique peut être à l’origine d’une insuffisance cardiaque..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816392:3_answer4",
+            "texte": "En cas de tableau clinique typique l’échocardiographie ne sera pas forcément nécessaire.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. En cas de tableau clinique typique l’échocardiographie ne sera pas forcément nécessaire. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Une élévation isolée des pressions cardiaques sans altération de la fonction systolique peut être à l’origine d’une insuffisance cardiaque..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Une élévation isolée des pressions cardiaques sans altération de la fonction systolique peut être à l’origine d’une insuffisance cardiaque..",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816392-4",
+        "type_question": "DP",
+        "enonce": "Son échocardiographie montre une FEVG à 30%. Concernant son traitement :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816392:4_choice0",
+            "texte": "Il faudra lui surveiller régulièrement sa fonction rénale et la kaliémie.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Il faudra lui surveiller régulièrement sa fonction rénale et la kaliémie. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816392:4_choice1",
+            "texte": "Une bi anti-agrégation plaquettaire est nécessaire.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Une bi anti-agrégation plaquettaire est nécessaire. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816392:4_choice2",
+            "texte": "Le bétabloquant est contre indiqué chez elle.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Le bétabloquant est contre indiqué chez elle. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Il faudra lui surveiller régulièrement sa fonction rénale et la kaliémie. ; Une bi anti-agrégation plaquettaire est nécessaire. ; Un IEC peut lui être prescrit..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816392:4_choice3",
+            "texte": "Un IEC peut lui être prescrit.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Un IEC peut lui être prescrit. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816392:4_choice4",
+            "texte": "Un régime hyposodé à 3g/jr de sel est recommandé.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Un régime hyposodé à 3g/jr de sel est recommandé. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Il faudra lui surveiller régulièrement sa fonction rénale et la kaliémie. ; Une bi anti-agrégation plaquettaire est nécessaire. ; Un IEC peut lui être prescrit..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Il faudra lui surveiller régulièrement sa fonction rénale et la kaliémie. ; Une bi anti-agrégation plaquettaire est nécessaire. ; Un IEC peut lui être prescrit..",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816392-5",
+        "type_question": "DP",
+        "enonce": "Vous la revoyez au cabinet 1 mois plus tard à sa demande car elle se dit plus essoufflée pour ses activités quotidiennes. Elle vous dit bien prendre ses médicaments. Les constantes sont TA 175/90 mmHg, FC 110/min., SpO2 89% en air ambient. Finalement, après l’avoir examiné, vous diagnostiquez un OAP. Concernant le problème aigu de Mme P. :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816392:5_choice0",
+            "texte": "Un non-respect des règles hygiéno-diététiques pourrait en être la cause.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Un non-respect des règles hygiéno-diététiques pourrait en être la cause. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816392:5_choice1",
+            "texte": "Il lui faudra une injection de dérivé nitré.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Il lui faudra une injection de dérivé nitré. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816392:5_choice2",
+            "texte": "Vous appelez le SAMU.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Vous appelez le SAMU. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816392:5_choice3",
+            "texte": "Une intubation orotrachéale est nécessaire devant ce tableau respiratoire sévère.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Une intubation orotrachéale est nécessaire devant ce tableau respiratoire sévère. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Un non-respect des règles hygiéno-diététiques pourrait en être la cause. ; Il lui faudra une injection de dérivé nitré. ; Vous appelez le SAMU. ; Si la pression artérielle était à 90/55 mmHg, il faudrait surement de la DOBUTAMINE..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816392:5_choice4",
+            "texte": "Si la pression artérielle était à 90/55 mmHg, il faudrait surement de la DOBUTAMINE.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Si la pression artérielle était à 90/55 mmHg, il faudrait surement de la DOBUTAMINE. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Un non-respect des règles hygiéno-diététiques pourrait en être la cause. ; Il lui faudra une injection de dérivé nitré. ; Vous appelez le SAMU. ; Si la pression artérielle était à 90/55 mmHg, il faudrait surement de la DOBUTAMINE..",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816392-6",
+        "type_question": "DP",
+        "enonce": "Finalement, après toute ces péripéties, elle vous revient en pleine forme 1 mois plus tard sous traitement médical maximal toléré et a arrêté de fumer. Elle vous dit arriver à monter 2 étages mais c’est encore dur pour la marche en côte (NYHA 2). Son ECG est normal en dehors d’ondes Q de nécroses de V1 à V4 et son échocardiographie est inchangée. Pour finaliser l’optimisation de son traitement : (RANG B)",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816392:6_answer0",
+            "texte": "Une resynchronisation ventriculaire pourrait lui être proposée.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Une resynchronisation ventriculaire pourrait lui être proposée. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Une rééducation cardiaque doit lui être demandée..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816392:6_answer1",
+            "texte": "Un DAI en prévention primaire n’est donc plus recommandé chez elle.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Un DAI en prévention primaire n’est donc plus recommandé chez elle. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Une rééducation cardiaque doit lui être demandée..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816392:6_answer2",
+            "texte": "Un pace maker double chambre serait une bonne idée.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Un pace maker double chambre serait une bonne idée. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Une rééducation cardiaque doit lui être demandée..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816392:6_answer3",
+            "texte": "Une rééducation cardiaque doit lui être demandée.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Une rééducation cardiaque doit lui être demandée. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816392:6_answer4",
+            "texte": "Toutes les propositions sont fausses.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Toutes les propositions sont fausses. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Une rééducation cardiaque doit lui être demandée..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Une rééducation cardiaque doit lui être demandée..",
+        "statut_verification": "validee"
+      }
+    ]
+  },
+  {
+    "quiz_title": "SQI1\nTest",
+    "questions": [
+      {
+        "id": "question-11564104-1",
+        "type_question": "QRM",
+        "enonce": "Vous décidez de mettre en place un traitement par antivitamines K (AVK) à un patient présentant une fibrillation auriculaire symptomatique avec une insuffisance rénale sévère. Quelles sont les propositions justes ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q11564104:1_choice0",
+            "texte": "Vous optez pour la warfarine plutôt que la fluindione et l’acénocoumarol",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Vous optez pour la warfarine plutôt que la fluindione et l’acénocoumarol. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:1_choice1",
+            "texte": "Les AVK inhibe la synthèse hépatique des facteurs X, IX, VII, II",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Les AVK inhibe la synthèse hépatique des facteurs X, IX, VII, II. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:1_choice2",
+            "texte": "Le délai d’efficacité des AVK est court, de l’ordre de quelques heures",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Le délai d’efficacité des AVK est court, de l’ordre de quelques heures. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Vous optez pour la warfarine plutôt que la fluindione et l’acénocoumarol ; Les AVK inhibe la synthèse hépatique des facteurs X, IX, VII, II ; Un traitement anticoagulant préalable par héparine est nécessaire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:1_choice3",
+            "texte": "Un traitement anticoagulant préalable par héparine est nécessaire",
+            "reponse_officielle": true,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.93,
+            "explication": "Lors de l’instauration d’un AVK pour une fibrillation atriale stable, un relais systématique par héparine n’est pas requis et augmente le risque hémorragique. Il se discute seulement dans des situations thrombotiques particulières.",
+            "desaccord_officiel": true,
+            "commentaire_desaccord": "Lors de l’instauration d’un AVK pour une fibrillation atriale stable, un relais systématique par héparine n’est pas requis et augmente le risque hémorragique. Il se discute seulement dans des situations thrombotiques particulières."
+          },
+          {
+            "id": "q11564104:1_choice4",
+            "texte": "Il n’y a pas de surveillance biologique nécessaire pour juger de l’efficacité des AVK",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Il n’y a pas de surveillance biologique nécessaire pour juger de l’efficacité des AVK. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Vous optez pour la warfarine plutôt que la fluindione et l’acénocoumarol ; Les AVK inhibe la synthèse hépatique des facteurs X, IX, VII, II ; Un traitement anticoagulant préalable par héparine est nécessaire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Vous optez pour la warfarine plutôt que la fluindione et l’acénocoumarol ; Les AVK inhibe la synthèse hépatique des facteurs X, IX, VII, II ; Un traitement anticoagulant préalable par héparine est nécessaire. Une réserve ou un désaccord médical est signalé dans les propositions.",
+        "statut_verification": "a_revoir"
+      },
+      {
+        "id": "question-11564104-2",
+        "type_question": "QRU",
+        "enonce": "Concernant les bruits du cœur, le \"bruit B1\" correspond à :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q11564104:2_answer0",
+            "texte": "La fermeture de la valve auriculo ventriculaire",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. La fermeture de la valve auriculo ventriculaire. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:2_answer1",
+            "texte": "L'ouverture de la valve auriculo ventriculaire",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. L'ouverture de la valve auriculo ventriculaire. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : La fermeture de la valve auriculo ventriculaire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:2_answer2",
+            "texte": "L'ouverture de la valve pulmonaire",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. L'ouverture de la valve pulmonaire. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : La fermeture de la valve auriculo ventriculaire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:2_answer3",
+            "texte": "L'ouverture de la valve Aortique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. L'ouverture de la valve Aortique. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : La fermeture de la valve auriculo ventriculaire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:2_answer4",
+            "texte": "La fermeture de la valve Aortique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. La fermeture de la valve Aortique. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : La fermeture de la valve auriculo ventriculaire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : La fermeture de la valve auriculo ventriculaire.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-11564104-3",
+        "type_question": "QRM",
+        "enonce": "Vous recevez le bilan de thrombophilie de Mme B. âgée de 32 ans, qui a fait une embolie pulmonaire sans facteur déclenchant identifié il y a 6 mois. Elle est traitée par Rivaroxaban XARELTO ® depuis le début. Il s’agit du 2 ème bilan qu’elle effectue et ce dernier est similaire au précédent effectué il y a 3 mois.",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q11564104:3_choice0",
+            "texte": "Le bilan de thrombophilie est anormal.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Le bilan de thrombophilie est anormal. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:3_choice1",
+            "texte": "On suspecte la présence d’un syndrome des antiphospholipides.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. On suspecte la présence d’un syndrome des antiphospholipides. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Le bilan de thrombophilie est anormal. ; L’anomalie décelée au bilan est un facteur de risque majeur persistant..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:3_choice2",
+            "texte": "Le traitement par Rivaroxaban (AOD) devra être relayé par des antivitamines K (AVK).",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Le traitement par Rivaroxaban (AOD) devra être relayé par des antivitamines K (AVK). Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Le bilan de thrombophilie est anormal. ; L’anomalie décelée au bilan est un facteur de risque majeur persistant..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:3_choice3",
+            "texte": "Le bilan de thrombophilie est normal.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Le bilan de thrombophilie est normal. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Le bilan de thrombophilie est anormal. ; L’anomalie décelée au bilan est un facteur de risque majeur persistant..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:3_choice4",
+            "texte": "L’anomalie décelée au bilan est un facteur de risque majeur persistant.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. L’anomalie décelée au bilan est un facteur de risque majeur persistant. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [
+          {
+            "filename": "uness-20260731T164753Z/images/sqi1-test-question-11564104-3-1.webp",
+            "accessible_ia": true,
+            "type": "bilan biologique de thrombophilie"
+          },
+          {
+            "filename": "uness-20260731T164753Z/images/sqi1-test-question-11564104-3-2.webp",
+            "accessible_ia": true,
+            "type": "bilan biologique de thrombophilie"
+          },
+          {
+            "filename": "uness-20260731T164753Z/images/sqi1-test-question-11564104-3-3.webp",
+            "accessible_ia": true,
+            "type": "bilan biologique de thrombophilie"
+          }
+        ],
+        "correction_globale": "Réponses officiellement exactes : Le bilan de thrombophilie est anormal. ; L’anomalie décelée au bilan est un facteur de risque majeur persistant..",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-11564104-4",
+        "type_question": "QRM",
+        "enonce": "Devant cet ECG :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q11564104:4_choice0",
+            "texte": "Vous rassurez le patient, il s'agit d'une tachycardie supra-ventriculaire.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Vous rassurez le patient, il s'agit d'une tachycardie supra-ventriculaire. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Vous posez le diagnostic de tachycardie ventriculaire. ; Vous vous préparez à choquer et à réanimer..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:4_choice1",
+            "texte": "Vous posez le diagnostic de fibrillation atriale.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Vous posez le diagnostic de fibrillation atriale. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Vous posez le diagnostic de tachycardie ventriculaire. ; Vous vous préparez à choquer et à réanimer..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:4_choice2",
+            "texte": "Vous posez le diagnostic de fibrillation ventriculaire.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Vous posez le diagnostic de fibrillation ventriculaire. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Vous posez le diagnostic de tachycardie ventriculaire. ; Vous vous préparez à choquer et à réanimer..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:4_choice3",
+            "texte": "Vous posez le diagnostic de tachycardie ventriculaire.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Vous posez le diagnostic de tachycardie ventriculaire. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:4_choice4",
+            "texte": "Vous vous préparez à choquer et à réanimer.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Vous vous préparez à choquer et à réanimer. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [
+          {
+            "filename": "uness-20260731T164753Z/images/sqi1-test-question-11564104-4-4.webp",
+            "accessible_ia": true,
+            "type": "ECG"
+          }
+        ],
+        "correction_globale": "Réponses officiellement exactes : Vous posez le diagnostic de tachycardie ventriculaire. ; Vous vous préparez à choquer et à réanimer..",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-11564104-5",
+        "type_question": "QRM",
+        "enonce": "Vous revoyez un patient qui a été stabilisé après un SCA ST+ stenté sur la 2 ème marginale. FEVG 45%, fuite mitrale grade 2. Il vous demande des précisions sur la stratégie thérapeutique au long cours. Quels éléments devez-vous inclure dans la stratégie thérapeutique au long cours pour ce patient? Sélectionnez deux réponses . — 2 réponses sont attendues —",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q11564104:5_choice0",
+            "texte": "Continuation de la bi antiagrégation plaquettaire",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Continuation de la bi antiagrégation plaquettaire. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:5_choice1",
+            "texte": "Surveillance périodique par coronarographie",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Surveillance périodique par coronarographie. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Continuation de la bi antiagrégation plaquettaire ; Réadaptation cardiaque.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:5_choice2",
+            "texte": "Réadaptation cardiaque",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Réadaptation cardiaque. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:5_choice3",
+            "texte": "Thérapie par bêtabloquants seulement en cas de symptômes",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Thérapie par bêtabloquants seulement en cas de symptômes. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Continuation de la bi antiagrégation plaquettaire ; Réadaptation cardiaque.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:5_choice4",
+            "texte": "Introduction d'un régime alimentaire riche en graisses saturées",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Introduction d'un régime alimentaire riche en graisses saturées. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Continuation de la bi antiagrégation plaquettaire ; Réadaptation cardiaque.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Continuation de la bi antiagrégation plaquettaire ; Réadaptation cardiaque.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-11564104-6",
+        "type_question": "QRM",
+        "enonce": "Vous suivez un patient de 80 ans hypertendu diabétique sous IEC et METFORMINE. Il vient vous voir pour palpitations occasionnelles. Votre électrocardiogramme retrouve  des extrasystoles atriales isolées",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q11564104:6_choice0",
+            "texte": "Vous envisagez un traitement d’emblée par un AOD pour éviter la survenu d’un AVC.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Vous envisagez un traitement d’emblée par un AOD pour éviter la survenu d’un AVC. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Vous recherchez de la Fibrillation Atriale en proposant un Holter ECG de 24h. ; Vous envisager un bilan biologique (TSH, Hémoglobine...)..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:6_choice1",
+            "texte": "Vous recherchez de la Fibrillation Atriale en proposant un Holter ECG de 24h.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Vous recherchez de la Fibrillation Atriale en proposant un Holter ECG de 24h. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:6_choice2",
+            "texte": "Vous envisager un bilan biologique (TSH, Hémoglobine...).",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Vous envisager un bilan biologique (TSH, Hémoglobine...). Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:6_choice3",
+            "texte": "Vous organiser un Choc Electrique Externe(CEE) pour traiter les extrasystoles.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Vous organiser un Choc Electrique Externe(CEE) pour traiter les extrasystoles. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Vous recherchez de la Fibrillation Atriale en proposant un Holter ECG de 24h. ; Vous envisager un bilan biologique (TSH, Hémoglobine...)..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:6_choice4",
+            "texte": "Le Score CHA2DS2VASC est à 2 car HTA + DNID.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Le Score CHA2DS2VASC est à 2 car HTA + DNID. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Vous recherchez de la Fibrillation Atriale en proposant un Holter ECG de 24h. ; Vous envisager un bilan biologique (TSH, Hémoglobine...)..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Vous recherchez de la Fibrillation Atriale en proposant un Holter ECG de 24h. ; Vous envisager un bilan biologique (TSH, Hémoglobine...)..",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-11564104-7",
+        "type_question": "QRU",
+        "enonce": "Vous recevez aux urgences une patiente de 81 ans qui a présenté une syncope à son domicile. Voici l’électrocardiogramme que vous réalisez à son arrivée. La fréquence cardiaque est de 35 battements par minute. Quel est le diagnostic ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q11564104:7_answer0",
+            "texte": "Bloc sino-atrial de type 2",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Bloc sino-atrial de type 2. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Bloc auriculo ventriculaire de type 3.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:7_answer1",
+            "texte": "Bloc sino-atrial de type 3",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Bloc sino-atrial de type 3. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Bloc auriculo ventriculaire de type 3.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:7_answer2",
+            "texte": "Bloc auriculo ventriculaire de type 2 Mobitz 1",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Bloc auriculo ventriculaire de type 2 Mobitz 1. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Bloc auriculo ventriculaire de type 3.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:7_answer3",
+            "texte": "Bloc auriculo ventriculaire de type 2 Mobitz 2",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Bloc auriculo ventriculaire de type 2 Mobitz 2. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Bloc auriculo ventriculaire de type 3.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:7_answer4",
+            "texte": "Bloc auriculo ventriculaire de type 3",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Bloc auriculo ventriculaire de type 3. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [
+          {
+            "filename": "uness-20260731T164753Z/images/sqi1-test-question-11564104-7-5.webp",
+            "accessible_ia": true,
+            "type": "ECG"
+          }
+        ],
+        "correction_globale": "Réponses officiellement exactes : Bloc auriculo ventriculaire de type 3. Dissociation auriculo ventriculaire complète, bradycardie régulière.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-11564104-8",
+        "type_question": "QRM",
+        "enonce": "Vous voyez en consultation un patient de 83 ans connu pour une dysfonction sinusale jusque-là asymptomatique. Depuis quelques semaines, celui-ci décrit une dyspnée d’effort, associée à un épisode de syncope il y a 3 jours. On note dans ses autres antécédents un accident vasculaire cérébral ischémique.",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q11564104:8_choice0",
+            "texte": "La dysfonction sinusale est la plupart du temps associée au vieillissement avec un phénomène de fibrose.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. La dysfonction sinusale est la plupart du temps associée au vieillissement avec un phénomène de fibrose. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:8_choice1",
+            "texte": "Comme pour ce patient, la dysfonction sinusale peut rester asymptomatique pendant plusieurs années.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Comme pour ce patient, la dysfonction sinusale peut rester asymptomatique pendant plusieurs années. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:8_choice2",
+            "texte": "Sa dyspnée d’effort peut être en lien avec une insuffisance chronotrope.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Sa dyspnée d’effort peut être en lien avec une insuffisance chronotrope. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:8_choice3",
+            "texte": "Son épisode de syncope peut être en lien avec une pause sinusale donnant une baisse du débit cérébral.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Son épisode de syncope peut être en lien avec une pause sinusale donnant une baisse du débit cérébral. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:8_choice4",
+            "texte": "L’antécédent d’accident vasculaire cérébral ischémique doit vous faire dépister de la fibrillation auriculaire, qui s’inscrirait alors dans une maladie rythmique auriculaire.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. L’antécédent d’accident vasculaire cérébral ischémique doit vous faire dépister de la fibrillation auriculaire, qui s’inscrirait alors dans une maladie rythmique auriculaire. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : La dysfonction sinusale est la plupart du temps associée au vieillissement avec un phénomène de fibrose. ; Comme pour ce patient, la dysfonction sinusale peut rester asymptomatique pendant plusieurs années. ; Sa dyspnée d’effort peut être en lien avec une insuffisance chronotrope. ; Son épisode de syncope peut être en lien avec une pause sinusale donnant une baisse du débit cérébral. ; L’antécédent d’accident vasculaire cérébral ischémique doit vous faire dépister de la fibrillation auriculaire, qui s’inscrirait alors dans une maladie rythmique auriculaire..",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-11564104-9",
+        "type_question": "QRM",
+        "enonce": "Vous décidez de la mise en place d’un traitement par héparines de bas poids moléculaire (HBPM) par enoxaparine chez une patiente de 35 ans allaitante ayant présenté une thrombose veineuse profonde fémorale commune gauche en post-partum. Quelles sont les propositions justes ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q11564104:9_choice0",
+            "texte": "La prise en compte de la fonction rénale est indispensable.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. La prise en compte de la fonction rénale est indispensable. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:9_choice1",
+            "texte": "Vous adaptez la posologie d’enoxaparine selon l’activité anti-Xa.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Vous adaptez la posologie d’enoxaparine selon l’activité anti-Xa. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : La prise en compte de la fonction rénale est indispensable. ; Vous adaptez la posologie d’enoxaparine au poids de la patiente. ; L’administration d’enoxaparine à dose curative se fait habituellement en 2 prises par jour..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:9_choice2",
+            "texte": "Vous adaptez la posologie d’enoxaparine selon le temps de céphaline activée TCA.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Vous adaptez la posologie d’enoxaparine selon le temps de céphaline activée TCA. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : La prise en compte de la fonction rénale est indispensable. ; Vous adaptez la posologie d’enoxaparine au poids de la patiente. ; L’administration d’enoxaparine à dose curative se fait habituellement en 2 prises par jour..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:9_choice3",
+            "texte": "Vous adaptez la posologie d’enoxaparine au poids de la patiente.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Vous adaptez la posologie d’enoxaparine au poids de la patiente. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:9_choice4",
+            "texte": "L’administration d’enoxaparine à dose curative se fait habituellement en 2 prises par jour.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. L’administration d’enoxaparine à dose curative se fait habituellement en 2 prises par jour. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : La prise en compte de la fonction rénale est indispensable. ; Vous adaptez la posologie d’enoxaparine au poids de la patiente. ; L’administration d’enoxaparine à dose curative se fait habituellement en 2 prises par jour..",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-11564104-10",
+        "type_question": "QRM",
+        "enonce": "Concernant les souffles, quelles sont les caractéristiques que l’on ne retrouve jamais si un souffle est fonctionnel ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q11564104:10_choice0",
+            "texte": "Frémissement du souffle",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Frémissement du souffle. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:10_choice1",
+            "texte": "Souffle d’intensité 3/6",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Souffle d’intensité 3/6. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:10_choice2",
+            "texte": "Souffle diastolique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Souffle diastolique. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:10_choice3",
+            "texte": "Souffle au foyer aortique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Souffle au foyer aortique. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Frémissement du souffle ; Souffle d’intensité 3/6 ; Souffle diastolique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:10_choice4",
+            "texte": "Arythmie respiratoire",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Arythmie respiratoire. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Frémissement du souffle ; Souffle d’intensité 3/6 ; Souffle diastolique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Frémissement du souffle ; Souffle d’intensité 3/6 ; Souffle diastolique.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-11564104-11",
+        "type_question": "QRM",
+        "enonce": "Concernant les facteurs de risque de maladie thromboembolique veineuse ci-dessous :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q11564104:11_choice0",
+            "texte": "M. P a présenté une thrombose veineuse profonde avec découverte du facteur de risque n°6, ce dernier est considéré comme un facteur de risque mineur transitoire.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. M. P a présenté une thrombose veineuse profonde avec découverte du facteur de risque n°6, ce dernier est considéré comme un facteur de risque mineur transitoire. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Aucune des propositions ci-dessus..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:11_choice1",
+            "texte": "Les facteurs de risque 1 – 6 et 2 sont des facteurs de risque majeurs persistants.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Les facteurs de risque 1 – 6 et 2 sont des facteurs de risque majeurs persistants. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Aucune des propositions ci-dessus..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:11_choice2",
+            "texte": "Les facteurs de risque 3 et 4 sont des facteurs de risque mineurs transitoires.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Les facteurs de risque 3 et 4 sont des facteurs de risque mineurs transitoires. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Aucune des propositions ci-dessus..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:11_choice3",
+            "texte": "Le facteur de risque 8 est un facteur de risque persistant mineur.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Le facteur de risque 8 est un facteur de risque persistant mineur. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Aucune des propositions ci-dessus..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:11_choice4",
+            "texte": "Aucun de ces facteurs de risque n’est un facteur de risque mineur.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Aucun de ces facteurs de risque n’est un facteur de risque mineur. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Aucune des propositions ci-dessus..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:11_choice5",
+            "texte": "Aucune des propositions ci-dessus.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Aucune des propositions ci-dessus. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [
+          {
+            "filename": "uness-20260731T164753Z/images/sqi1-test-question-11564104-11-6.webp",
+            "accessible_ia": true,
+            "type": "tableau de facteurs de risque thromboembolique"
+          }
+        ],
+        "correction_globale": "Réponses officiellement exactes : Aucune des propositions ci-dessus..",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-11564104-12",
+        "type_question": "QRM",
+        "enonce": "Vous êtes médecin traitant et reprenez le suivi de Monsieur Dupont, 70 ans, qui a eu un infarctus du myocarde il y a un an avec FEVG conservée. Lors de votre consultation, il vous présente son ordonnance actuelle pour renouvellement. L'ordonnance inclut de la loratadine (antihistaminique), de la sertraline (antidépresseur), du ramipril (inhibiteur de l'enzyme de conversion) et de l'oméprazole (inhibiteur de la pompe à protons). Quelles sont les deux éléments qui semblent être les erreurs les plus critiques dans l'ordonnance actuelle de Monsieur Dupont, en considérant sa condition de prévention secondaire ? — 2 réponses sont attendues —",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q11564104:12_choice0",
+            "texte": "Absence de statines pour le contrôle du cholestérol",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Absence de statines pour le contrôle du cholestérol. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:12_choice1",
+            "texte": "Non-inclusion de bétabloquants pour la stabilisation cardiaque",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Non-inclusion de bétabloquants pour la stabilisation cardiaque. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Absence de statines pour le contrôle du cholestérol ; Omission de l'aspirine pour ses propriétés antiagrégants.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:12_choice2",
+            "texte": "Omission de l'aspirine pour ses propriétés antiagrégants",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Omission de l'aspirine pour ses propriétés antiagrégants. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:12_choice3",
+            "texte": "Inclusion de l'oméprazole sans indication claire de troubles gastro-intestinaux",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Inclusion de l'oméprazole sans indication claire de troubles gastro-intestinaux. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Absence de statines pour le contrôle du cholestérol ; Omission de l'aspirine pour ses propriétés antiagrégants.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:12_choice4",
+            "texte": "Utilisation de la sertraline sans évaluation récente de la dépression",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Utilisation de la sertraline sans évaluation récente de la dépression. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Absence de statines pour le contrôle du cholestérol ; Omission de l'aspirine pour ses propriétés antiagrégants.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Absence de statines pour le contrôle du cholestérol ; Omission de l'aspirine pour ses propriétés antiagrégants.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-11564104-13",
+        "type_question": "QRM",
+        "enonce": "Vous suivez un patient en consultation pour une fibrillation auriculaire, anticoagulée par warfarine avec un INR cible entre 2 et 3. L’INR de contrôle est à 5. Il n’y pas de syndrome hémorragique. Quelle est la proposition juste ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q11564104:13_choice0",
+            "texte": "Administration de 2 mg de vitamine K per os",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Administration de 2 mg de vitamine K per os. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Saut d’une prise de warfarine et baisse de la posologie.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:13_choice1",
+            "texte": "Administration de 5 mg de vitamine K per os",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Administration de 5 mg de vitamine K per os. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Saut d’une prise de warfarine et baisse de la posologie.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:13_choice2",
+            "texte": "Administration de concentrés de complexes prothrombiniques (CCP, aussi appelés PPSB)",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Administration de concentrés de complexes prothrombiniques (CCP, aussi appelés PPSB). Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Saut d’une prise de warfarine et baisse de la posologie.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:13_choice3",
+            "texte": "L’arrêt définitif de la warfarine",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. L’arrêt définitif de la warfarine. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Saut d’une prise de warfarine et baisse de la posologie.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:13_choice4",
+            "texte": "Saut d’une prise de warfarine et baisse de la posologie",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Saut d’une prise de warfarine et baisse de la posologie. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Saut d’une prise de warfarine et baisse de la posologie.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-11564104-14",
+        "type_question": "QRM",
+        "enonce": "Un homme de 55 ans, avec des antécédents de tabagisme et d'hypercholestérolémie, se présente avec une douleur thoracique oppressante irradiant vers le bras gauche, survenue il y a 30 minutes. Quels éléments de l'interrogatoire et de l'examen clinique doivent être priorisés pour orienter notre hypothèse vers un possible SCA ou un diagnostic différentiel chez ce patient ? Sélectionnez deux réponses . — 2 réponses sont attendues —",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q11564104:14_choice0",
+            "texte": "Durée de la douleur thoracique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Durée de la douleur thoracique. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:14_choice1",
+            "texte": "Présence de dyspnée",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Présence de dyspnée. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:14_choice2",
+            "texte": "Antécédents de diabète sucré",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Antécédents de diabète sucré. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Durée de la douleur thoracique ; Présence de dyspnée.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:14_choice3",
+            "texte": "Révision des médicaments antérieurs",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Révision des médicaments antérieurs. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Durée de la douleur thoracique ; Présence de dyspnée.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:14_choice4",
+            "texte": "Antécédents familiaux de maladies cardiovasculaires",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Antécédents familiaux de maladies cardiovasculaires. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Durée de la douleur thoracique ; Présence de dyspnée.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Durée de la douleur thoracique ; Présence de dyspnée.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-11564104-15",
+        "type_question": "QRM",
+        "enonce": "Dans le cadre d’un bilan de palpitations, hormis l’ECG, quels sont les 2 examens complémentaires à réaliser en priorité ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q11564104:15_choice0",
+            "texte": "Une IRM cardiaque",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Une IRM cardiaque. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Un bilan biologique sanguin ; Une échographie cardiaque transthoracique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:15_choice1",
+            "texte": "Un bilan biologique sanguin",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Un bilan biologique sanguin. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:15_choice2",
+            "texte": "Une coronarographie",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Une coronarographie. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Un bilan biologique sanguin ; Une échographie cardiaque transthoracique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:15_choice3",
+            "texte": "Une exploration électrophysiologique endocavitaire",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Une exploration électrophysiologique endocavitaire. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Un bilan biologique sanguin ; Une échographie cardiaque transthoracique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:15_choice4",
+            "texte": "Une échographie cardiaque transthoracique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Une échographie cardiaque transthoracique. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Un bilan biologique sanguin ; Une échographie cardiaque transthoracique.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-11564104-16",
+        "type_question": "QRM",
+        "enonce": "Un patient de 48 ans se présente aux urgences pour palpitations. Quelles sont les signes de gravité devant vous alerter ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q11564104:16_choice0",
+            "texte": "La description d’une sensation d’irrégularité",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. La description d’une sensation d’irrégularité. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Une pression artérielle < 90/60 mmHg ; Un antécédent personnel de cardiopathie ischémique ; Des signes d’insuffisance cardiaque à l’examen clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:16_choice1",
+            "texte": "Une pression artérielle < 90/60 mmHg",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Une pression artérielle < 90/60 mmHg. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:16_choice2",
+            "texte": "Une fréquence cardiaque > 90 bpm",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Une fréquence cardiaque > 90 bpm. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : Une pression artérielle < 90/60 mmHg ; Un antécédent personnel de cardiopathie ischémique ; Des signes d’insuffisance cardiaque à l’examen clinique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:16_choice3",
+            "texte": "Un antécédent personnel de cardiopathie ischémique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Un antécédent personnel de cardiopathie ischémique. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:16_choice4",
+            "texte": "Des signes d’insuffisance cardiaque à l’examen clinique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Des signes d’insuffisance cardiaque à l’examen clinique. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : Une pression artérielle < 90/60 mmHg ; Un antécédent personnel de cardiopathie ischémique ; Des signes d’insuffisance cardiaque à l’examen clinique.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-11564104-17",
+        "type_question": "QRM",
+        "enonce": "Un patient de 70 ans, avec ATCD d'infarctus du Myocarde, se présente aux urgences en tableau d'œdème pulmonaire. Vous diagnostiquez une fibrillation auriculaire associée :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q11564104:17_choice0",
+            "texte": "- sur l'électrocardiogramme montrant l'absence d’ondes P visible, des QRS rapides et très irréguliers",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. - sur l'électrocardiogramme montrant l'absence d’ondes P visible, des QRS rapides et très irréguliers. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:17_choice1",
+            "texte": "Le bilan complémentaire doit comporter : bilan biologique radiographie thorax et échocardiographie.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. Le bilan complémentaire doit comporter : bilan biologique radiographie thorax et échocardiographie. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:17_choice2",
+            "texte": "Ce patient peut avoir un score CHADS-VASc à 0.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Ce patient peut avoir un score CHADS-VASc à 0. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : - sur l'électrocardiogramme montrant l'absence d’ondes P visible, des QRS rapides et très irréguliers ; Le bilan complémentaire doit comporter : bilan biologique radiographie thorax et échocardiographie. ; La réalisation d'un choc électrique externe en urgence peut intervenir dans la stratégie thérapeutique..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:17_choice3",
+            "texte": "La réalisation d'un choc électrique externe en urgence peut intervenir dans la stratégie thérapeutique.",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.94,
+            "explication": "Vrai. La réalisation d'un choc électrique externe en urgence peut intervenir dans la stratégie thérapeutique. Cette proposition correspond aux données cliniques et aux principes diagnostiques ou thérapeutiques applicables dans ce contexte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q11564104:17_choice4",
+            "texte": "Il ne faudra pas rajouter le traitement anticoagulant s'il est déjà sous Kardégic.",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "invalide",
+            "confiance_ia": 0.94,
+            "explication": "Faux. Il ne faudra pas rajouter le traitement anticoagulant s'il est déjà sous Kardégic. Cette proposition ne correspond pas à la situation décrite ; les éléments retenus sont : - sur l'électrocardiogramme montrant l'absence d’ondes P visible, des QRS rapides et très irréguliers ; Le bilan complémentaire doit comporter : bilan biologique radiographie thorax et échocardiographie. ; La réalisation d'un choc électrique externe en urgence peut intervenir dans la stratégie thérapeutique..",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Réponses officiellement exactes : - sur l'électrocardiogramme montrant l'absence d’ondes P visible, des QRS rapides et très irréguliers ; Le bilan complémentaire doit comporter : bilan biologique radiographie thorax et échocardiographie. ; La réalisation d'un choc électrique externe en urgence peut intervenir dans la stratégie thérapeutique..",
+        "statut_verification": "validee"
+      }
+    ]
+  }
+]

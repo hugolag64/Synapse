@@ -27,6 +27,7 @@ from starlette.requests import Request
 
 from frontend.theme import frame
 from backend.state.store import data_store
+from backend.core.reviews import local_store
 from backend.core.reviews.local_store import (
     get_all_history, get_sessions_by_course, get_postpone_counts,
     get_qcm_done_course_ids, get_active_lacunes_count_by_course,

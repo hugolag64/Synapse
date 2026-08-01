@@ -6,6 +6,7 @@ from nicegui import ui
 
 from backend.core.reviews import local_store
 from backend.core.uness.import_service import ANNALE_TYPE_LABELS
+from backend.state.store import data_store
 from frontend.theme import frame
 
 _ANNALES_CSS = """
@@ -228,15 +229,25 @@ def annales_page() -> None:
 
     with frame("Annales"):
         with ui.column().classes("ans-wrap gap-0").style("flex:1 1 auto;"):
+            def _toggle_exam_mode(val: bool) -> None:
+                data_store.preferences["exam_mode"] = bool(val)
+                data_store.save_to_disk()
+                _render()
+
             with ui.element("div").classes("ans-topbar"):
                 with ui.column().classes("gap-0"):
                     ui.label("Annales UNESS").classes("ans-title")
                     ui.label("Partiels et examens importés, regroupés par sujet").classes("ans-subtitle")
                 with ui.row().classes("items-center gap-2"):
+                    exam_mode_switch = ui.switch(
+                        "Mode Concours Blanc",
+                        value=bool(data_store.preferences.get("exam_mode", False)),
+                        on_change=lambda e: _toggle_exam_mode(e.value),
+                    ).props("dense color=primary").tooltip("Masque les scores passés pour s'entraîner sans biais")
                     ui.button(
-                        "Importer une annale",
+                        "+ IMPORTER UNE ANNALES",
                         icon="add",
-                        on_click=lambda: _open_import_dialog(_render),
+                        on_click=lambda: _open_import_dialog(refresh_fn=_render),
                     ).props("unelevated color=primary size=sm")
 
             all_rows = _filtered_annales()
@@ -293,9 +304,13 @@ def annales_page() -> None:
                                         f"{row['matiere'] or '—'} · {row['faculte'] or '—'} · {row['annee'] or '—'} · "
                                         f"{ANNALE_TYPE_LABELS.get(row['type_annale'], row['type_annale'])}"
                                     ).classes("ans-card-sub")
-                                    ui.label(
-                                        f"{completed}/{total} sous-parties terminées · Score moyen : {score_label}"
-                                    ).classes("ans-card-meta")
+                                    is_exam_mode = bool(data_store.preferences.get("exam_mode", False))
+                                    meta_text = (
+                                        "Mode Concours Blanc (Scores et progression masqués)"
+                                        if is_exam_mode
+                                        else f"{completed}/{total} sous-parties terminées · Score moyen : {score_label}"
+                                    )
+                                    ui.label(meta_text).classes("ans-card-meta")
                                 with ui.row().classes("gap-2 items-center shrink-0"):
                                     ui.button(
                                         icon="delete_outline",

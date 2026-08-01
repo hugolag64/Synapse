@@ -101,11 +101,12 @@ _CSS = """
   .ct-context-open { display:block; }
   .ct-panel > .synapse-responsive-drawer { display:contents; }
 }
-@media (max-width: 760px) {
+@media (max-width: 767.98px) {
   .cockpit-today { display:flex; flex-direction:column; }
   .ct-center { max-width:none; width:100%; }
   .ct-resizer { display:none; }
   .ct-panel { width:100%; flex-basis:auto; margin:16px 0 0; padding:16px 0; border-top:1px solid var(--border); min-height:0; }
+  .ct-qh-dur, .ct-qh-due { display:none; }
 }
 """
 

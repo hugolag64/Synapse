@@ -42,11 +42,13 @@ class AIService:
                 f"{prompt}\n\n--- CONTEXTE DOCUMENTAIRE ---\n"
                 f"{bounded_context}\n--- FIN CONTEXTE ---"
             )
+        kwargs = {"task_name": str(task), "context": context}
         if images:
             return self.client.generate(
                 full_prompt,
                 model,
                 response_format,
                 images=tuple(images),
+                **kwargs,
             )
-        return self.client.generate(full_prompt, model, response_format)
+        return self.client.generate(full_prompt, model, response_format, **kwargs)

@@ -4062,10 +4062,22 @@ def get_ai_usage_summary(limit: int = 50) -> dict:
                ORDER BY cost DESC"""
         ).fetchall()
 
+        by_context_rows = con.execute(
+            """SELECT COALESCE(context, task) AS context,
+                      task,
+                      COUNT(*) AS calls,
+                      SUM(input_tokens + output_tokens) AS tokens,
+                      SUM(cost_usd) AS cost
+               FROM ai_usage_logs
+               GROUP BY COALESCE(context, task)
+               ORDER BY cost DESC"""
+        ).fetchall()
+
     return {
         "summary": dict(summary_row) if summary_row else {},
         "recent_calls": [dict(r) for r in recent_rows],
         "by_task": [dict(r) for r in by_task_rows],
+        "by_context": [dict(r) for r in by_context_rows],
     }
 
 

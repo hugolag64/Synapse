@@ -118,9 +118,11 @@ class PracticeService:
 
     def generate_questions(self, spec: PracticeSessionSpec, context: str = "") -> list[dict]:
         task = _task_for(spec.practice_kind)
+        ctx_label = f"ITEM {spec.item_number}" if spec.item_number else (context or spec.practice_kind.value.upper())
         response = self.ai_service.generate(
             task,
             _prompt_for(spec, context),
+            context=ctx_label,
             response_format="json",
         )
         questions = _parse_questions(response, spec)

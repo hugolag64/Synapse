@@ -190,7 +190,12 @@ def correct_directory(folder: Path, *, service: AIService | None = None) -> dict
                         # Free Tier limit: 15 Requests Per Minute (RPM). Pause 6s between calls to leave margin.
                         import time
                         time.sleep(6)
-                        response = generate_uness_correction(message, images=images, service=service)
+                        response = generate_uness_correction(
+                            message,
+                            images=images,
+                            context=title,
+                            service=service,
+                        )
                         break
                     except AIServiceError as err:
                         if ("429" in str(err) or "Too Many Requests" in str(err)) and attempt < max_retries - 1:

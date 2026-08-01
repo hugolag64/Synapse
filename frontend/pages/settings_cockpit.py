@@ -262,48 +262,66 @@ def render_settings_cockpit() -> None:
             ).props("unelevated color=purple size=sm rounded").classes("mt-3")
             ui.label("Échange local : UNESS/à_vérifier → UNESS/vérifiés → UNESS/archives").classes("se-uness-status")
 
-        ui.label("CONSOMMATION & TÉLÉMÉTRIE IA").classes("se-label")
-        from backend.core.reviews.local_store import get_ai_usage_summary
-        usage_data = get_ai_usage_summary(limit=25)
-        summary = usage_data.get("summary", {})
-        recent = usage_data.get("recent_calls", [])
+        with ui.expansion("CONSOMMATION & TÉLÉMÉTRIE IA", icon="analytics").classes("w-full border border-slate-700 rounded-lg mt-4 bg-slate-900/40 text-sm font-semibold"):
+            from backend.core.reviews.local_store import get_ai_usage_summary
+            usage_data = get_ai_usage_summary(limit=50)
+            summary = usage_data.get("summary", {})
+            recent = usage_data.get("recent_calls", [])
 
-        total_cost = float(summary.get("total_cost_usd", 0.0))
-        total_calls = int(summary.get("total_calls", 0))
-        total_in = int(summary.get("total_input_tokens", 0))
-        total_out = int(summary.get("total_output_tokens", 0))
-        total_tok = total_in + total_out
+            total_cost = float(summary.get("total_cost_usd", 0.0))
+            total_calls = int(summary.get("total_calls", 0))
+            total_in = int(summary.get("total_input_tokens", 0))
+            total_out = int(summary.get("total_output_tokens", 0))
+            total_tok = total_in + total_out
 
-        with ui.element("div").classes("se-uness-card gap-3"):
-            with ui.row().classes("w-full justify-between items-center"):
-                with ui.column().classes("gap-0"):
-                    ui.label(f"${total_cost:.4f} USD").classes("text-xl font-bold text-emerald-400")
-                    ui.label("Coût IA cumulé").classes("text-xs text-slate-400")
-                with ui.column().classes("gap-0 text-right"):
-                    ui.label(f"{total_tok:,} tokens").classes("text-sm font-semibold")
-                    ui.label(f"{total_in:,} entrée · {total_out:,} sortie").classes("text-xs text-slate-400")
-                with ui.column().classes("gap-0 text-right"):
-                    ui.label(f"{total_calls} appels").classes("text-sm font-semibold")
-                    ui.label(f"{summary.get('total_errors', 0)} erreur(s)").classes("text-xs text-slate-400")
+            with ui.column().classes("w-full p-4 gap-4"):
+                # Cartes KPI synthétiques
+                with ui.row().classes("w-full justify-between items-center bg-slate-800/50 p-3 rounded-lg border border-slate-700/50"):
+                    with ui.column().classes("gap-0"):
+                        ui.label(f"${total_cost:.4f} USD").classes("text-xl font-bold text-emerald-400")
+                        ui.label("Coût IA cumulé").classes("text-xs text-slate-400")
+                    with ui.column().classes("gap-0 text-right"):
+                        ui.label(f"{total_tok:,} tokens").classes("text-sm font-semibold")
+                        ui.label(f"{total_in:,} entrée · {total_out:,} sortie").classes("text-xs text-slate-400")
+                    with ui.column().classes("gap-0 text-right"):
+                        ui.label(f"{total_calls} appels").classes("text-sm font-semibold")
+                        ui.label(f"{summary.get('total_errors', 0)} erreur(s)").classes("text-xs text-slate-400")
 
-            ui.label("Derniers appels Gemini (logs bruts : logs/ai_usage.log)").classes("text-xs font-semibold text-slate-400 mt-2")
+                # Détail clair par Partiel / Tâche / Contexte
+                ui.label("Coûts par Partiel & Activité").classes("text-xs font-bold text-slate-300 mt-2")
+                by_context = usage_data.get("by_context", [])
+                if not by_context:
+                    ui.label("Aucune donnée enregistrée.").classes("text-xs text-slate-500")
+                else:
+                    with ui.column().classes("w-full gap-1 max-h-[160px] overflow-y-auto bg-slate-900/60 p-2 rounded border border-slate-800"):
+                        for item in by_context:
+                            ctx_name = item.get("context") or item.get("task") or "Génération générale"
+                            cost_val = float(item.get("cost", 0.0))
+                            tok_val = int(item.get("tokens", 0))
+                            calls_val = int(item.get("calls", 0))
+                            with ui.row().classes("w-full justify-between items-center text-xs py-1 border-b border-slate-800/60"):
+                                ui.label(str(ctx_name)).classes("font-semibold text-slate-200 truncate flex-1 pr-2")
+                                ui.label(f"{calls_val} appel(s) · {tok_val:,} tok").classes("text-slate-400 text-[11px] pr-4")
+                                ui.label(f"${cost_val:.5f}").classes("font-mono font-bold text-emerald-400")
 
-            if not recent:
-                ui.label("Aucun appel IA enregistré pour le moment.").classes("text-xs text-slate-500 py-2")
-            else:
-                with ui.column().classes("w-full gap-1 max-h-[220px] overflow-y-auto mt-1"):
-                    for call in recent:
-                        status_color = "text-red-400" if call.get("error") else "text-emerald-400"
-                        status_text = "ERR" if call.get("error") else "OK"
-                        c_usd = float(call.get("cost_usd", 0.0))
-                        dur = f"{float(call.get('duration_ms', 0)):.0f}ms" if call.get("duration_ms") else "—"
-                        with ui.row().classes("w-full items-center justify-between text-xs py-1 border-b border-slate-800"):
-                            with ui.row().classes("items-center gap-2 flex-1 min-w-0"):
-                                ui.label(status_text).classes(f"font-mono font-bold {status_color}")
-                                ui.label(str(call.get("task"))).classes("font-semibold truncate")
-                                ui.label(str(call.get("model"))).classes("text-slate-500 text-[10px]")
-                            with ui.row().classes("items-center gap-3 shrink-0 text-slate-400 font-mono text-[11px]"):
-                                ui.label(f"{call.get('input_tokens',0)+call.get('output_tokens',0)} tok")
-                                ui.label(dur)
-                                ui.label(f"${c_usd:.5f}").classes("text-slate-200 font-bold")
-
+                # Journal récent détaillé
+                ui.label("Historique des derniers appels Gemini").classes("text-xs font-bold text-slate-300 mt-2")
+                if not recent:
+                    ui.label("Aucun appel IA enregistré pour le moment.").classes("text-xs text-slate-500 py-2")
+                else:
+                    with ui.column().classes("w-full gap-1 max-h-[200px] overflow-y-auto bg-slate-900/60 p-2 rounded border border-slate-800"):
+                        for call in recent:
+                            status_color = "text-red-400" if call.get("error") else "text-emerald-400"
+                            status_text = "ERR" if call.get("error") else "OK"
+                            c_usd = float(call.get("cost_usd", 0.0))
+                            dur = f"{float(call.get('duration_ms', 0)):.0f}ms" if call.get("duration_ms") else "—"
+                            ctx_label = str(call.get("context") or call.get("task") or "gemini_generate")
+                            with ui.row().classes("w-full items-center justify-between text-xs py-1 border-b border-slate-800/60"):
+                                with ui.row().classes("items-center gap-2 flex-1 min-w-0"):
+                                    ui.label(status_text).classes(f"font-mono font-bold {status_color}")
+                                    ui.label(ctx_label).classes("font-semibold text-slate-200 truncate")
+                                    ui.label(str(call.get("model"))).classes("text-slate-500 text-[10px]")
+                                with ui.row().classes("items-center gap-3 shrink-0 text-slate-400 font-mono text-[11px]"):
+                                    ui.label(f"{call.get('input_tokens',0)+call.get('output_tokens',0)} tok")
+                                    ui.label(dur)
+                                    ui.label(f"${c_usd:.5f}").classes("text-slate-200 font-bold")

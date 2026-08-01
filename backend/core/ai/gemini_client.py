@@ -41,12 +41,15 @@ class GeminiClient:
         response_format: str = "text",
         *,
         images: Sequence[AIImageContent] = (),
+        task_name: str | None = None,
+        context: str | None = None,
     ) -> AIResponse:
         if not self.api_key:
             raise GeminiClientError("Aucune clé Gemini configurée")
         if model not in self.models:
             raise GeminiClientError(f"Modèle Gemini inconnu : {model!r}")
 
+        t_name = task_name or "gemini_generate"
         generation_config: dict[str, Any] = {}
         if response_format == "json":
             generation_config["responseMimeType"] = "application/json"
@@ -79,7 +82,7 @@ class GeminiClient:
         except Exception as exc:
             duration_ms = (time.perf_counter() - start_time) * 1000.0
             from backend.core.ai.logger import log_ai_call
-            log_ai_call(task="gemini_generate", model=model, input_tokens=0, output_tokens=0, duration_ms=duration_ms, error=str(exc))
+            log_ai_call(task=t_name, model=model, input_tokens=0, output_tokens=0, duration_ms=duration_ms, error=str(exc), context=context)
             raise GeminiClientError(f"Gemini inaccessible : {exc}") from exc
 
         duration_ms = (time.perf_counter() - start_time) * 1000.0
@@ -89,12 +92,12 @@ class GeminiClient:
             text = "".join(part.get("text", "") for part in parts).strip()
         except (KeyError, IndexError, TypeError) as exc:
             from backend.core.ai.logger import log_ai_call
-            log_ai_call(task="gemini_generate", model=model, input_tokens=0, output_tokens=0, duration_ms=duration_ms, error="Réponse Gemini invalide")
+            log_ai_call(task=t_name, model=model, input_tokens=0, output_tokens=0, duration_ms=duration_ms, error="Réponse Gemini invalide", context=context)
             raise GeminiClientError("Réponse Gemini invalide") from exc
 
         if not text:
             from backend.core.ai.logger import log_ai_call
-            log_ai_call(task="gemini_generate", model=model, input_tokens=0, output_tokens=0, duration_ms=duration_ms, error="Réponse Gemini vide")
+            log_ai_call(task=t_name, model=model, input_tokens=0, output_tokens=0, duration_ms=duration_ms, error="Réponse Gemini vide", context=context)
             raise GeminiClientError("Réponse Gemini vide")
 
         usage = data.get("usageMetadata") or {}
@@ -102,7 +105,7 @@ class GeminiClient:
         out_tok = usage.get("candidatesTokenCount")
 
         from backend.core.ai.logger import log_ai_call
-        log_ai_call(task="gemini_generate", model=model, input_tokens=in_tok, output_tokens=out_tok, duration_ms=duration_ms)
+        log_ai_call(task=t_name, model=model, input_tokens=in_tok, output_tokens=out_tok, duration_ms=duration_ms, context=context)
 
         return AIResponse(
             text=text,

@@ -153,6 +153,19 @@ def _clean_moodle_html(html: str) -> str:
     return json.dumps(compact_payload, ensure_ascii=False)
 
 
+def _expected_question_count(html: str) -> int:
+    """Compte les blocs de question réels du HTML Moodle du bridge — même
+    convention de sélection que _clean_moodle_html : les div.que qui ne sont
+    pas le bloc de description partagé (vignette clinique, pas une question)."""
+    soup = BeautifulSoup(html, "html.parser")
+    count = 0
+    for q_div in soup.select("div.que, div[id^='question-']"):
+        if "description" in q_div.get("class", []):
+            continue
+        count += 1
+    return count
+
+
 def _correct_one_quiz(
     bridge_path: Path,
     bridge: dict,
@@ -175,6 +188,7 @@ def _correct_one_quiz(
         raw_html = quiz.get("html", "")
         # Clean and compact HTML to reduce token usage by up to 90%
         cleaned_content = _clean_moodle_html(raw_html) if raw_html else ""
+        expected_questions = _expected_question_count(raw_html) if raw_html else 0
 
         message = (
             f"{prompt}\n\n"
@@ -207,6 +221,15 @@ def _correct_one_quiz(
         payload = _parsed_response(response.text)
         quiz_objects = payload if isinstance(payload, list) else [payload]
         exams = gemini_conversion.convert_with_bridge(quiz_objects, bridge)
+
+        got_questions = sum(len(exam.questions) for exam in exams)
+        if expected_questions and got_questions < expected_questions:
+            return (
+                None,
+                f"Réponse incomplète : {got_questions}/{expected_questions} questions",
+                response.input_tokens or 0,
+                response.output_tokens or 0,
+            )
 
         written = None
         for index, exam in enumerate(exams):

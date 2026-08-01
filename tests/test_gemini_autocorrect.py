@@ -215,3 +215,95 @@ def test_correct_directory_continues_after_gemini_api_error_on_one_quiz(tmp_path
     assert len(result["corrected"]) == 1
     assert len(result["errors"]) == 1
     assert "Gemini inaccessible" in result["errors"][0]["error"]
+
+
+def test_correct_directory_rejects_a_quiz_with_fewer_questions_than_the_source_html(
+    tmp_path, _isolated_verified_dir
+):
+    """Le cas exact constaté en prod : DP1 a 6 questions sur UNESS (6 div.que
+    dans le HTML du bridge), Gemini n'en renvoie que 5 dans un JSON par
+    ailleurs valide — ça doit être traité comme un échec, rien n'est écrit."""
+    html = "".join(f'<div class="que"><div class="qtext">Q{i}</div></div>' for i in range(1, 7))
+    _bridge_file(tmp_path, name="dp1-20260730T090000Z.json")
+    bridge_path = tmp_path / "dp1-20260730T090000Z.json"
+    payload = json.loads(bridge_path.read_text(encoding="utf-8"))
+    payload["contents"][0]["html"] = html
+    bridge_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+    service = Mock()
+    five_questions = {
+        "quiz_title": "DP1\nTest",
+        "questions": [
+            {
+                "id": f"q{i}",
+                "type_question": "QRM",
+                "enonce": f"Q{i}",
+                "propositions": [
+                    {
+                        "id": "A",
+                        "texte": "Proposition A",
+                        "reponse_officielle": True,
+                        "verdict_ia": True,
+                        "explication": "Car A.",
+                        "confiance_ia": 0.9,
+                    }
+                ],
+            }
+            for i in range(1, 6)
+        ],
+    }
+    service.generate.return_value = AIResponse(
+        text=json.dumps(five_questions), model=AIModel.FLASH, input_tokens=100, output_tokens=20
+    )
+
+    result = gemini_autocorrect.correct_directory(tmp_path, service=service)
+
+    assert result["corrected"] == []
+    assert len(result["errors"]) == 1
+    assert "5/6" in result["errors"][0]["error"]
+    assert list(_isolated_verified_dir.glob("*.json")) == []
+
+
+def test_correct_directory_accepts_a_quiz_whose_question_count_matches_the_source_html(
+    tmp_path, _isolated_verified_dir
+):
+    """Contrôle négatif : un compte qui correspond ne doit jamais être bloqué —
+    couvre aussi le cas des fixtures existantes dont le HTML factice
+    ("<div>question html</div>") ne contient aucun div.que (0 attendu, 0 reçu)."""
+    html = "".join(f'<div class="que"><div class="qtext">Q{i}</div></div>' for i in range(1, 4))
+    _bridge_file(tmp_path, name="dp1-20260730T090000Z.json")
+    bridge_path = tmp_path / "dp1-20260730T090000Z.json"
+    payload = json.loads(bridge_path.read_text(encoding="utf-8"))
+    payload["contents"][0]["html"] = html
+    bridge_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+    service = Mock()
+    three_questions = {
+        "quiz_title": "DP1\nTest",
+        "questions": [
+            {
+                "id": f"q{i}",
+                "type_question": "QRM",
+                "enonce": f"Q{i}",
+                "propositions": [
+                    {
+                        "id": "A",
+                        "texte": "Proposition A",
+                        "reponse_officielle": True,
+                        "verdict_ia": True,
+                        "explication": "Car A.",
+                        "confiance_ia": 0.9,
+                    }
+                ],
+            }
+            for i in range(1, 4)
+        ],
+    }
+    service.generate.return_value = AIResponse(
+        text=json.dumps(three_questions), model=AIModel.FLASH, input_tokens=100, output_tokens=20
+    )
+
+    result = gemini_autocorrect.correct_directory(tmp_path, service=service)
+
+    assert len(result["corrected"]) == 1
+    assert result["errors"] == []

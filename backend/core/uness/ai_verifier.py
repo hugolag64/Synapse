@@ -16,6 +16,7 @@ from backend.core.ai.routing import AIImageContent, AITask
 
 from . import import_service
 from .models import (
+    UNSUPPORTED_VISUAL_EXPLANATION,
     UnessExam,
     UnessImage,
     UnessProposition,
@@ -41,10 +42,6 @@ _SUPPORTED_IMAGE_FORMATS = {
     "GIF": "image/gif",
     "WEBP": "image/webp",
 }
-_UNSUPPORTED_VISUAL_EXPLANATION = (
-    "Vérification IA indisponible : le support visuel requis n'a pas pu être "
-    "fourni intégralement au modèle."
-)
 
 
 def _png_has_exact_end(data: bytes) -> bool:
@@ -413,7 +410,7 @@ def _unsupported_visual_question(
         replace(
             proposition,
             verdict_ia=None,
-            explication_ia=_UNSUPPORTED_VISUAL_EXPLANATION,
+            explication_ia=UNSUPPORTED_VISUAL_EXPLANATION,
             sources_ia=(),
             confiance_ia=None,
             commentaire_desaccord="",

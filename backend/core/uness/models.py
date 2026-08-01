@@ -15,6 +15,10 @@ UnessVerificationStatus = Literal["unverified", "verified", "unsupported"]
 _STATUTS = {"concordant", "desaccord", "incertain", "valide_manuellement"}
 _QUESTION_TYPES = {"QRM", "QRU", "QRP/L", "DP", "KFP", "QROC", "TCS"}
 _VERIFICATION_STATUSES = {"unverified", "verified", "unsupported"}
+UNSUPPORTED_VISUAL_EXPLANATION = (
+    "Vérification IA indisponible : le support visuel requis n'a pas pu être "
+    "fourni intégralement au modèle."
+)
 _SENSITIVE_KEYS = {
     "credential",
     "credentials",

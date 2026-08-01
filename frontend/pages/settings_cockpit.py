@@ -40,6 +40,7 @@ from nicegui import ui
 from backend.state.store import data_store
 from backend.config.settings import settings
 from backend.core.uness import import_service
+from frontend.components.uness_diagnostic_panel import render as render_uness_diagnostics
 from frontend.pages.settings import toggle_dark_mode, _validate_uness_annale_url
 
 _CSS = """
@@ -66,6 +67,14 @@ _CSS = """
 .se-switch.on .se-switch-knob { left:18px; }
 .se-uness-card { border:1px solid var(--border); border-radius:8px; padding:14px; }
 .se-uness-status { font-size:11.5px; color:var(--text-muted); margin-top:6px; }
+.se-diag-annale { border:1px solid var(--border); border-radius:8px; padding:12px 14px; margin-bottom:8px; }
+.se-diag-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.se-diag-title { font-size:13px; font-weight:600; color:var(--text); }
+.se-diag-ratio { font-size:12px; font-weight:600; }
+.se-diag-ratio.full { color:var(--success); }
+.se-diag-ratio.partial { color:var(--warning); }
+.se-diag-quiz-row { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:4px 0; font-size:12.5px; }
+.se-diag-quiz-detail { color:var(--text-muted); font-size:11.5px; }
 """
 
 
@@ -325,3 +334,5 @@ def render_settings_cockpit() -> None:
                                     ui.label(f"{call.get('input_tokens',0)+call.get('output_tokens',0)} tok")
                                     ui.label(dur)
                                     ui.label(f"${c_usd:.5f}").classes("text-slate-200 font-bold")
+
+        render_uness_diagnostics(ui.column().classes("w-full"))

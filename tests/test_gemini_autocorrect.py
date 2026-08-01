@@ -8,6 +8,7 @@ from unittest.mock import Mock
 import pytest
 
 from backend.core.ai.routing import AIModel, AIResponse, AIServiceError, AITask
+from backend.core.reviews import local_store
 from backend.core.uness import gemini_autocorrect, gemini_conversion, import_service
 
 
@@ -15,6 +16,17 @@ from backend.core.uness import gemini_autocorrect, gemini_conversion, import_ser
 def _isolated_verified_dir(tmp_path, monkeypatch):
     monkeypatch.setattr(import_service, "VERIFIED_DIR", tmp_path / "verifies")
     return tmp_path / "verifies"
+
+
+@pytest.fixture(autouse=True)
+def _isolated_local_store_db(tmp_path, monkeypatch):
+    monkeypatch.setattr(local_store, "DB_PATH", tmp_path / "local-store-test.db")
+    monkeypatch.setattr(local_store, "_DB", None)
+    local_store.init_db()
+    yield
+    if local_store._DB is not None:
+        local_store._DB.close()
+    monkeypatch.setattr(local_store, "_DB", None)
 
 
 def _bridge_file(folder, *, title="DP1\nTest", images=None, name="dp1-20260730T090000Z.json"):
@@ -307,3 +319,44 @@ def test_correct_directory_accepts_a_quiz_whose_question_count_matches_the_sourc
 
     assert len(result["corrected"]) == 1
     assert result["errors"] == []
+
+
+def test_correct_directory_records_a_pending_failure_on_invalid_json(tmp_path, _isolated_verified_dir):
+    _bridge_file(tmp_path, title="DP1\nTest")
+    service = Mock()
+    service.generate.return_value = AIResponse(
+        text="not valid json", model=AIModel.FLASH, input_tokens=10, output_tokens=1
+    )
+
+    gemini_autocorrect.correct_directory(tmp_path, service=service)
+
+    failures = local_store.list_pending_uness_correction_failures()
+    assert len(failures) == 1
+    assert failures[0]["quiz_title"] == "DP1\nTest"
+    assert failures[0]["collected_at"] == "2026-07-30T09:00:00+00:00"
+
+
+def test_correct_directory_resolves_a_previously_recorded_failure_on_success(tmp_path, _isolated_verified_dir):
+    local_store.record_uness_correction_failure(
+        bridge_folder=str(tmp_path),
+        quiz_title="DP1\nTest",
+        collected_at="2026-07-30T09:00:00+00:00",
+        error_message="ancien échec",
+    )
+    _bridge_file(tmp_path, title="DP1\nTest")
+    service = Mock()
+    service.generate.return_value = _quiz_response("DP1\nTest")
+
+    gemini_autocorrect.correct_directory(tmp_path, service=service)
+
+    assert local_store.list_pending_uness_correction_failures() == []
+
+
+def test_correct_directory_does_not_record_a_failure_when_correction_succeeds(tmp_path, _isolated_verified_dir):
+    _bridge_file(tmp_path, title="DP1\nTest")
+    service = Mock()
+    service.generate.return_value = _quiz_response("DP1\nTest")
+
+    gemini_autocorrect.correct_directory(tmp_path, service=service)
+
+    assert local_store.list_pending_uness_correction_failures() == []

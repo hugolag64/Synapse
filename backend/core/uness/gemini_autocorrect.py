@@ -15,6 +15,7 @@ from pathlib import Path
 from backend.core.ai.routing import AIImageContent, AIServiceError
 from backend.core.ai.service import AIService
 from backend.core.ai.tasks import generate_uness_correction
+from backend.core.reviews import local_store
 from backend.core.uness import gemini_conversion, import_service
 from bs4 import BeautifulSoup
 
@@ -269,7 +270,9 @@ def correct_directory(folder: Path, *, service: AIService | None = None) -> dict
     for bridge_path in _find_bridge_files(folder):
         bridge = json.loads(bridge_path.read_text(encoding="utf-8"))
         prompt = _prompt_text(bridge)
+        collected_at = str(bridge.get("source", {}).get("collected_at", ""))
         for quiz in bridge.get("contents", []):
+            title = str(quiz.get("title", bridge_path.stem))
             written, message, in_tok, out_tok = _correct_one_quiz(
                 bridge_path, bridge, quiz, prompt, folder, service
             )
@@ -277,6 +280,14 @@ def correct_directory(folder: Path, *, service: AIService | None = None) -> dict
             output_tokens += out_tok
             if written:
                 corrected.append(written)
+                local_store.resolve_uness_correction_failure(title, collected_at)
+            else:
+                local_store.record_uness_correction_failure(
+                    bridge_folder=str(folder),
+                    quiz_title=title,
+                    collected_at=collected_at,
+                    error_message=message or "Erreur inconnue",
+                )
             if message:
                 errors.append({"file": bridge_path.name, "error": message})
 

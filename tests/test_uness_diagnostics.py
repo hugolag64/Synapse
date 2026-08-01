@@ -253,3 +253,35 @@ def test_build_report_keeps_blocked_quizzes_separate_across_annales_sharing_a_la
     assert quizzes_b["DP1"]["status"] == "blocked"
     assert "pA" in quizzes_a["DP1"]["detail"]["error"]
     assert "pB" in quizzes_b["DP1"]["detail"]["error"]
+
+
+def test_build_report_skips_a_legacy_list_shaped_verified_file_without_crashing(uness_dirs):
+    # A real file on disk (UNESS/vérifiés/exam_hepato_gastro_corriges.json) is an
+    # old bundled multi-quiz export whose top-level JSON is a *list* of quiz
+    # dicts, not the canonical single UnessExam dict every other verified file
+    # is. import_verified_directory() already fails to import it for its own
+    # unrelated reason (no matching bridge file for the quiz) and records that
+    # in result["errors"] — but _blocked_titles used to blindly call .get() on
+    # whatever json.loads() returned for that error's file, crashing with
+    # AttributeError: 'list' object has no attribute 'get'. No bridge is
+    # created here on purpose, so this reproduces the "no matching bridge"
+    # failure path that puts the file into result["errors"].
+    verified = uness_dirs["verified"]
+    verified.joinpath("legacy-bundle.json").write_text(
+        json.dumps(
+            [
+                {
+                    "quiz_title": "SQI1",
+                    "questions": [{"id": "q1", "type_question": "QRU", "enonce": "Q?", "propositions": []}],
+                }
+            ],
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    report = diagnostics.build_report()  # must not raise
+
+    assert report["annales"] == []
+    for entry in report["annales"]:
+        assert all(q["status"] != "blocked" for q in entry["quizzes"])

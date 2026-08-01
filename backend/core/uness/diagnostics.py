@@ -103,6 +103,13 @@ def _blocked_titles(errors: list[dict[str, str]]) -> dict[tuple[str, str], str]:
             payload = json.loads(matches[0].read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             continue
+        if not isinstance(payload, dict):
+            # Legacy/malformed exports (e.g. an old bundled multi-quiz export
+            # whose top level is a list of exam dicts, not one canonical
+            # UnessExam dict) already show up in `errors` for their own
+            # unrelated reason — this function only needs to not choke while
+            # trying to attribute them to an annale.
+            continue
         source_url = str(payload.get("provenance", {}).get("source_url", "")).strip()
         title = str(payload.get("title", ""))
         if not source_url or not title:

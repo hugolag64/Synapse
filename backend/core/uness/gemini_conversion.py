@@ -18,7 +18,7 @@ from typing import Any
 
 from bs4 import BeautifulSoup
 
-from .models import _QUESTION_TYPES, UnessExam
+from .models import _QUESTION_TYPES, UnessExam, UNSUPPORTED_VISUAL_EXPLANATION
 
 _SHORT_ANSWER_TYPES = {"shortanswer"}
 _ZONE_TYPES = {"qzone"}
@@ -155,6 +155,25 @@ def _image(raw: dict, bridge_image: dict) -> dict:
     }
 
 
+def _sanitize_unsupported_propositions(propositions: list[dict]) -> list[dict]:
+    """A question marked "unsupported" means the model didn't receive its
+    required image — clear whatever verdict it produced anyway instead of
+    trusting a guess made without the visual (mirrors
+    ai_verifier._unsupported_visual_question, which the manual/automated
+    verification path already applies for the same reason)."""
+    return [
+        {
+            **proposition,
+            "verdict_ia": None,
+            "explication_ia": UNSUPPORTED_VISUAL_EXPLANATION,
+            "confiance_ia": None,
+            "commentaire_desaccord": "",
+            "statut": "incertain",
+        }
+        for proposition in propositions
+    ]
+
+
 def _question(raw: dict, bridge_images: list[dict]) -> dict:
     propositions = raw.get("propositions", [])
     question_images = [img for img in bridge_images if img.get("question_id") == raw.get("id")]
@@ -175,7 +194,11 @@ def _question(raw: dict, bridge_images: list[dict]) -> dict:
         "id": raw["id"],
         "type_question": type_question,
         "enonce": enonce,
-        "propositions": [_proposition(p) for p in propositions],
+        "propositions": (
+            _sanitize_unsupported_propositions([_proposition(p) for p in propositions])
+            if verification_status == "unsupported"
+            else [_proposition(p) for p in propositions]
+        ),
         "images": [_image(media_by_filename.get(img["filename"], {}), img) for img in question_images],
         "support_visuel_seul": bool(question_images) and not propositions,
         "verification_status": verification_status,

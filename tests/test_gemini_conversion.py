@@ -1,4 +1,5 @@
 from backend.core.uness.gemini_conversion import convert_with_bridge
+from backend.core.uness.models import UNSUPPORTED_VISUAL_EXPLANATION
 
 
 def _bridge(html: str) -> dict:
@@ -148,3 +149,47 @@ def test_convert_with_bridge_matches_a_simplified_ai_returned_title():
     exams = convert_with_bridge([quiz], bridge)
     assert len(exams) == 1
     assert [q.id for q in exams[0].questions] == ["question-1-2"]
+
+
+def test_unsupported_visual_question_has_its_ai_verdict_cleared():
+    # A question whose image wasn't fully provided to the model must not keep
+    # whatever verdict Gemini guessed anyway — it's ungrounded. The official
+    # UNESS answer (reponse_uness) must survive untouched so the question can
+    # still be imported and answered against a real correction.
+    bridge = _bridge(_HTML)
+    bridge["contents"][0]["images"] = [
+        {"question_id": "question-1-2", "filename": "scan.png", "alt_text": "Scanner"}
+    ]
+    quiz = {
+        "quiz_title": "DP1\nTest",
+        "questions": [
+            {
+                "id": "question-1-2",
+                "type_question": "QRU",
+                "enonce": "Quel est le diagnostic le plus probable ?",
+                "propositions": [
+                    {
+                        "id": "p1",
+                        "texte": "Colique néphrétique",
+                        "reponse_officielle": True,
+                        "verdict_ia": True,
+                        "avis_ia": "valide",
+                        "confiance_ia": 0.95,
+                        "explication": "Je vois clairement une dilatation sur le scanner.",
+                        "desaccord_officiel": False,
+                    }
+                ],
+                "media": [{"filename": "scan.png", "accessible_ia": False}],
+            }
+        ],
+    }
+    exams = convert_with_bridge([quiz], bridge)
+    question = exams[0].questions[0]
+    assert question.verification_status == "unsupported"
+    proposition = question.propositions[0]
+    assert proposition.verdict_ia is None
+    assert proposition.confiance_ia is None
+    assert proposition.explication_ia == UNSUPPORTED_VISUAL_EXPLANATION
+    assert proposition.statut == "incertain"
+    # The official answer must survive — it's the only ground truth left.
+    assert proposition.reponse_uness is True

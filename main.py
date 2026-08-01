@@ -271,13 +271,16 @@ app.on_startup(startup_handler)
 _PROD = os.getenv("SYNAPSE_ENV", "dev") == "prod"
 
 if __name__ in {"__main__", "__mp_main__"}:
-    ui.run(
-        title='Synapse',
-        favicon='🧠',
-        dark=False,
-        reload=not _PROD,
-        show=not _PROD,
-        host='127.0.0.1',
-        port=8082
-    )
+    try:
+        ui.run(
+            title='Synapse',
+            favicon='🧠',
+            dark=False,
+            reload=not _PROD,
+            show=not _PROD,
+            host='127.0.0.1',
+            port=8082
+        )
+    except (KeyboardInterrupt, SystemExit, asyncio.CancelledError):
+        pass
 

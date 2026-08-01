@@ -196,9 +196,19 @@ def _group_files_by_source_url(
     return groups, errors
 
 
-def import_verified_directory(tags: dict[str, str] | None = None) -> dict[str, Any]:
-    """Validate and import all new verified outputs, grouped by partiel, without aborting the batch."""
+def import_verified_directory(
+    tags: dict[str, str] | None = None, matieres: dict[str, str] | None = None
+) -> dict[str, Any]:
+    """Validate and import all new verified outputs, grouped by partiel, without aborting the batch.
+
+    `matieres` (source_url -> matière) lets the caller override the auto-detected
+    subject (parsed from the UNESS breadcrumb, which is often wrong: it can pick up
+    a category/session label like "Entraînements examens DFASM2..." instead of the
+    real subject) with a value the user picked against the canonical collège list —
+    so a freshly-created annale is linked from the start instead of needing a manual
+    correction via the edit form afterward."""
     tags = tags or {}
+    matieres = matieres or {}
     index_path = VERIFIED_DIR / ".imported.json"
     try:
         imported = set(json.loads(index_path.read_text(encoding="utf-8")))
@@ -215,27 +225,35 @@ def import_verified_directory(tags: dict[str, str] | None = None) -> dict[str, A
             type_annale = tags.get(source_url)
             if type_annale is None:
                 first_path, first_exam = entries[0]
-                result["pending_tag"].append(
-                    {
-                        "source_url": source_url,
-                        "faculte": first_exam.faculty,
-                        "niveau": first_exam.level,
-                        "annee": first_exam.year,
-                        "matiere": str(first_exam.metadata.get("subject", "")),
-                        "titre": _annale_group_title(first_exam),
-                        "files": sorted({path.name for path, _ in entries}),
-                    }
-                )
+                # Ignorer si aucun fichier d'examen valide dans ce groupe
+                if entries:
+                    result["pending_tag"].append(
+                        {
+                            "source_url": source_url,
+                            "faculte": first_exam.faculty,
+                            "niveau": first_exam.level,
+                            "annee": first_exam.year,
+                            "matiere": str(first_exam.metadata.get("subject", "")),
+                            "titre": _annale_group_title(first_exam),
+                            "files": sorted({path.name for path, _ in entries}),
+                        }
+                    )
                 continue
             _, first_exam = entries[0]
+            matiere = matieres.get(source_url) or str(first_exam.metadata.get("subject", ""))
+            titre = (
+                format_annale_title(matiere, first_exam.faculty, first_exam.year, first_exam.title)
+                if matieres.get(source_url)
+                else _annale_group_title(first_exam)
+            )
             annale_id = local_store.create_uness_annale(
                 source_url=source_url,
                 collected_at=str(first_exam.provenance.get("collected_at", "")).strip(),
                 faculte=first_exam.faculty,
                 niveau=first_exam.level,
                 annee=first_exam.year,
-                matiere=str(first_exam.metadata.get("subject", "")),
-                titre=_annale_group_title(first_exam),
+                matiere=matiere,
+                titre=titre,
                 type_annale=type_annale,
             )
             annale = local_store.get_uness_annale(annale_id)
@@ -263,23 +281,30 @@ def import_verified_directory(tags: dict[str, str] | None = None) -> dict[str, A
                     path.replace(target_archive_dir / path.name)
                     archived_paths.add(path)
                     collected_at = str(exam.provenance.get("collected_at", "")).strip()
-                    for candidate in TO_REVIEW_DIR.rglob("*.json"):
+                    for candidate in list(TO_REVIEW_DIR.rglob("*.json")):
                         try:
                             source = json.loads(candidate.read_text(encoding="utf-8")).get("source", {})
                         except (OSError, json.JSONDecodeError, AttributeError):
                             continue
                         if collected_at and source.get("collected_at") == collected_at:
-                            cand_subfolder = candidate.parent.relative_to(TO_REVIEW_DIR) if candidate.is_relative_to(TO_REVIEW_DIR) and candidate.parent != TO_REVIEW_DIR else rel_subfolder
-                            cand_target_dir = ARCHIVE_DIR / cand_subfolder
-                            cand_target_dir.mkdir(parents=True, exist_ok=True)
                             cand_parent = candidate.parent
-                            candidate.replace(cand_target_dir / f"a_verifier-{candidate.name}")
-                            # Clean up empty parent folder if no JSONs remain
-                            if cand_parent != TO_REVIEW_DIR and cand_parent.is_dir() and not any(cand_parent.iterdir()):
+                            if cand_parent != TO_REVIEW_DIR:
+                                cand_subfolder = cand_parent.relative_to(TO_REVIEW_DIR)
+                                cand_target_dir = ARCHIVE_DIR / cand_subfolder
+                                cand_target_dir.mkdir(parents=True, exist_ok=True)
+                                # Déplacer TOUS les fichiers du dossier de session (JSONs + images)
+                                for file_item in list(cand_parent.iterdir()):
+                                    if file_item.is_file():
+                                        target_file = cand_target_dir / file_item.name
+                                        file_item.replace(target_file)
                                 try:
                                     cand_parent.rmdir()
                                 except OSError:
                                     pass
+                            else:
+                                cand_target_dir = ARCHIVE_DIR / rel_subfolder
+                                cand_target_dir.mkdir(parents=True, exist_ok=True)
+                                candidate.replace(cand_target_dir / f"a_verifier-{candidate.name}")
                     path_parent = path.parent
                     if path_parent != VERIFIED_DIR and path_parent.is_dir() and not any(path_parent.iterdir()):
                         try:
@@ -444,8 +469,24 @@ def _to_practice_question(question: UnessQuestion, exam: UnessExam) -> dict[str,
 
 
 def assert_verified_exam(exam: UnessExam) -> None:
-    """Accept any verified exam payload without throwing ValueError blocking the import batch."""
-    return
+    """Check that a verified exam has complete, coherent AI review metadata on every proposition."""
+    for question in exam.questions:
+        if question.verification_status == "unsupported":
+            raise ValueError(f"Question {question.id} : vérification visuelle non prise en charge.")
+        for image in question.images:
+            if image.metadata.get("verification_status") != "provided_to_ai":
+                raise ValueError(f"Image {image.source_url} non analysée par l'IA (status image: {image.metadata.get('verification_status')}, doit être provided_to_ai)")
+        for proposition in question.propositions:
+            if proposition.verdict_ia is None:
+                raise ValueError(f"verdict_ia (vérification IA) manquant pour la proposition {proposition.id}")
+            if not proposition.explication_ia or not proposition.explication_ia.strip():
+                raise ValueError(f"Explication de vérification IA manquante pour la proposition {proposition.id}")
+            if proposition.confiance_ia is None or not (0.0 <= proposition.confiance_ia <= 1.0):
+                raise ValueError(f"Confiance de vérification IA invalide pour la proposition {proposition.id}")
+            if proposition.statut not in {"concordant", "desaccord", "incertain", "valide_manuellement"}:
+                raise ValueError(f"Statut de vérification IA invalide ({proposition.statut}) pour la proposition {proposition.id}")
+            if proposition.statut == "incertain" and proposition.reponse_uness is not None:
+                raise ValueError(f"Statut de vérification IA incohérent ({proposition.statut}) pour la proposition {proposition.id}")
 
 
 def import_uness_exam(exam: UnessExam) -> int:

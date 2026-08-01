@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import re
+
 from nicegui import ui
 
 from backend.core.reviews import local_store
 from backend.core.uness.import_service import ANNALE_TYPE_LABELS
 from backend.state.store import data_store
 from frontend.theme import frame
+
+_AUTRE = "Autre…"
 
 _ANNALES_CSS = """
 .ans-wrap { width:100%; max-width:1200px; align-self:stretch; margin:0 auto; min-width:0; }
@@ -63,6 +67,35 @@ def _format_gemini_summary(result: dict) -> str:
     )
 
 
+def _gemini_partial_failure_message(result: dict) -> str | None:
+    """A quiz-level failure (Gemini truncation, missing image, rate limit
+    exhausted...) must never go unnoticed just because sibling quizzes from
+    the same partiel corrected fine — that's how whole sous-parties (e.g. a
+    SQI bank) silently vanish from an otherwise "successful" import. Returns
+    None when every quiz corrected cleanly."""
+    errors = result["errors"]
+    if not errors:
+        return None
+    failed = "; ".join(f"{e.get('file', '?')} : {e.get('error', '?')[:120]}" for e in errors)
+    return f"{len(errors)} échec(s) de correction (quiz manquant du partiel importé) — {failed}"
+
+
+def _best_matiere_guess(candidates: list[str], detected: str) -> str | None:
+    """Best-effort match of the auto-detected free-text subject (parsed from the
+    UNESS breadcrumb — often a category/session label rather than the real
+    subject) against the canonical collège list, so the qualify dialog can
+    pre-select a sensible default. Returns None rather than guessing wrong when
+    nothing looks close enough — the user then picks manually via "Autre"."""
+    needle = re.sub(r"[^a-z]", "", detected.lower())
+    if not needle:
+        return None
+    for candidate in candidates:
+        hay = re.sub(r"[^a-z]", "", candidate.lower())
+        if hay and (needle == hay or needle in hay or hay in needle):
+            return candidate
+    return None
+
+
 def _confirm_delete(annale_id: int, titre: str, on_deleted) -> None:
     with ui.dialog() as dialog, ui.card().classes("w-[420px] max-w-[95vw] p-5 gap-3").style("border-radius: 8px;"):
         ui.label("Supprimer cette annale ?").classes("text-lg font-semibold")
@@ -115,8 +148,10 @@ def _open_import_dialog(refresh_fn) -> None:
             placeholder="UNESS/à_vérifier/session-...",
         ).props("outlined dense").classes("w-full")
 
-        def _finalize_scan(tags: dict[str, str] | None = None) -> None:
-            result = import_verified_directory(tags=tags)
+        def _finalize_scan(
+            tags: dict[str, str] | None = None, matieres: dict[str, str] | None = None
+        ) -> None:
+            result = import_verified_directory(tags=tags, matieres=matieres)
             pending = result["pending_tag"]
             if pending:
                 _open_tag_dialog(pending)
@@ -138,23 +173,61 @@ def _open_import_dialog(refresh_fn) -> None:
 
         def _open_tag_dialog(pending: list[dict]) -> None:
             chosen: dict[str, str] = {}
-            with ui.dialog() as sub_dialog, ui.card().classes("w-[520px] max-w-[95vw] p-5 gap-3").style("border-radius: 8px;"):
+            matiere_widgets: dict[str, tuple] = {}
+            college_options = sorted(data_store.get_colleges() or []) if data_store.is_loaded else []
+            with ui.dialog() as sub_dialog, ui.card().classes("w-[560px] max-w-[95vw] p-5 gap-3").style("border-radius: 8px;"):
                 ui.label("Nouvelles annales à qualifier").classes("text-lg font-semibold")
-                ui.label("Indiquez le type de chaque annale avant de finaliser l'importation.").classes("text-xs text-slate-500 mb-1")
+                ui.label(
+                    "Indiquez le type et validez la matière de chaque annale avant de finaliser "
+                    "l'importation — la matière détectée automatiquement n'est qu'une suggestion "
+                    "et doit correspondre au référentiel des collèges pour rester liée au reste de l'app."
+                ).classes("text-xs text-slate-500 mb-1")
                 for group in pending:
                     source_url = group["source_url"]
                     chosen[source_url] = "matiere"
+                    detected = str(group["matiere"] or "")
+                    guess = _best_matiere_guess(college_options, detected)
+                    matiere_options = [*college_options, _AUTRE]
                     with ui.column().classes("w-full gap-1 p-3 border border-slate-200 dark:border-slate-800 rounded-md mb-2"):
                         ui.label(group["titre"] or source_url).classes("font-semibold text-sm")
-                        ui.label(f"{group['matiere'] or '—'} · {group['faculte'] or '—'} · {group['annee'] or '—'}").classes("text-xs text-slate-500")
+                        ui.label(f"{group['faculte'] or '—'} · {group['annee'] or '—'}").classes("text-xs text-slate-500")
                         ui.select(
                             ANNALE_TYPE_LABELS,
                             value="matiere",
+                            label="Type",
                             on_change=lambda e, url=source_url: chosen.__setitem__(url, e.value),
                         ).props("outlined dense").classes("w-full mt-1")
+                        matiere_select = ui.select(
+                            matiere_options, value=guess or _AUTRE, label="Matière"
+                        ).props("outlined dense").classes("w-full mt-1")
+                        matiere_autre = ui.input(
+                            "Matière (saisie libre)", value="" if guess else detected
+                        ).props("outlined dense").classes("w-full")
+                        matiere_autre.bind_visibility_from(matiere_select, "value", value=_AUTRE)
+                        matiere_widgets[source_url] = (matiere_select, matiere_autre)
+
+                def _submit() -> None:
+                    matieres: dict[str, str] = {}
+                    missing = []
+                    for url, (select, autre) in matiere_widgets.items():
+                        value = str((autre.value if select.value == _AUTRE else select.value) or "").strip()
+                        matieres[url] = value
+                        # Only a "Matière" annale needs one canonical subject — a concours
+                        # blanc or un EDN complet legitimately spans several.
+                        if chosen.get(url) == "matiere" and not value:
+                            missing.append(url)
+                    if missing:
+                        ui.notify(
+                            "Choisis une matière pour chaque annale de type « Matière » avant de continuer.",
+                            type="warning",
+                        )
+                        return
+                    sub_dialog.close()
+                    _finalize_scan(tags=chosen, matieres=matieres)
+
                 with ui.row().classes("w-full justify-end gap-2 mt-2"):
                     ui.button("Ignorer", on_click=sub_dialog.close).props("flat")
-                    ui.button("Valider et importer", on_click=lambda: (sub_dialog.close(), _finalize_scan(tags=chosen))).props("unelevated color=primary")
+                    ui.button("Valider et importer", on_click=_submit).props("unelevated color=primary")
             sub_dialog.open()
 
         async def _launch_collect_and_import() -> None:
@@ -174,28 +247,56 @@ def _open_import_dialog(refresh_fn) -> None:
                 return
 
             data_store.set_preference("uness_annale_url", url)
-            status_lbl.set_text("Ouverture du navigateur Playwright pour la collecte local UNESS…")
-            status_lbl.classes("text-primary", remove="text-negative")
+            dialog.close()
+            ui.notify("🚀 Importation lancée en arrière-plan ! Vous pouvez continuer à utiliser Synapse.", type="info", duration=5)
 
-            script = Path("scripts/uness/collector.py").resolve()
-            process = await asyncio.create_subprocess_exec(
-                sys.executable,
-                str(script),
-                url,
-                "--submit",
-                cwd=str(Path.cwd()),
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.STDOUT,
-            )
-            output, _ = await process.communicate()
-            if process.returncode == 0:
-                status_lbl.set_text("Collecte terminée ✓ — Vérification et enregistrement en cours…")
-                status_lbl.classes("text-positive", remove="text-negative text-primary")
-                _finalize_scan()
-            else:
-                message = output.decode(errors="replace").strip()[-300:]
-                status_lbl.set_text(f"Échec collecte : {message}")
-                status_lbl.classes("text-negative", remove="text-primary text-positive")
+            async def _bg_pipeline() -> None:
+                script = Path("scripts/uness/collector.py").resolve()
+                process = await asyncio.create_subprocess_exec(
+                    sys.executable,
+                    str(script),
+                    url,
+                    "--submit",
+                    cwd=str(Path.cwd()),
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.STDOUT,
+                )
+                output, _ = await process.communicate()
+                if process.returncode != 0:
+                    message = output.decode(errors="replace").strip()[-200:]
+                    ui.notify(f"❌ Échec collecte UNESS : {message}", type="negative", duration=8)
+                    return
+
+                out_text = output.decode(errors="replace")
+                session_dir = None
+                for line in out_text.splitlines():
+                    if "UNESS\\à_vérifier\\" in line or "UNESS/à_vérifier/" in line:
+                        p = Path(line.strip())
+                        session_dir = p.parent if p.is_file() else p
+                        break
+
+                if not session_dir or not session_dir.is_dir():
+                    candidates = sorted(Path("UNESS/à_vérifier").glob("session-*"))
+                    if candidates:
+                        session_dir = candidates[-1]
+
+                if session_dir and session_dir.is_dir():
+                    ui.notify("⚡ Collecte réussie ! Correction automatique Gemini en cours…", type="info", duration=5)
+                    result = await asyncio.to_thread(gemini_autocorrect.correct_directory, session_dir)
+                    partial_failure = _gemini_partial_failure_message(result)
+                    if result["corrected"]:
+                        if partial_failure:
+                            ui.notify(f"⚠️ Correction partielle : {partial_failure}", type="warning", duration=12)
+                        else:
+                            ui.notify("✨ Annale prête ! Veuillez qualifier la matière.", type="positive", duration=6)
+                        _finalize_scan()
+                    else:
+                        err_msg = result["errors"][0]["error"] if result["errors"] else "Erreur Gemini"
+                        ui.notify(f"❌ Échec correction Gemini : {err_msg}", type="negative", duration=8)
+                else:
+                    _finalize_scan()
+
+            asyncio.create_task(_bg_pipeline())
 
         async def _run_gemini_autocorrect() -> None:
             raw_path = (folder_input.value or "").strip()
@@ -218,8 +319,8 @@ def _open_import_dialog(refresh_fn) -> None:
             ui.button("Scanner les JSON existants", icon="fact_check", on_click=lambda: _finalize_scan()).props("flat size=sm color=slate")
             with ui.row().classes("gap-2"):
                 ui.button("Annuler", on_click=dialog.close).props("flat")
-                ui.button("Corriger avec Gemini", icon="auto_awesome", on_click=_run_gemini_autocorrect).props("flat color=primary")
-                ui.button("Lancer la collecte", icon="play_arrow", on_click=_launch_collect_and_import).props("unelevated color=primary")
+                ui.button("Corriger dossier existant", icon="auto_awesome", on_click=_run_gemini_autocorrect).props("flat color=primary")
+                ui.button("🚀 Tout faire (URL)", icon="auto_mode", on_click=_launch_collect_and_import).props("unelevated color=primary")
     dialog.open()
 
 

@@ -76,6 +76,54 @@ def test_create_and_fetch_annale_by_source_url() -> None:
     assert fetched["type_annale"] == "matiere"
 
 
+def test_source_url_lookup_ignores_fragment_and_trailing_slash() -> None:
+    """The same UNESS course page is sometimes collected once with a
+    "#section-0" anchor and once without — both must resolve to the same
+    annale instead of silently spawning an empty duplicate."""
+    annale_id = local_store.create_uness_annale(
+        source_url="https://entrainement.uness.fr/annales/course/view.php?id=5#section-0",
+        collected_at="2026-07-30T18:21:37+00:00",
+        faculte="Faculté de médecine de La Réunion",
+        niveau="DFASM1",
+        annee=2024,
+        matiere="CARDIOLOGIE",
+        titre="DFASM1_UE_Cardio",
+        type_annale="matiere",
+    )
+
+    fetched = local_store.get_uness_annale_by_source_url(
+        "https://entrainement.uness.fr/annales/course/view.php?id=5"
+    )
+
+    assert fetched is not None
+    assert fetched["id"] == annale_id
+
+
+def test_create_annale_rejects_duplicate_source_url_across_fragment_variants() -> None:
+    local_store.create_uness_annale(
+        source_url="https://entrainement.uness.fr/annales/course/view.php?id=6",
+        collected_at="2026-07-30T18:21:37+00:00",
+        faculte="Faculté de médecine de La Réunion",
+        niveau="DFASM1",
+        annee=2024,
+        matiere="NEUROLOGIE",
+        titre="DFASM1_UE_Neuro",
+        type_annale="matiere",
+    )
+
+    with pytest.raises(sqlite3.IntegrityError):
+        local_store.create_uness_annale(
+            source_url="https://entrainement.uness.fr/annales/course/view.php?id=6#section-0",
+            collected_at="2026-07-30T18:21:37+00:00",
+            faculte="Faculté de médecine de La Réunion",
+            niveau="DFASM1",
+            annee=2024,
+            matiere="NEUROLOGIE",
+            titre="DFASM1_UE_Neuro",
+            type_annale="matiere",
+        )
+
+
 def test_create_annale_rejects_duplicate_source_url() -> None:
     kwargs = dict(
         source_url="https://entrainement.uness.fr/annales/course/view.php?id=2",

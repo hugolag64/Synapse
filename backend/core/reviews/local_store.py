@@ -474,6 +474,20 @@ def _migrate_uness_annales() -> None:
                 "ALTER TABLE ai_practice_sessions ADD COLUMN annale_id INTEGER "
                 "REFERENCES uness_annales(id)"
             )
+        # Backfill: normalize any source_url stored before URL normalization
+        # existed (e.g. a leftover "#section-0" fragment), so a stale row
+        # doesn't keep missing lookups against freshly-collected variants of
+        # the same course page. Skipped on conflict — a genuine duplicate
+        # left as-is is safer than losing one of the two rows silently.
+        for row_id, raw_url in con.execute("SELECT id, source_url FROM uness_annales").fetchall():
+            normalized = _normalize_uness_source_url(raw_url)
+            if normalized != raw_url:
+                try:
+                    con.execute(
+                        "UPDATE uness_annales SET source_url = ? WHERE id = ?", (normalized, row_id)
+                    )
+                except sqlite3.IntegrityError:
+                    pass
 
 
 # ── API publique — task_id ────────────────────────────────────────────────────
@@ -1301,6 +1315,21 @@ def create_ai_practice_session(*, spec, questions: list[dict], model: str) -> in
     return session_id
 
 
+def _normalize_uness_source_url(source_url: str) -> str:
+    """Collapse cosmetic URL differences (fragment, trailing slash, whitespace)
+    that don't change which UNESS course page is being referenced. Without
+    this, the same partiel collected once with a "#section-0" anchor and once
+    without silently creates two annale rows instead of one — the second one
+    an orphan with no sessions ever attached to it."""
+    from urllib.parse import urlsplit, urlunsplit
+
+    cleaned = (source_url or "").strip()
+    if not cleaned:
+        return cleaned
+    parts = urlsplit(cleaned)
+    return urlunsplit((parts.scheme, parts.netloc, parts.path.rstrip("/"), parts.query, ""))
+
+
 def create_uness_annale(
     *,
     source_url: str,
@@ -1313,6 +1342,7 @@ def create_uness_annale(
     type_annale: str,
 ) -> int:
     """Create one grouping row for a UNESS partiel. Raises sqlite3.IntegrityError on a duplicate source_url."""
+    source_url = _normalize_uness_source_url(source_url)
     with _conn() as con:
         cur = con.execute(
             """INSERT INTO uness_annales
@@ -1353,7 +1383,8 @@ def update_uness_annale(
 def get_uness_annale_by_source_url(source_url: str) -> dict | None:
     with _conn() as con:
         row = con.execute(
-            "SELECT * FROM uness_annales WHERE source_url = ?", (source_url,)
+            "SELECT * FROM uness_annales WHERE source_url = ?",
+            (_normalize_uness_source_url(source_url),),
         ).fetchone()
     return dict(row) if row else None
 

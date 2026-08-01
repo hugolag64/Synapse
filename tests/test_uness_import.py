@@ -423,6 +423,32 @@ def test_import_with_tag_creates_one_annale_for_both_sub_parts(verified_dir):
         assert summary["annale_id"] == annale["id"]
 
 
+def test_matiere_override_wins_over_auto_detected_subject(verified_dir):
+    """The breadcrumb-derived subject (exam.metadata["subject"]) is only a guess
+    and is often wrong (e.g. it can pick up a session/category label instead of
+    the real subject) — when the user validates a matière against the canonical
+    collège list in the qualify dialog, that choice must be what actually gets
+    stored, not the auto-detected text."""
+    payload = _exam_payload()
+    payload["provenance"]["source_url"] = "https://entrainement.uness.fr/annales/course/view.php?id=200"
+    payload["metadata"] = {"subject": "Entraînements examens DFASM2- T2 et T3"}
+    _write_exam(verified_dir, "part1.json", payload)
+
+    result = import_service.import_verified_directory(
+        tags={"https://entrainement.uness.fr/annales/course/view.php?id=200": "matiere"},
+        matieres={"https://entrainement.uness.fr/annales/course/view.php?id=200": "Pneumologie 🫁"},
+    )
+
+    assert result["pending_tag"] == []
+    assert len(result["imported"]) == 1
+    annale = local_store.get_uness_annale_by_source_url(
+        "https://entrainement.uness.fr/annales/course/view.php?id=200"
+    )
+    assert annale is not None
+    assert annale["matiere"] == "Pneumologie 🫁"
+    assert annale["titre"].startswith("Pneumologie 🫁")
+
+
 def test_reimporting_same_source_url_attaches_to_existing_annale(verified_dir):
     payload = _exam_payload()
     payload["provenance"]["source_url"] = "https://entrainement.uness.fr/annales/course/view.php?id=101"

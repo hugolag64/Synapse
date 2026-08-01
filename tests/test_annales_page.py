@@ -76,3 +76,49 @@ def test_format_gemini_summary_reports_errors() -> None:
 
     assert "0 quiz corrigé" in summary
     assert "1 erreur" in summary
+
+
+def test_best_matiere_guess_matches_canonical_college_ignoring_emoji() -> None:
+    from frontend.pages.annales import _best_matiere_guess
+
+    candidates = ["Pneumologie 🫁", "Psychiatrie 🧩", "Cardiovasculaire ❤️"]
+
+    assert _best_matiere_guess(candidates, "Pneumologie") == "Pneumologie 🫁"
+
+
+def test_best_matiere_guess_returns_none_for_a_category_label_not_a_subject() -> None:
+    """A breadcrumb category like "Entraînements examens DFASM2- T2 et T3" must
+    never be guessed as a real subject just because it superficially resembles
+    one — the dialog should fall back to "Autre" rather than pre-select a wrong
+    college, which is exactly how unlinked, orphaned matières get created."""
+    from frontend.pages.annales import _best_matiere_guess
+
+    candidates = ["Pneumologie 🫁", "Psychiatrie 🧩", "Cardiovasculaire ❤️"]
+
+    assert _best_matiere_guess(candidates, "Entraînements examens DFASM2- T2 et T3") is None
+
+
+def test_gemini_partial_failure_message_is_none_when_everything_corrected() -> None:
+    from frontend.pages.annales import _gemini_partial_failure_message
+
+    result = {"corrected": ["dp1.json", "kfp1.json"], "errors": []}
+
+    assert _gemini_partial_failure_message(result) is None
+
+
+def test_gemini_partial_failure_message_surfaces_failed_quiz_even_when_others_succeeded() -> None:
+    """This is the exact shape that used to vanish silently: 5 of 6 quizzes in
+    a partiel correct fine (e.g. DP1/DP2/DP3/KFP1/mDP1), one (SQI1) fails —
+    the caller must never treat this as a clean success."""
+    from frontend.pages.annales import _gemini_partial_failure_message
+
+    result = {
+        "corrected": ["dp1.json", "dp2.json", "dp3.json", "kfp1.json", "mdp1.json"],
+        "errors": [{"file": "sqi1.json", "error": "Extra data: line 42 column 3 (char 900)"}],
+    }
+
+    message = _gemini_partial_failure_message(result)
+
+    assert message is not None
+    assert "sqi1.json" in message
+    assert "Extra data" in message

@@ -424,6 +424,7 @@ def init_db() -> None:
     _migrate_oic_anythingllm_validation()
     _migrate_ai_practice_v1()
     _migrate_uness_annales()
+    _migrate_uness_correction_failures()
     logger.info(f"SQLite initialisé : {DB_PATH}")
 
 
@@ -488,6 +489,118 @@ def _migrate_uness_annales() -> None:
                     )
                 except sqlite3.IntegrityError:
                     pass
+
+
+_UNESS_RETRY_DELAYS_SECONDS = [30, 120, 600]  # après la 1ère, 2e, 3e tentative
+
+
+def _migrate_uness_correction_failures() -> None:
+    """File d'attente persistante des corrections Gemini en échec (échec total
+    ou question manquante) — retry automatique borné + bandeau/badge UI."""
+    with _conn() as con:
+        con.execute(
+            """CREATE TABLE IF NOT EXISTS uness_correction_failures (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                bridge_folder   TEXT NOT NULL,
+                quiz_title      TEXT NOT NULL,
+                collected_at    TEXT NOT NULL,
+                error_message   TEXT NOT NULL,
+                attempts        INTEGER NOT NULL DEFAULT 0,
+                next_retry_at   TEXT NOT NULL,
+                status          TEXT NOT NULL DEFAULT 'pending',
+                created_at      TEXT NOT NULL,
+                last_attempt_at TEXT
+            )"""
+        )
+
+
+def record_uness_correction_failure(
+    *, bridge_folder: str, quiz_title: str, collected_at: str, error_message: str
+) -> int:
+    """Upsert par (quiz_title, collected_at) : incrémente attempts et repousse
+    next_retry_at au lieu de créer une deuxième ligne pour le même quiz qui
+    échoue à répétition."""
+    from datetime import timedelta
+
+    now = _now()
+    with _conn() as con:
+        row = con.execute(
+            "SELECT id, attempts FROM uness_correction_failures "
+            "WHERE quiz_title = ? AND collected_at = ? AND status = 'pending'",
+            (quiz_title, collected_at),
+        ).fetchone()
+        if row is not None:
+            attempts = int(row["attempts"]) + 1
+            delay = _UNESS_RETRY_DELAYS_SECONDS[min(attempts - 1, len(_UNESS_RETRY_DELAYS_SECONDS) - 1)]
+            next_retry_at = (datetime.datetime.fromisoformat(now) + timedelta(seconds=delay)).isoformat()
+            con.execute(
+                "UPDATE uness_correction_failures SET attempts = ?, next_retry_at = ?, "
+                "error_message = ?, bridge_folder = ?, last_attempt_at = ? WHERE id = ?",
+                (attempts, next_retry_at, error_message, bridge_folder, now, row["id"]),
+            )
+            return int(row["id"])
+        delay = _UNESS_RETRY_DELAYS_SECONDS[0]
+        next_retry_at = (datetime.datetime.fromisoformat(now) + timedelta(seconds=delay)).isoformat()
+        cur = con.execute(
+            "INSERT INTO uness_correction_failures "
+            "(bridge_folder, quiz_title, collected_at, error_message, attempts, "
+            "next_retry_at, status, created_at, last_attempt_at) "
+            "VALUES (?,?,?,?,1,?,'pending',?,?)",
+            (bridge_folder, quiz_title, collected_at, error_message, next_retry_at, now, now),
+        )
+        return int(cur.lastrowid)
+
+
+def resolve_uness_correction_failure(quiz_title: str, collected_at: str) -> None:
+    with _conn() as con:
+        con.execute(
+            "UPDATE uness_correction_failures SET status = 'resolved' "
+            "WHERE quiz_title = ? AND collected_at = ? AND status = 'pending'",
+            (quiz_title, collected_at),
+        )
+
+
+def get_uness_correction_failure(failure_id: int) -> dict | None:
+    with _conn() as con:
+        row = con.execute(
+            "SELECT * FROM uness_correction_failures WHERE id = ?", (failure_id,)
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def list_pending_uness_correction_failures(*, due_only: bool = False) -> list[dict]:
+    with _conn() as con:
+        if due_only:
+            rows = con.execute(
+                "SELECT * FROM uness_correction_failures "
+                "WHERE status = 'pending' AND attempts < 3 AND next_retry_at <= ? "
+                "ORDER BY next_retry_at",
+                (_now(),),
+            ).fetchall()
+        else:
+            rows = con.execute(
+                "SELECT * FROM uness_correction_failures WHERE status = 'pending' "
+                "ORDER BY created_at DESC"
+            ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def count_pending_uness_correction_failures() -> int:
+    with _conn() as con:
+        row = con.execute(
+            "SELECT COUNT(*) AS n FROM uness_correction_failures WHERE status = 'pending'"
+        ).fetchone()
+    return int(row["n"]) if row else 0
+
+
+def reset_uness_correction_failure_attempts(failure_id: int) -> None:
+    """Utilisé par le bouton "Relancer" manuel : redonne 3 tentatives auto
+    fraîches plutôt que de laisser l'entrée bloquée si le clic échoue encore."""
+    with _conn() as con:
+        con.execute(
+            "UPDATE uness_correction_failures SET attempts = 0, next_retry_at = ? WHERE id = ?",
+            (_now(), failure_id),
+        )
 
 
 # ── API publique — task_id ────────────────────────────────────────────────────

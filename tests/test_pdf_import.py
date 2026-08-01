@@ -59,7 +59,7 @@ def _mock_p():
 
 
 def _run(coro):
-    return asyncio.get_event_loop().run_until_complete(coro)
+    return asyncio.run(coro)
 
 
 def _base_mocks(medicine_dir):

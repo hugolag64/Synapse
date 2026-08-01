@@ -26,7 +26,7 @@ def _make_course(
 
 def _run(coro):
     """Exécute une coroutine de manière synchrone pour les tests."""
-    return asyncio.get_event_loop().run_until_complete(coro)
+    return asyncio.run(coro)
 
 
 # ── Fixture : FileService avec caches pré-peuplés ────────────────────────────

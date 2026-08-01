@@ -18,7 +18,7 @@ def _make_cours(id_: str, title: str, item_number: str = "", college: list = Non
 
 def _run(coro):
     """Exécute une coroutine de manière synchrone pour les tests."""
-    return asyncio.get_event_loop().run_until_complete(coro)
+    return asyncio.run(coro)
 
 
 class TestRemoveCours:

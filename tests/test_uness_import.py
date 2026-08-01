@@ -298,6 +298,46 @@ def test_verified_import_rejects_unsupported_visual_question_without_official_an
     assert "réponse officielle UNESS manquante" in response.json()["detail"]
 
 
+def test_verified_import_clears_stale_ai_verdict_on_unsupported_question_regardless_of_source(
+    client, import_dir
+):
+    """`assert_verified_exam`'s `unsupported` branch must not simply trust that
+    the file's AI verdict was already cleared by one of the app's own
+    producers (gemini_conversion, ai_verifier) — UNESS/vérifiés/ is also a
+    supported drop point for a canonical exam JSON assembled by hand, which
+    never went through either producer. This simulates exactly that: an
+    `unsupported` question whose verdict_ia/confiance_ia/explication_ia are
+    still intact, as if nobody had sanitized them — the import itself must
+    clear them and fall back to the official UNESS answer, not trust the
+    file."""
+    payload = _exam_payload()
+    question = payload["questions"][0]
+    question["verification_status"] = "unsupported"
+    question["images"][0]["metadata"] = {"verification_status": "unsupported"}
+    # Deliberately leave verdict_ia/confiance_ia/explication_ia untouched:
+    # proposition A has reponse_uness=False but verdict_ia=True (stale/wrong
+    # if trusted) while proposition B has reponse_uness=True and
+    # verdict_ia=True — only A can prove the gate itself sanitizes, since B's
+    # verdict happens to agree with the official answer either way.
+    _write_exam(import_dir, "unsupported-visual-unsanitized.json", payload)
+
+    response = client.post(
+        "/api/qcm/uness/import",
+        json={"path": "unsupported-visual-unsanitized.json", "verify": True},
+    )
+
+    assert response.status_code == 200
+    session = client.get(f"/api/qcm/sessions/{response.json()['session_id']}").json()
+    question_out = session["questions"][0]
+    answer = json.loads(question_out["answer"])
+    # Must reflect reponse_uness (only proposition B is True there), not the
+    # stale verdict_ia (which was True on both A and B in the source file).
+    assert answer == ["Il peut être fluctuant."]
+    proposition_a = question_out["uness"]["propositions"][0]
+    assert proposition_a["verdict_ia"] is None
+    assert proposition_a["confiance_ia"] is None
+
+
 def test_import_uses_manually_validated_final_answer_for_payload_and_scoring(
     client, import_dir
 ):

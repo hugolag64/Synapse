@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import asyncio
 
+from loguru import logger
 from nicegui import ui
 
 from backend.core.reviews import local_store
@@ -40,13 +41,29 @@ def render(container: ui.element) -> None:
                     ui.button("Rafraîchir", icon="refresh", on_click=_refresh).props(
                         "flat dense size=sm color=primary"
                     )
-                report = diagnostics.build_report()
+                try:
+                    report = diagnostics.build_report()
+                except Exception as exc:  # noqa: BLE001 - an optional read-only
+                    # diagnostics widget must never take down the rest of
+                    # Paramètres (connexions, apparence, IA...) on the same page
+                    # just because build_report() hit a bad file on disk, a
+                    # SQLite hiccup, or any other future failure mode — this
+                    # already happened once during this feature's own
+                    # development (a real crash from a malformed file).
+                    logger.exception(
+                        "uness_diagnostic_panel: build_report() a levé une exception"
+                    )
+                    ui.label(f"Erreur lors du diagnostic UNESS : {exc}").classes(
+                        "se-diag-quiz-detail"
+                    )
+                    return
                 if not report["annales"] and not report["pending"]:
                     ui.label("Aucune annale UNESS collectée pour le moment.").classes(
                         "text-sm text-slate-500"
                     )
                 for entry in report["annales"]:
                     _render_annale(entry)
+                _render_unattributed_errors(report.get("unattributed_errors") or [])
                 for pending in report["pending"]:
                     _render_pending(pending)
 
@@ -102,6 +119,24 @@ def render(container: ui.element) -> None:
                                 "Jamais soumis à Gemini — utilise « Corriger dossier "
                                 "existant » sur /annales pour ce dossier de collecte."
                             ).classes("se-diag-quiz-detail")
+
+        def _render_unattributed_errors(errors: list[dict]) -> None:
+            # These are import failures diagnostics.build_report() could not
+            # match to any (source_url, quiz label) — typically a raw AI
+            # response whose conversion to a canonical exam failed before it
+            # ever carried a provenance/title to key off. Without this
+            # section they'd silently vanish from the report instead of
+            # showing up (wrongly) as "never_attempted" or not at all.
+            if not errors:
+                return
+            with ui.element("div").classes("se-diag-annale"):
+                ui.label(
+                    f"⚠️ {len(errors)} fichier(s) en erreur non rattaché(s) à une annale"
+                ).classes("se-diag-title")
+                for error in errors:
+                    with ui.element("div").classes("se-diag-quiz-row"):
+                        ui.label(error["file"])
+                        ui.label(error["error"]).classes("se-diag-quiz-detail")
 
         def _render_pending(pending: dict) -> None:
             with ui.element("div").classes("se-diag-annale"):

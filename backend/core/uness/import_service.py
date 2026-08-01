@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import os
 from pathlib import Path
@@ -19,7 +20,13 @@ from backend.core.reviews import local_store
 
 from .gemini_conversion import convert_raw_payload, is_raw_ai_response
 from .json_io import load_exam
-from .models import UnessExam, UnessProposition, UnessQuestion, _assert_no_sensitive_data
+from .models import (
+    UNSUPPORTED_VISUAL_EXPLANATION,
+    UnessExam,
+    UnessProposition,
+    UnessQuestion,
+    _assert_no_sensitive_data,
+)
 
 _ROOT = Path(__file__).resolve().parents[3]
 IMPORT_DIR = Path(os.environ.get("UNESS_IMPORT_DIR", _ROOT / "data" / "uness" / "imports"))
@@ -539,9 +546,45 @@ def assert_verified_exam(exam: UnessExam) -> None:
                 raise ValueError(f"Statut de vérification IA incohérent ({proposition.statut}) pour la proposition {proposition.id}")
 
 
+def _sanitize_unsupported_questions(exam: UnessExam) -> UnessExam:
+    """Actively clear `verdict_ia`/`confiance_ia`/`explication_ia` on every
+    proposition of an `unsupported` question, instead of trusting that the
+    file already arrived that way.
+
+    `gemini_conversion._question` and `ai_verifier._unsupported_visual_question`
+    both already clear these fields for the two in-app producers of verified
+    exam files — but `VERIFIED_DIR` is also a supported trust boundary for
+    files this app never produced (a canonical exam JSON dropped there by
+    hand, e.g. via "Scanner les JSON vérifiés" on /annales). Such a file could
+    claim `verification_status: "unsupported"` while still carrying an intact
+    `verdict_ia` the model produced without ever seeing the required image.
+    `assert_verified_exam`'s `unsupported` branch only checks that
+    `reponse_uness` is present — it does not re-derive these fields — so this
+    function is what actually guarantees "le verdict IA est honnêtement vidé"
+    regardless of what the source file contains, rather than that invariant
+    holding only by convention in the two producers."""
+    sanitized_questions = []
+    for question in exam.questions:
+        if question.verification_status != "unsupported":
+            sanitized_questions.append(question)
+            continue
+        sanitized_propositions = tuple(
+            dataclasses.replace(
+                proposition,
+                verdict_ia=None,
+                explication_ia=UNSUPPORTED_VISUAL_EXPLANATION,
+                confiance_ia=None,
+            )
+            for proposition in question.propositions
+        )
+        sanitized_questions.append(dataclasses.replace(question, propositions=sanitized_propositions))
+    return dataclasses.replace(exam, questions=tuple(sanitized_questions))
+
+
 def import_uness_exam(exam: UnessExam) -> int:
     """Create one local, replayable practice session from a verified UNESS exam."""
     _assert_no_sensitive_data(exam.to_dict())
+    exam = _sanitize_unsupported_questions(exam)
     assert_verified_exam(exam)
     if not exam.questions:
         raise ValueError("L'examen UNESS ne contient aucune question importable")

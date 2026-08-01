@@ -11,6 +11,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from loguru import logger
+
 from backend.core.reviews import local_store
 from backend.core.uness import gemini_autocorrect, import_service
 
@@ -28,7 +30,8 @@ def _iter_bridge_files():
                 continue
             try:
                 payload = json.loads(path.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError):
+            except (OSError, json.JSONDecodeError) as exc:
+                logger.warning(f"_iter_bridge_files: {path.name!r} illisible ({exc}) — ignoré.")
                 continue
             if isinstance(payload, dict) and "contents" in payload:
                 yield payload
@@ -85,7 +88,9 @@ def _quiz_label(course_title: str) -> str:
     return course_title.rsplit(" — ", 1)[-1].strip()
 
 
-def _blocked_titles(errors: list[dict[str, str]]) -> dict[tuple[str, str], str]:
+def _blocked_titles(
+    errors: list[dict[str, str]],
+) -> tuple[dict[tuple[str, str], str], list[dict[str, str]]]:
     """Map (source_url, quiz label) -> error message for every file that just
     failed import validation (assert_verified_exam, missing bridge, etc.) —
     these files stay in VERIFIED_DIR untouched on failure, so they're always
@@ -93,15 +98,33 @@ def _blocked_titles(errors: list[dict[str, str]]) -> dict[tuple[str, str], str]:
     label alone — UNESS quiz labels ("DP1", "QI1"...) are reused across
     unrelated annales, so a label-only key lets one annale's blocked entry
     silently clobber another's, hiding a real failure behind
-    "never_attempted"."""
+    "never_attempted".
+
+    Also returns `unattributed`: every error entry this function could not
+    resolve to a (source_url, label) pair — e.g. a raw AI response (has
+    "quiz_title", not "title"/"provenance") whose Gemini conversion failed
+    before ever reaching the canonical exam shape this function expects (see
+    `_load_exams_from_verified_file`'s auto-conversion in import_service.py).
+    Reverse-engineering which annale such a file belongs to would need a
+    `collected_at` a raw file may not even carry — too fragile — so instead
+    these are surfaced as-is by `build_report()` rather than silently
+    dropped and misreported as "never_attempted"."""
     blocked: dict[tuple[str, str], str] = {}
+    unattributed: list[dict[str, str]] = []
     for error in errors:
         matches = list(import_service.VERIFIED_DIR.rglob(error["file"]))
         if not matches:
+            logger.warning(
+                f"_blocked_titles: {error['file']!r} introuvable sous VERIFIED_DIR "
+                "(déjà déplacé ou supprimé ?) — erreur non rattachée à une annale."
+            )
+            unattributed.append(error)
             continue
         try:
             payload = json.loads(matches[0].read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
+        except (OSError, json.JSONDecodeError) as exc:
+            logger.warning(f"_blocked_titles: relecture de {error['file']!r} impossible ({exc}).")
+            unattributed.append(error)
             continue
         if not isinstance(payload, dict):
             # Legacy/malformed exports (e.g. an old bundled multi-quiz export
@@ -109,13 +132,26 @@ def _blocked_titles(errors: list[dict[str, str]]) -> dict[tuple[str, str], str]:
             # UnessExam dict) already show up in `errors` for their own
             # unrelated reason — this function only needs to not choke while
             # trying to attribute them to an annale.
+            logger.warning(
+                f"_blocked_titles: {error['file']!r} n'est pas un examen UNESS "
+                "canonique (forme JSON inattendue) — erreur non rattachée à une annale."
+            )
+            unattributed.append(error)
             continue
         source_url = str(payload.get("provenance", {}).get("source_url", "")).strip()
         title = str(payload.get("title", ""))
         if not source_url or not title:
+            # Typically a raw AI response (has "quiz_title", not "title") whose
+            # conversion failed before producing a canonical exam — genuinely
+            # actionable, not a case to drop silently.
+            logger.warning(
+                f"_blocked_titles: {error['file']!r} n'a pas de provenance/titre "
+                f"exploitable — erreur non rattachée à une annale : {error['error']}"
+            )
+            unattributed.append(error)
             continue
         blocked[(source_url, _quiz_label(title))] = error["error"]
-    return blocked
+    return blocked, unattributed
 
 
 def _retry_pending_by_source_url() -> dict[str, list[dict[str, Any]]]:
@@ -127,10 +163,19 @@ def _retry_pending_by_source_url() -> dict[str, list[dict[str, Any]]]:
         try:
             bridge_path = gemini_autocorrect.locate_bridge(failure["quiz_title"], failure["collected_at"])
             bridge = json.loads(bridge_path.read_text(encoding="utf-8"))
-        except (FileNotFoundError, OSError, json.JSONDecodeError):
+        except (FileNotFoundError, OSError, json.JSONDecodeError) as exc:
+            logger.warning(
+                f"_retry_pending_by_source_url: bridge introuvable/illisible pour "
+                f"{failure['quiz_title']!r} ({exc}) — cette relance en attente ne "
+                "sera pas rattachée à une annale."
+            )
             continue
         source_url = str(bridge.get("source", {}).get("source_url", "")).strip()
         if not source_url:
+            logger.warning(
+                f"_retry_pending_by_source_url: bridge de {failure['quiz_title']!r} "
+                f"({bridge_path.name}) sans source_url — relance en attente non rattachée."
+            )
             continue
         label = str(failure["quiz_title"]).splitlines()[0]
         grouped.setdefault(source_url, []).append({**failure, "title": label})
@@ -143,7 +188,7 @@ def build_report() -> dict[str, Any]:
     known to have been collected at least once."""
     import_result = import_service.import_verified_directory()
     reference = _latest_quiz_titles_by_source_url()
-    blocked = _blocked_titles(import_result["errors"])
+    blocked, unattributed_errors = _blocked_titles(import_result["errors"])
     retry_pending = _retry_pending_by_source_url()
 
     annale_reports = []
@@ -178,4 +223,8 @@ def build_report() -> dict[str, Any]:
                 quizzes.append({"title": title, "status": "never_attempted", "detail": {}})
         annale_reports.append({"annale": annale, "quizzes": quizzes})
 
-    return {"annales": annale_reports, "pending": import_result["pending_tag"]}
+    return {
+        "annales": annale_reports,
+        "pending": import_result["pending_tag"],
+        "unattributed_errors": unattributed_errors,
+    }

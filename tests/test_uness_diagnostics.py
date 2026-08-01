@@ -285,3 +285,45 @@ def test_build_report_skips_a_legacy_list_shaped_verified_file_without_crashing(
     assert report["annales"] == []
     for entry in report["annales"]:
         assert all(q["status"] != "blocked" for q in entry["quizzes"])
+
+
+def test_build_report_surfaces_unattributable_errors_instead_of_dropping_them(uness_dirs):
+    # A raw AI response (has "quiz_title"/"questions", not the canonical
+    # "title"/"provenance" shape every other verified file has) whose Gemini
+    # conversion fails because no bridge file matches its quiz_title. Unlike
+    # the legacy-list case above, this is a genuinely actionable failure — the
+    # quiz WAS submitted and IS failing to import — but _blocked_titles has no
+    # (source_url, label) to key it under, since a raw payload never carries
+    # "title"/"provenance". It must show up in build_report()'s
+    # "unattributed_errors" instead of silently vanishing (which used to leave
+    # it misreported as "never_attempted", telling the user it was never even
+    # submitted).
+    verified = uness_dirs["verified"]
+    verified.joinpath("raw-response.json").write_text(
+        json.dumps(
+            {
+                "quiz_title": "SQI1\nTest",
+                "questions": [
+                    {
+                        "id": "q1",
+                        "type_question": "QRU",
+                        "enonce": "Q?",
+                        "propositions": [{"id": "p1", "texte": "a", "reponse_officielle": True}],
+                    }
+                ],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    # No bridge file exists anywhere (à_vérifier/ and archives/ are both
+    # empty), so the conversion fails with "Aucun bridge ne contient le
+    # quiz...".
+
+    report = diagnostics.build_report()
+
+    assert report["annales"] == []
+    assert len(report["unattributed_errors"]) == 1
+    unattributed = report["unattributed_errors"][0]
+    assert unattributed["file"] == "raw-response.json"
+    assert "Aucun bridge ne contient le quiz" in unattributed["error"]

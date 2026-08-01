@@ -9,11 +9,11 @@ from typing import Any, ClassVar, Literal
 from urllib.parse import parse_qsl, unquote, urlparse
 
 UnessStatus = Literal["concordant", "desaccord", "incertain", "valide_manuellement"]
-UnessQuestionType = Literal["QRM", "QRU", "QRP/L", "DP", "KFP", "QROC"]
+UnessQuestionType = Literal["QRM", "QRU", "QRP/L", "DP", "KFP", "QROC", "TCS"]
 UnessVerificationStatus = Literal["unverified", "verified", "unsupported"]
 
 _STATUTS = {"concordant", "desaccord", "incertain", "valide_manuellement"}
-_QUESTION_TYPES = {"QRM", "QRU", "QRP/L", "DP", "KFP", "QROC"}
+_QUESTION_TYPES = {"QRM", "QRU", "QRP/L", "DP", "KFP", "QROC", "TCS"}
 _VERIFICATION_STATUSES = {"unverified", "verified", "unsupported"}
 _SENSITIVE_KEYS = {
     "credential",

@@ -86,6 +86,7 @@ def import_uness(payload: UnessImportPayload) -> dict:
         raise HTTPException(status_code=400, detail="Un examen UNESS doit être vérifié avant import")
     try:
         exam = load_local_exam(payload.path)
+        import_service.assert_verified_exam(exam)
         session_id = import_uness_exam(exam)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Fichier UNESS introuvable") from exc

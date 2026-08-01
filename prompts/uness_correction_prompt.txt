@@ -12,8 +12,8 @@ de texte hors JSON.
   "quiz_title": "<valeur exacte de contents[].title pour ce quiz>",
   "questions": [
     {
-      "id": "<identifiant stable et unique, ex. l'id Moodle "question-XXXX-N" du HTML>",
-      "type_question": "QRM" | "QRU" | "QRP/L" | "DP" | "KFP" | "QROC",
+      "id": "<identifiant stable et unique, ex. l'id Moodle \"question-XXXX-N\" du HTML>",
+      "type_question": "QRM" | "QRU" | "QRP/L" | "DP" | "KFP" | "QROC" | "TCS",
       "enonce": "<énoncé complet de la question>",
       "verification_status": "verified" | "unsupported",
       "propositions": [
@@ -60,7 +60,8 @@ Règles strictes :
   ainsi : "QROC" si la question attend une réponse libre/courte (pas de propositions
   à cocher) ; "QRU" si une seule proposition est correcte ; "QRM" si plusieurs
   propositions sont correctes ; "DP" si la question appartient à un dossier
-  progressif ; "KFP" si elle appartient à un Key Feature Problem.
+  progressif ; "KFP" si elle appartient à un Key Feature Problem ; "TCS" si la question
+  est un Test de Concordance de Script (évaluation sur une échelle d'impact/probabilité suite à une hypothèse et information additionnelle).
 - Chaque quiz a sa propre valeur "quiz_title" reprise mot pour mot de
   `contents[].title`. Ne fusionne jamais les questions de deux quiz différents
   dans un seul objet "questions" — un objet par quiz, même quand plusieurs

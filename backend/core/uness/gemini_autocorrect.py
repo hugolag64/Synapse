@@ -106,17 +106,24 @@ def _clean_moodle_html(html: str) -> str:
 
     # 3. Clean each question container
     cleaned_questions = []
-    for q_div in soup.select("div[id^='question-']"):
-        q_id = q_div.get("id", "")
+    # Select question blocks (Moodle uses div.que or div[id^='question-'])
+    question_divs = soup.select("div.que, div[id^='question-']")
+    for q_div in question_divs:
+        # Ignore description/context blocks here
+        classes = q_div.get("class", [])
+        if "description" in classes:
+            continue
+        q_id = q_div.get("id", "") or str(q_div.get("data-question-id", ""))
         # Question formulation
-        qtext_el = q_div.select_one(".qtext")
+        qtext_el = q_div.select_one(".qtext, .question-text, .formulation")
         qtext = qtext_el.get_text(separator="\n", strip=True) if qtext_el else ""
 
         # Answer choices & official responses
         choices = []
-        for choice_row in q_div.select(".answer > div, .answer li, .answer tr"):
+        for choice_row in q_div.select(".answer > div, .answer li, .answer tr, .answer .r0, .answer .r1"):
             label_text = choice_row.get_text(separator=" ", strip=True)
-            # Check for Moodle correct/incorrect classes or checked inputs
+            if not label_text:
+                continue
             is_checked = choice_row.select_one("input[checked]") is not None
             is_correct = "correct" in choice_row.get("class", []) or bool(choice_row.select(".correct"))
             is_incorrect = "incorrect" in choice_row.get("class", []) or bool(choice_row.select(".incorrect"))
@@ -129,7 +136,7 @@ def _clean_moodle_html(html: str) -> str:
             })
 
         # Feedback/outcome
-        outcome_el = q_div.select_one(".outcome, .rightanswer, .generalfeedback")
+        outcome_el = q_div.select_one(".outcome, .rightanswer, .generalfeedback, .feedback")
         outcome = outcome_el.get_text(separator="\n", strip=True) if outcome_el else ""
 
         cleaned_questions.append({
@@ -187,9 +194,6 @@ def correct_directory(folder: Path, *, service: AIService | None = None) -> dict
                 response = None
                 for attempt in range(max_retries):
                     try:
-                        # Free Tier limit: 15 Requests Per Minute (RPM). Pause 6s between calls to leave margin.
-                        import time
-                        time.sleep(6)
                         response = generate_uness_correction(
                             message,
                             images=images,
@@ -200,7 +204,7 @@ def correct_directory(folder: Path, *, service: AIService | None = None) -> dict
                     except AIServiceError as err:
                         if ("429" in str(err) or "Too Many Requests" in str(err)) and attempt < max_retries - 1:
                             import time
-                            wait_time = 25 * (attempt + 1)  # 25s, 50s, 75s, 100s
+                            wait_time = 10 * (attempt + 1)  # 10s, 20s, 30s
                             time.sleep(wait_time)
                             continue
                         raise err

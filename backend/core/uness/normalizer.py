@@ -14,7 +14,7 @@ from bs4 import BeautifulSoup, Tag
 from .artifacts import ExamMetadata, RawMedia, RawUnessArtifact
 from .models import UnessExam, UnessImage, UnessProposition, UnessQuestion
 
-_QUESTION_TYPES = {"QRM", "QRU", "QRP/L", "DP", "KFP", "QROC"}
+_QUESTION_TYPES = {"QRM", "QRU", "QRP/L", "DP", "KFP", "QROC", "TCS"}
 _TRUE_CLASSES = {"correct", "is-correct", "answer-green", "green", "success"}
 _FALSE_CLASSES = {"incorrect", "is-incorrect", "answer-red", "red", "error"}
 
@@ -35,10 +35,14 @@ def _question_type(node: Tag) -> str:
     raw = str(node.get("data-question-type", "")).upper().strip()
     if raw in _QUESTION_TYPES:
         return raw
-    visible = _text(_first(node, ".question-type, .type-question"))
+    visible = _text(_first(node, ".question-type, .type-question, .form-label"))
     for candidate in _QUESTION_TYPES:
         if candidate in visible.upper():
             return candidate
+    # Détection des TCS si l'énoncé contient l'échelle d'impact / concordance
+    text_content = _text(node).lower()
+    if "hypothèse" in text_content and ("information additionnelle" in text_content or "effet sur l'hypothèse" in text_content):
+        return "TCS"
     return "QRM"
 
 

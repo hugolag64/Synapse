@@ -27,6 +27,32 @@ def _valid_exam_payload(**overrides) -> dict:
     return payload
 
 
+def test_tcs_question_type_is_valid() -> None:
+    """Verifies that TCS is accepted as a canonical question type."""
+    payload = _valid_exam_payload(
+        questions=[
+            {
+                "id": "q-tcs-1",
+                "type_question": "TCS",
+                "enonce": "Vous recevez Mme M... Hypothèse: malabsorption...",
+                "propositions": [
+                    {
+                        "id": "A",
+                        "texte": "a. improbable",
+                        "reponse_uness": False,
+                        "verdict_ia": False,
+                        "explication_ia": "Peu probable compte tenu du tableau",
+                        "confiance_ia": 0.9,
+                        "statut": "concordant",
+                    }
+                ],
+            }
+        ]
+    )
+    exam = UnessExam.from_dict(payload)
+    assert exam.questions[0].type_question == "TCS"
+
+
 def test_exam_round_trip_preserves_uness_correction_ai_verdict_and_visual_context(tmp_path) -> None:
     """Catches a serializer that drops metadata or conflates official and IA answers."""
     payload = {

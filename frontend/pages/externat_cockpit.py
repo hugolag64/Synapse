@@ -65,13 +65,23 @@ def render_externat_cockpit() -> None:
     stages = externat_store.get_all_stages()
 
     with ui.column().classes("ex-wrap gap-0"):
-        with ui.element("div").classes("ex-topbar"):
-            ui.label("Externat").classes("ex-title")
-            ui.label("Stages cliniques · items rattachés").classes("ex-subtitle")
+        with ui.element("div").classes("ex-topbar flex items-center justify-between"):
+            with ui.column().classes("gap-0"):
+                ui.label("Externat").classes("ex-title")
+                ui.label("Stages cliniques · items rattachés").classes("ex-subtitle")
+            from frontend.pages.externat import _open_stage_dialog
+            ui.button("+ Nouveau stage", on_click=lambda: _open_stage_dialog(ui.navigate.reload)).props(
+                "unelevated size=sm"
+            ).style(
+                "background:var(--accent); color:var(--accent-text); border-radius:6px; font-weight:500; font-size:12px;"
+            )
 
         if not stages:
             with ui.element("div").classes("ex-empty"):
-                ui.label("Aucun stage enregistré.")
+                ui.label("Aucun stage enregistré.").classes("mb-2")
+                ui.button("Configurer un stage", on_click=lambda: _open_stage_dialog(ui.navigate.reload)).props(
+                    "outline size=sm"
+                ).style("color:var(--accent); border-color:var(--accent); border-radius:6px; font-size:12px;")
             return
 
         with ui.element("div").classes("ex-list"):
@@ -81,11 +91,14 @@ def render_externat_cockpit() -> None:
 
 def _draw_card(stage) -> None:
     courses = externat_service.get_stage_courses(stage)
-    item_numbers = [c.item_number for c in courses if c.item_number]
+    items_with_ids = [c for c in courses if getattr(c, "item_number", None)]
 
     with ui.element("div").classes("ex-card"):
         with ui.element("div").classes("ex-card-head"):
-            ui.label(stage.specialty).classes("ex-card-title")
+            with ui.row().classes("items-center gap-2"):
+                ui.label(stage.specialty).classes("ex-card-title")
+                if stage.college_notion:
+                    ui.label(f"· {stage.college_notion}").classes("text-xs text-[var(--text-muted)] font-medium")
             with ui.element("div").classes("ex-status"):
                 ui.element("span").classes("ex-status-dot").style(
                     f"background:{_STATUS_COLOR.get(stage.status_label, 'var(--text-dim)')}")
@@ -94,11 +107,22 @@ def _draw_card(stage) -> None:
         ui.label(f"{_fmt_date(stage.start_date)} → {_fmt_date(stage.end_date)}").classes("ex-dates")
 
         with ui.element("div").classes("ex-items"):
-            if not item_numbers:
+            if not items_with_ids:
                 ui.label("Aucun item rattaché.")
             else:
-                shown = item_numbers[:6]
-                extra = len(item_numbers) - len(shown)
-                ids_txt = " · ".join(shown) + (f" · +{extra}" if extra > 0 else "")
+                shown = items_with_ids[:6]
+                extra = len(items_with_ids) - len(shown)
                 ui.label("Items rattachés : ")
-                ui.label(ids_txt).classes("ids")
+                with ui.row().classes("items-center gap-1.5 inline-flex flex-wrap"):
+                    for c in shown:
+                        item_num = c.item_number
+                        item_id = c.id
+                        ui.label(str(item_num)).classes(
+                            "ids cursor-pointer hover:underline hover:text-[var(--accent)]"
+                        ).on("click", lambda _, cid=item_id: ui.navigate.to(f"/cours/{cid}"))
+                    if extra > 0:
+                        college_param = stage.college_notion or ""
+                        ui.label(f"+{extra}").classes(
+                            "ids cursor-pointer font-bold text-[var(--accent)] hover:underline"
+                        ).on("click", lambda _, col=college_param: ui.navigate.to(f"/items?college={col}"))
+

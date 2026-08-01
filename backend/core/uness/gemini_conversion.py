@@ -99,8 +99,13 @@ def _question_count_hint(question_text: str) -> int | None:
 
 def _type_question(raw_type: str, question_text: str, propositions: list[dict]) -> str:
     """Fallback heuristic used only when the AI omits the required `type_question`."""
+    if raw_type in _QUESTION_TYPES:
+        return raw_type
     if raw_type in _SHORT_ANSWER_TYPES or raw_type in _ZONE_TYPES:
         return "QROC"
+    text_lower = question_text.lower()
+    if "hypothèse" in text_lower and ("information additionnelle" in text_lower or "effet sur l'hypothèse" in text_lower):
+        return "TCS"
     hint = _question_count_hint(question_text)
     if hint is not None and hint > 1:
         return "QRP/L"

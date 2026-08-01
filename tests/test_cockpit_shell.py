@@ -20,6 +20,26 @@ def test_revision_badge_uses_overdue_task_count(monkeypatch):
     assert cockpit_shell._revision_badge() == ("count", "2")
 
 
+def test_uness_failures_badge_reads_pending_count(monkeypatch):
+    monkeypatch.setattr(
+        "backend.core.reviews.local_store.count_pending_uness_correction_failures", lambda: 3
+    )
+
+    assert cockpit_shell._uness_failures_badge() == ("count", "3")
+
+
+def test_annales_nav_entry_has_a_dynamic_uness_failures_badge():
+    from frontend.cockpit_shell import _NAV_GROUPS
+
+    annales_entries = [
+        badge
+        for _group_label, items in _NAV_GROUPS
+        for _glyph, label, _route, badge in items
+        if label == "Annales"
+    ]
+    assert annales_entries == [("dynamic_count", "uness_failures")]
+
+
 def test_shell_forces_icon_only_sidebar_between_768_and_900():
     source = Path("frontend/cockpit_shell.py").read_text(encoding="utf-8")
 

@@ -30,6 +30,22 @@ def _revision_badge() -> tuple[str, str]:
     return ("count", str(overdue))
 
 
+def _uness_failures_badge() -> tuple[str, str]:
+    """Retourne le nombre de corrections UNESS en échec pour la sidebar."""
+    try:
+        from backend.core.reviews.local_store import count_pending_uness_correction_failures
+        count = count_pending_uness_correction_failures()
+    except Exception:
+        count = 0
+    return ("count", str(count))
+
+
+_DYNAMIC_BADGE_PROVIDERS = {
+    "revisions": _revision_badge,
+    "uness_failures": _uness_failures_badge,
+}
+
+
 # (glyphe, label, route|None, badge)  badge: None | ('count', '2') | ('dot', 'warning')
 _NAV_GROUPS = [
     ("Pilotage", [
@@ -42,7 +58,7 @@ _NAV_GROUPS = [
         ("◫", "Semestres", "/semestres", None),
         ("≡", "Items",     "/items",     None),
         ("✓", "QCM",       "/qcm",       None),
-        ("▧", "Annales",   "/annales",   None),
+        ("▧", "Annales",   "/annales",   ("dynamic_count", "uness_failures")),
         ("⚑", "Points faibles", "/lacunes", ("dot", "warning")),
     ]),
     ("Analyse", [
@@ -171,7 +187,7 @@ def _nav_item(glyph: str, label: str, route, badge, active: str) -> None:
                 "flex:0 0 auto;font-size:10px;color:var(--text-dim)"
             )
         elif badge and badge[0] == "dynamic_count":
-            ui.label(_revision_badge()[1]).classes("cockpit-badge-count")
+            ui.label(_DYNAMIC_BADGE_PROVIDERS[badge[1]]()[1]).classes("cockpit-badge-count")
         elif badge and badge[0] == "count":
             ui.label(badge[1]).classes("cockpit-badge-count")
         elif badge and badge[0] == "dot":

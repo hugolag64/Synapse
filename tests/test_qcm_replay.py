@@ -264,6 +264,7 @@ def test_qcm_correction_discloses_official_uness_correction(monkeypatch):
                     }
                 ],
                 "support_visuel_seul": True,
+                "verification_status": "unsupported",
             },
             "propositions": [
                 {
@@ -291,6 +292,11 @@ def test_qcm_correction_discloses_official_uness_correction(monkeypatch):
     assert "Collecté le 2026-07-30T09:15:00+02:00 · Statut : complete" in labels
     assert (
         "Support visuel uniquement : l’interaction UNESS originale n’est pas reconstruite."
+        in labels
+    )
+    assert (
+        "⚠️ Vérification IA non disponible pour cette question — seule la "
+        "correction officielle UNESS est garantie exacte."
         in labels
     )
     assert images == ["imports/media/scan.png"]

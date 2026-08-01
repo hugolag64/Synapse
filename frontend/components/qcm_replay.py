@@ -340,6 +340,13 @@ def open_qcm_correction(
                             ).classes(
                                 "text-sm text-amber-800 dark:text-amber-300 whitespace-pre-wrap mt-2"
                             )
+                        if question_metadata.get("verification_status") == "unsupported":
+                            ui.label(
+                                "⚠️ Vérification IA non disponible pour cette question — seule la "
+                                "correction officielle UNESS est garantie exacte."
+                            ).classes(
+                                "text-sm text-amber-800 dark:text-amber-300 whitespace-pre-wrap mt-2"
+                            )
                         for image in question_metadata.get("images") or []:
                             source = str(
                                 image.get("local_path") or image.get("source_url") or ""

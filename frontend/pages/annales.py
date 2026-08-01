@@ -80,6 +80,13 @@ def _gemini_partial_failure_message(result: dict) -> str | None:
     return f"{len(errors)} échec(s) de correction (quiz manquant du partiel importé) — {failed}"
 
 
+def _format_failure_row(failure: dict) -> str:
+    attempts = int(failure["attempts"])
+    plural = "s" if attempts != 1 else ""
+    title = str(failure["quiz_title"]).splitlines()[0]
+    return f"{title} — {attempts} tentative{plural} · {failure['error_message']}"
+
+
 def _best_matiere_guess(candidates: list[str], detected: str) -> str | None:
     """Best-effort match of the auto-detected free-text subject (parsed from the
     UNESS breadcrumb — often a category/session label rather than the real
@@ -350,6 +357,47 @@ def annales_page() -> None:
                         icon="add",
                         on_click=lambda: _open_import_dialog(refresh_fn=_render),
                     ).props("unelevated color=primary size=sm")
+
+            failures_column = ui.column().classes("w-full")
+
+            def _render_failures() -> None:
+                failures_column.clear()
+                failures = local_store.list_pending_uness_correction_failures()
+                if not failures:
+                    return
+                with failures_column:
+                    with ui.expansion(
+                        f"⚠️ {len(failures)} quiz en attente de correction", value=False
+                    ).classes("w-full mb-3").props("dense"):
+                        for failure in failures:
+                            with ui.row().classes("w-full items-center justify-between gap-2 py-1"):
+                                ui.label(_format_failure_row(failure)).classes("text-sm")
+
+                                async def _retry(failure_id: int = failure["id"]) -> None:
+                                    import asyncio
+                                    from backend.core.uness import gemini_autocorrect, import_service
+
+                                    local_store.reset_uness_correction_failure_attempts(failure_id)
+                                    result = await asyncio.to_thread(
+                                        gemini_autocorrect.retry_failed_quiz, failure_id
+                                    )
+                                    if result["success"]:
+                                        ui.notify("✅ Quiz corrigé et importé.", type="positive")
+                                        import_service.import_verified_directory()
+                                    else:
+                                        ui.notify(
+                                            f"❌ Toujours en échec : {result['error']}", type="negative"
+                                        )
+                                    # Un rechargement complet évite d'avoir à gérer le cas où
+                                    # _render (liste des annales) n'a jamais été défini — la
+                                    # page retourne tôt quand aucune annale n'est encore importée.
+                                    ui.navigate.reload()
+
+                                ui.button("Relancer", on_click=_retry).props(
+                                    "flat dense size=sm color=primary"
+                                )
+
+            _render_failures()
 
             all_rows = _filtered_annales()
             if not all_rows:

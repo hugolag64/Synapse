@@ -98,6 +98,26 @@ def test_best_matiere_guess_returns_none_for_a_category_label_not_a_subject() ->
     assert _best_matiere_guess(candidates, "Entraînements examens DFASM2- T2 et T3") is None
 
 
+def test_format_failure_row_includes_title_attempts_and_reason() -> None:
+    from frontend.pages.annales import _format_failure_row
+
+    row = _format_failure_row(
+        {"quiz_title": "SQI1\nTest", "attempts": 2, "error_message": "Extra data: line 42"}
+    )
+
+    assert "SQI1" in row
+    assert "2 tentative" in row
+    assert "Extra data: line 42" in row
+
+
+def test_format_failure_row_singularizes_a_single_attempt() -> None:
+    from frontend.pages.annales import _format_failure_row
+
+    row = _format_failure_row({"quiz_title": "DP1", "attempts": 1, "error_message": "erreur"})
+
+    assert "1 tentative " in row or row.count("tentatives") == 0
+
+
 def test_gemini_partial_failure_message_is_none_when_everything_corrected() -> None:
     from frontend.pages.annales import _gemini_partial_failure_message
 

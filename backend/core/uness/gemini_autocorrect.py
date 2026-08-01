@@ -298,3 +298,90 @@ def correct_directory(folder: Path, *, service: AIService | None = None) -> dict
         "output_tokens": output_tokens,
     }
 
+
+def _locate_bridge(quiz_title: str, collected_at: str) -> Path:
+    """Cherche le bridge JSON (dans UNESS/à_vérifier puis UNESS/archives) dont
+    source.collected_at correspond et dont les contents incluent quiz_title —
+    un bridge peut migrer de à_vérifier/ vers archives/<faculté>/ une fois ses
+    quiz voisins importés avec succès, donc les deux emplacements sont
+    cherchés, à_vérifier/ en premier (le plus frais)."""
+    for directory in (import_service.TO_REVIEW_DIR, import_service.ARCHIVE_DIR):
+        if not directory.is_dir():
+            continue
+        for path in sorted(directory.rglob("*.json")):
+            if path.name.startswith("."):
+                continue
+            try:
+                bridge = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            if not isinstance(bridge, dict) or "contents" not in bridge:
+                continue
+            source = bridge.get("source", {})
+            if str(source.get("collected_at", "")) != collected_at:
+                continue
+            titles = {item.get("title") for item in bridge.get("contents", []) if isinstance(item, dict)}
+            if quiz_title in titles:
+                return path
+    raise FileNotFoundError(
+        f"Bridge introuvable pour le quiz {quiz_title!r} (collected_at={collected_at!r})"
+    )
+
+
+def retry_failed_quiz(failure_id: int, *, service: AIService | None = None) -> dict:
+    """Retente exactement un quiz précédemment en échec (clic manuel "Relancer"
+    ou boucle de retry en arrière-plan). Relocalise son bridge (qui a pu migrer
+    vers archives/ depuis l'échec), le corrige, et met à jour la ligne
+    uness_correction_failures en conséquence.
+
+    Retourne {"success": bool, "error": str | None}."""
+    failure = local_store.get_uness_correction_failure(failure_id)
+    if failure is None:
+        return {"success": False, "error": "Entrée introuvable"}
+
+    quiz_title = failure["quiz_title"]
+    collected_at = failure["collected_at"]
+
+    try:
+        bridge_path = _locate_bridge(quiz_title, collected_at)
+    except FileNotFoundError as exc:
+        local_store.record_uness_correction_failure(
+            bridge_folder=failure["bridge_folder"],
+            quiz_title=quiz_title,
+            collected_at=collected_at,
+            error_message=str(exc),
+        )
+        return {"success": False, "error": str(exc)}
+
+    bridge = json.loads(bridge_path.read_text(encoding="utf-8"))
+    prompt = _prompt_text(bridge)
+    quiz = next(
+        (item for item in bridge.get("contents", []) if item.get("title") == quiz_title),
+        None,
+    )
+    if quiz is None:
+        error = f"Quiz {quiz_title!r} absent du bridge relocalisé ({bridge_path})"
+        local_store.record_uness_correction_failure(
+            bridge_folder=str(bridge_path.parent),
+            quiz_title=quiz_title,
+            collected_at=collected_at,
+            error_message=error,
+        )
+        return {"success": False, "error": error}
+
+    import_service.VERIFIED_DIR.mkdir(parents=True, exist_ok=True)
+    written, message, _in_tok, _out_tok = _correct_one_quiz(
+        bridge_path, bridge, quiz, prompt, bridge_path.parent, service
+    )
+    if written:
+        local_store.resolve_uness_correction_failure(quiz_title, collected_at)
+        return {"success": True, "error": message}
+
+    local_store.record_uness_correction_failure(
+        bridge_folder=str(bridge_path.parent),
+        quiz_title=quiz_title,
+        collected_at=collected_at,
+        error_message=message or "Erreur inconnue",
+    )
+    return {"success": False, "error": message}
+

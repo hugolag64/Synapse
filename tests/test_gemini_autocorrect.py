@@ -360,3 +360,83 @@ def test_correct_directory_does_not_record_a_failure_when_correction_succeeds(tm
     gemini_autocorrect.correct_directory(tmp_path, service=service)
 
     assert local_store.list_pending_uness_correction_failures() == []
+
+
+@pytest.fixture
+def _isolated_review_dirs(tmp_path, monkeypatch):
+    to_review = tmp_path / "a_verifier"
+    archive = tmp_path / "archives"
+    to_review.mkdir()
+    archive.mkdir()
+    monkeypatch.setattr(import_service, "TO_REVIEW_DIR", to_review)
+    monkeypatch.setattr(import_service, "ARCHIVE_DIR", archive)
+    return to_review, archive
+
+
+def test_retry_failed_quiz_relocates_a_bridge_still_in_a_verifier(
+    _isolated_review_dirs, _isolated_verified_dir
+):
+    to_review, _archive = _isolated_review_dirs
+    _bridge_file(to_review, title="SQI1\nTest", name="sqi1-20260801T090000Z.json")
+    failure_id = local_store.record_uness_correction_failure(
+        bridge_folder=str(to_review),
+        quiz_title="SQI1\nTest",
+        collected_at="2026-07-30T09:00:00+00:00",
+        error_message="ancien échec",
+    )
+    service = Mock()
+    service.generate.return_value = _quiz_response("SQI1\nTest")
+
+    result = gemini_autocorrect.retry_failed_quiz(failure_id, service=service)
+
+    assert result == {"success": True, "error": None}
+    assert local_store.list_pending_uness_correction_failures() == []
+    assert len(list(_isolated_verified_dir.glob("*.json"))) == 1
+
+
+def test_retry_failed_quiz_relocates_a_bridge_moved_to_archives(
+    _isolated_review_dirs, _isolated_verified_dir
+):
+    """Une fois les quiz voisins réussis, import_service déplace le dossier de
+    session entier (JSON + images) vers archives/<faculté>/ — le retry doit
+    suivre le bridge jusque là."""
+    _to_review, archive = _isolated_review_dirs
+    archived_faculty_dir = archive / "pneumologie"
+    archived_faculty_dir.mkdir()
+    _bridge_file(archived_faculty_dir, title="SQI1\nTest", name="a_verifier-sqi1-20260801T090000Z.json")
+    failure_id = local_store.record_uness_correction_failure(
+        bridge_folder="UNESS/à_vérifier/session-old",  # chemin périmé, ne doit plus être utilisé pour chercher
+        quiz_title="SQI1\nTest",
+        collected_at="2026-07-30T09:00:00+00:00",
+        error_message="ancien échec",
+    )
+    service = Mock()
+    service.generate.return_value = _quiz_response("SQI1\nTest")
+
+    result = gemini_autocorrect.retry_failed_quiz(failure_id, service=service)
+
+    assert result == {"success": True, "error": None}
+
+
+def test_retry_failed_quiz_reports_a_clear_error_when_bridge_is_gone(
+    _isolated_review_dirs, _isolated_verified_dir
+):
+    failure_id = local_store.record_uness_correction_failure(
+        bridge_folder="UNESS/à_vérifier/session-old",
+        quiz_title="SQI1\nTest",
+        collected_at="2026-07-30T09:00:00+00:00",
+        error_message="ancien échec",
+    )
+
+    result = gemini_autocorrect.retry_failed_quiz(failure_id, service=Mock())
+
+    assert result["success"] is False
+    assert "introuvable" in result["error"].lower()
+    failures = local_store.list_pending_uness_correction_failures()
+    assert len(failures) == 1  # toujours pending, pas perdu
+
+
+def test_retry_failed_quiz_reports_unknown_failure_id(_isolated_verified_dir):
+    result = gemini_autocorrect.retry_failed_quiz(999, service=Mock())
+
+    assert result == {"success": False, "error": "Entrée introuvable"}

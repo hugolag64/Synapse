@@ -603,7 +603,6 @@ below."""
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import Any
 
 from backend.core.reviews import local_store
@@ -652,9 +651,23 @@ def _latest_quiz_titles_by_source_url() -> dict[str, list[str]]:
         ]
         if not quiz_titles:
             continue
-        if source_url not in best_collected_at or collected_at > best_collected_at[source_url]:
+        current_best = best_collected_at.get(source_url)
+        if current_best is None or collected_at > current_best:
+            # A strictly newer collection supersedes everything seen so far.
             best_collected_at[source_url] = collected_at
-            titles[source_url] = quiz_titles
+            titles[source_url] = list(quiz_titles)
+        elif collected_at == current_best:
+            # Same collection run, a different quiz's bridge file — every
+            # quiz collected together shares the exact same collected_at
+            # (collector.py builds one manifest after the whole loop and
+            # reuses it verbatim in each quiz's own bridge file), so this
+            # must union in rather than overwrite, or whichever file the
+            # filesystem walk visits last would "win" and every sibling
+            # quiz collected in the same run would silently vanish from
+            # the reference list.
+            for title in quiz_titles:
+                if title not in titles[source_url]:
+                    titles[source_url].append(title)
     return titles
 
 
@@ -666,12 +679,16 @@ def _quiz_label(course_title: str) -> str:
     return course_title.rsplit(" — ", 1)[-1].strip()
 
 
-def _blocked_titles(errors: list[dict[str, str]]) -> dict[str, tuple[str, str]]:
-    """Map quiz label -> (source_url, error message) for every file that just
+def _blocked_titles(errors: list[dict[str, str]]) -> dict[tuple[str, str], str]:
+    """Map (source_url, quiz label) -> error message for every file that just
     failed import validation (assert_verified_exam, missing bridge, etc.) —
     these files stay in VERIFIED_DIR untouched on failure, so they're always
-    still readable here."""
-    blocked: dict[str, tuple[str, str]] = {}
+    still readable here. Keyed by the (source_url, label) pair rather than
+    label alone — UNESS quiz labels ("DP1", "QI1"...) are reused across
+    unrelated annales, so a label-only key lets one annale's blocked entry
+    silently clobber another's, hiding a real failure behind
+    "never_attempted"."""
+    blocked: dict[tuple[str, str], str] = {}
     for error in errors:
         matches = list(import_service.VERIFIED_DIR.rglob(error["file"]))
         if not matches:
@@ -684,7 +701,7 @@ def _blocked_titles(errors: list[dict[str, str]]) -> dict[str, tuple[str, str]]:
         title = str(payload.get("title", ""))
         if not source_url or not title:
             continue
-        blocked[_quiz_label(title)] = (source_url, error["error"])
+        blocked[(source_url, _quiz_label(title))] = error["error"]
     return blocked
 
 
@@ -742,8 +759,8 @@ def build_report() -> dict[str, Any]:
                         "failure_id": failure["id"],
                     },
                 })
-            elif title in blocked and blocked[title][0] == source_url:
-                quizzes.append({"title": title, "status": "blocked", "detail": {"error": blocked[title][1]}})
+            elif (source_url, title) in blocked:
+                quizzes.append({"title": title, "status": "blocked", "detail": {"error": blocked[(source_url, title)]}})
             else:
                 quizzes.append({"title": title, "status": "never_attempted", "detail": {}})
         annale_reports.append({"annale": annale, "quizzes": quizzes})
@@ -887,7 +904,7 @@ git commit -m "feat: add read-only UNESS import diagnostics report"
 - Modify: `frontend/pages/settings_cockpit.py` (add CSS classes + call the new panel)
 
 **Interfaces:**
-- Consumes: `diagnostics.build_report()` (Task 6), `local_store.reset_uness_correction_failure_attempts`, `gemini_autocorrect.retry_failed_quiz`, `import_service.import_verified_directory`, `import_service.ANNALE_TYPE_LABELS`.
+- Consumes: `diagnostics.build_report()` (Task 6), `local_store.reset_uness_correction_failure_attempts`, `gemini_autocorrect.retry_failed_quiz`, `import_service.import_verified_directory`.
 - Produces: `render(container: ui.element) -> None` — called once from `settings_cockpit.render_settings_cockpit()`.
 
 - [ ] **Step 1: Add the CSS classes**
@@ -932,89 +949,98 @@ _STATUS_ICONS = {
 
 
 def render(container: ui.element) -> None:
-    ui.label("DIAGNOSTIC UNESS").classes("se-label")
-    body = ui.column().classes("w-full gap-0")
-
-    def _refresh() -> None:
-        body.clear()
-        with body:
-            with ui.row().classes("w-full justify-end mb-2"):
-                ui.button("Rafraîchir", icon="refresh", on_click=_refresh).props(
-                    "flat dense size=sm color=primary"
-                )
-            report = diagnostics.build_report()
-            if not report["annales"] and not report["pending"]:
-                ui.label("Aucune annale UNESS collectée pour le moment.").classes(
-                    "text-sm text-slate-500"
-                )
-            for entry in report["annales"]:
-                _render_annale(entry)
-            for pending in report["pending"]:
-                _render_pending(pending)
-
-    async def _retry(failure_id: int) -> None:
-        local_store.reset_uness_correction_failure_attempts(failure_id)
-        result = await asyncio.to_thread(gemini_autocorrect.retry_failed_quiz, failure_id)
-        if result["success"]:
-            ui.notify("✅ Quiz corrigé et importé.", type="positive")
-            await asyncio.to_thread(import_service.import_verified_directory)
-        else:
-            ui.notify(f"❌ Toujours en échec : {result['error']}", type="negative")
-        _refresh()
-
-    def _render_annale(entry: dict) -> None:
-        annale = entry["annale"]
-        quizzes = entry["quizzes"]
-        imported_count = sum(1 for q in quizzes if q["status"] == "imported")
-        total = len(quizzes)
-        ratio_class = "full" if imported_count == total else "partial"
-        with ui.element("div").classes("se-diag-annale"):
-            with ui.element("div").classes("se-diag-head"):
-                ui.label(annale["titre"]).classes("se-diag-title")
-                ui.label(f"{imported_count}/{total}").classes(f"se-diag-ratio {ratio_class}")
-            for quiz in quizzes:
-                if quiz["status"] == "imported":
-                    continue
-                with ui.element("div").classes("se-diag-quiz-row"):
-                    ui.label(f"{_STATUS_ICONS[quiz['status']]} {quiz['title']}")
-                    if quiz["status"] == "retry_pending":
-                        ui.label(
-                            f"tentative {quiz['detail']['attempts']}/3 — {quiz['detail']['error']}"
-                        ).classes("se-diag-quiz-detail")
-
-                        # NiceGUI runs an async on_click handler as its OWN
-                        # properly-slotted task when the handler is passed
-                        # directly (not wrapped in asyncio.create_task, which
-                        # would spawn a task with an empty slot stack — see
-                        # the identical pattern already used for this same
-                        # button on /annales, frontend/pages/annales.py). The
-                        # default-arg trick captures this row's failure_id
-                        # since the loop variable itself would be stale by
-                        # the time the button is actually clicked.
-                        async def _on_retry_click(failure_id: int = quiz["detail"]["failure_id"]) -> None:
-                            await _retry(failure_id)
-
-                        ui.button("Relancer", on_click=_on_retry_click).props(
-                            "flat dense size=sm color=primary"
-                        )
-                    elif quiz["status"] == "blocked":
-                        ui.label(quiz["detail"]["error"]).classes("se-diag-quiz-detail")
-                    elif quiz["status"] == "never_attempted":
-                        ui.label(
-                            "Jamais soumis à Gemini — utilise « Corriger dossier "
-                            "existant » sur /annales pour ce dossier de collecte."
-                        ).classes("se-diag-quiz-detail")
-
-    def _render_pending(pending: dict) -> None:
-        with ui.element("div").classes("se-diag-annale"):
-            with ui.element("div").classes("se-diag-head"):
-                ui.label(pending["titre"]).classes("se-diag-title")
-                ui.label("en attente de matière").classes("se-diag-ratio partial")
-            ui.label(f"{len(pending['files'])} quiz corrigés, matière à qualifier sur /annales.").classes(
-                "se-diag-quiz-detail"
-            )
-
+    # Every element below must be constructed while `container`'s slot is
+    # active — NiceGUI parents a new element to whatever slot is on top of
+    # the stack AT CONSTRUCTION TIME (see nicegui/element.py), not to
+    # whatever `container` object a function happens to receive as an
+    # argument. Building `body`/labels/etc. before entering `with
+    # container:` (as an earlier draft of this function did) parents them
+    # to the CALLER's currently-active slot instead — `container` itself
+    # ends up permanently empty, and the panel "works" only by accident,
+    # landing as a stray sibling wherever the caller happened to be.
     with container:
+        ui.label("DIAGNOSTIC UNESS").classes("se-label")
+        body = ui.column().classes("w-full gap-0")
+
+        def _refresh() -> None:
+            body.clear()
+            with body:
+                with ui.row().classes("w-full justify-end mb-2"):
+                    ui.button("Rafraîchir", icon="refresh", on_click=_refresh).props(
+                        "flat dense size=sm color=primary"
+                    )
+                report = diagnostics.build_report()
+                if not report["annales"] and not report["pending"]:
+                    ui.label("Aucune annale UNESS collectée pour le moment.").classes(
+                        "text-sm text-slate-500"
+                    )
+                for entry in report["annales"]:
+                    _render_annale(entry)
+                for pending in report["pending"]:
+                    _render_pending(pending)
+
+        async def _retry(failure_id: int) -> None:
+            local_store.reset_uness_correction_failure_attempts(failure_id)
+            result = await asyncio.to_thread(gemini_autocorrect.retry_failed_quiz, failure_id)
+            if result["success"]:
+                ui.notify("✅ Quiz corrigé et importé.", type="positive")
+                await asyncio.to_thread(import_service.import_verified_directory)
+            else:
+                ui.notify(f"❌ Toujours en échec : {result['error']}", type="negative")
+            _refresh()
+
+        def _render_annale(entry: dict) -> None:
+            annale = entry["annale"]
+            quizzes = entry["quizzes"]
+            imported_count = sum(1 for q in quizzes if q["status"] == "imported")
+            total = len(quizzes)
+            ratio_class = "full" if imported_count == total else "partial"
+            with ui.element("div").classes("se-diag-annale"):
+                with ui.element("div").classes("se-diag-head"):
+                    ui.label(annale["titre"]).classes("se-diag-title")
+                    ui.label(f"{imported_count}/{total}").classes(f"se-diag-ratio {ratio_class}")
+                for quiz in quizzes:
+                    if quiz["status"] == "imported":
+                        continue
+                    with ui.element("div").classes("se-diag-quiz-row"):
+                        ui.label(f"{_STATUS_ICONS[quiz['status']]} {quiz['title']}")
+                        if quiz["status"] == "retry_pending":
+                            ui.label(
+                                f"tentative {quiz['detail']['attempts']}/3 — {quiz['detail']['error']}"
+                            ).classes("se-diag-quiz-detail")
+
+                            # NiceGUI runs an async on_click handler as its OWN
+                            # properly-slotted task when the handler is passed
+                            # directly (not wrapped in asyncio.create_task, which
+                            # would spawn a task with an empty slot stack — see
+                            # the identical pattern already used for this same
+                            # button on /annales, frontend/pages/annales.py). The
+                            # default-arg trick captures this row's failure_id
+                            # since the loop variable itself would be stale by
+                            # the time the button is actually clicked.
+                            async def _on_retry_click(failure_id: int = quiz["detail"]["failure_id"]) -> None:
+                                await _retry(failure_id)
+
+                            ui.button("Relancer", on_click=_on_retry_click).props(
+                                "flat dense size=sm color=primary"
+                            )
+                        elif quiz["status"] == "blocked":
+                            ui.label(quiz["detail"]["error"]).classes("se-diag-quiz-detail")
+                        elif quiz["status"] == "never_attempted":
+                            ui.label(
+                                "Jamais soumis à Gemini — utilise « Corriger dossier "
+                                "existant » sur /annales pour ce dossier de collecte."
+                            ).classes("se-diag-quiz-detail")
+
+        def _render_pending(pending: dict) -> None:
+            with ui.element("div").classes("se-diag-annale"):
+                with ui.element("div").classes("se-diag-head"):
+                    ui.label(pending["titre"]).classes("se-diag-title")
+                    ui.label("en attente de matière").classes("se-diag-ratio partial")
+                ui.label(f"{len(pending['files'])} quiz corrigés, matière à qualifier sur /annales.").classes(
+                    "se-diag-quiz-detail"
+                )
+
         _refresh()
 ```
 

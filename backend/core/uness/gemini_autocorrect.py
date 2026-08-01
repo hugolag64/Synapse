@@ -317,7 +317,7 @@ def correct_directory(folder: Path, *, service: AIService | None = None) -> dict
     }
 
 
-def _locate_bridge(quiz_title: str, collected_at: str) -> Path:
+def locate_bridge(quiz_title: str, collected_at: str) -> Path:
     """Cherche le bridge JSON (dans UNESS/à_vérifier puis UNESS/archives) dont
     source.collected_at correspond et dont les contents incluent quiz_title —
     un bridge peut migrer de à_vérifier/ vers archives/<faculté>/ une fois ses
@@ -361,7 +361,7 @@ def retry_failed_quiz(failure_id: int, *, service: AIService | None = None) -> d
     collected_at = failure["collected_at"]
 
     try:
-        bridge_path = _locate_bridge(quiz_title, collected_at)
+        bridge_path = locate_bridge(quiz_title, collected_at)
     except FileNotFoundError as exc:
         local_store.record_uness_correction_failure(
             bridge_folder=failure["bridge_folder"],

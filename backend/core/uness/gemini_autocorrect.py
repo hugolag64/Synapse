@@ -153,6 +153,76 @@ def _clean_moodle_html(html: str) -> str:
     return json.dumps(compact_payload, ensure_ascii=False)
 
 
+def _correct_one_quiz(
+    bridge_path: Path,
+    bridge: dict,
+    quiz: dict,
+    prompt: str,
+    folder: Path,
+    service: AIService | None,
+) -> tuple[str | None, str | None, int, int]:
+    """Corrige un seul quiz avec Gemini et écrit sa sortie canonique dans
+    import_service.VERIFIED_DIR.
+
+    Retourne (written_filename, message, input_tokens, output_tokens) :
+      - written_filename n'est pas None en cas de succès (message peut quand
+        même porter un avertissement non bloquant, ex. images manquantes).
+      - written_filename est None en cas d'échec (message est alors toujours
+        renseigné : erreur API, JSON invalide, ou question(s) manquante(s))."""
+    title = str(quiz.get("title", bridge_path.stem))
+    try:
+        images, missing = _quiz_images(quiz, folder)
+        raw_html = quiz.get("html", "")
+        # Clean and compact HTML to reduce token usage by up to 90%
+        cleaned_content = _clean_moodle_html(raw_html) if raw_html else ""
+
+        message = (
+            f"{prompt}\n\n"
+            f"{json.dumps({'title': quiz.get('title'), 'content': cleaned_content}, ensure_ascii=False)}"
+        )
+
+        # Retry loop for rate limits (429) - Free Tier friendly
+        max_retries = 5
+        response = None
+        for attempt in range(max_retries):
+            try:
+                response = generate_uness_correction(
+                    message,
+                    images=images,
+                    context=title,
+                    service=service,
+                )
+                break
+            except AIServiceError as err:
+                if ("429" in str(err) or "Too Many Requests" in str(err)) and attempt < max_retries - 1:
+                    import time
+                    wait_time = 10 * (attempt + 1)  # 10s, 20s, 30s
+                    time.sleep(wait_time)
+                    continue
+                raise err
+
+        if response is None:
+            raise AIServiceError("Aucune réponse obtenue du service IA.")
+
+        payload = _parsed_response(response.text)
+        quiz_objects = payload if isinstance(payload, list) else [payload]
+        exams = gemini_conversion.convert_with_bridge(quiz_objects, bridge)
+
+        written = None
+        for index, exam in enumerate(exams):
+            suffix = f"-{index}" if len(exams) > 1 else ""
+            out_path = import_service.VERIFIED_DIR / f"{_slug(title)}-{bridge_path.stem}{suffix}.json"
+            out_path.write_text(
+                json.dumps(exam.to_dict(), ensure_ascii=False) + "\n", encoding="utf-8"
+            )
+            written = out_path.name
+
+        warning = f"Images manquantes (ignorées) : {', '.join(missing)}" if missing else None
+        return written, warning, response.input_tokens or 0, response.output_tokens or 0
+    except (AIServiceError, ValueError, KeyError, json.JSONDecodeError, OSError) as exc:
+        return None, str(exc), 0, 0
+
+
 def correct_directory(folder: Path, *, service: AIService | None = None) -> dict:
     """Call Gemini once per quiz for every bridge JSON directly in `folder`,
     converting each response with its own bridge on the spot and writing the
@@ -177,64 +247,15 @@ def correct_directory(folder: Path, *, service: AIService | None = None) -> dict
         bridge = json.loads(bridge_path.read_text(encoding="utf-8"))
         prompt = _prompt_text(bridge)
         for quiz in bridge.get("contents", []):
-            title = str(quiz.get("title", bridge_path.stem))
-            try:
-                images, missing = _quiz_images(quiz, folder)
-                raw_html = quiz.get("html", "")
-                # Clean and compact HTML to reduce token usage by up to 90%
-                cleaned_content = _clean_moodle_html(raw_html) if raw_html else ""
-                
-                message = (
-                    f"{prompt}\n\n"
-                    f"{json.dumps({'title': quiz.get('title'), 'content': cleaned_content}, ensure_ascii=False)}"
-                )
-                
-                # Retry loop for rate limits (429) - Free Tier friendly
-                max_retries = 5
-                response = None
-                for attempt in range(max_retries):
-                    try:
-                        response = generate_uness_correction(
-                            message,
-                            images=images,
-                            context=title,
-                            service=service,
-                        )
-                        break
-                    except AIServiceError as err:
-                        if ("429" in str(err) or "Too Many Requests" in str(err)) and attempt < max_retries - 1:
-                            import time
-                            wait_time = 10 * (attempt + 1)  # 10s, 20s, 30s
-                            time.sleep(wait_time)
-                            continue
-                        raise err
-
-                if response is None:
-                    raise AIServiceError("Aucune réponse obtenue du service IA.")
-
-                payload = _parsed_response(response.text)
-                quiz_objects = payload if isinstance(payload, list) else [payload]
-                exams = gemini_conversion.convert_with_bridge(quiz_objects, bridge)
-                for index, exam in enumerate(exams):
-                    suffix = f"-{index}" if len(exams) > 1 else ""
-                    out_path = (
-                        import_service.VERIFIED_DIR / f"{_slug(title)}-{bridge_path.stem}{suffix}.json"
-                    )
-                    out_path.write_text(
-                        json.dumps(exam.to_dict(), ensure_ascii=False) + "\n", encoding="utf-8"
-                    )
-                    corrected.append(out_path.name)
-                input_tokens += response.input_tokens or 0
-                output_tokens += response.output_tokens or 0
-                if missing:
-                    errors.append(
-                        {
-                            "file": bridge_path.name,
-                            "error": f"Images manquantes (ignorées) : {', '.join(missing)}",
-                        }
-                    )
-            except (AIServiceError, ValueError, KeyError, json.JSONDecodeError, OSError) as exc:
-                errors.append({"file": bridge_path.name, "error": str(exc)})
+            written, message, in_tok, out_tok = _correct_one_quiz(
+                bridge_path, bridge, quiz, prompt, folder, service
+            )
+            input_tokens += in_tok
+            output_tokens += out_tok
+            if written:
+                corrected.append(written)
+            if message:
+                errors.append({"file": bridge_path.name, "error": message})
 
     return {
         "corrected": corrected,

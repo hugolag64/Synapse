@@ -174,3 +174,82 @@ def test_build_report_lists_pending_tag_source_urls_separately(uness_dirs):
 
     assert [p["source_url"] for p in report["pending"]] == ["https://x/2"]
     assert report["annales"] == []
+
+
+def _broken_verified_exam(*, source_url, title, error_message_fragment):
+    # Missing verdict_ia trips assert_verified_exam's mandatory-verification-IA
+    # check, which import_verified_directory catches and records in
+    # result["errors"] instead of raising — this is how a file becomes
+    # "blocked" without ever being archived out of VERIFIED_DIR.
+    return {
+        "schema_version": 1, "faculty": "Fac", "level": "N1", "year": 2026,
+        "title": title, "dp_context": {},
+        "questions": [{
+            "id": "q1", "type_question": "QRU", "enonce": "Q?", "propositions": [
+                {"id": error_message_fragment, "texte": "a", "reponse_uness": True, "verdict_ia": None,
+                 "explication_ia": "e", "confiance_ia": 0.9, "statut": "concordant"}
+            ], "verification_status": "verified",
+        }],
+        "provenance": {"source": "Gemini+UNESS", "source_url": source_url,
+                       "collected_at": "2026-01-01T00:00:00+00:00", "collection_status": "submitted"},
+        "metadata": {"subject": "Cardio", "exam_type": "partiel"},
+    }
+
+
+def test_build_report_keeps_blocked_quizzes_separate_across_annales_sharing_a_label(uness_dirs):
+    # Two unrelated annales that both happen to have a "DP1" quiz which fails
+    # import validation. A label-only key in _blocked_titles would let the
+    # second one processed silently clobber the first's entry in the dict —
+    # the clobbered annale's DP1 would then fall through to
+    # "never_attempted", hiding a real import failure.
+    session_a = uness_dirs["to_review"] / "session-A"
+    session_b = uness_dirs["to_review"] / "session-B"
+    session_a.mkdir()
+    session_b.mkdir()
+    _bridge_file(
+        session_a / "dp1.json", source_url="https://x/1", collected_at="2026-01-01T00:00:00+00:00", title="DP1\nTest"
+    )
+    _bridge_file(
+        session_b / "dp1.json", source_url="https://x/2", collected_at="2026-01-01T00:00:00+00:00", title="DP1\nTest"
+    )
+
+    verified = uness_dirs["verified"]
+    verified.joinpath("dp1-annale-a.json").write_text(
+        json.dumps(
+            _broken_verified_exam(
+                source_url="https://x/1", title="Cardio — Fac — 2026 — DP1", error_message_fragment="pA"
+            ),
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    verified.joinpath("dp1-annale-b.json").write_text(
+        json.dumps(
+            _broken_verified_exam(
+                source_url="https://x/2", title="Neuro — Fac — 2026 — DP1", error_message_fragment="pB"
+            ),
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    annale_id_a = local_store.create_uness_annale(
+        source_url="https://x/1", collected_at="2026-01-01T00:00:00+00:00", faculte="Fac",
+        niveau="N1", annee=2026, matiere="Cardio", titre="Cardio — Fac — 2026", type_annale="matiere",
+    )
+    annale_id_b = local_store.create_uness_annale(
+        source_url="https://x/2", collected_at="2026-01-01T00:00:00+00:00", faculte="Fac",
+        niveau="N1", annee=2026, matiere="Neuro", titre="Neuro — Fac — 2026", type_annale="matiere",
+    )
+
+    report = diagnostics.build_report()
+
+    entry_a = next(a for a in report["annales"] if a["annale"]["id"] == annale_id_a)
+    entry_b = next(a for a in report["annales"] if a["annale"]["id"] == annale_id_b)
+    quizzes_a = {q["title"]: q for q in entry_a["quizzes"]}
+    quizzes_b = {q["title"]: q for q in entry_b["quizzes"]}
+
+    assert quizzes_a["DP1"]["status"] == "blocked"
+    assert quizzes_b["DP1"]["status"] == "blocked"
+    assert "pA" in quizzes_a["DP1"]["detail"]["error"]
+    assert "pB" in quizzes_b["DP1"]["detail"]["error"]

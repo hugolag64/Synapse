@@ -9,7 +9,6 @@ below."""
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import Any
 
 from backend.core.reviews import local_store
@@ -86,12 +85,16 @@ def _quiz_label(course_title: str) -> str:
     return course_title.rsplit(" — ", 1)[-1].strip()
 
 
-def _blocked_titles(errors: list[dict[str, str]]) -> dict[str, tuple[str, str]]:
-    """Map quiz label -> (source_url, error message) for every file that just
+def _blocked_titles(errors: list[dict[str, str]]) -> dict[tuple[str, str], str]:
+    """Map (source_url, quiz label) -> error message for every file that just
     failed import validation (assert_verified_exam, missing bridge, etc.) —
     these files stay in VERIFIED_DIR untouched on failure, so they're always
-    still readable here."""
-    blocked: dict[str, tuple[str, str]] = {}
+    still readable here. Keyed by the (source_url, label) pair rather than
+    label alone — UNESS quiz labels ("DP1", "QI1"...) are reused across
+    unrelated annales, so a label-only key lets one annale's blocked entry
+    silently clobber another's, hiding a real failure behind
+    "never_attempted"."""
+    blocked: dict[tuple[str, str], str] = {}
     for error in errors:
         matches = list(import_service.VERIFIED_DIR.rglob(error["file"]))
         if not matches:
@@ -104,7 +107,7 @@ def _blocked_titles(errors: list[dict[str, str]]) -> dict[str, tuple[str, str]]:
         title = str(payload.get("title", ""))
         if not source_url or not title:
             continue
-        blocked[_quiz_label(title)] = (source_url, error["error"])
+        blocked[(source_url, _quiz_label(title))] = error["error"]
     return blocked
 
 
@@ -162,8 +165,8 @@ def build_report() -> dict[str, Any]:
                         "failure_id": failure["id"],
                     },
                 })
-            elif title in blocked and blocked[title][0] == source_url:
-                quizzes.append({"title": title, "status": "blocked", "detail": {"error": blocked[title][1]}})
+            elif (source_url, title) in blocked:
+                quizzes.append({"title": title, "status": "blocked", "detail": {"error": blocked[(source_url, title)]}})
             else:
                 quizzes.append({"title": title, "status": "never_attempted", "detail": {}})
         annale_reports.append({"annale": annale, "quizzes": quizzes})

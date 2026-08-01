@@ -12,6 +12,8 @@ import json
 import re
 from pathlib import Path
 
+from loguru import logger
+
 from backend.core.ai.routing import AIImageContent, AIServiceError
 from backend.core.ai.service import AIService
 from backend.core.ai.tasks import generate_uness_correction
@@ -245,6 +247,13 @@ def _correct_one_quiz(
         return written, warning, response.input_tokens or 0, response.output_tokens or 0
     except (AIServiceError, ValueError, KeyError, json.JSONDecodeError, OSError) as exc:
         return None, str(exc), 0, 0
+    except Exception as exc:  # noqa: BLE001 - one bad quiz must never abort the whole
+        # `correct_directory` batch (an exception type outside the tuple above used to
+        # propagate straight out of the loop, silently killing every quiz still queued
+        # after this one — with nothing logged and no correction-failure row recorded,
+        # so the gap was invisible until someone counted quizzes by hand).
+        logger.exception(f"uness_correction: erreur inattendue sur {title!r} ({bridge_path.name})")
+        return None, f"Erreur inattendue : {exc}", 0, 0
 
 
 def correct_directory(folder: Path, *, service: AIService | None = None) -> dict:
@@ -267,7 +276,10 @@ def correct_directory(folder: Path, *, service: AIService | None = None) -> dict
         }
 
     import_service.VERIFIED_DIR.mkdir(parents=True, exist_ok=True)
-    for bridge_path in _find_bridge_files(folder):
+    bridge_files = _find_bridge_files(folder)
+    total_quizzes = sum(len(json.loads(p.read_text(encoding="utf-8")).get("contents", [])) for p in bridge_files)
+    logger.info(f"uness_correction: {folder.name} — {len(bridge_files)} bridge(s), {total_quizzes} quiz à corriger")
+    for bridge_path in bridge_files:
         bridge = json.loads(bridge_path.read_text(encoding="utf-8"))
         prompt = _prompt_text(bridge)
         collected_at = str(bridge.get("source", {}).get("collected_at", ""))
@@ -281,6 +293,7 @@ def correct_directory(folder: Path, *, service: AIService | None = None) -> dict
             if written:
                 corrected.append(written)
                 local_store.resolve_uness_correction_failure(title, collected_at)
+                logger.info(f"uness_correction: {title!r} corrigé -> {written}")
             else:
                 local_store.record_uness_correction_failure(
                     bridge_folder=str(folder),
@@ -288,9 +301,14 @@ def correct_directory(folder: Path, *, service: AIService | None = None) -> dict
                     collected_at=collected_at,
                     error_message=message or "Erreur inconnue",
                 )
+                logger.warning(f"uness_correction: {title!r} échec — {message or 'Erreur inconnue'}")
             if message:
                 errors.append({"file": bridge_path.name, "error": message})
 
+    logger.info(
+        f"uness_correction: {folder.name} terminé — {len(corrected)}/{total_quizzes} corrigés, "
+        f"{len(errors)} erreur(s)"
+    )
     return {
         "corrected": corrected,
         "errors": errors,

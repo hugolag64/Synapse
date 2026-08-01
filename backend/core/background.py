@@ -405,20 +405,48 @@ async def _fetch_ednpro_background() -> None:
 
 
 async def _retry_pending_uness_corrections() -> None:
-    """Retente en silence chaque correction UNESS en échec dont le délai de
-    retry est passé (borné à 3 tentatives — cf. record_uness_correction_failure
-    dans local_store.py). Une entrée qui a épuisé ses tentatives reste visible
+    """Retente chaque correction UNESS en échec dont le délai de retry est
+    passé (borné à 3 tentatives — cf. record_uness_correction_failure dans
+    local_store.py). Une entrée qui a épuisé ses tentatives reste visible
     dans le bandeau /annales mais n'est plus reprise ici tant qu'un clic
-    manuel "Relancer" ne lui redonne pas 3 tentatives fraîches."""
+    manuel "Relancer" ne lui redonne pas 3 tentatives fraîches.
+
+    A successful retry only writes the corrected quiz JSON to
+    UNESS/vérifiés/ — it does not import it (retry_failed_quiz has no
+    matière to tag a brand-new annale with). Without the import pass below,
+    a quiz corrected here just sits on disk forever with nothing telling
+    anyone it's ready: this loop runs headless, so it can't pop the "choisir
+    la matière" dialog itself, but it can safely import into an annale that
+    was already tagged in an earlier session."""
     from backend.core.reviews import local_store
-    from backend.core.uness import gemini_autocorrect
+    from backend.core.uness import gemini_autocorrect, import_service
 
     due = local_store.list_pending_uness_correction_failures(due_only=True)
+    if not due:
+        return
+
+    retried_ok = 0
     for failure in due:
         try:
-            await asyncio.to_thread(gemini_autocorrect.retry_failed_quiz, failure["id"])
+            outcome = await asyncio.to_thread(gemini_autocorrect.retry_failed_quiz, failure["id"])
+            if outcome.get("success"):
+                retried_ok += 1
+                logger.success(f"Retry correction UNESS #{failure['id']} ({failure['quiz_title']!r}) réussi")
+            else:
+                logger.info(
+                    f"Retry correction UNESS #{failure['id']} ({failure['quiz_title']!r}) "
+                    f"toujours en échec : {outcome.get('error')}"
+                )
         except Exception as exc:
             logger.warning(f"Retry correction UNESS #{failure['id']} échoué : {exc}")
+
+    if retried_ok:
+        result = await asyncio.to_thread(import_service.import_verified_directory)
+        if result["pending_tag"]:
+            logger.info(
+                f"Retry correction UNESS : {len(result['pending_tag'])} annale(s) corrigée(s) "
+                "en attente de qualification de matière (ouvrir /annales pour les qualifier)."
+            )
 
 
 def reset_autolink_cache() -> None:

@@ -7,6 +7,8 @@ import os
 from pathlib import Path
 from typing import Any
 
+from loguru import logger
+
 from backend.core.practice.models import (
     PracticeDifficulty,
     PracticeKind,
@@ -103,8 +105,17 @@ def scan_verified_exams() -> list[Path]:
 
 
 def _exam_fingerprint(exam: UnessExam) -> str:
+    """Content-based fingerprint (not `question.id`): Moodle assigns a fresh
+    attempt-instance id to every question on each visit to the same annale
+    URL, so two re-scrapes of the exact same quiz otherwise get different
+    ids and silently bypass the `imported` dedup set, duplicating every
+    quiz on each re-import."""
     import hashlib
-    raw = f"{exam.faculty}|{exam.level}|{exam.year}|{exam.title}|" + "|".join(q.id for q in exam.questions)
+    question_signatures = [
+        q.enonce.strip() + "||" + "|".join(p.texte.strip() for p in q.propositions)
+        for q in exam.questions
+    ]
+    raw = f"{exam.faculty}|{exam.level}|{exam.year}|{exam.title}|" + "|".join(question_signatures)
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
@@ -258,8 +269,23 @@ def import_verified_directory(
             )
             annale = local_store.get_uness_annale(annale_id)
 
+        # Re-scraping the same annale URL gives every question a fresh Moodle
+        # attempt-instance id and lets Gemini reword its correction, so neither
+        # `question.id` nor a content hash of the AI's answer reliably identifies
+        # "the same quiz already imported here" — but the quiz title extracted
+        # from the (stable) Moodle HTML does, so check against what's already
+        # attached to this annale before falling back to the fingerprint set.
+        existing_titles = (
+            {s["course_title"] for s in local_store.list_annale_sessions(annale["id"])}
+            if annale is not None
+            else set()
+        )
+
         for path, exam in entries:
             try:
+                if annale is not None and exam.title in existing_titles:
+                    result["skipped"].append(path.name)
+                    continue
                 fingerprint = _exam_fingerprint(exam)
                 if fingerprint in imported:
                     result["skipped"].append(path.name)
@@ -313,8 +339,20 @@ def import_verified_directory(
                             pass
             except (ValueError, OSError, PermissionError) as exc:
                 result["errors"].append({"file": path.name, "error": str(exc)})
+            except Exception as exc:  # noqa: BLE001 - one bad exam must never abort the
+                # whole import batch (same failure mode fixed in gemini_autocorrect's
+                # per-quiz loop: an exception type outside the tuple above used to
+                # propagate out of the loop and silently drop every file still queued
+                # after this one).
+                logger.exception(f"import_verified_directory: erreur inattendue sur {path.name!r}")
+                result["errors"].append({"file": path.name, "error": f"Erreur inattendue : {exc}"})
 
     index_path.write_text(json.dumps(sorted(imported), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    logger.info(
+        f"import_verified_directory: {len(result['imported'])} importé(s), "
+        f"{len(result['skipped'])} ignoré(s), {len(result['pending_tag'])} en attente de matière, "
+        f"{len(result['errors'])} erreur(s)"
+    )
     return result
 
 

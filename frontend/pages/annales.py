@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 
+from loguru import logger
 from nicegui import ui
 
 from backend.core.reviews import local_store
@@ -254,10 +255,25 @@ def _open_import_dialog(refresh_fn) -> None:
                 return
 
             data_store.set_preference("uness_annale_url", url)
+            client = ui.context.client
             dialog.close()
             ui.notify("🚀 Importation lancée en arrière-plan ! Vous pouvez continuer à utiliser Synapse.", type="info", duration=5)
 
             async def _bg_pipeline() -> None:
+                try:
+                    await _run_bg_pipeline()
+                except Exception as exc:  # noqa: BLE001 - this task has no caller to
+                    # propagate to (asyncio.create_task fire-and-forgets it), so an
+                    # unhandled exception here used to vanish as a silent "Task
+                    # exception was never retrieved" on stderr — no log entry, no
+                    # notification, nothing telling the user the pipeline stopped
+                    # partway through.
+                    logger.exception(f"uness _bg_pipeline: échec inattendu pour {url}")
+                    with client:
+                        ui.notify(f"❌ Import UNESS interrompu (erreur inattendue) : {exc}", type="negative", duration=10)
+
+            async def _run_bg_pipeline() -> None:
+                logger.info(f"uness collect: démarrage pour {url}")
                 script = Path("scripts/uness/collector.py").resolve()
                 process = await asyncio.create_subprocess_exec(
                     sys.executable,
@@ -270,8 +286,10 @@ def _open_import_dialog(refresh_fn) -> None:
                 )
                 output, _ = await process.communicate()
                 if process.returncode != 0:
-                    message = output.decode(errors="replace").strip()[-200:]
-                    ui.notify(f"❌ Échec collecte UNESS : {message}", type="negative", duration=8)
+                    message = output.decode(errors="replace").strip()
+                    logger.warning(f"uness collect: échec (code {process.returncode}) pour {url} — {message[-2000:]}")
+                    with client:
+                        ui.notify(f"❌ Échec collecte UNESS : {message[-200:]}", type="negative", duration=8)
                     return
 
                 out_text = output.decode(errors="replace")
@@ -288,20 +306,25 @@ def _open_import_dialog(refresh_fn) -> None:
                         session_dir = candidates[-1]
 
                 if session_dir and session_dir.is_dir():
-                    ui.notify("⚡ Collecte réussie ! Correction automatique Gemini en cours…", type="info", duration=5)
+                    logger.info(f"uness collect: terminé -> {session_dir}")
+                    with client:
+                        ui.notify("⚡ Collecte réussie ! Correction automatique Gemini en cours…", type="info", duration=5)
                     result = await asyncio.to_thread(gemini_autocorrect.correct_directory, session_dir)
                     partial_failure = _gemini_partial_failure_message(result)
-                    if result["corrected"]:
-                        if partial_failure:
-                            ui.notify(f"⚠️ Correction partielle : {partial_failure}", type="warning", duration=12)
+                    with client:
+                        if result["corrected"]:
+                            if partial_failure:
+                                ui.notify(f"⚠️ Correction partielle : {partial_failure}", type="warning", duration=12)
+                            else:
+                                ui.notify("✨ Annale prête ! Veuillez qualifier la matière.", type="positive", duration=6)
+                            _finalize_scan()
                         else:
-                            ui.notify("✨ Annale prête ! Veuillez qualifier la matière.", type="positive", duration=6)
-                        _finalize_scan()
-                    else:
-                        err_msg = result["errors"][0]["error"] if result["errors"] else "Erreur Gemini"
-                        ui.notify(f"❌ Échec correction Gemini : {err_msg}", type="negative", duration=8)
+                            err_msg = result["errors"][0]["error"] if result["errors"] else "Erreur Gemini"
+                            ui.notify(f"❌ Échec correction Gemini : {err_msg}", type="negative", duration=8)
                 else:
-                    _finalize_scan()
+                    logger.warning(f"uness collect: aucun dossier de session trouvé pour {url}")
+                    with client:
+                        _finalize_scan()
 
             asyncio.create_task(_bg_pipeline())
 

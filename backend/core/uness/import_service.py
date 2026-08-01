@@ -507,10 +507,22 @@ def _to_practice_question(question: UnessQuestion, exam: UnessExam) -> dict[str,
 
 
 def assert_verified_exam(exam: UnessExam) -> None:
-    """Check that a verified exam has complete, coherent AI review metadata on every proposition."""
+    """Check that a verified exam has complete, coherent AI review metadata on
+    every proposition — except questions marked "unsupported" (the model
+    never received the image it needed): those only need the official UNESS
+    answer as a fallback ground truth. Blocking the whole quiz over one such
+    question would throw away every other question that WAS properly
+    verified, which is worse than importing with one weaker question."""
     for question in exam.questions:
         if question.verification_status == "unsupported":
-            raise ValueError(f"Question {question.id} : vérification visuelle non prise en charge.")
+            if not question.propositions or any(
+                proposition.reponse_uness is None for proposition in question.propositions
+            ):
+                raise ValueError(
+                    f"Question {question.id} : vérification visuelle indisponible et "
+                    "réponse officielle UNESS manquante — impossible à importer."
+                )
+            continue
         for image in question.images:
             if image.metadata.get("verification_status") != "provided_to_ai":
                 raise ValueError(f"Image {image.source_url} non analysée par l'IA (status image: {image.metadata.get('verification_status')}, doit être provided_to_ai)")

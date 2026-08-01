@@ -235,8 +235,11 @@ def test_verified_import_rejects_incomplete_or_incoherent_ai_review(
     assert "vérification IA" in response.json()["detail"]
 
 
-def test_verified_import_rejects_an_unsupported_visual_question(client, import_dir):
-    """Catches a missing visual being silently imported as a boolean AI correction."""
+def test_verified_import_accepts_unsupported_visual_question_with_official_answer(
+    client, import_dir
+):
+    """An unsupported-visual question must not block the rest of an otherwise
+    valid quiz — the official UNESS answer is still a usable ground truth."""
     payload = _exam_payload()
     question = payload["questions"][0]
     question["verification_status"] = "unsupported"
@@ -257,9 +260,42 @@ def test_verified_import_rejects_an_unsupported_visual_question(client, import_d
         json={"path": "unsupported-visual.json", "verify": True},
     )
 
+    assert response.status_code == 200
+    session = client.get(f"/api/qcm/sessions/{response.json()['session_id']}").json()
+    question_out = session["questions"][0]
+    # Falls back to the official UNESS answer (proposition B is True there).
+    assert "Il peut être fluctuant." in question_out["answer"]
+
+
+def test_verified_import_rejects_unsupported_visual_question_without_official_answer(
+    client, import_dir
+):
+    """If even the official UNESS answer is missing, there's nothing left to
+    import this question against — still a hard failure, but scoped to that
+    one question's message rather than a generic rejection."""
+    payload = _exam_payload()
+    question = payload["questions"][0]
+    question["verification_status"] = "unsupported"
+    question["images"][0]["metadata"] = {"verification_status": "unsupported"}
+    for proposition in question["propositions"]:
+        proposition.update(
+            reponse_uness=None,
+            verdict_ia=None,
+            explication_ia="Vérification IA indisponible : support visuel non pris en charge.",
+            sources_ia=[],
+            confiance_ia=None,
+            commentaire_desaccord="",
+            statut="incertain",
+        )
+    _write_exam(import_dir, "unsupported-visual-no-official.json", payload)
+
+    response = client.post(
+        "/api/qcm/uness/import",
+        json={"path": "unsupported-visual-no-official.json", "verify": True},
+    )
+
     assert response.status_code == 400
-    assert "visuelle" in response.json()["detail"]
-    assert "non prise en charge" in response.json()["detail"]
+    assert "réponse officielle UNESS manquante" in response.json()["detail"]
 
 
 def test_import_uses_manually_validated_final_answer_for_payload_and_scoring(

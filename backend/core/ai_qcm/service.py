@@ -264,9 +264,3 @@ def _is_synapse_qcm(path: Path) -> bool:
         return any(line.strip() == "---json" for line in first_lines)
     except Exception:
         return False
-
-
-def get_inbox_count() -> int:
-    """Nombre de fichiers .md AI-QCM en attente dans data/ai_qcm/."""
-    ensure_dirs()
-    return sum(1 for p in INBOX_DIR.glob("*.md") if _is_synapse_qcm(p))

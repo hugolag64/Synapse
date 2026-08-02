@@ -71,60 +71,6 @@ def _check_recurrence(course_id: str, detail: str) -> tuple[bool, Optional[int]]
     return False, None
 
 
-def build_lacune_candidates(raw_sessions: list[dict]) -> list[LacuneCandidate]:
-    """
-    Construit la liste de LacuneCandidate depuis les sessions brutes retournées
-    par import_file() dans result["raw_sessions"].
-
-    Filtre : severity >= LACUNE_MIN_SEVERITY OU récurrence fuzzy confirmée.
-    """
-    candidates: list[LacuneCandidate] = []
-
-    for session_data in raw_sessions:
-        course_id    = session_data.get("course_id", "")
-        course_title = session_data.get("course_title", "")
-        item_number  = session_data.get("item_number", "")
-        session_id   = session_data.get("session_id", 0)
-        weak_points  = session_data.get("weak_points", [])
-
-        for wp in weak_points:
-            # Support WeakPointEntry dataclass ou dict
-            if hasattr(wp, "detail"):
-                detail   = wp.detail or ""
-                category = wp.category
-                sev_orig = int(wp.severity)
-            else:
-                detail   = wp.get("detail") or ""
-                category = wp.get("category")
-                sev_orig = int(wp.get("severity", 2))
-
-            if not detail.strip():
-                continue
-
-            is_rec, existing_id = _check_recurrence(course_id, detail)
-            sev = sev_orig
-            if is_rec:
-                sev = min(sev + RECURRENCE_SEVERITY_BUMP, 5)
-
-            if sev < LACUNE_MIN_SEVERITY and not is_rec:
-                continue
-
-            candidates.append(LacuneCandidate(
-                detail=detail,
-                category=category,
-                severity=sev,
-                severity_original=sev_orig,
-                course_id=course_id,
-                course_title=course_title,
-                item_number=item_number,
-                session_id=session_id,
-                is_recurrence=is_rec,
-                existing_wp_id=existing_id,
-            ))
-
-    return candidates
-
-
 def create_lacune(
     candidate: LacuneCandidate,
     severity: int,

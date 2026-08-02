@@ -76,14 +76,28 @@ def get_due_consolidation_tasks(
     les items nouvellement éligibles qui n'ont pas encore de chaîne SM-2.
     """
     from backend.state.store import data_store
+    from backend.core.reviews.service import review_service
+    from backend.core.reviews.local_store import (
+        get_sessions_by_course, get_postpone_counts, get_qcm_done_course_ids,
+    )
 
     today = today or datetime.date.today()
     tasks: list[ReviewTask] = []
 
+    # Précalculées une seule fois (au lieu d'une requête SQLite par cours) et
+    # passées à _get_mastery_cached avec les mêmes arguments que generate_reviews,
+    # pour rester cohérent avec le cache déjà chaud si celui-ci a tourné avant.
+    sessions_map = get_sessions_by_course()
+    postpone_map = get_postpone_counts()
+    qcm_done_set = get_qcm_done_course_ids()
+
     for c in data_store.cours:
         date_ref = c.date_1ere_lecture if context == "college" else c.date_1ere_lecture_ue
 
-        mastery = get_course_mastery(c, context=context)
+        mastery = review_service._get_mastery_cached(
+            c, context, sessions_map.get(c.id, []), postpone_map.get(c.id, 0),
+            (c.id in qcm_done_set),
+        )
         if mastery.score is None:
             continue
 

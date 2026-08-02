@@ -187,9 +187,3 @@ def update_stage(stage_id: int, **fields) -> None:
 def delete_stage(stage_id: int) -> None:
     with _conn() as con:
         con.execute("DELETE FROM stages WHERE id = ?", (stage_id,))
-
-
-def deactivate_all_stages() -> None:
-    """Désactive tous les stages (utile avant d'en activer un nouveau)."""
-    with _conn() as con:
-        con.execute(f"UPDATE stages SET is_active = 0, updated_at = ?", (_now(),))

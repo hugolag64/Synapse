@@ -118,12 +118,6 @@ def _is_dfgsm(text: str) -> bool:
     return bool(re.search(r"\bDFGSM\b|\bDFGSM2\b|\bDFGSM3\b|\bFGSM\b|\bL2\b|\bL3\b", text_upper))
 
 
-def _has_dfasm(text: str) -> bool:
-    """Check if title or breadcrumb indicates DFASM (externat EDN)."""
-    text_upper = text.upper()
-    return bool(re.search(r"\bDFASM\b|\bDFASM1\b|\bDFASM2\b|\bDFASM3\b|\bEXTERNAT\b|\bEDN\b", text_upper))
-
-
 def _is_recent_year(year: int | None) -> bool:
     """Keep last 2-3 years (2023, 2024, 2025, 2026)."""
     if year is None:

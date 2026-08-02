@@ -3856,6 +3856,17 @@ def get_pdf_cache(course_id: str, context: str) -> str | None:
     return row["pdf_path"] if row else None
 
 
+def get_all_pdf_cache() -> dict[tuple[str, str], str]:
+    """
+    Retourne tout le cache PDF en une seule requête : {(course_id, context): pdf_path}.
+    À utiliser au préchargement (des centaines de cours) au lieu d'appeler
+    get_pdf_cache() par cours/contexte (évite ~2 requêtes SQLite par cours).
+    """
+    with _conn() as con:
+        rows = con.execute("SELECT course_id, context, pdf_path FROM pdf_local_cache").fetchall()
+    return {(row["course_id"], row["context"]): row["pdf_path"] for row in rows}
+
+
 def set_pdf_cache(course_id: str, context: str, pdf_path: str) -> None:
     """
     Enregistre ou remplace le chemin du PDF pour (course_id, context).
@@ -3886,15 +3897,12 @@ def cleanup_pdf_cache() -> int:
     """
     with _conn() as con:
         rows = con.execute("SELECT course_id, context, pdf_path FROM pdf_local_cache").fetchall()
-        removed = 0
-        for row in rows:
-            if not os.path.isfile(row["pdf_path"]):
-                con.execute(
-                    "DELETE FROM pdf_local_cache WHERE course_id = ? AND context = ?",
-                    (row["course_id"], row["context"]),
-                )
-                removed += 1
-    return removed
+        stale = [(row["course_id"], row["context"]) for row in rows if not os.path.isfile(row["pdf_path"])]
+        if stale:
+            con.executemany(
+                "DELETE FROM pdf_local_cache WHERE course_id = ? AND context = ?", stale,
+            )
+    return len(stale)
 
 
 # ── API publique — pdf_item_scan ─────────────────────────────────────────────

@@ -33,7 +33,6 @@ from backend.core.reviews.local_store import (
     get_qcm_done_course_ids, get_active_lacunes_count_by_course,
 )
 from backend.core.reviews.service import review_service
-from backend.core.reviews.mastery import get_course_mastery
 from frontend.components.study_task_row import _ring_glyph, due_info
 from frontend.components.mastery_indicator import mastery_indicator, ensure_styles as _mastery_styles
 from frontend.components.item_search_palette import open_item_search_palette
@@ -192,10 +191,9 @@ def items_page(request: Request) -> None:
         rows = []
         for c in courses:
             sessions = sessions_map.get(c.id, [])
-            mastery = get_course_mastery(
-                c, context="college", sessions=sessions,
-                total_postpone=postpone_map.get(c.id, 0),
-                qcm_done_local=(c.id in qcm_done_set),
+            mastery = review_service._get_mastery_cached(
+                c, "college", sessions, postpone_map.get(c.id, 0),
+                (c.id in qcm_done_set),
             )
             qcm_info = qcm_trends.get(c.id, {})
             rows.append({

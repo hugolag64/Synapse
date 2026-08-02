@@ -38,14 +38,6 @@ RANG_A_BADGE_THRESHOLD: float = 0.80
 # ── Dataclasses ───────────────────────────────────────────────────────────────
 
 @dataclass
-class CollegeStatus:
-    college: str
-    status: str                          # non_etudie | en_cours | valide
-    validated_at: datetime.date | None
-    updated_at: str
-
-
-@dataclass
 class ItemState:
     course_id: str
     context: str                         # college | ue

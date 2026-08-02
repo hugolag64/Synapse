@@ -190,16 +190,6 @@ def _classify_question_error(q: dict, session_score_pct: float | None) -> str:
     return "raisonnement"
 
 
-def _classify_session_errors(questions: list[dict], session_score_pct: float | None) -> list[str]:
-    """Retourne la liste dédupliquée et triée des error_types pour une session."""
-    types: set[str] = set()
-    for q in questions:
-        if not q.get("user_verified") or q.get("user_correct"):
-            continue
-        types.add(_classify_question_error(q, session_score_pct))
-    return sorted(types)
-
-
 def _parse_answer_states(answer_states: dict) -> tuple[int, int]:
     """
     Extrait (correct, wrong) depuis answer_states de training_sessions.
@@ -212,48 +202,6 @@ def _parse_answer_states(answer_states: dict) -> tuple[int, int]:
     correct = sum(1 for v in verified if v.get("correct"))
     wrong   = len(verified) - correct
     return correct, wrong
-
-
-def _build_weak_points_from_questions(questions: list[dict], item_number: str, course_title: str) -> list[dict]:
-    """
-    Génère des weak_points pour chaque question répondue incorrectement.
-    Chaque weak_point contient le texte de la question + les propositions correctes.
-    """
-    weak_points = []
-    category = f"Item {item_number}" if item_number else course_title
-
-    for q in questions:
-        if not q.get("user_verified") or q.get("user_correct"):
-            continue  # Saute les non-répondues et les correctes
-
-        question_text = (q.get("question_text") or "").strip()
-        if not question_text:
-            continue
-
-        props = q.get("propositions") or []
-        correct_labels = sorted([p["label"] for p in props if p.get("is_correct") and p.get("label")])
-        selected_labels = sorted([p["label"] for p in props if p.get("was_selected") and p.get("label")])
-
-        # Texte court de la question (150 chars max)
-        detail = question_text[:150]
-        if len(question_text) > 150:
-            detail += "…"
-
-        suffix_parts = []
-        if correct_labels:
-            suffix_parts.append(f"Correct: {', '.join(correct_labels)}")
-        if selected_labels:
-            suffix_parts.append(f"Choisi: {', '.join(selected_labels)}")
-        if suffix_parts:
-            detail += " | " + " — ".join(suffix_parts)
-
-        weak_points.append({
-            "category": category,
-            "detail":   detail,
-            "severity": 2,
-        })
-
-    return weak_points
 
 
 def extract_sessions_ednpro(data: dict | list) -> list[dict]:

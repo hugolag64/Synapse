@@ -279,8 +279,7 @@ class DataStore:
             for k, v in default_prefs.items():
                 if k not in self.preferences:
                     self.preferences[k] = v
-            self.preferences.pop("ui_mode", None)
-            
+
             # Reconstruct items_map — le setter normalise les clés en int
             raw_map = data.get("items_map", {})
             self.items_map = raw_map  # le setter gère la normalisation float→int
@@ -334,16 +333,24 @@ class DataStore:
             # PDF Phase A: apply SQLite-cached paths (fast, no disk scan)
             try:
                 from backend.core.reviews import local_store as _ls
-                removed = _ls.cleanup_pdf_cache()
+
+                def _pdf_phase_a_sync():
+                    removed = _ls.cleanup_pdf_cache()
+                    return removed, _ls.get_all_pdf_cache()
+
+                # Déchargé du event loop : ~2 requêtes SQLite par cours (jusqu'à
+                # ~1400 pour 700 cours) remplacées par 2 requêtes batch, exécutées
+                # dans un thread pour ne pas bloquer les autres tâches en cours.
+                removed, pdf_cache = await asyncio.to_thread(_pdf_phase_a_sync)
                 if removed:
                     logger.info(f"PDF cache: {removed} entrées périmées supprimées")
                 for c in self.cours:
                     if not getattr(c, "url_pdf", None):
-                        cached = _ls.get_pdf_cache(c.id, "college")
+                        cached = pdf_cache.get((c.id, "college"))
                         if cached and os.path.isfile(cached):
                             c.url_pdf = f"file:///{cached.replace(os.sep, '/')}"
                     if not getattr(c, "url_pdf_ue", None):
-                        cached_ue = _ls.get_pdf_cache(c.id, "ue")
+                        cached_ue = pdf_cache.get((c.id, "ue"))
                         if cached_ue and os.path.isfile(cached_ue):
                             c.url_pdf_ue = f"file:///{cached_ue.replace(os.sep, '/')}"
             except Exception as _exc:

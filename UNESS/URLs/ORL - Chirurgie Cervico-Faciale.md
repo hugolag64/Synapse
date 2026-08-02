@@ -1,0 +1,29 @@
+# Annales UNESS - Matière : ORL - Chirurgie Cervico-Faciale
+
+*Dernière mise à jour : 2026-08-01 20:34 UTC*
+*Nombre d'épreuves référencées : 22*
+
+| Faculté | Année | Intitulé Épreuve | URL UNESS | Quizz / DPs | Nb Questions | Importé dans Synapse |
+| --- | --- | --- | --- | --- | --- | --- |
+| Université Paris Cité | N/A | Image de l'annale DFASM2 - Examen ORL-OPH-CMF/Pôle 5 - T3- 13/05/2026Faculté de Santé d’Université Paris Cité – Médecine | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=31047) | 11 | N/A | Non |
+| Université Paris Cité | N/A | Image de l'annale Examen ORL-CMF-OPH / pôle 5 - T3 - 15/05/2025Entraînements  examens DFASM2- T2 et T3 (24-25) | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=29227) | 10 | N/A | Oui |
+| Université Paris Cité | N/A | Image de l'annale Examen ORL-OPH-CMF/Pôle 5-Session 2-01/07/2025Entraînements examens session 2-DFASM2 (24-25) | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=29720) | 12 | N/A | Non |
+| Université Paris Cité | N/A | Image de l'annale DFASM2 - Conférence ORL-OPH-CMF - 09/04/2026CONFERENCES EDN DFA2 (25-26) | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=30747) | 0 | N/A | Non |
+| Université Paris Cité | N/A | Image de l'annale Examen ORL-OPH-CMF/Pôle 5 - T1 - 19/11/2025Entraînement T1 DFASM2 (25-26) | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=30265) | 9 | N/A | Non |
+| Université Paris Cité | N/A | Image de l'annale Examen ORL-OPH-CMF/Pôle 5 - T2 - 18/02/2026Entraînements T2 DFASM2 (25-26) | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=30753) | 0 | N/A | Non |
+| Université Paris Cité | N/A | Image de l'annale DP en ligne - ORL Stomatologie - 2 Décembre 2025DP en ligne | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=31174) | 0 | N/A | Non |
+| Université Paris-Saclay | N/A | Image de l'annale ORL - (Juin 2014)Faculté de médecine Université Paris-Saclay (XI-Sud) | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=2990) | 0 | N/A | Non |
+| Université Paris-Saclay | N/A | Image de l'annale ORL - (Septembre 2014)Faculté de médecine Université Paris-Saclay (XI-Sud) | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=2988) | 0 | N/A | Non |
+| Université Paris-Saclay | N/A | Image de l'annale Annale - 2016-06-DFASM1-ORL-S1Faculté de médecine Université Paris-Saclay (XI-Sud) | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=2972) | 0 | N/A | Non |
+| Université Paris-Saclay | N/A | Image de l'annale Annale - DFASM1 - ORL - 2019/2020 - S1Faculté de médecine Université Paris-Saclay (XI-Sud) | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=2961) | 0 | N/A | Non |
+| Université Claude Bernard Lyon 1 | N/A | Image de l'annale Annale - EXAMEN - ORL-DFASM 1 - 10 MAI 2021 - 1ère SESSIONFaculté de médecine de Lyon-Sud | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=19278) | 0 | N/A | Non |
+| Université Claude Bernard Lyon 1 | N/A | Image de l'annale Annale - DFASM2-examen session 2-08/07-orl ophtalmologie stomatologieFaculté de médecine de Lyon-Est | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=19522) | 0 | N/A | Non |
+| Université Claude Bernard Lyon 1 | N/A | Image de l'annale Annale - DFASM2-EXAMEN TERMINAL ORL-OPHTALMO-STOMATO SESSION 2 -06/07/2016Faculté de médecine de Lyon-Est | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=19421) | 0 | N/A | Non |
+| Université Claude Bernard Lyon 1 | N/A | Image de l'annale Annale - DFASM2-examen terminal17/06-orl ophtalmologie stomatologieFaculté de médecine de Lyon-Est | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=19417) | 0 | N/A | Non |
+| Université de Montpellier | N/A | Image de l'annale (Oto-rhino-laryngologie)(Bactériologie)(2015)(DFASM1)(01)Faculté de médecine de Montpellier | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=13466) | 0 | N/A | Non |
+| Université de Montpellier | 2024 | Image de l'annale 2024-2025 - DFASM1 - EXAMEN UE 5 ORL CMF PSYCHIATRIE OPH - SESSION 1 - JUIN 2025 MONTPELLIERAnnales 2024-2025 | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=29827) | 0 | N/A | Non |
+| Université de Montpellier | 2024 | Image de l'annale 2024-2025 - DFASM1 - EXAMEN UE 5 ORL CMF PSYCHIATRIE OPH - SESSION 2 - JUILLET 2025 MONTPELLIERAnnales 2024-2025 | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=29828) | 0 | N/A | Non |
+| Université de Montpellier | 2025 | Image de l'annale 2025-2026 - DFASM1 - EXAMEN UE 5 ORL CMF PSYCHIATRIE OPH - SESSION 1 - MAI 2026 MONTPELLIER VDEFAnnales 2025-2026 | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=31041) | 0 | N/A | Non |
+| Université de Toulouse | 2026 | Image de l'annale DFASM1 EXAMEN ORL-CMF-Opthalmologie le mercredi 27 mai 2026 de 10h00 à 10h45Faculté de médecine de Toulouse | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=30918) | 0 | N/A | Non |
+| Université de Lille | N/A | Image de l'annale Epreuve d'ORL stomatologie OphtalmologieFaculté de médecine de Lille | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=29111) | 0 | N/A | Non |
+| Université de Lille | N/A | Image de l'annale Annale - ORL Stomatologie Ophtalmologie - MED5 - 17 février 2020Faculté de médecine de Lille | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=15249) | 0 | N/A | Non |

@@ -76,28 +76,49 @@ async def _click_first(page, names: tuple[str, ...]) -> bool:
 
 async def _auto_login(page) -> bool:
     """Fill the local CAS form when credentials are provided in the process environment."""
-    username = os.environ.get("UNESS_USERNAME", "").strip()
-    password = os.environ.get("UNESS_PASSWORD", "")
+    username = (
+        os.environ.get("UNESS_USERNAME")
+        or os.environ.get("LISA_USERNAME")
+        or ""
+    ).strip()
+    password = (
+        os.environ.get("UNESS_PASSWORD")
+        or os.environ.get("LISA_PASSWORD")
+        or ""
+    )
     if not username or not password:
         return False
     user = page.locator('input[name="username"], input#username, input[type="email"]').first
+    if await user.count():
+        await user.fill(username)
+        submit = page.locator('button[type="submit"], input[type="submit"]').first
+        if await submit.count():
+            await submit.click()
+        else:
+            await user.press("Enter")
+        await asyncio.sleep(1)
+
     secret = page.locator('input[name="password"], input#password, input[type="password"]').first
-    if not await user.count() or not await secret.count():
-        return False
-    await user.fill(username)
-    await secret.fill(password)
-    submit = page.locator('button[type="submit"], input[type="submit"]').first
-    if await submit.count():
-        await submit.click()
-    else:
-        await secret.press("Enter")
+    if await secret.count():
+        await secret.fill(password)
+        submit = page.locator('button[type="submit"], input[type="submit"]').first
+        if await submit.count():
+            await submit.click()
+        else:
+            await secret.press("Enter")
+        await asyncio.sleep(1)
     return True
 
 
 async def _ensure_enrolled(page) -> None:
     """Click through Moodle's self-enrolment page when the annale was never attempted."""
     if "/enrol/index.php" in page.url:
-        if await _click_first(page, ("M'inscrire",)):
+        submit_btn = page.locator('input#id_submitbutton, button:has-text("inscrire"), input[value*="inscrire"]').first
+        if await submit_btn.is_visible():
+            await submit_btn.click()
+            await page.wait_for_load_state("domcontentloaded")
+            return
+        if await _click_first(page, ("M'inscrire", "M’inscrire", "inscrire", "Accéder au cours")):
             await page.wait_for_load_state("domcontentloaded")
 
 

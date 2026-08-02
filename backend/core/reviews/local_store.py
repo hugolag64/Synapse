@@ -425,6 +425,7 @@ def init_db() -> None:
     _migrate_ai_practice_v1()
     _migrate_uness_annales()
     _migrate_uness_correction_failures()
+    _migrate_uness_scanned_catalog()
     logger.info(f"SQLite initialisé : {DB_PATH}")
 
 
@@ -1567,7 +1568,116 @@ def delete_uness_annale(annale_id: int) -> bool:
         for session_id in session_ids:
             con.execute("DELETE FROM ai_practice_sessions WHERE id = ?", (session_id,))
         con.execute("DELETE FROM uness_annales WHERE id = ?", (annale_id,))
-    return True
+        return True
+
+
+def _migrate_uness_scanned_catalog() -> None:
+    with _conn() as con:
+        con.execute(
+            """CREATE TABLE IF NOT EXISTS uness_scanned_catalog (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                source_url TEXT UNIQUE NOT NULL,
+                faculte TEXT NOT NULL,
+                matiere TEXT NOT NULL,
+                annee INTEGER,
+                titre TEXT NOT NULL,
+                quiz_count INTEGER DEFAULT 0,
+                total_questions INTEGER,
+                is_single_dp INTEGER DEFAULT 0,
+                scanned_at TEXT NOT NULL,
+                status TEXT DEFAULT 'available'
+            )"""
+        )
+        con.execute(
+            "CREATE INDEX IF NOT EXISTS idx_uness_scanned_matiere ON uness_scanned_catalog(matiere)"
+        )
+        con.execute(
+            "CREATE INDEX IF NOT EXISTS idx_uness_scanned_faculte ON uness_scanned_catalog(faculte)"
+        )
+
+
+def upsert_scanned_catalog_annale(
+    *,
+    source_url: str,
+    faculte: str,
+    matiere: str,
+    annee: int | None,
+    titre: str,
+    quiz_count: int = 0,
+    total_questions: int | None = None,
+    is_single_dp: bool = False,
+) -> None:
+    """Insert or update a scanned UNESS exam in the local SQLite catalog."""
+    source_url = _normalize_uness_source_url(source_url)
+    with _conn() as con:
+        con.execute(
+            """INSERT INTO uness_scanned_catalog
+               (source_url, faculte, matiere, annee, titre, quiz_count, total_questions, is_single_dp, scanned_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(source_url) DO UPDATE SET
+                   faculte = excluded.faculte,
+                   matiere = excluded.matiere,
+                   annee = excluded.annee,
+                   titre = excluded.titre,
+                   quiz_count = excluded.quiz_count,
+                   total_questions = excluded.total_questions,
+                   is_single_dp = excluded.is_single_dp,
+                   scanned_at = excluded.scanned_at""",
+            (
+                source_url,
+                faculte,
+                matiere,
+                annee,
+                titre,
+                quiz_count,
+                total_questions,
+                1 if is_single_dp else 0,
+                _now(),
+            ),
+        )
+
+
+def list_scanned_catalog_annales(
+    *,
+    matiere: str = "",
+    faculte: str = "",
+    only_unimported: bool = False,
+) -> list[dict]:
+    """List scanned UNESS catalog exams, optionally filtered by subject, faculty, or import status."""
+    clauses = []
+    params: list = []
+
+    if matiere.strip():
+        clauses.append("c.matiere = ?")
+        params.append(matiere.strip())
+    if faculte.strip():
+        clauses.append("c.faculte = ?")
+        params.append(faculte.strip())
+    if only_unimported:
+        clauses.append("a.id IS NULL")
+
+    where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+
+    with _conn() as con:
+        rows = con.execute(
+            f"""SELECT c.*,
+                       CASE WHEN a.id IS NOT NULL THEN 1 ELSE 0 END AS is_imported
+                FROM uness_scanned_catalog c
+                LEFT JOIN uness_annales a ON a.source_url = c.source_url
+                {where}
+                ORDER BY c.quiz_count DESC, CASE WHEN c.annee IS NULL THEN 0 ELSE c.annee END DESC, c.titre ASC""",
+            params,
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def mark_scanned_annale_imported(source_url: str) -> None:
+    source_url = _normalize_uness_source_url(source_url)
+    with _conn() as con:
+        con.execute(
+            "UPDATE uness_scanned_catalog SET status = 'imported' WHERE source_url = ?",
+            (source_url,),
+        )
 
 
 def list_annale_sessions(annale_id: int) -> list[dict]:
@@ -1909,6 +2019,45 @@ def finalize_ai_practice_session(session_id: int) -> dict | None:
         updated = con.execute(
             "SELECT * FROM ai_practice_sessions WHERE id = ?", (session_id,)
         ).fetchone()
+
+    # Détection de lacunes récurrentes : exige 2 erreurs enregistrées sur la même notion / question
+    if updated and latest:
+        updated_dict = dict(updated)
+        for att in latest:
+            att_dict = dict(att)
+            score_p = att_dict.get("score_percent")
+            if score_p is not None and float(score_p) < 50.0:
+                c_id = updated_dict.get("course_id") or ""
+                item_n = updated_dict.get("item_number") or ""
+                c_title = updated_dict.get("title") or f"Annale {updated_dict.get('annale_id', '')}"
+                q_id = att_dict.get("question_id")
+                with _conn() as con:
+                    q_row = con.execute("SELECT statement_html FROM ai_practice_questions WHERE id = ?", (q_id,)).fetchone()
+                    q_text = (q_row["statement_html"] if q_row else f"Question {q_id}")[:120]
+                    
+                    # Comptage des échecs passés sur cette même question/notion
+                    past_failures = con.execute(
+                        """SELECT COUNT(*) as cnt FROM ai_practice_attempts a
+                           WHERE a.question_id = ? AND a.score_percent < 50.0""",
+                        (q_id,)
+                    ).fetchone()["cnt"]
+
+                # Ne crée une Lacune que si l'erreur s'est produite au moins 2 fois (récurrence)
+                if past_failures >= 2:
+                    detail_text = f"Lacune Récurrente (2x échecs) : {q_text}"
+                    try:
+                        add_weak_point(
+                            course_id=c_id,
+                            detail=detail_text,
+                            course_title=c_title,
+                            item_number=str(item_n),
+                            category=f"Item {item_n}" if item_n else "Annale UNESS",
+                            severity=3,  # Sévérité renforcée
+                            source_session_id=session_id
+                        )
+                    except Exception:
+                        pass
+
     return {**dict(updated), "answered_count": len(latest), "scored_count": len(scored)}
 
 
@@ -2774,6 +2923,9 @@ def get_qcm_last_scores_by_course() -> dict[str, dict]:
             "platform":    last["platform"],
         }
     return result
+
+
+get_qcm_latest_by_course = get_qcm_last_scores_by_course
 
 
 def get_active_lacunes_count_by_course() -> dict[str, int]:
@@ -4225,8 +4377,63 @@ def get_ai_usage_summary(limit: int = 50) -> dict:
     }
 
 
+def get_item_pedagogical_history(item_number: str) -> list[dict]:
+    """
+    Retourne l'historique pédagogique centralisé d'un item (Annales UNESS, QCM, DP/KFP).
+    Inclut les scores, rangs (A vs B) et la typologie des erreurs (Rang A, Piège, Diag Diff, Temps).
+    """
+    clean_item = str(item_number or "").strip()
+    if not clean_item:
+        return []
+
+    history: list[dict] = []
+    with _conn() as con:
+        # 1. Sessions pratiques / Annales UNESS / DP IA
+        rows_ai = con.execute(
+            """SELECT * FROM ai_practice_sessions 
+               WHERE item_number = ? OR item_number LIKE ?
+               ORDER BY created_at DESC LIMIT 30""",
+            (clean_item, f"%{clean_item}%")
+        ).fetchall()
+        for r in rows_ai:
+            r_dict = dict(r)
+            score_p = r_dict.get("score_percent")
+            err_cat = "rang_a" if (score_p is not None and score_p < 50.0) else None
+            history.append({
+                "id": f"ai_{r_dict['id']}",
+                "date": (r_dict.get("completed_at") or r_dict.get("created_at") or "")[:10],
+                "type": "Annale UNESS" if r_dict.get("annale_id") else "DP / KFP IA",
+                "title": r_dict.get("title") or f"Session {r_dict['id']}",
+                "score_percent": score_p,
+                "rank": r_dict.get("rank") or "A",
+                "error_category": r_dict.get("error_category") or err_cat,
+                "annale_id": r_dict.get("annale_id"),
+            })
+
+        # 2. Résultats QCM locaux
+        rows_qcm = con.execute(
+            """SELECT * FROM qcm_results
+               WHERE course_id LIKE ?
+               ORDER BY session_date DESC LIMIT 20""",
+            (f"%{clean_item}%",)
+        ).fetchall()
+        for r in rows_qcm:
+            r_dict = dict(r)
+            history.append({
+                "id": f"qcm_{r_dict.get('id', 0)}",
+                "date": (r_dict.get("session_date") or "")[:10],
+                "type": "Entraînement QCM",
+                "title": f"QCM {r_dict.get('session_type', 'standard')}",
+                "score_percent": r_dict.get("score_percent"),
+                "rank": "A",
+                "error_category": r_dict.get("error_category"),
+                "annale_id": None,
+            })
+
+    return sorted(history, key=lambda x: str(x.get("date") or ""), reverse=True)
+
+
 # ── Auto-init à l'import ──────────────────────────────────────────────────────
-# Garantit que les tables existent dès que local_store est importé.
 try:
     init_db()
 except Exception as _e:

@@ -271,7 +271,7 @@ def render_settings_cockpit() -> None:
             ).props("unelevated color=purple size=sm rounded").classes("mt-3")
             ui.label("Échange local : UNESS/à_vérifier → UNESS/vérifiés → UNESS/archives").classes("se-uness-status")
 
-        with ui.expansion("CONSOMMATION & TÉLÉMÉTRIE IA", icon="analytics").classes("w-full border border-slate-700 rounded-lg mt-4 bg-slate-900/40 text-sm font-semibold"):
+        with ui.expansion("CONSOMMATION, TÉLÉMÉTRIE & PARTIELS IMPORTÉS", icon="analytics").classes("w-full border border-slate-700 rounded-lg mt-4 bg-slate-900/40 text-sm font-semibold"):
             from backend.core.reviews.local_store import get_ai_usage_summary
             usage_data = get_ai_usage_summary(limit=50)
             summary = usage_data.get("summary", {})
@@ -284,6 +284,9 @@ def render_settings_cockpit() -> None:
             total_tok = total_in + total_out
 
             with ui.column().classes("w-full p-4 gap-4"):
+                # Historique des Partiels importés (Diagnostic UNESS)
+                render_uness_diagnostics(ui.column().classes("w-full mb-2"))
+
                 # Cartes KPI synthétiques
                 with ui.row().classes("w-full justify-between items-center bg-slate-800/50 p-3 rounded-lg border border-slate-700/50"):
                     with ui.column().classes("gap-0"):
@@ -334,5 +337,3 @@ def render_settings_cockpit() -> None:
                                     ui.label(f"{call.get('input_tokens',0)+call.get('output_tokens',0)} tok")
                                     ui.label(dur)
                                     ui.label(f"${c_usd:.5f}").classes("text-slate-200 font-bold")
-
-        render_uness_diagnostics(ui.column().classes("w-full"))

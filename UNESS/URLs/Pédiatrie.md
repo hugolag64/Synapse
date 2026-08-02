@@ -1,0 +1,34 @@
+# Annales UNESS - Matière : Pédiatrie
+
+*Dernière mise à jour : 2026-08-01 20:34 UTC*
+*Nombre d'épreuves référencées : 27*
+
+| Faculté | Année | Intitulé Épreuve | URL UNESS | Quizz / DPs | Nb Questions | Importé dans Synapse |
+| --- | --- | --- | --- | --- | --- | --- |
+| Université Paris Cité | N/A | Image de l'annale Examen Pédiatrie / pôle 4 - T3 - 14/05/2025Entraînements  examens DFASM2- T2 et T3 (24-25) | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=29222) | 7 | N/A | Non |
+| Université Paris Cité | N/A | Image de l'annale Examen Pédiatrie/Pôle 4-Session 2-30/06/2025Entraînements examens session 2-DFASM2 (24-25) | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=29716) | 9 | N/A | Non |
+| Université Paris Cité | N/A | Image de l'annale DFASM2 - Conférence PÉDIATRIE - 23/04/2026CONFERENCES EDN DFA2 (25-26) | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=30794) | 0 | N/A | Non |
+| Université Paris Cité | N/A | Image de l'annale Examen Pédiatrie/Pôle 4 - T1- 18/11/2025Entraînement T1 DFASM2 (25-26) | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=30049) | 0 | N/A | Non |
+| Université Paris Cité | N/A | Image de l'annale Examen Pédiatrie/Pôle 4 - T2 - 17/02/2026Entraînements T2 DFASM2 (25-26) | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=30751) | 0 | N/A | Non |
+| Université Paris Cité | N/A | Image de l'annale DFASM2 - Examen Pédiatrie/Pôle 4 - T3- 12/05/2026Entraînements T3 DFASM2 (25-26) | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=31009) | 0 | N/A | Non |
+| Université Paris Cité | N/A | Image de l'annale DP en ligne - Pédiatrie -  30 Septembre 2025DP en ligne | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=31182) | 0 | N/A | Non |
+| Université Paris Cité | N/A | Image de l'annale DP en ligne - TCS Pédiatrie - 3 Mars 2026DP en ligne | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=31165) | 0 | N/A | Non |
+| Université Paris Cité | N/A | Image de l'annale DP en ligne - Endocrinologie/Pédiatrie - 12 Mai 2026DP en ligne | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=31154) | 0 | N/A | Non |
+| Université Paris-Saclay | N/A | Image de l'annale Annale - 2016-05-DFASM2-PEDIATRIE-S1Faculté de médecine Université Paris-Saclay (XI-Sud) | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=2976) | 0 | N/A | Non |
+| Université Paris-Saclay | N/A | Image de l'annale Annale - DFASM2 - PEDIATRIE - B - 2019/2020 - S1Faculté de médecine Université Paris-Saclay (XI-Sud) | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=2934) | 0 | N/A | Non |
+| Université Paris-Saclay | N/A | Image de l'annale Annale - DFASM2 - PEDIATRIE - A - 2019/2020 - S1Faculté de médecine Université Paris-Saclay (XI-Sud) | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=2933) | 0 | N/A | Non |
+| Université Claude Bernard Lyon 1 | N/A | Image de l'annale Conférence DFASM 2 du 25/03/15 - Pédiatrie - I SABATIERFaculté de médecine de Lyon-Sud | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=19357) | 0 | N/A | Non |
+| Université Claude Bernard Lyon 1 | N/A | Image de l'annale Annale - Examen Terminal de pédiatrie- DFASM 2- 12/05/2021Faculté de médecine de Lyon-Sud | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=19271) | 0 | N/A | Non |
+| Université Claude Bernard Lyon 1 | N/A | Image de l'annale Annale - DFASM 2 - S3 - Pédiatrie - CCE - 30 Janvier 2018Faculté de médecine de Lyon-Est | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=19477) | 0 | N/A | Non |
+| Université Claude Bernard Lyon 1 | N/A | Image de l'annale Dossier pédiatrie Pr GILLETFaculté de médecine de Lyon-Est | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=19471) | 0 | N/A | Non |
+| Université de Montpellier | 2023 | Image de l'annale 2023-2024 Examen DFASM2 Pédiatrie ECUE 11 Session 2 MontpellierAnnales 2023-2024 | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=28598) | 0 | N/A | Non |
+| Université de Montpellier | 2024 | Image de l'annale 2024-2025 - DFASM2 - EXAMEN UE 11 PEDIATRIE - SESSION 1 - JUIN 2025 MONTPELLIERAnnales 2024-2025 | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=29839) | 0 | N/A | Non |
+| Université de Montpellier | 2024 | Image de l'annale 2024-2025 - DFASM2 - EXAMEN UE 11 PEDIATRIE - SESSION 2 - JUILLET 2025 NIMESAnnales 2024-2025 | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=29840) | 0 | N/A | Non |
+| Université de Montpellier | 2025 | Image de l'annale 2025-2026 - DFASM2 - EXAMEN UE 11 PEDIATRIE - SESSION 1 - MAI 2026 MONTPELLIERAnnales 2025-2026 | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=31038) | 0 | N/A | Non |
+| Université de Montpellier | N/A | Image de l'annale Conférence Delous de spécialité - Pédiatrie 1Commun | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=26430) | 0 | N/A | Non |
+| Université de Montpellier | N/A | Image de l'annale Conférence Delous de spécialité - Pédiatrie 2Commun | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=26429) | 0 | N/A | Non |
+| Université de Toulouse | 2026 | Image de l'annale DFASM2 EXAMEN PEDIATRIE le lundi 5 janvier 2026 de 14h00 à 14h45Faculté de médecine de Toulouse | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=30340) | 0 | N/A | Non |
+| Université de Lille | N/A | Image de l'annale Epreuve de Pédiatrie Mai 2025Faculté de médecine de Lille | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=29302) | 0 | N/A | Non |
+| Université de Lille | N/A | Image de l'annale Annale - Pédiatrie - MED5 - 2 Juin 2020 14h-16hFaculté de médecine de Lille | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=15251) | 0 | N/A | Non |
+| Université de Lille | N/A | Image de l'annale Annale - MED5 - Pédiatrie - Epreuve du 03 juin 2019 14h00-16h00Faculté de médecine de Lille | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=15228) | 0 | N/A | Non |
+| Université de Lille | N/A | Image de l'annale Annale - MED5 - Pédiatrie- Epreuve du 23 août 2019 14h00-16h00Faculté de médecine de Lille | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=15223) | 0 | N/A | Non |

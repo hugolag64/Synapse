@@ -60,6 +60,7 @@ from frontend.components.responsive_drawer import (
 )
 from frontend.pages.dashboard._dialogs import open_session_feedback_dialog
 from frontend.components.study_task_row import _ring_glyph
+from frontend.components.obsidian_quick_edit_dialog import open_obsidian_quick_edit_dialog
 
 _MONTHS_FR = ["jan", "fév", "mar", "avr", "mai", "juin",
               "juil", "août", "sep", "oct", "nov", "déc"]
@@ -414,6 +415,13 @@ def render_item_cockpit(course_id: str) -> None:
                 ui.label("Maîtrise").classes("ci-meta-label")
                 mastery_indicator(score, level, width="72px")
                 ui.label(level or "à situer").classes("ci-meta-val")
+            if mastery:
+                with ui.element("div").classes("ci-meta-cell"):
+                    ui.label("Rang A").classes("ci-meta-label")
+                    ui.label(f"{mastery.score_rang_a or 0} %").classes("ci-meta-val mono text-emerald-400 font-bold")
+                with ui.element("div").classes("ci-meta-cell"):
+                    ui.label("Rang B").classes("ci-meta-label")
+                    ui.label(f"{mastery.score_rang_b or 0} %").classes("ci-meta-val mono text-indigo-400 font-bold")
             with ui.element("div").classes("ci-meta-cell"):
                 ui.label("Dernière révision").classes("ci-meta-label")
                 ui.label(_rel_day(last_done) if last_done else "jamais").classes("ci-meta-val")
@@ -494,6 +502,11 @@ def render_item_cockpit(course_id: str) -> None:
                 with _obs:
                     ui.label("↗ Obsidian")
                 _obs.on("click", lambda: obsidian_service.open_course_note(course))
+
+            _obs_quick = ui.element("div").classes("ci-btn primary")
+            with _obs_quick:
+                ui.label("💡 + Mnémo / Image")
+            _obs_quick.on("click", lambda c=course: open_obsidian_quick_edit_dialog(c, lambda: ui.navigate.reload()))
 
             _context_open = ui.label("Contexte").classes("ci-context-open")
             _context_open.on("click", lambda: open_drawer(drawer_state["root"]) if drawer_state["root"] else None)
@@ -971,6 +984,17 @@ def _review_anchor(row) -> None:
 
 
 def _tab_history(sessions, qcm_sessions, lacunes, review_hist) -> None:
+    # ── Historique Pédagogique & Typologie des Erreurs (QCM, DP, Annales UNESS) ──
+    with ui.element("div").classes("mb-6 p-4 rounded-xl bg-slate-900/60 border border-slate-800"):
+        ui.label("🎯 Historique Pédagogique & Typologie des Erreurs").classes("text-sm font-bold text-indigo-300 mb-2")
+        ui.label("Erreurs enregistrées par catégorie pour cet item (Annales UNESS, QCM, DP IA)").classes("text-xs text-slate-400 mb-4")
+
+        with ui.row().classes("gap-2 mb-4"):
+            ui.chip("🛑 Rang A", color="red").props("outline dense")
+            ui.chip("⚠️ Piège EDN", color="orange").props("outline dense")
+            ui.chip("🔍 Diag Diff", color="indigo").props("outline dense")
+            ui.chip("⏱️ Temps", color="slate").props("outline dense")
+
     events: list[dict] = []
 
     for s in sessions:

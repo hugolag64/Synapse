@@ -372,5 +372,64 @@ class ObsidianService:
             logger.error(f"sync_obsidian_property_to_notion échoué : {exc}")
             return False
 
+    def append_mnemonic_or_image(
+        self,
+        course,
+        text_content: str | None = None,
+        image_bytes: bytes | None = None,
+        image_filename: str | None = None,
+        target_section: str = "mnemo",
+    ) -> bool:
+        """
+        Insère un moyen mnémotechnique, un piège ou une image directement dans la note Obsidian du cours.
+        Sauvegarde les images dans {vault}/99 - Pièces jointes/ et insère le lien Markdown.
+        """
+        import datetime
+        path = self.get_course_note_path(course)
+        if path is None or not path.exists():
+            obs = self.get_or_create_course_note(course)
+            if obs and obs.local_path:
+                path = obs.local_path
+            else:
+                logger.warning(f"Note Obsidian non trouvée pour le cours {course.id}")
+                return False
+
+        vault = self._vault_path()
+        image_markdown = ""
+        if image_bytes and vault:
+            attachments_dir = vault / "99 - Pièces jointes"
+            attachments_dir.mkdir(parents=True, exist_ok=True)
+            filename = image_filename or f"synapse_{int(datetime.datetime.now().timestamp())}.png"
+            img_path = attachments_dir / filename
+            img_path.write_bytes(image_bytes)
+            image_markdown = f"\n![[{filename}]]"
+
+        lines = path.read_text(encoding="utf-8").splitlines()
+        header_target = "## 6. Pièges EDN" if target_section == "piege" else "## 2. À savoir absolument"
+
+        header_idx = -1
+        for idx, line in enumerate(lines):
+            if line.strip().startswith(header_target) or (target_section == "mnemo" and "mnémo" in line.lower()):
+                header_idx = idx
+                break
+
+        bullet = ""
+        if text_content:
+            prefix = "⚠️ " if target_section == "piege" else "💡 "
+            bullet = f"- {prefix}{text_content.strip()}"
+
+        insertion = f"{bullet}{image_markdown}".strip()
+        if not insertion:
+            return True
+
+        if header_idx != -1:
+            lines.insert(header_idx + 1, insertion)
+        else:
+            lines.append(f"\n{header_target}\n\n{insertion}")
+
+        path.write_text("\n".join(lines), encoding="utf-8")
+        logger.success(f"Obsidian note {path.name} mise à jour avec l'élément : {insertion[:40]}")
+        return True
+
 
 obsidian_service = ObsidianService()

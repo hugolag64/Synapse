@@ -130,10 +130,11 @@ def test_anki_presence_seule_ne_promeut_pas_le_niveau_de_preparation_edn():
     if not callable(getattr(ls, "record_anki_review", None)):
         pytest.skip("AnkiConnect evidence store unavailable in this checkout")
 
-    course = _course(first_read=datetime.date(2026, 7, 28), nb_lectures=2)
+    today = datetime.date.today()
+    course = _course(first_read=today, nb_lectures=2)
     course.item_number = "221"
     sessions = [{
-        "session_date": "2026-07-28",
+        "session_date": today.isoformat(),
         "confidence": 4,
         "difficulty": "facile",
         "qcm_result": None,
@@ -147,7 +148,7 @@ def test_anki_presence_seule_ne_promeut_pas_le_niveau_de_preparation_edn():
         99,
         ("221",),
         "good",
-        datetime.datetime(2026, 7, 28, 8, 0, tzinfo=datetime.timezone.utc),
+        datetime.datetime.now(datetime.timezone.utc),
         7,
         "review-1",
     )

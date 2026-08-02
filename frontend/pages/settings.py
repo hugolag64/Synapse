@@ -645,6 +645,53 @@ def settings_page():
                     pdf_scan_btn = ui.button('Scanner maintenant', icon='search', on_click=lambda: _run_pdf_scan(force=False)).props('unelevated color=green size=sm rounded')
                     pdf_force_btn = ui.button('Forcer rescan complet', icon='refresh', on_click=lambda: _run_pdf_scan(force=True)).props('outline color=slate size=sm rounded').tooltip('Efface le cache et revérifie tous les PDFs')
 
+        # Annales UNESS & Catalogue
+        with ui.expansion('Annales UNESS & Catalogue', icon='school', value=True).classes(
+            'w-full rounded-xl border border-blue-200 dark:border-blue-800 mb-3 shadow-sm'
+        ).props('header-class="font-semibold text-blue-700 dark:text-blue-300"'):
+            with ui.column().classes('p-4 w-full gap-4'):
+                with ui.row().classes('items-start gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800'):
+                    ui.icon('info_outline', color='blue').classes('text-lg shrink-0 mt-0.5')
+                    with ui.column().classes('gap-0.5'):
+                        ui.label('Catalogue local des épreuves scannées par matière (Paris Cité, La Réunion, Sorbonne, Lyon 1, etc.)').classes('text-xs text-blue-700 dark:text-blue-300')
+                        ui.label('Relancez le scanner rapide pour détecter les nouveaux partiels publiés par les facultés cibles.').classes('text-xs text-slate-400')
+
+                uness_stats_label = ui.label('…').classes('text-xs font-semibold text-blue-600 dark:text-blue-400')
+
+                def _refresh_uness_catalog_stats():
+                    items = local_store.list_scanned_catalog_annales()
+                    unimported = [i for i in items if not i.get('is_imported')]
+                    uness_stats_label.set_text(f"{len(items)} épreuve(s) scannée(s) en base · {len(unimported)} disponible(s) à l'importation")
+
+                _refresh_uness_catalog_stats()
+
+                async def _run_uness_catalog_scan():
+                    import sys
+                    uness_scan_btn.disable()
+                    uness_stats_label.set_text("Scan rapide HTTP en cours…")
+                    client = ui.context.client
+                    with client:
+                        ui.notify("⚡ Scan et actualisation du catalogue UNESS en cours…", type="info", spinner=True, duration=20)
+                    try:
+                        script = Path("scripts/uness/url_scanner.py").resolve()
+                        process = await asyncio.create_subprocess_exec(
+                            sys.executable,
+                            str(script),
+                            cwd=str(Path.cwd()),
+                        )
+                        await process.wait()
+                        with client:
+                            _refresh_uness_catalog_stats()
+                            ui.notify("✨ Catalogue d'annales UNESS mis à jour dans SQLite !", type="positive")
+                    except Exception as exc:
+                        with client:
+                            ui.notify(f"Erreur scan : {exc}", type="negative")
+                    finally:
+                        uness_scan_btn.enable()
+
+                with ui.row().classes('gap-3 items-center flex-wrap'):
+                    uness_scan_btn = ui.button('🔄 Rescanner & Enrichir le Catalogue', icon='sync', on_click=_run_uness_catalog_scan).props('unelevated color=primary size=md rounded')
+
         # ══════════════════ SYSTÈME ══════════════════
         _section_header("Système")
 

@@ -135,26 +135,131 @@ def _open_import_dialog(refresh_fn) -> None:
     from backend.state.store import data_store
     from scripts.uness.collector import validate_annale_url
 
-    with ui.dialog() as dialog, ui.card().classes("w-[560px] max-w-[95vw] p-5 gap-3").style("border-radius: 8px;"):
-        ui.label("Importer une annale UNESS").classes("text-lg font-semibold")
+    with ui.dialog() as dialog, ui.card().classes("w-[680px] max-w-[95vw] p-5 gap-3").style("border-radius: 8px;"):
+        ui.label("Catalogue & Importation d'Annales UNESS").classes("text-lg font-semibold")
         ui.label(
-            "Collez une URL d'annale UNESS pour lancer la collecte automatique Playwright, "
-            "ou scannez les fichiers JSON vérifiés déjà présents."
+            "Explorez le catalogue des épreuves scannées par matière ou collez une URL spécifique."
         ).classes("text-xs text-slate-500 mb-1")
 
-        url_input = ui.input(
-            label="URL de l'annale UNESS",
-            placeholder="https://entrainement.uness.fr/annales/course/view.php?id=...",
-        ).props("outlined dense").classes("w-full")
+        with ui.tabs().classes("w-full") as tabs:
+            tab_catalog = ui.tab("📚 Catalogue (Épreuves scannées)")
+            tab_manual = ui.tab("🔗 Saisie URL / Manuel")
 
-        status_lbl = ui.label("").classes("text-xs text-slate-500 min-h-[18px]")
+        with ui.tab_panels(tabs, value=tab_catalog).classes("w-full"):
+            with ui.tab_panel(tab_catalog).classes("p-0 pt-3 flex flex-col gap-3"):
+                catalog_matieres = sorted({
+                    item["matiere"]
+                    for item in local_store.list_scanned_catalog_annales()
+                    if item.get("matiere")
+                })
+                catalog_facultes = sorted({
+                    item["faculte"]
+                    for item in local_store.list_scanned_catalog_annales()
+                    if item.get("faculte")
+                })
 
-        ui.separator().classes("my-2")
-        ui.label("Ou corriger un dossier existant avec Gemini").classes("text-xs text-slate-500")
-        folder_input = ui.input(
-            label="Dossier du partiel (JSON + images)",
-            placeholder="UNESS/à_vérifier/session-...",
-        ).props("outlined dense").classes("w-full")
+                with ui.row().classes("w-full gap-2 items-center"):
+                    sub_select = ui.select(
+                        {"": "Toutes matières", **{m: m for m in catalog_matieres}},
+                        value="",
+                        label="Matière",
+                        on_change=lambda _: _refresh_catalog_cards(),
+                    ).props("outlined dense").classes("flex-1")
+                    fac_select = ui.select(
+                        {"": "Toutes facultés", **{f: f for f in catalog_facultes}},
+                        value="",
+                        label="Faculté",
+                        on_change=lambda _: _refresh_catalog_cards(),
+                    ).props("outlined dense").classes("flex-1")
+                    only_unimported_switch = ui.checkbox(
+                        "Non importés",
+                        value=True,
+                        on_change=lambda _: _refresh_catalog_cards(),
+                    ).props("dense text-xs")
+
+                async def _trigger_catalog_refresh():
+                    client = ui.context.client
+                    with client:
+                        ui.notify("🔄 Scan et actualisation du catalogue UNESS en cours…", type="info", spinner=True, duration=15)
+                    script = Path("scripts/uness/url_scanner.py").resolve()
+                    process = await asyncio.create_subprocess_exec(
+                        sys.executable,
+                        str(script),
+                        cwd=str(Path.cwd()),
+                    )
+                    await process.wait()
+                    with client:
+                        _refresh_catalog_cards()
+                        ui.notify("✨ Catalogue d'annales mis à jour !", type="positive")
+
+                with ui.row().classes("w-full justify-between items-center px-1"):
+                    ui.label("Épreuves détectées :").classes("text-xs text-slate-500 font-medium")
+                    ui.button("🔄 Actualiser le catalogue", icon="sync", on_click=_trigger_catalog_refresh).props("flat dense size=sm color=primary").tooltip("Relance le scanner HTTP rapide pour détecter les nouveaux partiels des universités")
+
+                cards_container = ui.column().classes("w-full max-h-[340px] overflow-y-auto gap-2 pr-1")
+
+                def _refresh_catalog_cards():
+                    cards_container.clear()
+                    items = local_store.list_scanned_catalog_annales(
+                        matiere=sub_select.value or "",
+                        faculte=fac_select.value or "",
+                        only_unimported=only_unimported_switch.value,
+                    )
+
+                    if not items:
+                        with cards_container:
+                            with ui.column().classes("w-full items-center justify-center py-8 gap-3"):
+                                ui.label("Aucune épreuve trouvée dans le catalogue local.").classes("text-xs text-slate-400")
+                                ui.button("🔄 Lancer le scanner & enrichir le catalogue", icon="sync", on_click=_trigger_catalog_refresh).props("unelevated color=primary size=sm").tooltip("Scanne les universités cibles et alimente la base SQLite")
+                        return
+
+                    with cards_container:
+                        for item in items:
+                            with ui.column().classes("w-full p-3 border border-slate-200 dark:border-slate-800 rounded-md gap-1 bg-slate-50 dark:bg-slate-900/40"):
+                                with ui.row().classes("w-full justify-between items-start gap-2"):
+                                    display_title = re.sub(r"^(Image de l'annale\s*)?(Annale\s*-\s*)?", "", item["titre"], flags=re.IGNORECASE).strip()
+                                    ui.label(display_title).classes("font-semibold text-sm leading-snug flex-1")
+                                    if item.get("is_imported"):
+                                        ui.badge("Déjà importé", color="positive").props("outline size=sm")
+
+                                with ui.row().classes("items-center gap-2 text-xs text-slate-500 flex-wrap"):
+                                    ui.badge(item["faculte"], color="blue").props("flat size=sm")
+                                    if item.get("annee"):
+                                        ui.badge(str(item["annee"]), color="slate").props("flat size=sm")
+                                    quiz_c = item.get("quiz_count", 0)
+                                    single_dp = " (1 DP)" if item.get("is_single_dp") else ""
+                                    q_txt = f"{item['total_questions']} questions" if item.get("total_questions") is not None else ""
+                                    ui.label(f"• {quiz_c} quizz{single_dp} {q_txt}").classes("text-xs text-slate-500")
+
+                                with ui.row().classes("w-full justify-end mt-1"):
+                                    async def _import_this(target_url=item["source_url"]):
+                                        url_input.value = target_url
+                                        tabs.value = tab_manual
+                                        await _launch_collect_and_import()
+
+                                    if not item.get("is_imported"):
+                                        ui.button(
+                                            "🚀 Importer cette annale",
+                                            icon="download",
+                                            on_click=_import_this,
+                                        ).props("unelevated size=sm color=primary")
+
+                _refresh_catalog_cards()
+
+            with ui.tab_panel(tab_manual).classes("p-0 pt-3 flex flex-col gap-3"):
+                url_input = ui.input(
+                    label="URL de l'annale UNESS",
+                    placeholder="https://entrainement.uness.fr/annales/course/view.php?id=...",
+                ).props("outlined dense").classes("w-full")
+
+                status_lbl = ui.label("").classes("text-xs text-slate-500 min-h-[18px]")
+
+                ui.separator().classes("my-1")
+                ui.label("Ou corriger un dossier existant avec Gemini").classes("text-xs text-slate-500")
+                folder_input = ui.input(
+                    label="Dossier du partiel (JSON + images)",
+                    placeholder="UNESS/à_vérifier/session-...",
+                ).props("outlined dense").classes("w-full")
 
         def _finalize_scan(
             tags: dict[str, str] | None = None, matieres: dict[str, str] | None = None
@@ -400,21 +505,22 @@ def annales_page() -> None:
                                     import asyncio
                                     from backend.core.uness import gemini_autocorrect, import_service
 
+                                    client = ui.context.client
+                                    with client:
+                                        ui.notify("⏳ Relance de la correction Gemini en cours…", type="info", spinner=True, duration=20)
                                     local_store.reset_uness_correction_failure_attempts(failure_id)
                                     result = await asyncio.to_thread(
                                         gemini_autocorrect.retry_failed_quiz, failure_id
                                     )
-                                    if result["success"]:
-                                        ui.notify("✅ Quiz corrigé et importé.", type="positive")
-                                        import_service.import_verified_directory()
-                                    else:
-                                        ui.notify(
-                                            f"❌ Toujours en échec : {result['error']}", type="negative"
-                                        )
-                                    # Un rechargement complet évite d'avoir à gérer le cas où
-                                    # _render (liste des annales) n'a jamais été défini — la
-                                    # page retourne tôt quand aucune annale n'est encore importée.
-                                    ui.navigate.reload()
+                                    with client:
+                                        if result["success"]:
+                                            ui.notify("✅ Quiz corrigé et importé avec succès !", type="positive", duration=6)
+                                            import_service.import_verified_directory()
+                                        else:
+                                            ui.notify(
+                                                f"❌ Toujours en échec : {result.get('error', 'Erreur inconnue')}", type="negative", duration=10
+                                            )
+                                        ui.navigate.reload()
 
                                 ui.button("Relancer", on_click=_retry).props(
                                     "flat dense size=sm color=primary"

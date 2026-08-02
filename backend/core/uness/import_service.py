@@ -522,7 +522,7 @@ def assert_verified_exam(exam: UnessExam) -> None:
     verified, which is worse than importing with one weaker question."""
     for question in exam.questions:
         if question.verification_status == "unsupported":
-            if not question.propositions or any(
+            if question.propositions and any(
                 proposition.reponse_uness is None for proposition in question.propositions
             ):
                 raise ValueError(

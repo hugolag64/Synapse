@@ -33,6 +33,8 @@ class CourseProgressSnapshot:
     declared_level: str | None = None      # solide | correct | flou
     oic_coverage_a: float = 0.0            # part d'OIC de rang A réussis
     has_rang_a_badge: bool = False
+    score_rang_a: int | None = None        # Score de maîtrise Rang A (0-100)
+    score_rang_b: int | None = None        # Score de maîtrise Rang B (0-100)
     anki_review_count: int = 0
     anki_knowledge_score: int | None = None
     retention_stability_days: float = 0.0
@@ -196,6 +198,23 @@ def get_course_mastery(
             elif all(r == "réussi" for r in qcm_results):
                 score += 10
 
+    # Prise en compte prioritaire des sessions d'annales UNESS officielles
+    if item_number:
+        try:
+            from backend.core.reviews import local_store
+            annale_sess = local_store.get_ai_practice_sessions(item_number=item_number, limit=5)
+            scores_annales = [float(s["score_percent"]) for s in (annale_sess or []) if s.get("annale_id") and s.get("score_percent") is not None]
+            if scores_annales:
+                avg_annale = sum(scores_annales) / len(scores_annales)
+                if avg_annale >= 80:
+                    score += 15
+                    reasons.append(f"Annales : {int(avg_annale)}% (Solide)")
+                elif avg_annale < 50:
+                    score -= 15
+                    reasons.append(f"Annales : {int(avg_annale)}% (Fragile)")
+        except Exception:
+            pass
+
     score = max(0, min(100, score))
 
     # Fusion graine / évidence : le poids de la graine décroît avec les preuves.
@@ -210,6 +229,24 @@ def get_course_mastery(
     retention_evidence = _build_retention_evidence(course, context, sessions, anki_rows)
     retention_snapshot = evaluate_retention(score, retention_evidence, datetime.date.today())
     score = retention_snapshot.score
+
+    # 3b. Calcul dédoublé Rang A / Rang B
+    if _oic_coverage_a > 0:
+        score_rang_a = max(0, min(100, round(score * 0.5 + (_oic_coverage_a * 100) * 0.5)))
+    else:
+        score_rang_a = score
+    
+    # Pénalité Rang A en cas d'échec QCM/Session
+    if sessions:
+        for s in sessions:
+            if isinstance(s, dict) and (s.get("qcm_result") == "raté" or s.get("error_category") == "rang_a"):
+                score_rang_a = max(0, score_rang_a - 15)
+                break
+
+    if score_rang_a < 70:
+        score_rang_b = max(0, score_rang_a - 20)
+    else:
+        score_rang_b = max(0, min(100, round(score * 0.9)))
 
     # 4. Détermination du niveau
     if score < 40:
@@ -236,6 +273,8 @@ def get_course_mastery(
         context=context,
         level=level,
         score=score,
+        score_rang_a=score_rang_a,
+        score_rang_b=score_rang_b,
         has_pdf=has_pdf,
         has_first_read=has_first_read,
         nb_lectures=nb_lectures,
@@ -335,6 +374,21 @@ def _canonical_retention_evidence(
                     "oic",
                     _oic_quality(_safe_get(attempt, "session_score")),
                 ))
+
+    # Annales UNESS officielles réalisées
+    item_num = str(getattr(course, "item_number", "") or "").strip()
+    if item_num:
+        try:
+            annale_sessions = local_store.get_ai_practice_sessions(item_number=item_num, limit=20)
+            for s_row in (annale_sessions or []):
+                if s_row.get("annale_id") and s_row.get("score_percent") is not None and s_row.get("completed_at"):
+                    s_date = _coerce_evidence_date(s_row["completed_at"], fallback_date)
+                    if ("annale", s_date) not in study_evidence_keys:
+                        pct = float(s_row["score_percent"])
+                        quality = max(0.0, min(1.0, pct / 100.0))
+                        evidence.append(Evidence(s_date, "annale", quality))
+        except Exception:
+            pass
 
     return evidence
 

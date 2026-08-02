@@ -299,7 +299,7 @@ def convert_with_bridge(quiz_objects: list[dict], bridge: dict) -> list[UnessExa
         answerable = [
             q
             for q in raw_questions
-            if q.get("verification_status") != "unsupported" and (q.get("propositions") or q.get("media"))
+            if q.get("verification_status") == "unsupported" or q.get("propositions") or q.get("media")
         ]
         claimed_ids = {q.get("id") for q in answerable}
         leftover_images = [img for img in bridge_images if img.get("question_id") not in claimed_ids]

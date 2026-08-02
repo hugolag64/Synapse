@@ -1,0 +1,27 @@
+# Annales UNESS - Matière : Gériatrie
+
+*Dernière mise à jour : 2026-08-01 20:34 UTC*
+*Nombre d'épreuves référencées : 20*
+
+| Faculté | Année | Intitulé Épreuve | URL UNESS | Quizz / DPs | Nb Questions | Importé dans Synapse |
+| --- | --- | --- | --- | --- | --- | --- |
+| Université Paris Cité | N/A | Image de l'annale DFASM1 - Examen Gériatrie/Pôle 3 - Session 2 - 29/06/2026Faculté de Santé d’Université Paris Cité – Médecine | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=31114) | 7 | N/A | Non |
+| Université Paris Cité | N/A | Image de l'annale Examen Gériatrie / pôle 3 - T3 - 12/05/2025Entraînements examens DFASM1 T2 et T3- (24-25) | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=29193) | 5 | N/A | Non |
+| Université Paris Cité | N/A | Image de l'annale Examen Gériatrie/Pôle 3-Session 2-30/06/2025Entraînements examens session 2-DFASM1 (24-25) | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=29259) | 5 | N/A | Non |
+| Université Paris Cité | N/A | Image de l'annale DFASM1 - Conférence GERIATRIE - 07/04/2026CONFERENCES EDN DFA1- (25-26) | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=30710) | 0 | N/A | Non |
+| Université Paris Cité | N/A | Image de l'annale Examen Gériatrie/Pôle 3 - T1 - 13/11/2025Entraînements examens T1 et T2 DFASM1 (25-26) | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=30035) | 0 | N/A | Non |
+| Université Paris Cité | N/A | Image de l'annale Examen Gériatrie/Pôle 3 - T2 - 12/02/2026Entraînements examens T1 et T2 DFASM1 (25-26) | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=30549) | 0 | N/A | Non |
+| Université Paris Cité | N/A | Image de l'annale Examen Gériatrie/Pôle 3 - T3- 07/05/2026Entraînements T3 DFASM1 25-26 | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=30932) | 0 | N/A | Non |
+| Université Paris Cité | 2026 | Image de l'annale DP en ligne - TCS Gériatrie - 23 juin 2026 v2DP en ligne | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=31187) | 0 | N/A | Non |
+| Université Paris Cité | N/A | Image de l'annale DP en ligne - Gériatrie - 24 Mars 2026DP en ligne | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=31161) | 0 | N/A | Non |
+| Université Paris-Saclay | N/A | Image de l'annale Annale - 2016-05-DFASM2-GERIATRIE-S1Faculté de médecine Université Paris-Saclay (XI-Sud) | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=2979) | 0 | N/A | Non |
+| Université Claude Bernard Lyon 1 | N/A | Image de l'annale Annale - EXAMEN GERIATRIE - 11 Décembre 2017 - 1ère SessionFaculté de médecine de Lyon-Sud | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=19436) | 0 | N/A | Non |
+| Université Claude Bernard Lyon 1 | N/A | Image de l'annale Annale - EXAMEN GERIATRIE - 26 Juin 2015 - Session 2Faculté de médecine de Lyon-Sud | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=19393) | 0 | N/A | Non |
+| Université Claude Bernard Lyon 1 | N/A | Image de l'annale Annale - DFASM 2 - S3 - Handicap-Vieillissement - CCE - 30 Janvier 2018Faculté de médecine de Lyon-Est | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=19476) | 0 | N/A | Non |
+| Université Claude Bernard Lyon 1 | N/A | Image de l'annale DFASM2 - HANDICAP VIEILLISSEMENT - COURTOIS- VUILLEROT - Conférence ECNi - 21102015 - dupliquéFaculté de médecine de Lyon-Est | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=19415) | 0 | N/A | Non |
+| Université de Montpellier | 2023 | Image de l'annale 2023-2024 - DFASM2 - EXAMEN ECUE 8 INFECTIOLOGIE - GERIATRIE - SESSION 1 - JANVIER 2024 MONTPELLIERAnnales 2023-2024 | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=28583) | 0 | N/A | Non |
+| Université de Toulouse | 2026 | Image de l'annale DFASM1 EXAMEN Gériatrie le mercredi 21 janvier 2026 de 14h00 à 14h30Faculté de médecine de Toulouse | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=30347) | 0 | N/A | Non |
+| Université de Toulouse | 2026 | Image de l'annale DFASM2 EXAMEN GERIATRIE le mardi 6 janvier 2026 de 12h00 à 12h30Faculté de médecine de Toulouse | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=30345) | 0 | N/A | Non |
+| Université de Lille | N/A | Image de l'annale Epreuve de Handicap Vieillissement Médecine interne du 16 février 2026Faculté de médecine de Lille | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=30989) | 0 | N/A | Non |
+| Université de Lille | N/A | Image de l'annale Epreuve d'Handicap Vieillissement Médecine interneFaculté de médecine de Lille | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=29113) | 0 | N/A | Non |
+| Université de Lille | N/A | Image de l'annale Annale - Handicap Vieillissement Médecine Interne - MED5 - 19 février 2020Faculté de médecine de Lille | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=15256) | 0 | N/A | Non |

@@ -1,0 +1,28 @@
+# Annales UNESS - Matière : Gynécologie - Obstétrique
+
+*Dernière mise à jour : 2026-08-01 20:34 UTC*
+*Nombre d'épreuves référencées : 21*
+
+| Faculté | Année | Intitulé Épreuve | URL UNESS | Quizz / DPs | Nb Questions | Importé dans Synapse |
+| --- | --- | --- | --- | --- | --- | --- |
+| Université Paris Cité | N/A | Image de l'annale DP en ligne - Conception - Gynécologie - 7 Avril 2026DP en ligne | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=31158) | 0 | N/A | Non |
+| Université Paris-Saclay | N/A | Image de l'annale Annale - 2016-05-DFASM2-GYNECOLOGIE -S1Faculté de médecine Université Paris-Saclay (XI-Sud) | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=2980) | 0 | N/A | Non |
+| Université Paris-Saclay | N/A | Image de l'annale Annale - DFASM2 - GYNECOLOGIE - B - 2019/2020 - S1Faculté de médecine Université Paris-Saclay (XI-Sud) | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=2936) | 0 | N/A | Non |
+| Université Paris-Saclay | N/A | Image de l'annale Annale - DFASM2 - GYNECOLOGIE - A - 2019/2020 - S1Faculté de médecine Université Paris-Saclay (XI-Sud) | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=2935) | 0 | N/A | Non |
+| Université Claude Bernard Lyon 1 | N/A | Image de l'annale Annale - EXAMEN - CONTROLE CONTINU DE GYNECOLOGIE - 29 NOVEMBRE 2017 - 1ère SESSIONFaculté de médecine de Lyon-Sud | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=19385) | 0 | N/A | Non |
+| Université Claude Bernard Lyon 1 | N/A | Image de l'annale Annale - EXAMEN - GYNECOLOGIE - DFASM 1 - 10 MAI 2021 - 1ère SESSIONFaculté de médecine de Lyon-Sud | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=19285) | 0 | N/A | Non |
+| Université Claude Bernard Lyon 1 | N/A | Image de l'annale Annale - DFASM2-examen terminal-16/06-gynécologie obstétriqueFaculté de médecine de Lyon-Est | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=19508) | 0 | N/A | Non |
+| Université Claude Bernard Lyon 1 | N/A | Image de l'annale Annale - DFASM3-GYNECOLOGIE-CHENE-Conférence ECN-21092016Faculté de médecine de Lyon-Est | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=19505) | 0 | N/A | Non |
+| Université Claude Bernard Lyon 1 | N/A | Image de l'annale Annale - DFASM 2 - S3 - Gynécologie-Obstétrique - CCE - 30 Janvier 2018Faculté de médecine de Lyon-Est | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=19474) | 0 | N/A | Non |
+| Université de Montpellier | 2023 | Image de l'annale Maieutique DFGSMa3-Nîmes 2023/2024- UE Appareil Respiratoire - Semestre1 - Session 2Annales 2023-2024 | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=28662) | 0 | N/A | Non |
+| Université de Montpellier | 2023 | Image de l'annale Maieutique Session 2023-2024 DFGSMa3 Appareil respiratoire Session 1 MontpellierAnnales 2023-2024 | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=28661) | 0 | N/A | Non |
+| Université de Montpellier | 2023 | Image de l'annale Maieutique DFGSMa3 - MTP 23 24 - UE APPAREIL CARDIOVASCULAIRE MAIEUTIQUE - S1 - Session1Annales 2023-2024 | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=28660) | 0 | N/A | Non |
+| Université de Montpellier | 2024 | Image de l'annale 2024-2025 - DFASM2 - EXAMEN UE 10 GYNECOLOGIE OBSTETRIQUE CANCEROLOGIE GENETIQUE - SESSION 1 - JUIN 2025 MONTPELLIERAnnales 2024-2025 | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=29837) | 0 | N/A | Non |
+| Université de Montpellier | 2024 | Image de l'annale 2024-2025 - DFASM2 - EXAMEN UE 10 GYNECOLOGIE OBSTETRIQUE CANCEROLOGIE GENETIQUE - SESSION 2 - JUILLET 2025 MONTPELLIERAnnales 2024-2025 | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=29838) | 0 | N/A | Non |
+| Université de Montpellier | 2025 | Image de l'annale 2025-2026 - DFASM2 - EXAMEN UE 10 GYNECOLOGIE OBSTETRIQUE CANCEROLOGIE GENETIQUE - SESSION 1 - MAI 2026 MONTPELLIERAnnales 2025-2026 | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=31037) | 0 | N/A | Non |
+| Université de Montpellier | N/A | Image de l'annale Conférence Delous de spécialité - Gynécologie 2Commun | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=26440) | 0 | N/A | Non |
+| Université de Montpellier | N/A | Image de l'annale Conférence Delous de spécialité - Gynécologie ObstétriqueCommun | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=26456) | 0 | N/A | Non |
+| Université de Toulouse | 2026 | Image de l'annale DFASM2 EXAMEN GYNECOLOGIE OBSTETRIQUE le lundi 5 janvier 2026 de 15h00 à 15h45Faculté de médecine de Toulouse | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=30341) | 0 | N/A | Non |
+| Université de Lille | N/A | Image de l'annale Epreuve Gynécologie obstétriqueFaculté de médecine de Lille | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=29011) | 0 | N/A | Non |
+| Université de Lille | N/A | Image de l'annale Annale - Gynécologie Obstétrique Le 07 janvier 2021Faculté de médecine de Lille | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=15280) | 0 | N/A | Non |
+| Université de Lille | N/A | Image de l'annale Annale - Gynécologie - MED4 - Janvier 2020Faculté de médecine de Lille | [Consulter sur UNESS](https://entrainement.uness.fr/annales/course/view.php?id=15242) | 0 | N/A | Non |

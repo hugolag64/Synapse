@@ -17,6 +17,7 @@ SOURCE_BASE_STABILITY: dict[str, float] = {
     "kfp": 21.0,
     "oic": 21.0,
     "anki": 14.0,
+    "annale": 30.0,
 }
 
 

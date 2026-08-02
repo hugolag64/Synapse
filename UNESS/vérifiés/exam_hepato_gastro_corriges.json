@@ -1,0 +1,1839 @@
+[
+  {
+    "quiz_title": "SQI1",
+    "questions": [
+      {
+        "id": "question-16816920-1",
+        "type_question": "QRM",
+        "enonce": "Parmi les propositions suivantes, laquelle (lesquelles) est (sont) correcte(s) concernant l’évolution d’une hépatite B chronique ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816920:1_choice0",
+            "texte": "l’infection peut évoluer par phases successives d’activité et de rémission",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "L'hépatite B chronique évolue classiquement par phases (immunitaires, d'immunitolérance, d'immuno-élimination/réactivation) caractérisées par des alternances d'activité nécrotico-inflammatoire et de rémission.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:1_choice1",
+            "texte": "le risque de carcinome hépatocellulaire est présent même sans cirrhose",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le VHB possède un potentiel oncogène direct (insertion de l'ADN viral dans le génome de l'hôte), ce qui explique que le carcinome hépatocellulaire (CHC) peut survenir en l'absence de cirrhose (notamment chez les sujets à forte charge virale ou co-facteurs).",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:1_choice2",
+            "texte": "l’ARN du virus B est détectable en phase immunotolérante",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "En phase immunotolérante, la réplication virale est très intense avec une charge virale (ADN VHB) extrêmement élevée et un AgHBe positif, mais l'ARN viral circulant (pgARN) n'est pas le marqueur standard de routine comparé à l'ADN VHB, ou l'item est faux car la réplication est principalement mesurée par l'ADN VHB. (La correction officielle indique que a, b, e sont correctes, donc c est fausse).",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:1_choice3",
+            "texte": "la clairance de l’antigène HBe signe la guérison virologique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La séroconversion HBe (perte de l'AgHBe et apparition des anticorps anti-HBe) témoigne d'un contrôle immunitaire de la réplication mais ne signe pas une guérison virologique complète (l'AgHBs et l'ADN viral persistent souvent dans le foie).",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:1_choice4",
+            "texte": "la persistance de l’AgHBs au-delà de 6 mois définit la chronicité",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La définition officielle de l'hépatite B chronique repose sur la persistance de l'antigène HBs dans le sérum pendant plus de 6 mois.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "L'hépatite B chronique se définit par la persistance de l'AgHBs > 6 mois, évolue par phases successives, et comporte un risque de CHC même en l'absence de cirrhose.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816920-2",
+        "type_question": "QRM",
+        "enonce": "Quel(s) est(sont) le(s) examen(s) à réaliser en première intention dans le cadre du bilan d’extension d’un cancer du côlon sigmoïde diagnostiqué lors d’une recto-sigmoïdoscopie ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816920:2_choice0",
+            "texte": "TEP-scanner",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le TEP-scanner n'est pas réalisé en première intention pour le bilan d'extension initial d'un cancer du côlon standard.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:2_choice1",
+            "texte": "coloscopie totale",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Une coloscopie totale (si non réalisée en amont ou incomplète) est indispensable pour éliminer une tumeur synchrone ou des adénomes associés sur le reste du cadre colique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:2_choice2",
+            "texte": "IRM hépatique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "L'IRM hépatique est un examen de seconde intention ou complémentaire en cas de doute sur des lésions hépatiques au scanner, pas en première intention.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:2_choice3",
+            "texte": "écho-endoscopie rectale",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "L'écho-endoscopie rectale est réservée aux cancers du rectum (pour l'évaluation locorégionale T/N), pas aux cancers du côlon sigmoïde.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:2_choice4",
+            "texte": "scanner thoraco-abdomino-pelvien",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le scanner thoraco-abdomino-pelvien (TAP) injecté est l'examen d'imagerie de référence pour le bilan d'extension métastatique à distance (foie, poumons, péritoine) et locorégional.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Le bilan d'extension d'un cancer du côlon repose sur le scanner thoraco-abdomino-pelvien et la coloscopie totale (pour explorer le reste du côlon).",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816920-3",
+        "type_question": "QROC",
+        "enonce": "Quelle complication du reflux gastro-œsophagien est associée à une risque de cancer ? (un à trois mots, réponse à mettre en minuscule, sans abréviation)",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816920:3_prop1",
+            "texte": "œsophage de Barrett",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "L'œsophage de Barrett (métaplasie malpighienne en cylindrique / épithélium de Barrett) est la complication majeure du RGO chronique et représente la lésion pré-néoplasique de l'adénocarcinome de l'œsophage.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "L'œsophage de Barrett (ou métaplasie intestinale de l'œsophage) est la complication du RGO associée au risque d'adénocarcinome œsophagien.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816920-4",
+        "type_question": "QRU",
+        "enonce": "Quel type de cancer est le plus associé à une rectocolite hémorragique ancienne et étendue ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816920:4_answer0",
+            "texte": "carcinome épidermoïde de l’anus",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le carcinome épidermoïde de l'anus est lié au HPV ou aux infections proctologiques, non spécifique de la RCH.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:4_answer1",
+            "texte": "adénocarcinome colorectal",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La rectocolite hémorragique (RCH) ancienne et étendue expose à un risque accru d'adénocarcinome colorectal (sur inflammation chronique / dysplasie).",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:4_answer2",
+            "texte": "lymphome",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le lymphome intestinal n'est pas le cancer préférentiellement associé à la RCH.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:4_answer3",
+            "texte": "adénocarcinome gastrique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "L'adénocarcinome gastrique est lié à Helicobacter pylori, pas à la RCH.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:4_answer4",
+            "texte": "cancer de l’intestin grêle",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La RCH touche le côlon et le rectum, le cancer associé est donc colorectal.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "La complication néoplasique redoutée d'une RCH ancienne et étendue est l'adénocarcinome colorectal, justifiant une surveillance endoscopique.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816920-5",
+        "type_question": "QRM",
+        "enonce": "Parmi les propositions suivantes, laquelle (lesquelles) est (sont) correcte(s) concernant les causes d’ascite ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816920:5_choice0",
+            "texte": "la cirrhose est la cause la plus fréquente d’ascite chez l’adulte",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La cirrhose représente environ 80% à 85% des causes d'ascite chez l'adulte dans les pays occidentaux.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:5_choice1",
+            "texte": "une tuberculose péritonéale peut provoquer une ascite exsudative",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La péritonite tuberculeuse donne une ascite exsudative (riche en protéines, gradient albumine sérum-ascite < 11 g/L, cellularité lymphocytaire).",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:5_choice2",
+            "texte": "l’ascite néoplasique est transudative",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "L'ascite d'origine néoplasique (carcinose péritonéale) est exsudative (riche en protéines, gradient < 11 g/L), et non transudative.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:5_choice3",
+            "texte": "une insuffisance cardiaque droite peut être responsable d’une ascite",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "L'insuffisance cardiaque droite ou globale (ou péricardite constrictive) provoque une ascite par augmentation de la pression veineuse sus-hépatique (ascite transudative ou riche en protides selon l'ancienneté).",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:5_choice4",
+            "texte": "un gradient d’albumine (sérum - ascite) > 11 g/L est en faveur d’une ascite d’origine portale",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Un gradient d'albumine sérum-ascite (GASA) ≥ 11 g/L (ou 11 g/L) signe une ascite liée à l'hypertension portale (dont la cirrhose), tandis qu'un GASA < 11 g/L oriente vers une ascite non liée à l'hypertension portale (carcinose, tuberculose).",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "La cirrhose est la cause principale d'ascite. Le GASA permet de différencier les ascites par hypertension portale (> 11 g/L) des autres causes.",
+        "statut_verification": "a_revoir"
+      },
+      {
+        "id": "question-16816920-6",
+        "type_question": "QRU",
+        "enonce": "Chez un(e) paient(e) présentant une diarrhée aiguë, quel est le signe clinique le plus fiable pour identifier une déshydratation sévère chez l’adulte ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816920:6_answer0",
+            "texte": "pli cutané persistant",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le pli cutané persistant (signe du pli cutané) ainsi que les signes hémodynamiques (hypotension, tachycardie) témoignent de la perte volémique extracellulaire et de la déshydratation sévère.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:6_answer1",
+            "texte": "présence d’une fièvre",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La fièvre indique une origine infectieuse potentielle mais ne quantifie pas la sévérité de la déshydratation.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:6_answer2",
+            "texte": "diarrhée de plus de 3 jours",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La durée de la diarrhée renseigne sur le caractère aigu prolongé mais pas directement sur le degré de déshydratation clinique immédiat.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:6_answer3",
+            "texte": "céphalées",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Les céphalées sont un symptôme aspécifique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:6_answer4",
+            "texte": "douleurs abdominales diffuses",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Les douleurs abdominales accompagnent la gastro-entérite mais ne mesurent pas l'état d'hydratation.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Le pli cutané persistant est un signe clinique classique de déshydratation extracellulaire.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816920-7",
+        "type_question": "QRM",
+        "enonce": "Parmi les signes suivants, lequel (lesquelles) est (sont) évocateur(s) d’un syndrome occlusif chez l’adulte ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816920:7_choice0",
+            "texte": "arrêt des matières et des gaz",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "L'arrêt des matières et des gaz est le maître-symptôme de l'occlusion intestinale.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:7_choice1",
+            "texte": "douleurs abdominales diffuses ou localisées",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Les douleurs abdominales (crampes, coliques) sont constantes dans le syndrome occlusif.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:7_choice2",
+            "texte": "météorisme abdominal",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le météorisme (distension abdominale gazeuse) est retrouvé de façon très fréquente lors des occlusions.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:7_choice3",
+            "texte": "matité déclive à la percussion",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La matité déclive signe plutôt la présence d'ascite ou d'épanchement péritonéal, alors que l'occlusion donne un tympanisme (météorisme).",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:7_choice4",
+            "texte": "vomissements",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Les vomissements sont un signe cardinal de l'occlusion (précoces et alimentaires en haut, tardifs et fécaloïdes en bas).",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Le syndrome occlusif associe des douleurs abdominales, des vomissements, un météorisme et un arrêt des matières et des gaz.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816920-8",
+        "type_question": "QRM",
+        "enonce": "Parmi les propositions suivantes, laquelle (lesquelles) est (sont) correcte(s) concernant les hémorragies digestives ? (3 réponses attendues)",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816920:8_choice0",
+            "texte": "une hématémèse correspond à une émission de sang par la bouche d’origine digestive haute",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "L'hématémèse est le rejet de sang rouge ou noir (bâclés/méléna) par la bouche lors d'un effort de vomissement, provenant du tractus digestif haut (en amont de l'angle de Treitz).",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:8_choice1",
+            "texte": "une hématochézie peut s’observer en cas d’hémorragie digestive haute massive",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Une hémorragie digestive haute très abondante et rapide accélère le transit, provoquant l'émission de sang rouge par l'anus (hématochézie ou rectorragies massives).",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:8_choice2",
+            "texte": "l’œsophagite érosive est la cause la plus fréquente d’hémorragie digestive haute chez l’adulte",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La cause la plus fréquente d'hémorragie digestive haute reste l'ulcère gastroduodénal, suivi des ruptures de varices œsophagiennes et des lésions aiguës de la muqueuse gastrique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:8_choice3",
+            "texte": "une antibioprophylaxie est recommandée en première intention chez un patient cirrhotique présentant une rupture de varices œsophagiennes",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "L'antibiothérapie prophylactique (par ex. ceftriaxone ou fluoroquinolones) est systématique et recommandée d'emblée chez le cirrhotique en hémorragie digestive pour prévenir l'infection du liquide d'ascite et les sepsis.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:8_choice4",
+            "texte": "dans la prise en charge initiale d’une hémorragie digestive chez un patient cirrhotique avec rupture de varices œsophagiennes, la transfusion est systématique dès que l’hémoglobine est inférieure à 10 g/dL",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La stratégie transfusionnelle restrictive dans l'hémorragie sur rupture de varices vise un seuil d'hémoglobine autour de 7-8 g/dL pour éviter l'aggravation de l'hypertension portale par surnageant transfusionnel.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "L'hématémèse caractérise le saignement haut, une hémorragie haute massive peut donner une hématochézie, et l'antibioprophylaxie est systématique chez le cirrhotique en hémorragie.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816920-9",
+        "type_question": "QRM",
+        "enonce": "Parmi les propositions suivantes, laquelle (lesquelles) est (sont) correcte(s) concernant la hernie inguinale étranglée ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816920:9_choice0",
+            "texte": "elle est douloureuse, irréductible et impulsive à la toux",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Une hernie étranglée est non impulsive à la toux (l'impulsivité disparaît du fait de l'étranglement au collet).",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:9_choice1",
+            "texte": "elle entraîne systématiquement une occlusion intestinale",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Elle peut entraîner une occlusion (si le contenu est digestif), mais parfois seule une portion de la paroi (pince de Richter) s'étrangle sans occlusion franche au début.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:9_choice2",
+            "texte": "elle peut évoluer vers une ischémie digestive",
+            "rEPONSE_OFFICIELLE": true,
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "L'étranglement herniaire comprime les vaisseaux mésentériques de l'anse incarcérée, menant rapidement à l'ischémie puis à la nécrose et la perforation.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:9_choice3",
+            "texte": "l’examen clinique suffit à poser le diagnostic",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le diagnostic d'une hernie étranglée est essentiellement clinique (tuméfaction douloureuse, irréductible, non impulsive, sur un orifice herniaire).",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:9_choice4",
+            "texte": "le traitement recommandé est la chirurgie en urgence",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "C'est une urgence chirurgicale absolue pour lever l'étranglement et vérifier la viabilité de l'anse intestinale.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "La hernie inguinale étranglée est une urgence chirurgicale diagnostiquée cliniquement, risquant l'ischémie digestive.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816920-10",
+        "type_question": "QROC",
+        "enonce": "Quelle affection cholestatique fréquente est à évoquer chez une femme de 45 ans présentant un ictère, un prurit et des anticorps anti-mitochondries positifs ? (un à trois mots, réponse à mettre en minuscule, sans abréviation)",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816920:10_prop1",
+            "texte": "cholangite biliaire primitive",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le profil clinique (femme d'âge moyen, prurit, cholestase) associé aux anticorps anti-mitochondries (AMA) est caractéristique de la cholangite biliaire primitive (CBP).",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "L'association d'un prurit, d'une cholestase et d'anticorps anti-mitochondries chez une femme d'âge moyen définit la cholangite biliaire primitive.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816920-11",
+        "type_question": "QRU",
+        "enonce": "Quel est le test non invasif recommandé en première intention chez un adulte en cas de suspicion de maladie cœliaque ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816920:11_answer0",
+            "texte": "dosage des anticorps de type IgA anti-transglutaminase",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le dosage des IgA anti-transglutaminase tissulaire (tTG-IgA) associé au dosage des IgA totales est l'examen sérologique de première intention recommandé pour le dépistage de la maladie cœliaque.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:11_answer1",
+            "texte": "dosage des anticorps anti-muscle lisse",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Les anticorps anti-muscle lisse (SMA) sont marqueurs de l'hépatite auto-immune.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:11_answer2",
+            "texte": "dosage de la calprotectine fécale",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La calprotectine fécale est un marqueur d'inflammation intestinale (MICI), pas spécifique de la maladie cœliaque.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:11_answer3",
+            "texte": "recherche du HLA DQ2 et HLA DQ8",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le typage HLA (DQ2/DQ8) a une excellente valeur predictive négative mais n'est pas le test sérologique de première intention (il sert à exclure la maladie).",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:11_answer4",
+            "texte": "dosage des immunoglobulines IgG totales",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "On dose les IgA totales pour éliminer un déficit en IgA qui fausserait les anti-transglutaminase IgA.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Le diagnostic biologique non invasif de première intention de la maladie cœliaque repose sur le dosage des anticorps IgA anti-transglutaminases.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816920-12",
+        "type_question": "QROC",
+        "enonce": "Quel est le nom de la tumeur bénigne solide du foie la plus fréquente ? (un à trois mots, réponse à mettre en minuscule, sans abréviation)",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816920:12_prop1",
+            "texte": "hémangiome",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "L'hémangiome hépatique (ou hémangiome caverneux) est la tumeur bénigne hépatique la plus fréquente.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "L'hémangiome hépatique est la tumeur bénigne solide la plus fréquente du foie.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816920-13",
+        "type_question": "QRU",
+        "enonce": "Quel critère biologique est associé à une forme grave de pancréatite aiguë au deuxième jour ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816920:13_answer0",
+            "texte": "CRP > 150 mg/L",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Une CRP supérieure à 150 mg/L à 48 heures du début des symptômes est un marqueur biologique validé de sévérité / nécrose de la pancréatite aiguë.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:13_answer1",
+            "texte": "lipasémie > 3 fois la normale",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La lipasémie > 3N sert au diagnostic positif de la pancréatite aiguë, mais son taux ne corrèle pas avec la sévérité.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:13_answer2",
+            "texte": "taux de bilirubine totale élevé",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Une élévation de la bilirubine évoque une origine biliaire mais n'est pas le marqueur de gravité globale du score biologique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:13_answer3",
+            "texte": "leucocytes < 5 G/L",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "L'hyperleucocytose est plutôt de mise dans les formes graves.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:13_answer4",
+            "texte": "élévation des transaminases > 5 fois la normale",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Une élévation des transaminases > 3N oriente vers une étiologie biliaire (notamment ALAT), sans corrélation directe avec la sévérité.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Une CRP > 150 mg/L à 48 heures est un critère biologique prédictif de sévérité de la pancréatite aiguë.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816920-14",
+        "type_question": "QRM",
+        "enonce": "Parmi les propositions suivantes, laquelle (lesquelles) est (sont) correcte(s) concernant le cancer de l’œsophage ? (3 réponses attendues)",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816920:14_choice0",
+            "texte": "la dysphagie est progressive aux solides puis aux liquides",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La dysphagie tumorale œsophagienne est typiquement mécanique, progressive, débutant pour les solides puis s'étendant aux liquides.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:14_choice1",
+            "texte": "la présence d’une toux après la déglutition est évocateur d’une fistule œso-trachéale",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Une toux survenant lors de la déglutition (fausse route ou passage direct dans les voies aériennes) fait suspecter une complication redoutée : la fistule œsotrachéale ou œso-bronchique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:14_choice2",
+            "texte": "une dysphonie peut survenir par atteinte du nerf récurrent",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "L'envahissement ganglionnaire ou tumoral du nerf laryngé récurrent (notamment à gauche) provoque une paralysie de la corde vocale et une dysphonie (voix bitonale).",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:14_choice3",
+            "texte": "le reflux gastro-œsophagien chronique est un facteur de risque de carcinome épidermoïde de l’œsophage",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le RGO chronique est un facteur de risque de l'adénocarcinome de l'œsophage (via l'œsophage de Barrett), tandis que le carcinome épidermoïde est principalement lié à l'alcool et au tabac.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:14_choice4",
+            "texte": "un pyrosis isolé est évocateur d’un cancer œsophagien",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le pyrosis est le symptôme du RGO simple, non spécifique d'un cancer de l'œsophage.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Le cancer de l'œsophage se manifeste par une dysphagie mécanique progressive, et peut se compliquer de fistules (toux) ou d'atteinte récurrentielle (dysphonie).",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816920-15",
+        "type_question": "QRU",
+        "enonce": "Un patient de 20 ans consulte pour des douleurs abdominales évoluant depuis 24 h. Il décrit une douleur ayant débuté en épigastrique, désormais localisée en fosse iliaque droite. Cette douleur est permanente, non irradiée, augmentée par la marche et associée à une fièvre à 38,2°C. Quel est le diagnostic le plus probable ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816920:15_answer0",
+            "texte": "ulcère duodénal",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "L'ulcère siégeant en épigastre ne migre pas en fosse iliaque droite avec fièvre à 38,2°C.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:15_answer1",
+            "texte": "appendicite aiguë",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La chronologie classique de Murphy (douleur débutant en péri-ombilical/épigastre puis migrant en fosse iliaque droite), associée à la fièvre et l'aggravation à la marche, signe une appendicite aiguë.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:15_answer2",
+            "texte": "pancréatite aiguë",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La pancréatite aiguë donne une douleur épigastrique transfixiante, pas une localisation en FID.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:15_answer3",
+            "texte": "colique néphrétique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La colique néphrétique donne des douleurs lombaires irradiant vers les OGE avec agitation, pas cette cinétique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:15_answer4",
+            "texte": "gastro-entérite virale",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La gastro-entérite s'accompagne de diarrhée et de douleurs diffuses, sans migration localisée en FID.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "La migration de la douleur épigastrique vers la fosse iliaque droite associée à la fièvre évoque une appendicite aiguë.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816920-16",
+        "type_question": "QRM",
+        "enonce": "Parmi les propositions suivantes, laquelle (lesquelles) est (sont) correcte(s) concernant la pathologie hémorroïdaire ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816920:16_choice0",
+            "texte": "une anémie ferriprive par saignement chronique d’hémorroïdes internes est fréquente",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le saignement hémorroïdaire est classiquement rouge vif, intermittent, mais une anémie ferriprive sévère doit faire éliminer une lésion colique organique (cancer, polype) avant d'être imputée aux seules hémorroïdes.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:16_choice1",
+            "texte": "5% de la population adulte française a eu au moins un symptôme hémorroïdaire au cours de la dernière année",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La prévalence des symptômes hémorroïdaires est nettement plus élevée (plus de 30 à 50% de la population générale présente des troubles à un moment donné).",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:16_choice2",
+            "texte": "la procidence des hémorroïdaires internes peut être réductible ou non",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La procidence (prolapsus) des hémorroïdes internes est classée en stades selon qu'elle se réduit spontanément, manuellement ou qu'elle est irréductible.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:16_choice3",
+            "texte": "une douleur aiguë avec tuméfaction péri-anale bleutée évoque une thrombose hémorroïdaire externe",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La thrombose hémorroïdaire externe se présente typiquement comme une tuméfaction bleutée, ferme, très douloureuse, située sous la marge anale.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:16_choice4",
+            "texte": "le prurit anal est un symptôme spécifique des hémorroïdes",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le prurit anal est aspécifique (peut être lié à une hygiène, des mycoses, des oxyures, etc.).",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "La pathologie hémorroïdaire se manifeste par des thromboses externes (tuméfaction bleutée douloureuse) et des prolapsus (procidence) réductibles ou non.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816920-17",
+        "type_question": "QRU",
+        "enonce": "Quel examen est recommandé tous les 6 mois pour le dépistage du CHC chez un patient cirrhotique ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816920:17_answer0",
+            "texte": "IRM hépatique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "L'IRM est utilisée pour la caractérisation des nodules ou en alternative, mais l'examen de dépistage standard semestriel est l'échographie.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:17_answer1",
+            "texte": "dosage du CA19-9",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le CA19-9 est le marqueur des tumeurs pancréatiques et biliaires.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:17_answer2",
+            "texte": "échographie abdominale",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "L'échographie abdominale (associée ou non au dosage de l'alpha-fœtoprotéine) tous les 6 mois est l'examen recommandé pour le dépistage du carcinome hépatocellulaire (CHC) chez le cirrhotique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:17_answer3",
+            "texte": "pet-scan",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le TEP-scan n'a pas sa place dans le dépistage systématique du CHC.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:17_answer4",
+            "texte": "scanner thoraco-abdominal",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le scanner injecté est irradiant et n'est pas l'examen de dépistage semestriel de première intention.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Le dépistage du carcinome hépatocellulaire chez le patient cirrhotique repose sur l'échographie abdominale tous les 6 mois.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816920-18",
+        "type_question": "QRM",
+        "enonce": "Parmi les propositions suivantes, laquelle (lesquelles) est (sont) correcte(s) concernant les adénocarcinomes du pancréas ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816920:18_choice0",
+            "texte": "l’examen d’imagerie de référence permettant d’évoquer le diagnostic est le scanner abdomino-pelvien avec injection",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le scanner abdomino-pelvien injecté (protocole pancréatique) est l'examen clé pour le diagnostic et le bilan d'opérabilité de l'adénocarcinome du pancréas.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:18_choice1",
+            "texte": "une douleur épigastrique transfixiante peut révéler une tumeur du corps ou de la queue du pancréas",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Les tumeurs du corps et de la queue du pancréas se révèlent souvent par des douleurs épigastriques transfixiantes (atteinte du plexus cœliaque).",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:18_choice2",
+            "texte": "la présence d’une fièvre est un signe d’orientation évocateur",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La fièvre n'est pas un signe d'orientation habituel du cancer du pancréas (sauf complication de type cholangite sur compression biliaire).",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:18_choice3",
+            "texte": "les tumeurs intra-canalaires et papillaires mucineuses du pancréas (TIPMP) présentent un risque de dégénérescence en adénocarcinome",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Les TIPMP sont des lésions précancéreuses bien connues avec un risque de transformation maligne en adénocarcinome ductal.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:18_choice4",
+            "texte": "la stéatorrhée est un signe précoce de la maladie",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "L'insuffisance pancréatique exocrine avec stéatorrhée est un signe tardif, le cancer du pancréas étant le plus souvent asymptomatique à un stade précoce.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "L'adénocarcinome du pancréas est exploré par scanner injecté, peut donner des douleurs transfixiantes (corps/queue) et dérive parfois de TIPMP précancéreuses.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816920-19",
+        "type_question": "QRM",
+        "enonce": "Parmi les propositions suivantes, laquelle (lesquelles) est (sont) correcte(s) concernant l’infection à Clostridioides difficile ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816920:19_choice0",
+            "texte": "la bactérie résiste au gel hydro-alcoolique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Les spores de Clostridioides difficile sont résistantes au SHA (gel hydro-alcoolique) ; le lavage des mains à l'eau et au savon est obligatoire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:19_choice1",
+            "texte": "elle peut se compliquer d’un mégacôlon toxique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le colite fulminante à C. difficile peut se compliquer de mégacôlon toxique et de perforation colique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:19_choice2",
+            "texte": "la recherche de la toxine dans les selles permet le diagnostic",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le diagnostic repose sur la mise en évidence des toxines A et B (par EIA ou test moléculaire/PCR) dans les selles diarrhéiques.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:19_choice3",
+            "texte": "elle se transmet essentiellement par voie aérienne",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La transmission est féco-orale (par l'intermédiaire des spores viables sur l'environnement ou les mains des soignants), et non aérienne.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:19_choice4",
+            "texte": "la fidaxomicine peut être prescrite en première intention en cas de première épisode d’infection à C. difficile non compliquée",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Les recommandations actuelles positionnent la fidaxomicine (ou la vancomycine orale) en première intention dans le traitement de l'infection à C. difficile.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "L'infection à Clostridioides difficile se diagnostique par recherche de toxines dans les selles, résiste au SHA, peut se compliquer de mégacôlon toxique et se traite par fidaxomicine ou vancomycine.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816920-20",
+        "type_question": "QRM",
+        "enonce": "Parmi les propositions suivantes, laquelle (lesquelles) est (sont) correcte(s) concernant le cancer de l’estomac ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816920:20_choice0",
+            "texte": "il peut se révéler par une anémie ferriprive",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le saignement occulte chronique de la tumeur gastrique entraîne fréquemment une anémie ferriprive par carence martiale.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:20_choice1",
+            "texte": "la dysphagie est un symptôme fréquent en cas de cancer de l’antre gastrique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La dysphagie est évocatrice d'un cancer du cardia (jonction œso-gastrique), tandis que l'antre donne plutôt des vomissements par stase ou des douleurs.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:20_choice2",
+            "texte": "le traitement principal à visée curative d’un adénocarcinome gastrique localisé est la gastrectomie avec curage ganglionnaire",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le traitement curatif de l'adénocarcinome gastrique résécable repose sur la chirurgie (gastrectomie totale ou partielle selon la localisation) associée à un curage ganglionnaire et une chimiothérapie péri-opératoire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:20_choice3",
+            "texte": "Helicobacter pylori est le principal facteur de risque identifié dans le développement du cancer de l’estomac",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "L'infection chronique par Helicobacter pylori est le principal facteur de risque étiologique de l'adénocarcinome gastrique (via la cascade de Correa).",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816920:20_choice4",
+            "texte": "une écho-endoscopie gastrique est utile en cas de petite tumeur",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "L'écho-endoscopie est l'examen de référence pour préciser le TNM locorégional (profondeur d'invasion pT et envahissement ganglionnaire N) des tumeurs gastriques précoces ou localisées.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Le cancer de l'estomac est principalement lié à H. pylori, peut révéler par une anémie, se traite par chirurgie curative (gastrectomie avec curage), et l'écho-endoscopie précise l'extension locale.",
+        "statut_verification": "validee"
+      }
+    ]
+  },
+  {
+    "quiz_title": "TCS1",
+    "questions": [
+      {
+        "id": "question-16816922-1",
+        "type_question": "KFP",
+        "enonce": "Situation générale: Un homme de 53 ans se présente aux urgences pour des douleurs abdominales associées à de la fièvre. Dans ses antécédents, vous notés un alcoolisme chronique non sevré, une hypertension artérielle et une cure de hernie inguinale droite. Le patient pèse 102 kg pour une taille de 183 cm (IMC à 35.2 kg/m²). Les constantes à son arrivée sont normales en dehors de la température, mesurée à 38,9 °C. À l’inspection, vous mettez en évidence un ictère cutanéo-muqueux franc. Le malade décrit des urines plus foncées que d'habitude. La palpation abdominale déclenche une douleur en hypochondre droit, sans défense ni contracture.\n\nHypothèse: Si vous pensiez à une angiocholite\nInformation additionnelle: Et qu'alors vous apprenez que la fièvre a précédé l'ictère\nQuestion: L'effet sur l'hypothèse sera…",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816922:1_answer0",
+            "texte": "improbable",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La succession classique de la triade de Charcot dans l'angiocholite est la douleur, puis la fièvre, puis l'ictère. Le fait que la fièvre précède l'ictère est tout à fait compatible et renforce l'hypothèse.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816922:1_answer1",
+            "texte": "peu probable",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Faux, cela renforce au contraire l'hypothèse.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816922:1_answer2",
+            "texte": "ni plus ou moins probable",
+            "reponse_officielle": false,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.8,
+            "explication": "Dans les grilles KFP/TCS Moodle, plusieurs réponses peuvent être partiellement ou totalement cotées par les experts (ici 'probable' a 1 point, 'ni plus ou moins probable' a 0.29).",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816922:1_answer3",
+            "texte": "probable",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "L'angiocholite aiguë se manifeste typiquement par la triade de Charcot (douleur, fièvre, ictère) où la fièvre précède ou accompagne l'ictère en cas d'obstacle sur la voie biliaire principale.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816922:1_answer4",
+            "texte": "certain",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Aucune hypothèse clinique n'est 'certaine' avant l'imagerie ou la confirmation biologique/endoscopique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Dans le cadre d'une suspicion d'angiocholite, la survenue de la fièvre avant l'ictère est l'enchaînement classique de la triade de Charcot, rendant l'hypothèse probable.",
+        "statut_verification": "validee"
+      }
+    ]
+  },
+  {
+    "quiz_title": "TCS2",
+    "questions": [
+      {
+        "id": "question-16816923-1",
+        "type_question": "KFP",
+        "enonce": "Situation générale: Vous recevez en consultation Mme M., 45 ans, pour diarrhée évoluant depuis 6 mois accompagnée d'un amaigrissement de 6 kg.\n\nHypothèse: Si vous pensez à une diarrhée par malabsorption\nInformation additionnelle: Et qu'alors vous apprenez que la patiente décrit des selles pâteuses collant à la cuvette\nQuestion: L'effet sur l'hypothèse sera…",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816923:1_answer0",
+            "texte": "improbable",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Des selles pâteuses, volumineuses, décolorées et collant à la cuvette (stéatorrhée) sont caractéristiques d'une malabsorption des graisses.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816923:1_answer1",
+            "texte": "peu probable",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Faux, c'est un argument en faveur.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816923:1_answer2",
+            "texte": "ni plus ou moins probable",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Faux, l'information modifie grandement la probabilité.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816923:1_answer3",
+            "texte": "probable",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La stéatorrhée (selles pâtes, graisseuses, collantes qui flottent ou collent à la cuvette) associée à un amaigrissement chronique est le signe clinique cardinal d'un syndrome de malabsorption.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816923:1_answer4",
+            "texte": "certain",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.8,
+            "explication": "Dans la notation officielle Moodle de ce type de QCM Key Feature / TCS, la réponse 'certain' a également reçu une pondération partielle par les experts (0.43/1) car la stéatorrhée est quasi-pathognomonique de la malabsorption.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "La description de selles pâteuses collant à la cuvette (stéatorrhée) confirme et rend très probable ou certaine l'hypothèse d'une diarrhée par malabsorption.",
+        "statut_verification": "validee"
+      }
+    ]
+  },
+  {
+    "quiz_title": "DP1",
+    "questions": [
+      {
+        "id": "question-16816921-2",
+        "type_question": "QRU",
+        "enonce": "Quel examen morphologique demandez-vous en première intention ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816921:2_answer0",
+            "texte": "échographie abdominale",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "L'échographie est utile mais moins sensible et spécifique que le scanner pour la diverticulite aiguë et ses complications.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816921:2_answer1",
+            "texte": "scanner abdomino-pelvien injecté",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le scanner abdomino-pelvien avec injection de produit de contraste iodé est l'examen de référence de première intention devant une suspicion de diverticulite sigmoïdienne.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816921:2_answer2",
+            "texte": "coloscopie",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La coloscopie en phase aiguë de diverticulite est formellement contre-indiquée en raison du risque élevé de perforation colique.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816921:2_answer3",
+            "texte": "pet-scan",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le TEP-scan n'a aucune indication en urgence pour une pathologie inflammatoire aiguë diverticulaire.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816921:2_answer4",
+            "texte": "IRM pelvienne",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "L'IRM n'est pas l'examen d'imagerie urgent de première intention en pathologie digestive aiguë.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "L'examen radiologique indispensable de première intention devant une suspicion de diverticulite aiguë est le scanner abdomino-pelvien injecté.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816921-3",
+        "type_question": "QRM",
+        "enonce": "Vous demandez un scanner abdomino-pelvien avec injection de produit de contraste devant une suspicion de diverticulite sigmoïdienne non compliquée. Quels sont les trois signes radiologiques typiques retenus pour poser ce diagnostic ? (3 réponses attendues)",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816921:3_choice0",
+            "texte": "épaississement de la paroi du côlon sigmoïde",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "L'épaississement inflammatoire de la paroi colique au niveau du sigmoïde est un signe clé de la diverticulite.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816921:3_choice1",
+            "texte": "présence d’une collection périsigmoïdienne hypodense avec prise de contraste périphérique",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Une collection périsigmoïdienne définit une forme compliquée (abcès), et non une diverticulite non compliquée.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816921:3_choice2",
+            "texte": "infiltration de la graisse péri-sigmoïdienne",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "L'inflammation de la graisse méso-colique environnante (densification/infiltration de la graisse) traduit l'atteinte loco-régionale.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816921:3_choice3",
+            "texte": "présence de diverticules coliques",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La mise en évidence de multiples diverticules sigmoïdiens est indispensable pour rattacher l'inflammation à une diverticulite.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816921:3_choice4",
+            "texte": "présence d’une thrombose de la veine mésentérique inférieure",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La thrombose mésentérique est une complication exceptionnelle (pyléphlébite/thrombose portomésentérique) et non un signe typique de base d'une forme non compliquée.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Les signes scannographiques d'une diverticulite sigmoïdienne non compliquée associent des diverticules coliques, un épaississement pariétal et une infiltration de la graisse adjacente.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816921-4",
+        "type_question": "QRP/L",
+        "enonce": "Voici une image de ce scanner en coupe axiale et au temps portal. Indiquez les différents éléments suivants :",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816921:4_label0",
+            "texte": "vessie",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La structure liquidienne arrondie pelvienne antérieure correspond à la vessie.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816921:4_label1",
+            "texte": "côlon sigmoïde",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le côlon sigmoïde présente des anomalies pariétales diverticulaires dans le pelvis.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816921:4_label2",
+            "texte": "rectum",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le segment digestif postéro-inférieur pelvien correspond au rectum.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816921:4_label3",
+            "texte": "vaisseaux iliaques externes droits",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Les axes vasculaires iliaques longent la ligne iléo-pectinée à droite.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816921:4_label4",
+            "texte": "utérus",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La structure tissulaire médiane en arrière de la vessie correspond à l'utérus chez cette patiente.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [
+          {
+            "filename": "uness-20260801T062008Z/images/dp1-test-question-16816921-4-1.webp",
+            "accessible_ia": true,
+            "type": "scanner pelvien (coupe axiale)"
+          }
+        ],
+        "correction_globale": "Identification des structures pelviennes anatomiques sur la coupe scannographique (vessie, utérus, sigmoïde, rectum, vaisseaux iliaques).",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816921-5",
+        "type_question": "QRM",
+        "enonce": "Quel(s) va (vont) être l’(les) élément(s) de votre prise en charge chez cette patiente présentant une diverticulite aiguë sigmoïdienne non compliquée?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816921:5_choice0",
+            "texte": "hospitalisation systématique dans un service de chirurgie digestive",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Une diverticulite non compliquée peut souvent être prise en charge en ambulatoire ou en hospitalisation médicale selon le terrain, pas systématiquement en chirurgie.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816921:5_choice1",
+            "texte": "mise en route d’une antibiothérapie orale dirigée contre les germes d’origine digestive pendant une semaine",
+            "reponse_officielle": false,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 0.9,
+            "explication": "Les recommandations actuelles (HMG/SNFGE) indiquent que l'antibiothérapie n'est plus systématique dans les formes non compliquées simples afébriles, mais peut être discutée ; cependant la correction officielle note l'item e comme seule vraie ou l'antibiothérapie n'est pas obligatoire en ambulatoire simple.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816921:5_choice2",
+            "texte": "réalisation d’une coloscopie dans les 48-72 heures",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La coloscopie est différée à distance (à 4-6 semaines de l'épisode aigu) pour éliminer une lésion sous-jacente (cancer colique), et non en urgence à 48-72h.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816921:5_choice3",
+            "texte": "programmation d’un scanner abdomino-pelvien de contrôle dans une semaine",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Il n'y a pas d'indication de scanner de contrôle systématique à 1 semaine en l'absence de complication ou d'évolution péjorative.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816921:5_choice4",
+            "texte": "traitement antalgique, sans anti-inflammatoire non stéroïdien",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Les AINS (et les corticoïdes) sont formellement contre-indiqués dans la diverticulite en raison du risque accru de péritonite et de perforation.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "La prise en charge d'une diverticulite non compliquée repose sur le traitement antalgique en évitant formellement les AINS.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816921-6",
+        "type_question": "QROC",
+        "enonce": "La patiente n’est pas venue à la consultation de chirurgie initialement prévue 2 jours après.\n\nUne semaine après son premier passage aux urgences, Madame D. est amenée par le SAMU pour douleurs abdominales brutales et malaise. À l’arrivée aux urgences à 18h30, vous êtes appelé pour la prendre en charge. À l'interrogatoire rapide, elle présente des douleurs abdominales diffuses, continues, intenses, apparues brutalement le jour même. Il existe une absence d'émission de selles et de gaz depuis 24 heures. \n\nLes constantes à l'admission sont les suivantes : Température : 38,9°C, Pression artérielle : 85/50 mmHg, fréquence cardiaque : 125 bpm, fréquence respiratoire : 24/min, saturation en oxygène : 94% en air ambiant. A l’examen physique, il existe une défense abdominale généralisée prédominante en fosse iliaque gauche et une absence de bruits hydro-aériques.\n\nLes examens biologiques sanguins sont les suivants : Leucocytes : 20 G/L dont 80 % de polynucléaires neutrophiles, hémoglobine : 15 g/dL, plaquettes : 409 G/L, CRP : 240 mg/L (N <5), créatinine : 130 μmol/L (N : 62-106), Lactates sanguins : 3,5 mmol/L (N : 0,5-1,6).\n\nQuel diagnostic suspectez-vous ? (un à deux mots, réponse à mettre en minuscule",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816921:6_prop1",
+            "texte": "péritonite aiguë",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le tableau clinique (douleur abdominale brutale diffuse, défense généralisée, état de choc septique avec lactates à 3,5, hyperleucocytose et CRP très élevée) sur fond de diverticulite compliquée correspond à une péritonite aiguë généralisée (par perforation diverticulaire).",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "L'apparition d'une défense généralisée et d'un choc septique chez cette patiente avec diverticulite signe une péritonite aiguë par perforation.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816921-7",
+        "type_question": "QRP/L",
+        "enonce": "Imagerie de la péritonite aiguë (marquages anatomiques sur scanner en coupe axiale).",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816921:7_label0",
+            "texte": "pneumopéritoine",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Présence de bulles d'air extradigestives sous-phréniques / intrapéritonéales traduisant la perforation d'un viscère creux.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816921:7_label1",
+            "texte": "aorte",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "L'aorte abdominale est visible en position pré-vertébrale.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816921:7_label2",
+            "texte": "angle colique gauche",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "L'angle colique gauche (splénique) est visible en hypochondre gauche.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816921:7_label3",
+            "texte": "estomac",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La poche à air gastrique et le corps de l'estomac sont localisés à gauche.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816921:7_label4",
+            "texte": "rate",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le parenchyme splénique est visible en arrière et à gauche.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [
+          {
+            "filename": "uness-20260801T062008Z/images/dp1-test-question-16816921-7-2.webp",
+            "accessible_ia": true,
+            "type": "scanner abdominal (pneumopéritoine)"
+          }
+        ],
+        "correction_globale": "Le scanner abdominal met en évidence un pneumopéritoine massif associé aux structures anatomiques supérieures.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816921-8",
+        "type_question": "QRM",
+        "enonce": "Parmi les propositions suivantes, laquelle (lesquelles) est (sont) correcte(s) concernant la prise en charge initiale en urgence de cette péritonite aiguë ?",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816921:8_choice0",
+            "texte": "pose de deux voies veineuses périphériques de gros calibre",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "En cas de choc septique sur péritonite, la pose de deux VVP de gros calibre est indispensable pour le remplissage et l'administration des traitements d'urgence.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816921:8_choice1",
+            "texte": "remplissage vasculaire rapide par cristalloïdes",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Le choc septique hypovolémique/distributif nécessite un remplissage vasculaire précoce par cristalloïdes (NaCl 0,9% ou Ringer Lactate).",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816921:8_choice2",
+            "texte": "mise en place d’une sonde urinaire",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La pose d'une sonde urinaire est indispensable pour le monitorage strict de la diurèse horaire chez ce patient en état de choc.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816921:8_choice3",
+            "texte": "antibiothérapie probabiliste à large spectre dès la confirmation clinique ou radiologique",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "L'antibiothérapie IV probabiliste active sur les germes digestifs (bGN, anaérobies, streptocoques) doit être administrée en urgence (dans l'heure) après les hémocultures.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816921:8_choice4",
+            "texte": "envoi en radiologie interventionnelle pour drainage de l’abcès du cul-de-sac de Douglas",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Il ne s'agit pas d'un abcès cloisonné accessible au drainage radiologique, mais d'une péritonite généralisée avec choc septique relevant d'une chirurgie en urgence absolue après conditionnement.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "La prise en charge en urgence d'une péritonite avec choc septique associe conditionnement (VVP, remplissage, sonde urinaire), antibiothérapie probabiliste et chirurgie rapide.",
+        "statut_verification": "validee"
+      },
+      {
+        "id": "question-16816921-9",
+        "type_question": "QRM",
+        "enonce": "Hormis la péritonite d’origine diverticulaire, quelles sont les deux principales causes de péritonite chez l’adulte ? (2 réponses attendues)",
+        "verification_status": "verified",
+        "propositions": [
+          {
+            "id": "q16816921:9_choice0",
+            "texte": "ulcère gastro-duodénal",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La perforation d'un ulcère gastro-duodénal est l'une des causes majeures de péritonite aiguë généralisée (péritonite chimique puis septique).",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816921:9_choice1",
+            "texte": "cholécystite aiguë",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La cholécystite aiguë donne le plus souvent une péritonite localisée (plastron ou abcès sous-hépatique), rarement une péritonite généralisée.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816921:9_choice2",
+            "texte": "syndrome occlusif du grêle sur bride",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Une occlusion sur bride peut se compliquer de strangulation et de nécrose, mais l'appendicite et l'ulcère sont les deux autres étiologies globales classiques de péritonite par perforation.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816921:9_choice3",
+            "texte": "appendicite aiguë",
+            "reponse_officielle": true,
+            "verdict_ia": true,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "La perforation appendiculaire est la cause la plus fréquente de péritonite généralisée chez le sujet jeune et adulte.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          },
+          {
+            "id": "q16816921:9_choice4",
+            "texte": "hernie étranglée",
+            "reponse_officielle": false,
+            "verdict_ia": false,
+            "avis_ia": "valide",
+            "confiance_ia": 1.0,
+            "explication": "Une hernie étranglée nécrosée peut donner une péritonite locale, mais les deux causes principales globales de péritonite par perforation d'organe creux sont l'appendicite et l'ulcère perforé.",
+            "desaccord_officiel": false,
+            "commentaire_desaccord": ""
+          }
+        ],
+        "media": [],
+        "correction_globale": "Hormis la diverticulite, les perforations d'ulcère gastro-duodénal et l'appendicite aiguë perforée sont les causes principales de péritonite.",
+        "statut_verification": "validee"
+      }
+    ]
+  }
+]

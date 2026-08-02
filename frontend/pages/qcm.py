@@ -21,7 +21,7 @@ from backend.core.reviews import local_store
 from backend.core.qcm.service import (
     parse_score, score_bg_classes, score_label,
     is_failed, suggested_severity,
-    PLATFORM_COLORS, QCM_PASS_THRESHOLD, WARN_THRESHOLD,
+    QCM_PASS_THRESHOLD, WARN_THRESHOLD,
 )
 from backend.core.qcm.items_mapping import college_full, item_college_abbr
 from backend.state.store import data_store
@@ -913,138 +913,6 @@ def qcm_page():
         from frontend.pages.qcm_cockpit import render_qcm_cockpit
         render_qcm_cockpit()
         return
-
-        try:
-            with ui.column().classes("w-full gap-5 max-w-5xl mx-auto"):
-
-                # ── Header (bandeau hero) ────────────────────────────────────
-                with ui.element("div").classes("synapse-hero w-full"):
-                    with ui.column().classes("gap-0.5"):
-                        ui.label("QCM").classes(
-                            "text-2xl font-extrabold text-slate-900 dark:text-slate-50 tracking-tight"
-                        )
-                        ui.label("Analyse de tes sessions QCM et erreurs fréquentes").classes(
-                            "text-sm text-slate-500 dark:text-slate-400 mt-0.5"
-                        )
-                    with ui.row().classes("items-center gap-4 shrink-0"):
-                        hero_summary = ui.row().classes(
-                            "items-center gap-3 text-xs text-slate-500 dark:text-slate-400"
-                        )
-                        ui.button(
-                            "+ Ajouter",
-                            icon="add",
-                            on_click=lambda: _open_add_dialog(_rebuild),
-                        ).props("unelevated color=primary rounded").classes(
-                            "font-semibold shrink-0"
-                        )
-
-                # ── Filtres ───────────────────────────────────────────────────
-                _filter = {"platform": None, "days": 0, "failed_only": False}
-                filter_row = ui.row().classes("items-center gap-2 flex-wrap")
-
-                # ── KPI ───────────────────────────────────────────────────────
-                kpi_container = ui.element("div").classes(
-                    "grid grid-cols-1 md:grid-cols-3 gap-4 w-full"
-                )
-
-                # ── Évolution des scores + distribution des erreurs (combo) ───
-                combo_container = ui.element("div").classes("w-full")
-
-                # ── Stats par item groupées par collège ────────────────────────
-                item_stats_container = ui.element("div").classes("w-full")
-
-                # ── Rebuild ───────────────────────────────────────────────────
-
-                def _rebuild():
-                    rows = local_store.get_qcm_sessions_all(
-                        limit=300, platform=_filter["platform"]
-                    )
-                    # Filtre période
-                    if _filter["days"]:
-                        cutoff = (
-                            datetime.date.today()
-                            - datetime.timedelta(days=_filter["days"])
-                        ).isoformat()
-                        rows = [r for r in rows if (r["session_date"] or "") >= cutoff]
-                    # Filtre ratés
-                    if _filter["failed_only"]:
-                        rows = [r for r in rows if is_failed(r["score_percent"])]
-
-                    groups = _compute_groups(rows)
-
-                    _render_hero_summary(hero_summary, rows)
-                    _render_kpi(kpi_container, rows, groups)
-                    _render_combo_card(combo_container, rows)
-                    _render_item_stats(item_stats_container, rows, refresh_fn=_rebuild)
-
-                def _rebuild_filter_row():
-                    filter_row.clear()
-                    with filter_row:
-                        # Période
-                        ui.label("Période").classes(
-                            "text-[11px] text-slate-400 font-semibold uppercase tracking-wide"
-                        )
-                        with ui.element("div").classes("qcm-filter-group"):
-                            for lbl, dv in [("Tout", 0), ("30j", 30), ("7j", 7)]:
-                                active = _filter["days"] == dv
-                                def _set_days(d=dv):
-                                    _filter["days"] = d
-                                    _rebuild_filter_row()
-                                    _rebuild()
-                                with ui.element("div").classes(
-                                    "qcm-filter-chip" + (" active" if active else "")
-                                ).on("click", _set_days):
-                                    ui.label(lbl)
-
-                        ui.element("div").classes(
-                            "w-px h-4 bg-slate-200 dark:bg-slate-700 self-center mx-1"
-                        )
-
-                        # Plateforme
-                        ui.label("Plateforme").classes(
-                            "text-[11px] text-slate-400 font-semibold uppercase tracking-wide"
-                        )
-                        with ui.element("div").classes("qcm-filter-group"):
-                            for lbl, pv in [
-                                ("Tous", None), ("EDNpro", "EDNpro"),
-                                ("Hypocampus", "Hypocampus"),
-                                ("ChatGPT", "ChatGPT"), ("Gemini", "Gemini"),
-                            ]:
-                                active = _filter["platform"] == pv
-                                def _set_plat(p=pv):
-                                    _filter["platform"] = p
-                                    _rebuild_filter_row()
-                                    _rebuild()
-                                with ui.element("div").classes(
-                                    "qcm-filter-chip" + (" active" if active else "")
-                                ).on("click", _set_plat):
-                                    ui.label(lbl)
-
-                        ui.element("div").classes(
-                            "w-px h-4 bg-slate-200 dark:bg-slate-700 self-center mx-1"
-                        )
-
-                        # Ratés
-                        active = _filter["failed_only"]
-                        def _toggle_failed():
-                            _filter["failed_only"] = not _filter["failed_only"]
-                            _rebuild_filter_row()
-                            _rebuild()
-                        with ui.element("div").classes("qcm-filter-group"):
-                            with ui.element("div").classes(
-                                "qcm-filter-chip danger" + (" active" if active else "")
-                            ).on("click", _toggle_failed):
-                                with ui.row().classes("items-center gap-1"):
-                                    ui.icon("warning", size="xs")
-                                    ui.label("Ratés seulement")
-
-                _rebuild_filter_row()
-                _rebuild()
-
-                # ── Notifications import watcher ──────────────────────────────
-        except Exception as e:
-            logger.exception("QCM PAGE ERROR")
-            ui.label(f"Erreur : {e}").classes("text-red-500 font-bold")
 
 
 # ── Dialog : Ajouter résultat QCM ─────────────────────────────────────────────

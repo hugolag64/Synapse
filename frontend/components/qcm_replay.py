@@ -266,6 +266,7 @@ def open_qcm_correction(
 
     with ui.dialog() as dialog, ui.card().classes("w-[860px] max-w-[96vw] p-5"):
         score_text, counts_text = format_correction_summary(summary)
+        ui.label("Barème EDN propositionnel").classes("text-sm font-semibold text-violet-700 dark:text-violet-300")
         ui.label(score_text).classes("text-xl font-semibold")
         ui.label(counts_text).classes("text-sm text-slate-600 dark:text-slate-300 mb-3")
         errors_toggle = ui.checkbox("Afficher uniquement les erreurs", value=False).props("dense")
@@ -326,6 +327,21 @@ def open_qcm_correction(
                         ui.label(f"Explication : {row['explanation']}").classes(
                             "text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap mt-1"
                         )
+                        propositions = row.get("propositions") or []
+                        if propositions:
+                            ui.label("Détail propositionnel EDN").classes(
+                                "text-sm font-semibold text-violet-700 dark:text-violet-300 mt-3"
+                            )
+                            for proposition in propositions:
+                                selected = "Sélectionnée" if proposition.get("selected") else "Non sélectionnée"
+                                expected = "Attendue" if proposition.get("expected") else "Non attendue"
+                                rank = f"Rang {proposition['rank']}" if proposition.get("rank") else "Rang non renseigné"
+                                ui.label(
+                                    f"{proposition.get('proposition_id', '—')} · "
+                                    f"{proposition.get('text') or 'Texte indisponible'} · "
+                                    f"{selected} · {expected} · {rank} · "
+                                    f"{proposition.get('points', 0)} pt · {proposition.get('discordance') or '—'}"
+                                ).classes("text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap")
                         if disagreements:
                             ui.label("Divergence avec la correction officielle UNESS").classes(
                                 "text-sm font-semibold text-amber-800 dark:text-amber-300 mt-2"

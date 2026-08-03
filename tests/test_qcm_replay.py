@@ -303,13 +303,21 @@ def test_qcm_correction_discloses_official_uness_correction(monkeypatch):
     monkeypatch.setattr(qcm_replay, "ui", FakeUI())
     monkeypatch.setattr(qcm_replay.local_store, "get_ai_practice_session_summary", lambda _id: {
         "score_percent": 100, "correct_count": 1, "incorrect_count": 0,
-        "unanswered_count": 0, "latest_attempts": [{"question_id": 7, "response": question["answer"], "is_correct": 1}],
+        "unanswered_count": 0, "score_mode": "edn",
+        "latest_attempts": [{"id": 1, "question_id": 7, "response": question["answer"], "is_correct": 1}],
     })
     monkeypatch.setattr(qcm_replay.local_store, "get_ai_practice_session", lambda _id: [question])
+    monkeypatch.setattr(qcm_replay.local_store, "get_ai_practice_attempt_propositions", lambda _id: [{
+        "proposition_id": "A", "text": "Réponse IA", "selected": 1, "expected": 1,
+        "rank": "A", "points": 1, "discordance": "correct",
+    }])
 
     qcm_replay.open_qcm_correction(4, on_back=lambda: None, on_replay=lambda _id: None)
 
-    assert "Correction officielle UNESS : Réponse officielle" in labels
+    assert any("Correction officielle UNESS" in label for label in labels)
+    assert "Barème EDN propositionnel" in labels
+    assert any("Réponse IA" in label for label in labels)
+    assert any("Sélectionnée" in label and "Attendue" in label and "Rang A" in label for label in labels)
     assert "Divergence avec la correction officielle UNESS" in labels
     assert "Le cours local contredit la correction officielle." in labels
     assert "Source : https://entrainement.uness.example/review/42" in labels

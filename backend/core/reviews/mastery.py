@@ -83,15 +83,14 @@ def get_course_mastery(
     from backend.core.knowledge.models import blend, level_from_seed
 
     seed = get_seed_snapshot(course.id, context)
-    # La couverture OIC ne concerne que les items déclarés (anciens collèges) :
-    # évite une requête lisa_oic par cours pour les ~99% de cours non déclarés.
-    if seed.declared_level is not None:
-        _cov = oic_coverage(course.id)      # une seule lecture, réutilisée pour le badge
-        _oic_coverage_a   = _cov["rang_a_pct"]
-        _has_rang_a_badge = badge_from_coverage(_cov)
-    else:
-        _oic_coverage_a   = 0.0
-        _has_rang_a_badge = False
+    # Couverture OIC calculée pour tout cours (plus seulement les items déclarés) :
+    # sinon un cours réellement évalué sur ses OIC de Rang A voyait sa couverture
+    # ignorée faute de "niveau déclaré" (ancien système collèges), et le verrou
+    # Rang A ci-dessous appliquait une pénalité à l'aveugle.
+    _cov = oic_coverage(course.id)      # une seule lecture, réutilisée pour le badge
+    _oic_coverage_a      = _cov["rang_a_pct"]
+    _has_rang_a_evidence = _cov["rang_a_total"] > 0
+    _has_rang_a_badge    = badge_from_coverage(_cov)
     _extra = {
         "declared_level":   seed.declared_level,
         "oic_coverage_a":   _oic_coverage_a,
@@ -231,7 +230,10 @@ def get_course_mastery(
     score = retention_snapshot.score
 
     # 3b. Calcul dédoublé Rang A / Rang B
-    if _oic_coverage_a > 0:
+    # Le verrou Rang A (utilisé plus bas pour fragile/critique) ne doit s'appliquer
+    # que si le cours a réellement été évalué sur ses OIC de Rang A — sinon
+    # l'absence de mesure serait traitée comme un échec (score_rang_a < 75).
+    if _has_rang_a_evidence:
         score_rang_a = max(0, min(100, round(score * 0.5 + (_oic_coverage_a * 100) * 0.5)))
     else:
         score_rang_a = score

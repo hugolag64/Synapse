@@ -34,6 +34,7 @@ class PracticeSessionSpec:
     open_questions: int = 0
     closed_questions: int = 0
     item_number: str = ""
+    item_numbers: tuple[str, ...] = ()
     course_id: str = ""
     course_title: str = ""
     objective_code: str = ""

@@ -297,7 +297,7 @@ def import_verified_directory(
                 if fingerprint in imported:
                     result["skipped"].append(path.name)
                     continue
-                session_id = import_uness_exam(exam)
+                session_id = import_uness_exam(exam, matiere=annale["matiere"] if annale is not None else "")
                 if annale is not None:
                     local_store.set_session_annale_id(session_id, annale["id"])
                 imported.add(fingerprint)
@@ -581,8 +581,33 @@ def _sanitize_unsupported_questions(exam: UnessExam) -> UnessExam:
     return dataclasses.replace(exam, questions=tuple(sanitized_questions))
 
 
-def import_uness_exam(exam: UnessExam) -> int:
-    """Create one local, replayable practice session from a verified UNESS exam."""
+def _classify_exam_items(exam: UnessExam, matiere: str) -> tuple[str, tuple[str, ...]]:
+    """Détermine le(s) item(s) EDN d'un examen UNESS via classification IA bon
+    marché, bornée aux items candidats de sa matière — entrainement.uness.fr
+    n'expose jamais lui-même de numéro d'item (vérifié en amont du pipeline).
+    Dégrade silencieusement vers "non classifié" (comme avant cette fonction)
+    en cas d'échec réseau/IA plutôt que de bloquer l'import."""
+    from backend.core.uness.item_classifier import classify_exam_items
+
+    effective_matiere = matiere or str(exam.metadata.get("subject", ""))
+    context_text = str(exam.dp_context.get("enonce_general", "")) if exam.dp_context else ""
+    try:
+        result = classify_exam_items(exam.title, effective_matiere, context_text)
+    except Exception as exc:
+        logger.warning(f"_classify_exam_items({exam.title!r}) échoué : {exc}")
+        return "", ()
+    if not result.item_numbers:
+        return "", ()
+    return result.item_numbers[0], result.item_numbers
+
+
+def import_uness_exam(exam: UnessExam, *, matiere: str = "") -> int:
+    """Create one local, replayable practice session from a verified UNESS exam.
+
+    `matiere` : matière qualifiée par l'utilisateur pour l'annale de cet examen
+    (restreint les items candidats de la classification IA). À défaut, retombe
+    sur `exam.metadata["subject"]` (auto-détecté, moins fiable).
+    """
     _assert_no_sensitive_data(exam.to_dict())
     exam = _sanitize_unsupported_questions(exam)
     assert_verified_exam(exam)
@@ -590,6 +615,12 @@ def import_uness_exam(exam: UnessExam) -> int:
         raise ValueError("L'examen UNESS ne contient aucune question importable")
     questions = [_to_practice_question(question, exam) for question in exam.questions]
     closed = sum(question["kind"] is QuestionKind.CLOSED for question in questions)
+
+    item_number = _session_value(exam, "item_number")
+    item_numbers: tuple[str, ...] = (item_number,) if item_number else ()
+    if not item_number:
+        item_number, item_numbers = _classify_exam_items(exam, matiere)
+
     spec = PracticeSessionSpec(
         practice_kind=_practice_kind(exam),
         total_questions=len(questions),
@@ -597,7 +628,8 @@ def import_uness_exam(exam: UnessExam) -> int:
         closed_questions=closed,
         course_id=_session_value(exam, "course_id"),
         course_title=exam.title,
-        item_number=_session_value(exam, "item_number"),
+        item_number=item_number,
+        item_numbers=item_numbers,
         difficulty=PracticeDifficulty.EDN,
     )
     return local_store.create_ai_practice_session(spec=spec, questions=questions, model="uness-verified-local")

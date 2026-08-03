@@ -217,6 +217,18 @@ def init_db() -> None:
             FOREIGN KEY (session_id) REFERENCES ai_practice_sessions(id) ON DELETE CASCADE,
             FOREIGN KEY (question_id) REFERENCES ai_practice_questions(id) ON DELETE RESTRICT
         );
+        -- ── Items multiples d'une même session (DP transverses) ─────────────
+        -- ai_practice_sessions.item_number reste l'item principal (rétro-
+        -- compatible) ; cette table liste TOUS les items qu'une session touche,
+        -- pour que chacun bénéficie de l'évidence (cf. get_ai_practice_sessions).
+        CREATE TABLE IF NOT EXISTS ai_practice_session_items (
+            session_id          INTEGER NOT NULL,
+            item_number         TEXT NOT NULL,
+            PRIMARY KEY (session_id, item_number),
+            FOREIGN KEY (session_id) REFERENCES ai_practice_sessions(id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_ai_practice_session_items_item
+            ON ai_practice_session_items(item_number);
         CREATE INDEX IF NOT EXISTS idx_ai_practice_session
             ON ai_practice_session_questions(session_id, position);
         CREATE INDEX IF NOT EXISTS idx_ai_practice_item
@@ -1426,6 +1438,15 @@ def create_ai_practice_session(*, spec, questions: list[dict], model: str) -> in
                 "INSERT INTO ai_practice_session_questions(session_id, question_id, position) VALUES (?,?,?)",
                 (session_id, int(cur.lastrowid), position),
             )
+        item_numbers = tuple(dict.fromkeys(
+            n for n in (spec.item_numbers or ((spec.item_number,) if spec.item_number else ()))
+            if n
+        ))
+        for item_number in item_numbers:
+            con.execute(
+                "INSERT OR IGNORE INTO ai_practice_session_items(session_id, item_number) VALUES (?,?)",
+                (session_id, item_number),
+            )
     return session_id
 
 
@@ -1755,12 +1776,58 @@ def replay_ai_practice_session(session_id: int) -> int:
     return new_id
 
 
+def set_ai_practice_session_items(session_id: int, item_number: str, item_numbers) -> None:
+    """Renseigne item_number après-coup sur une session déjà importée (session +
+    ses questions) et remplace intégralement sa liste multi-items — utilisé par
+    le script de rattrapage (scripts/backfill_uness_item_numbers.py) et par la
+    passe de correction des classifications sur-larges
+    (scripts/refine_uness_overbroad_items.py). Remplace plutôt qu'accumule :
+    une reclassification doit pouvoir corriger une liste trop large, pas
+    l'étendre."""
+    with _conn() as con:
+        con.execute("UPDATE ai_practice_sessions SET item_number = ? WHERE id = ?", (item_number, session_id))
+        con.execute(
+            """UPDATE ai_practice_questions SET item_number = ?
+               WHERE id IN (SELECT question_id FROM ai_practice_session_questions WHERE session_id = ?)""",
+            (item_number, session_id),
+        )
+        con.execute("DELETE FROM ai_practice_session_items WHERE session_id = ?", (session_id,))
+        for n in dict.fromkeys(x for x in item_numbers if x):
+            con.execute(
+                "INSERT OR IGNORE INTO ai_practice_session_items(session_id, item_number) VALUES (?,?)",
+                (session_id, n),
+            )
+
+
+def get_item_numbers_with_dp_session() -> set[str]:
+    """Items EDN ayant déjà au moins un DP (item principal OU secondaire d'un
+    DP transverse) — sert à repérer les items qui n'ont encore aucun cas
+    personnalisé, pour les créer manuellement plutôt qu'à l'aveugle."""
+    with _conn() as con:
+        rows = con.execute(
+            """SELECT item_number FROM ai_practice_sessions
+               WHERE practice_kind = 'DP' AND TRIM(COALESCE(item_number, '')) != ''
+               UNION
+               SELECT i.item_number FROM ai_practice_session_items i
+               JOIN ai_practice_sessions s ON s.id = i.session_id
+               WHERE s.practice_kind = 'DP'"""
+        ).fetchall()
+    return {row["item_number"] for row in rows}
+
+
 def get_ai_practice_sessions(*, item_number: str = "", course_id: str = "", limit: int = 50) -> list:
-    """Retourne les sessions IA, plus récentes en premier."""
+    """Retourne les sessions IA, plus récentes en premier.
+
+    `item_number` matche à la fois l'item principal (colonne historique) et
+    tout item secondaire d'un DP transverse (table ai_practice_session_items) —
+    un DP tagué sur les items 218 et 334 compte comme évidence pour les deux.
+    """
     clauses, params = [], []
     if item_number:
-        clauses.append("item_number = ?")
-        params.append(item_number)
+        clauses.append(
+            "(item_number = ? OR id IN (SELECT session_id FROM ai_practice_session_items WHERE item_number = ?))"
+        )
+        params.extend((item_number, item_number))
     if course_id:
         clauses.append("course_id = ?")
         params.append(course_id)

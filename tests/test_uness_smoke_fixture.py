@@ -121,3 +121,63 @@ def test_geriatry_fixture_normalizes_verifies_and_imports_one_explained_session(
     assert all(proposition["explication_ia"] for proposition in questions[0]["uness"]["propositions"])
     assert all(proposition.explication_ia in questions[0]["explanation"] for proposition in propositions)
     assert round_tripped.to_dict() == verified.to_dict()
+
+
+def test_import_uness_exam_tags_item_number_from_ai_classification(
+    tmp_path, monkeypatch
+) -> None:
+    """entrainement.uness.fr never exposes an item number itself (only matière) —
+    `import_uness_exam` must fill it in via classification when metadata carries
+    none, and record every item of a multi-item DP, not just the primary one."""
+    monkeypatch.setattr(import_service, "ARTIFACT_DIR", tmp_path / "artifacts")
+    monkeypatch.setattr(
+        import_service, "_classify_exam_items", lambda exam, matiere: ("221", ("221", "223"))
+    )
+    artifact = RawUnessArtifact(
+        source_url="https://entrainement.uness.fr/annales/course/view.php?id=29999",
+        html_by_content={"nutrition": FIXTURE.read_text(encoding="utf-8")},
+        media=[RawMedia("images/courbe-poids.png", VALID_PNG, "image/png", 1)],
+        collected_at="2026-07-30T09:15:00+02:00",
+        collection_status="complete",
+        artifact_root=tmp_path / "artifacts",
+    )
+    metadata = ExamMetadata(
+        faculte="Université Paris Cité", niveau="DFASM3", matiere="Cardiovasculaire",
+        type_epreuve="Annale", annee=2026, titre="Cas cardiovasculaire",
+        source_url=artifact.source_url,
+    )
+    normalized = normalize_artifact(artifact, metadata)
+    verified = verify_exam(
+        normalized, VerificationContext("Critères locaux.", ["124"], []), FixtureAIService(),
+    )
+
+    session_id = import_uness_exam(verified, matiere="Cardiovasculaire ❤️")
+
+    session = local_store.get_ai_practice_sessions(limit=10)[0]
+    questions = local_store.get_ai_practice_session(session_id)
+    with local_store._conn() as con:
+        linked_items = {
+            row["item_number"]
+            for row in con.execute(
+                "SELECT item_number FROM ai_practice_session_items WHERE session_id = ?",
+                (session_id,),
+            )
+        }
+
+    assert session["item_number"] == "221"
+    assert linked_items == {"221", "223"}
+    assert all(question["item_number"] == "221" for question in questions)
+
+    # Une session dont l'item est déjà connu (ex: provenance en amont) ne doit
+    # jamais être reclassée — garde-fou de coût le plus élémentaire.
+    calls: list = []
+    monkeypatch.setattr(
+        import_service, "_classify_exam_items",
+        lambda exam, matiere: calls.append(1) or ("999", ("999",)),
+    )
+    import dataclasses
+    already_tagged = dataclasses.replace(
+        verified, metadata={**verified.metadata, "item_number": "500"}
+    )
+    import_uness_exam(already_tagged, matiere="Cardiovasculaire ❤️")
+    assert not calls

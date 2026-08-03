@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from backend.core.ai.gemini_client import GeminiClient
-from backend.core.ai.routing import AIImageContent, AIResponse, AITask
+from backend.core.ai.routing import AIImageContent, AIModel, AIResponse, AITask
 from backend.core.ai.service import AIService
 
 
@@ -64,6 +64,27 @@ def generate_uness_correction(
     return (service or _default_service()).generate(
         task, prompt, response_format="json", images=images, context=context
     )
+
+
+def classify_item(
+    prompt: str, *, service: AIService | None = None, force_model: AIModel | None = None
+) -> AIResponse:
+    """Détermine le(s) item(s) EDN concernés par une annale/question, parmi une
+    liste de candidats fournie dans le prompt. Modèle bon marché (flash-lite)
+    par défaut — tâche de classification courte, pas de génération de contenu
+    médical.
+
+    `force_model` court-circuite le routage habituel (utile pour une passe de
+    correction ciblée avec le modèle Flash, plus fiable sur les longues listes
+    de candidats — flash-lite a tendance à recopier toute la liste au lieu de
+    discriminer)."""
+    svc = service or _default_service()
+    if force_model is not None:
+        return svc.client.generate(
+            prompt, force_model, response_format="json",
+            task_name=str(AITask.ITEM_CLASSIFICATION), context=None,
+        )
+    return svc.generate(AITask.ITEM_CLASSIFICATION, prompt, response_format="json")
 
 
 @dataclass(frozen=True)

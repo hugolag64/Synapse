@@ -15,6 +15,7 @@ class AITask(StrEnum):
     EXTRACTION_GRILLE = "extraction_grille"
     UNESS_CORRECTION = "uness_correction"
     UNESS_CORRECTION_VISUAL = "uness_correction_visual"
+    ITEM_CLASSIFICATION = "item_classification"
     SCORE = "score"
 
 
@@ -60,6 +61,9 @@ def model_for_task(task: AITask | str, difficulty=None) -> AIModel:
     difficulty_value = getattr(difficulty, "value", difficulty)
     if difficulty_value in {"difficile", "concours"}:
         return AIModel.FLASH
-    if normalized in (AITask.OIC, AITask.QCM, AITask.ECOS_SIMPLE, AITask.UNESS_CORRECTION):
+    if normalized in (
+        AITask.OIC, AITask.QCM, AITask.ECOS_SIMPLE, AITask.UNESS_CORRECTION,
+        AITask.ITEM_CLASSIFICATION,
+    ):
         return AIModel.FLASH_LITE
     return AIModel.FLASH

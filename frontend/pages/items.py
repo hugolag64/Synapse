@@ -188,6 +188,7 @@ def items_page(request: Request) -> None:
                 next_by_course[t.course_id] = t
 
         qcm_trends = local_store.get_qcm_latest_by_course()
+        dp_item_numbers = local_store.get_item_numbers_with_dp_session()
         rows = []
         for c in courses:
             sessions = sessions_map.get(c.id, [])
@@ -196,6 +197,7 @@ def items_page(request: Request) -> None:
                 (c.id in qcm_done_set),
             )
             qcm_info = qcm_trends.get(c.id, {})
+            item_num = str(c.item_number or "").strip()
             rows.append({
                 "course": c,
                 "mastery_score": mastery.score,
@@ -206,6 +208,7 @@ def items_page(request: Request) -> None:
                 "next_task": next_by_course.get(c.id),
                 "sessions": sessions,
                 "overdue": c.id in urgent_ids,
+                "has_dp": bool(item_num) and item_num in dp_item_numbers,
             })
         return _sort_item_rows(rows, filt["sort"])
 
@@ -217,6 +220,8 @@ def items_page(request: Request) -> None:
             return [r for r in rows if r["mastery_level"] in ("fragile", "critique")]
         if mode == "overdue":
             return [r for r in rows if r["overdue"]]
+        if mode == "no_dp":
+            return [r for r in rows if not r["has_dp"]]
         return rows
 
     def _draw_topbar() -> None:
@@ -254,6 +259,7 @@ def items_page(request: Request) -> None:
                     _chip(college_param, "college")
                 _chip("Fragile / critique", "fragile")
                 _chip("En retard", "overdue")
+                _chip("Sans DP", "no_dp")
 
             if filt["mode"] == "college" and college_param:
                 ui.label(f"Filtré sur {college_param}").classes("it-filter-hint")

@@ -449,6 +449,10 @@ class ReviewService:
                 "maîtrisé":       -10,
             }
             score += mastery_bonus.get(mastery.level, 0)
+            
+            # Boost "Sprint Rang A" : priorité absolue sur le socle indispensable non sécurisé
+            if mastery.score_rang_a is not None and mastery.score_rang_a < 75:
+                score += 35.0
 
         # F4 — Stage-Aware Boost
         if active_stage:

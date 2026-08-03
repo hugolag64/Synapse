@@ -69,14 +69,119 @@ def _case_status(item_numbers: tuple[str, ...]) -> tuple[str, str]:
 def parse_practice_bank(payload: Any) -> ImportBatch:
     if isinstance(payload, (bytes, bytearray)):
         payload = payload.decode("utf-8")
+    
+    # Si le texte brut contient plusieurs blocs JSON distincts collés ou à la suite { ... } \n { ... }
     if isinstance(payload, str):
+        payload_str = payload.strip()
         try:
-            payload = json.loads(payload)
-        except json.JSONDecodeError as exc:
-            raise ImportValidationError("Le fichier d'import n'est pas un JSON valide") from exc
-    if not isinstance(payload, dict) or payload.get("version") != 1:
-        raise ImportValidationError("Le format d'import attendu est JSON version 1")
-    raw_cases = payload.get("cases")
+            payload = json.loads(payload_str)
+        except json.JSONDecodeError:
+            # Recherche de tous les objets JSON valides dans le texte avec un parser incrémental
+            decoder = json.JSONDecoder()
+            idx = 0
+            found_objects = []
+            while idx < len(payload_str):
+                payload_str = payload_str[idx:].lstrip()
+                if not payload_str:
+                    break
+                try:
+                    obj, end_idx = decoder.raw_decode(payload_str)
+                    found_objects.append(obj)
+                    idx = end_idx
+                except json.JSONDecodeError:
+                    break
+            
+            if len(found_objects) > 1:
+                all_cases = []
+                for sub_obj in found_objects:
+                    try:
+                        sub_batch = parse_practice_bank(sub_obj)
+                        all_cases.extend(sub_batch.cases)
+                    except Exception:
+                        continue
+                if all_cases:
+                    return ImportBatch(source="Import Multi-DP IA", cases=tuple(all_cases))
+            
+            raise ImportValidationError("Le fichier d'import n'est pas un JSON valide")
+    # Cas où le payload contient plusieurs objets JSON collés bout à bout {obj1}{obj2}
+    if isinstance(payload, str) and payload.strip().startswith("{") and "}{" in payload:
+        raw_text = payload.strip()
+        raw_chunks = re.findall(r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}", raw_text)
+        all_cases = []
+        for chunk in raw_chunks:
+            try:
+                sub_batch = parse_practice_bank(chunk)
+                all_cases.extend(sub_batch.cases)
+            except Exception:
+                continue
+        if all_cases:
+            return ImportBatch(source="Import Multi-DP IA", cases=tuple(all_cases))
+
+    # Cas où le payload est une liste d'examens/DP
+    if isinstance(payload, list):
+        all_cases = []
+        for sub_item in payload:
+            try:
+                sub_batch = parse_practice_bank(sub_item)
+                all_cases.extend(sub_batch.cases)
+            except Exception:
+                continue
+        if all_cases:
+            return ImportBatch(source="Import Liste DP IA", cases=tuple(all_cases))
+
+    # Conversion support format UNESS / DP IA (schema_version ou metadata/questions/dp_context)
+    if isinstance(payload, dict) and ("questions" in payload or "dp_context" in payload):
+        title = payload.get("title", "Import DP")
+        dp_ctx = payload.get("dp_context", {})
+        stem = dp_ctx.get("enonce_general", payload.get("stem", "Énoncé du cas"))
+        raw_qs = payload.get("questions", [])
+        
+        parsed_qs = []
+        for q_idx, q in enumerate(raw_qs, start=1):
+            prompt = q.get("enonce", q.get("prompt", f"Question {q_idx}"))
+            explic = q.get("explication_ia", q.get("explanation", ""))
+            
+            # Reconstruction des propositions et de la bonne réponse
+            props = q.get("propositions", [])
+            choices = []
+            correct_answers = []
+            for p in props:
+                p_id = str(p.get("id", "")).upper()
+                p_txt = p.get("texte", "")
+                choices.append(f"{p_id}. {p_txt}")
+                if p.get("reponse_uness", p.get("verdict_ia", False)):
+                    correct_answers.append(p_id)
+            
+            ans_str = ", ".join(correct_answers) if correct_answers else q.get("answer", "Vrai")
+            parsed_qs.append(ImportedQuestion(
+                prompt=prompt,
+                answer=ans_str,
+                explanation=explic,
+                choices=tuple(choices)
+            ))
+            
+        subj = payload.get("metadata", {}).get("subject", "")
+        item_num = payload.get("metadata", {}).get("item_number", "")
+        item_numbers = (str(item_num),) if item_num else _item_numbers(None, title, stem)
+        status, review_reason = _case_status(item_numbers)
+        
+        canonical = json.dumps({"kind": "dp", "title": title, "stem": stem}, sort_keys=True, ensure_ascii=False)
+        case = ImportedCase(
+            fingerprint=hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+            external_id=f"dp-{hashlib.sha1(canonical.encode('utf-8')).hexdigest()[:12]}",
+            kind="dp",
+            title=title,
+            stem=stem,
+            item_numbers=item_numbers,
+            questions=tuple(parsed_qs),
+            status=status,
+            review_reason=review_reason
+        )
+        return ImportBatch(source=str(payload.get("faculty") or "Import UNESS/IA").strip(), cases=(case,))
+
+    if not isinstance(payload, dict) or (payload.get("version") != 1 and "cases" not in payload):
+        raise ImportValidationError("Le format d'import attendu est JSON version 1 ou un format d'examen UNESS/DP")
+    raw_cases = payload.get("cases", [payload] if "kind" in payload else [])
     if not isinstance(raw_cases, list) or not raw_cases:
         raise ImportValidationError("Le fichier doit contenir au moins un cas")
 

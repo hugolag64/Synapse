@@ -82,7 +82,8 @@ export function Reader({ payload, onCorrection }: { payload: SessionPayload; onC
   const [index, setIndex] = useState(0)
   const [answers, setAnswers] = useState(payload.answers)
   const [busy, setBusy] = useState(false)
-  const [examMode, setExamMode] = useState(false)
+  const isExamParam = new URLSearchParams(window.location.search).get('exam') === '1'
+  const [examMode, setExamMode] = useState(isExamParam)
   
   // Mode Concours / Chronomètre (ex: 2 min par question par défaut)
   const totalSeconds = useMemo(() => payload.questions.length * 120, [payload.questions.length])
@@ -144,14 +145,20 @@ export function Reader({ payload, onCorrection }: { payload: SessionPayload; onC
   return <main className="reader-page">
     <Header onExit />
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '8px 0' }}>
-      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#a0a0ab' }}>
-        <input
-          type="checkbox"
-          checked={examMode}
-          onChange={(e) => setExamMode(e.target.checked)}
-        />
-        <span>Activer le mode Concours Blanc (Chronomètre & épreuve fermée)</span>
-      </label>
+      {isExamParam ? (
+        <span style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.08em', color: '#e5484d', textTransform: 'uppercase', background: '#ffeef0', padding: '4px 10px', borderRadius: '6px' }}>
+          🔒 Mode Examen Blanc — Anti-Retour Actif
+        </span>
+      ) : (
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#a0a0ab' }}>
+          <input
+            type="checkbox"
+            checked={examMode}
+            onChange={(e) => setExamMode(e.target.checked)}
+          />
+          <span>Activer le mode Concours Blanc (Chronomètre & épreuve fermée)</span>
+        </label>
+      )}
       {examMode && (
         <div className="timer-bar" style={{ margin: 0 }}>
           <span className="timer-label">⏱ CHRONO</span>
@@ -159,9 +166,9 @@ export function Reader({ payload, onCorrection }: { payload: SessionPayload; onC
         </div>
       )}
     </div>
-    <div className="reader-kicker">SESSION QCM · ITEM {payload.session.item_number || '—'}</div>
-    <h1>{payload.session.course_title || 'Session QCM'}</h1>
-    <p className="reader-subtitle">Réponds aux questions, puis consulte ta correction détaillée.</p>
+    <div className="reader-kicker">{isExamParam ? 'CONCOURS BLANC' : 'SESSION QCM'} · ITEM {payload.session.item_number || '—'}</div>
+    <h1>{payload.session.course_title || 'Session Examen'}</h1>
+    <p className="reader-subtitle">{isExamParam ? 'Réponds à chaque question dans l’ordre sans possibilité de retour en arrière.' : 'Réponds aux questions, puis consulte ta correction détaillée.'}</p>
     <div className="progress-line"><span style={{ width: `${((index + 1) / payload.questions.length) * 100}%` }} /></div>
     <div className="reader-meta">Question {index + 1} sur {payload.questions.length}</div>
     <section className="question-card">
@@ -190,7 +197,12 @@ export function Reader({ payload, onCorrection }: { payload: SessionPayload; onC
         </>
       )}
     </section>
-    <footer className="reader-actions"><button className="button secondary" onClick={() => index && setIndex(index - 1)} disabled={!index}>Précédente</button><button className="button primary" onClick={next} disabled={busy}>{index === payload.questions.length - 1 ? 'Corriger mes réponses' : 'Suivante'}</button></footer>
+    <footer className="reader-actions">
+      {!isExamParam && (
+        <button className="button secondary" onClick={() => index && setIndex(index - 1)} disabled={!index}>Précédente</button>
+      )}
+      <button className="button primary" onClick={next} disabled={busy}>{index === payload.questions.length - 1 ? 'Valider et terminer l’épreuve' : 'Valider & Question suivante 🔒'}</button>
+    </footer>
   </main>
 }
 

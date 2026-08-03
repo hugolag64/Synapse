@@ -58,7 +58,7 @@ _NAV_GROUPS = [
         ("◫", "Semestres", "/semestres", None),
         ("≡", "Items",     "/items",     None),
         ("✓", "QCM",       "/qcm",       None),
-        ("▧", "Annales",   "/annales",   ("dynamic_count", "uness_failures")),
+        ("▧", "Épreuves & Annales", "/annales", ("dynamic_count", "uness_failures")),
         ("⚑", "Points faibles", "/lacunes", ("dot", "warning")),
     ]),
     ("Analyse", [
@@ -76,7 +76,8 @@ _TITLE_TO_NAV = {
     "Dashboard": "Aujourd'hui", "Tableau de Bord": "Aujourd'hui",
     "Planning": "Planning",
     "Suivi Quotidien": "Révisions",
-    "Collèges": "Collèges", "Semestres": "Semestres", "QCM": "QCM", "Annales": "Annales",
+    "Collèges": "Collèges", "Semestres": "Semestres", "QCM": "QCM",
+    "Annales": "Épreuves & Annales", "Épreuves & Annales": "Épreuves & Annales",
     "Lacunes": "Points faibles", "Points faibles": "Points faibles", "Fiche cours": "Aujourd'hui",
     "Ma Progression": "Statistiques", "Stats": "Statistiques",
     "Statistiques": "Statistiques", "Externat": "Externat",

@@ -27,6 +27,15 @@ _ANNALES_CSS = """
 .ans-card-sub { font-size:12px; color:var(--text-muted); margin-top:2px; }
 .ans-card-meta { font-size:11.5px; color:var(--text-dim); margin-top:4px; }
 .ans-empty { padding:36px 10px; text-align:center; color:var(--text-dim); font-size:13px; }
+
+@keyframes ansFadeIn {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.ans-view-animated { animation: ansFadeIn 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards !important; }
+.ans-tab-btn { color: var(--text-muted); transition: all 150ms ease; }
+.ans-tab-btn:hover { color: var(--text); background: var(--surface-hover); }
+.ans-tab-btn.active { color: var(--text); background: var(--bg); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
 """
 
 
@@ -463,30 +472,55 @@ def _open_import_dialog(refresh_fn) -> None:
 def annales_page() -> None:
     ui.add_head_html(f"<style>{_ANNALES_CSS}</style>", shared=True)
 
-    with frame("Annales"):
+    with frame("Épreuves & Annales"):
         with ui.column().classes("ans-wrap gap-0").style("flex:1 1 auto;"):
+            view_mode = {"current": "annales"}
+
             def _toggle_exam_mode(val: bool) -> None:
                 data_store.preferences["exam_mode"] = bool(val)
                 data_store.save_to_disk()
-                _render()
+                _render_active_view()
 
-            with ui.element("div").classes("ans-topbar"):
-                with ui.column().classes("gap-0"):
-                    ui.label("Annales UNESS").classes("ans-title")
-                    ui.label("Partiels et examens importés, regroupés par sujet").classes("ans-subtitle")
-                with ui.row().classes("items-center gap-2"):
+            def _switch_view(mode_val: str):
+                view_mode["current"] = mode_val
+                _render_active_view()
+
+            with ui.element("div").classes("ans-topbar border-b border-zinc-200 dark:border-zinc-800 pb-4 mb-4"):
+                with ui.column().classes("gap-1"):
+                    ui.label("Épreuves & Annales UNESS").classes("text-xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight")
+                    ui.label("Catalogue des partiels UNESS et simulateur d'examens en conditions EDN.").classes("text-xs text-zinc-500 dark:text-zinc-400")
+
+                with ui.row().classes("items-center gap-3"):
+                    with ui.row().classes("bg-zinc-100 dark:bg-zinc-800/80 p-1 rounded-md border border-zinc-200 dark:border-zinc-700 gap-1"):
+                        btn_cat = ui.button(
+                            "📚 Catalogue",
+                            on_click=lambda _e=None: _switch_view("annales")
+                        ).props("flat dense no-caps")
+                        
+                        btn_exam = ui.button(
+                            "⏱️ Examens Blancs",
+                            on_click=lambda _e=None: _switch_view("exam")
+                        ).props("flat dense no-caps")
+
                     exam_mode_switch = ui.switch(
-                        "Mode Concours Blanc",
+                        "Anti-Biais",
                         value=bool(data_store.preferences.get("exam_mode", False)),
                         on_change=lambda e: _toggle_exam_mode(e.value),
                     ).props("dense color=primary").tooltip("Masque les scores passés pour s'entraîner sans biais")
-                    ui.button(
-                        "+ IMPORTER UNE ANNALES",
-                        icon="add",
-                        on_click=lambda: _open_import_dialog(refresh_fn=_render),
-                    ).props("unelevated color=primary size=sm")
 
+                    ui.button(
+                        "Importer un partiel",
+                        icon="upload",
+                        on_click=lambda: _open_import_dialog(refresh_fn=_render_active_view),
+                    ).props("unelevated color=primary size=sm").classes("rounded-md font-semibold")
+
+            view_container = ui.column().classes("w-full ans-view-animated")
             failures_column = ui.column().classes("w-full")
+
+            def _update_tab_styles():
+                is_exam = view_mode["current"] == "exam"
+                btn_cat.classes(replace="ans-tab-btn active" if not is_exam else "ans-tab-btn")
+                btn_exam.classes(replace="ans-tab-btn active" if is_exam else "ans-tab-btn")
 
             def _render_failures() -> None:
                 failures_column.clear()
@@ -526,83 +560,97 @@ def annales_page() -> None:
                                     "flat dense size=sm color=primary"
                                 )
 
-            _render_failures()
+            def _render_active_view():
+                from frontend.pages.exam_simulator_page import render_exam_simulator_page
+                _update_tab_styles()
+                view_container.clear()
+                failures_column.clear()
+                with view_container:
+                    with ui.column().classes("w-full ans-view-animated"):
+                        if view_mode["current"] == "exam":
+                            render_exam_simulator_page()
+                        else:
+                            _render_failures()
+                            _render_annales_catalog()
 
-            all_rows = _filtered_annales()
-            if not all_rows:
-                ui.label("Aucune annale importée pour le moment.").classes("ans-empty")
-                return
+            def _render_annales_catalog():
+                all_rows = _filtered_annales()
+                if not all_rows:
+                    ui.label("Aucune annale importée pour le moment.").classes("ans-empty")
+                    return
 
-            matieres = _distinct_values(all_rows, "matiere")
-            facultes = _distinct_values(all_rows, "faculte")
-            annees = sorted({int(row["annee"]) for row in all_rows if row.get("annee")})
+                matieres = _distinct_values(all_rows, "matiere")
+                facultes = _distinct_values(all_rows, "faculte")
+                annees = sorted({int(row["annee"]) for row in all_rows if row.get("annee")})
 
-            with ui.element("div").classes("ans-filters"):
-                search = ui.input(placeholder="Recherche…").props("outlined dense clearable").classes("w-56")
-                matiere_filter = ui.select(
-                    {"": "Toutes matières", **{m: m for m in matieres}}, value=""
-                ).props("outlined dense").classes("w-52")
-                faculte_filter = ui.select(
-                    {"": "Toutes facultés", **{f: f for f in facultes}}, value=""
-                ).props("outlined dense").classes("w-56")
-                annee_filter = ui.select(
-                    {"": "Toutes années", **{str(a): str(a) for a in annees}}, value=""
-                ).props("outlined dense").classes("w-40")
-                type_filter = ui.select(
-                    {"": "Tous types", **ANNALE_TYPE_LABELS}, value=""
-                ).props("outlined dense").classes("w-44")
+                with ui.element("div").classes("ans-filters"):
+                    search = ui.input(placeholder="Recherche…").props("outlined dense clearable").classes("w-56")
+                    matiere_filter = ui.select(
+                        {"": "Toutes matières", **{m: m for m in matieres}}, value=""
+                    ).props("outlined dense").classes("w-52")
+                    faculte_filter = ui.select(
+                        {"": "Toutes facultés", **{f: f for f in facultes}}, value=""
+                    ).props("outlined dense").classes("w-56")
+                    annee_filter = ui.select(
+                        {"": "Toutes années", **{str(a): str(a) for a in annees}}, value=""
+                    ).props("outlined dense").classes("w-40")
+                    type_filter = ui.select(
+                        {"": "Tous types", **ANNALE_TYPE_LABELS}, value=""
+                    ).props("outlined dense").classes("w-44")
 
-            rows_column = ui.column().classes("ans-list")
+                rows_column = ui.column().classes("ans-list")
 
-            def _render() -> None:
-                rows_column.clear()
-                rows = _filtered_annales(
-                    query=str(search.value or ""),
-                    matiere=str(matiere_filter.value or ""),
-                    faculte=str(faculte_filter.value or ""),
-                    annee=int(annee_filter.value) if annee_filter.value else None,
-                    type_annale=str(type_filter.value or ""),
-                )
-                rows = [r for r in rows if r["type_annale"] != "vrai_concours"]
-                with rows_column:
-                    if not rows:
-                        ui.label("Aucune annale ne correspond à ces filtres.").classes("ans-empty")
-                        return
-                    for row in rows:
-                        annale_id = int(row["id"])
-                        total = int(row["total_parts"] or 0)
-                        completed = int(row["completed_parts"] or 0)
-                        avg_score = row.get("avg_score")
-                        score_label = "—" if avg_score is None else f"{float(avg_score):.0f} %"
-                        with ui.element("div").classes("ans-card"):
-                            with ui.row().classes("w-full items-center justify-between gap-4"):
-                                with ui.column().classes("gap-0 min-w-0 flex-1"):
-                                    ui.label(str(row["titre"] or row["matiere"] or "Annale")).classes("ans-card-title truncate")
-                                    ui.label(
-                                        f"{row['matiere'] or '—'} · {row['faculte'] or '—'} · {row['annee'] or '—'} · "
-                                        f"{ANNALE_TYPE_LABELS.get(row['type_annale'], row['type_annale'])}"
-                                    ).classes("ans-card-sub")
-                                    is_exam_mode = bool(data_store.preferences.get("exam_mode", False))
-                                    meta_text = (
-                                        "Mode Concours Blanc (Scores et progression masqués)"
-                                        if is_exam_mode
-                                        else f"{completed}/{total} sous-parties terminées · Score moyen : {score_label}"
-                                    )
-                                    ui.label(meta_text).classes("ans-card-meta")
-                                with ui.row().classes("gap-2 items-center shrink-0"):
-                                    ui.button(
-                                        icon="delete_outline",
-                                        on_click=lambda _e=None, aid=annale_id, t=row["titre"]: _confirm_delete(
-                                            aid, str(t), on_deleted=_render
-                                        ),
-                                    ).props("flat dense round color=negative").tooltip("Supprimer l'annale")
-                                    ui.button(
-                                        "Ouvrir",
-                                        icon="chevron_right",
-                                        on_click=lambda _e=None, aid=annale_id: ui.navigate.to(f"/annales/{aid}"),
-                                    ).props("flat color=primary size=sm")
+                def _render_list() -> None:
+                    rows_column.clear()
+                    rows = _filtered_annales(
+                        query=str(search.value or ""),
+                        matiere=str(matiere_filter.value or ""),
+                        faculte=str(faculte_filter.value or ""),
+                        annee=int(annee_filter.value) if annee_filter.value else None,
+                        type_annale=str(type_filter.value or ""),
+                    )
+                    rows = [r for r in rows if r["type_annale"] != "vrai_concours"]
+                    with rows_column:
+                        if not rows:
+                            ui.label("Aucune annale ne correspond à ces filtres.").classes("ans-empty")
+                            return
+                        for row in rows:
+                            annale_id = int(row["id"])
+                            total = int(row["total_parts"] or 0)
+                            completed = int(row["completed_parts"] or 0)
+                            avg_score = row.get("avg_score")
+                            score_label = "—" if avg_score is None else f"{float(avg_score):.0f} %"
+                            with ui.element("div").classes("ans-card"):
+                                with ui.row().classes("w-full items-center justify-between gap-4"):
+                                    with ui.column().classes("gap-0 min-w-0 flex-1"):
+                                        ui.label(str(row["titre"] or row["matiere"] or "Annale")).classes("ans-card-title truncate")
+                                        ui.label(
+                                            f"{row['matiere'] or '—'} · {row['faculte'] or '—'} · {row['annee'] or '—'} · "
+                                            f"{ANNALE_TYPE_LABELS.get(row['type_annale'], row['type_annale'])}"
+                                        ).classes("ans-card-sub")
+                                        is_exam_mode = bool(data_store.preferences.get("exam_mode", False))
+                                        meta_text = (
+                                            "Mode Concours Blanc (Scores et progression masqués)"
+                                            if is_exam_mode
+                                            else f"{completed}/{total} sous-parties terminées · Score moyen : {score_label}"
+                                        )
+                                        ui.label(meta_text).classes("ans-card-meta")
+                                    with ui.row().classes("gap-2 items-center shrink-0"):
+                                        ui.button(
+                                            icon="delete_outline",
+                                            on_click=lambda _e=None, aid=annale_id, t=row["titre"]: _confirm_delete(
+                                                aid, str(t), on_deleted=_render_list
+                                            ),
+                                        ).props("flat dense round color=negative").tooltip("Supprimer l'annale")
+                                        ui.button(
+                                            "Ouvrir",
+                                            icon="chevron_right",
+                                            on_click=lambda _e=None, aid=annale_id: ui.navigate.to(f"/annales/{aid}"),
+                                        ).props("flat color=primary size=sm")
 
-            for control in (search, matiere_filter, faculte_filter, annee_filter, type_filter):
-                control.on_value_change(lambda _e=None: _render())
-            _render()
+                for control in (search, matiere_filter, faculte_filter, annee_filter, type_filter):
+                    control.on_value_change(lambda _e=None: _render_list())
+                _render_list()
+
+            _render_active_view()
 

@@ -1,9 +1,12 @@
+"""
+semestres.py — Redirection Cockpit.
+"""
 from nicegui import ui
-from frontend.theme import frame
 from backend.state.store import data_store
+from frontend.theme import frame
 
-@ui.page('/semestres')
-@frame('Semestres')
+
+
 def semestres_page():
     if not data_store.is_loaded:
         ui.label("Chargement des données...").classes("text-slate-500")

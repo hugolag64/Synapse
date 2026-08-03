@@ -38,14 +38,68 @@ from frontend.components.qcm_replay import (
 from frontend.components.qcm_replay import (
     session_action_keys as _session_action_keys,
 )
-from frontend.pages.qcm import (
-    _ADD_DIALOG_CSS,
-    _build_item_college_map,
-    _compute_groups,
-    _open_add_dialog,
-)
+from frontend.components.course_quick_actions import _open_quick_qcm_dialog
 
 QCM_ENTRY_LABEL = "Saisir un résultat"
+
+def _build_item_college_map() -> dict[str, set[str]]:
+    college_map: dict[str, set[str]] = {}
+    for course in getattr(data_store, "cours", []) or []:
+        item_number = str(getattr(course, "item_number", "") or "").strip()
+        if not item_number:
+            continue
+        colleges = getattr(course, "college", None) or []
+        college_map.setdefault(item_number, set()).update(colleges)
+    return college_map
+
+
+def _compute_groups(rows: list) -> list[dict]:
+    groups_dict: dict[str, dict] = {}
+    college_map = _build_item_college_map()
+
+    for r in rows:
+        row_dict = dict(r) if hasattr(r, "keys") or not isinstance(r, dict) else r
+        c_id = row_dict["course_id"]
+        title = row_dict["course_title"]
+        score = row_dict["score_percent"]
+        item_num = row_dict.get("item_number") or ""
+
+        if c_id not in groups_dict:
+            groups_dict[c_id] = {
+                "course_id": c_id,
+                "course_title": title,
+                "item_number": item_num,
+                "college": list(college_map.get(item_num, set())),
+                "sessions": [],
+                "last_score": None,
+                "avg_score": None,
+                "fail_count": 0,
+            }
+
+        g = groups_dict[c_id]
+        g["sessions"].append(r)
+        if score is not None:
+            if score < 50:
+                g["fail_count"] += 1
+
+    for g in groups_dict.values():
+        g["session_count"] = len(g["sessions"])
+        scores = [(s["score_percent"] if isinstance(s, dict) or hasattr(s, "__getitem__") else getattr(s, "score_percent", None)) for s in g["sessions"]]
+        scores = [sc for sc in scores if sc is not None]
+        if scores:
+            g["last_score"] = scores[0]
+            g["avg_score"] = round(sum(scores) / len(scores), 1)
+
+    return list(groups_dict.values())
+
+
+def _open_add_dialog(refresh_fn) -> None:
+    courses = getattr(data_store, "cours", []) or []
+    if not courses:
+        ui.notify("Aucun cours disponible", type="warning")
+        return
+    _open_quick_qcm_dialog(courses[0], refresh_fn)
+
 HISTORY_STATUS_OPTIONS = {
     "all": "Toutes",
     "pending": "À faire",
@@ -261,7 +315,7 @@ _CSS = """
 }
 """
 
-QCM_COCKPIT_CSS = _CSS + _ADD_DIALOG_CSS
+QCM_COCKPIT_CSS = _CSS
 
 
 def render_qcm_cockpit() -> None:
@@ -348,7 +402,8 @@ def render_qcm_cockpit() -> None:
         avg = g["avg_score"]
         pct = int(round(avg)) if avg is not None else 0
         color = _LEVEL_COLOR.get(_level_from_score(avg if avg is not None else None), "var(--text-muted)")
-        college = college_map.get(g["item_number"], "")
+        raw_college = college_map.get(g["item_number"], "")
+        college = " · ".join(sorted(raw_college)) if isinstance(raw_college, (set, list)) else str(raw_college or "")
         sub = " · ".join(x for x in [college, f"{g['session_count']} session{'s' if g['session_count'] != 1 else ''}"] if x)
 
         with ui.element("div").classes("qc-row"):

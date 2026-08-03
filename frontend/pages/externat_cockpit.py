@@ -59,6 +59,58 @@ def _fmt_date(d: datetime.date) -> str:
     return f"{d.day:02d} {_MONTHS_FR[d.month - 1]}"
 
 
+def _open_stage_dialog(refresh_fn=None) -> None:
+    """Modale de création/configuration d'un stage d'externat."""
+    from backend.core.externat import store as externat_store
+    from backend.state.store import data_store
+
+    state = {
+        "specialty": "",
+        "college_notion": "",
+        "start_date": datetime.date.today().isoformat(),
+        "end_date": (datetime.date.today() + datetime.timedelta(days=90)).isoformat(),
+        "objectives": "",
+    }
+    colleges = sorted(list({c for course in getattr(data_store, "cours", []) or [] for c in (getattr(course, "college", None) or [])}))
+
+    with ui.dialog() as dlg, ui.card().classes("w-[500px] max-w-[94vw] p-5 rounded-xl"):
+        ui.label("Nouveau Stage d'Externat").classes("text-base font-bold mb-1")
+        ui.label("Configure le stage et associe un collège médical pour filtrer tes révisions.").classes("text-xs text-slate-400 mb-4")
+
+        ui.input(placeholder="Intitulé du stage (ex: Cardiologie, Urgences…)", on_change=lambda e: state.update({"specialty": e.value})).classes("w-full mb-3").props("outlined dense")
+        
+        if colleges:
+            ui.select(options=colleges, value=colleges[0], label="Collège rattaché", on_change=lambda e: state.update({"college_notion": e.value})).classes("w-full mb-3").props("outlined dense")
+
+        with ui.row().classes("w-full gap-2 mb-3"):
+            ui.input(label="Date début", value=state["start_date"], on_change=lambda e: state.update({"start_date": e.value})).classes("flex-1").props("outlined dense type=date")
+            ui.input(label="Date fin", value=state["end_date"], on_change=lambda e: state.update({"end_date": e.value})).classes("flex-1").props("outlined dense type=date")
+
+        ui.input(placeholder="Objectifs pédagogiques du stage…", on_change=lambda e: state.update({"objectives": e.value})).classes("w-full mb-4").props("outlined dense autogrow rows=2")
+
+        def _save() -> None:
+            if not state["specialty"].strip():
+                ui.notify("Indique au moins l'intitulé du stage", type="warning")
+                return
+            externat_store.create_stage(
+                specialty=state["specialty"].strip(),
+                start_date=state["start_date"],
+                end_date=state["end_date"],
+                college_notion=state["college_notion"],
+                objectives=state["objectives"].strip(),
+            )
+            dlg.close()
+            ui.notify("Stage créé avec succès ✓", type="positive")
+            if refresh_fn:
+                refresh_fn()
+
+        with ui.row().classes("w-full justify-end gap-2"):
+            ui.button("Annuler", on_click=dlg.close).props("flat color=grey")
+            ui.button("Enregistrer", on_click=_save).props("unelevated color=primary")
+
+    dlg.open()
+
+
 def render_externat_cockpit() -> None:
     ui.add_head_html(f"<style>{_CSS}</style>", shared=True)
 
@@ -69,7 +121,6 @@ def render_externat_cockpit() -> None:
             with ui.column().classes("gap-0"):
                 ui.label("Externat").classes("ex-title")
                 ui.label("Stages cliniques · items rattachés").classes("ex-subtitle")
-            from frontend.pages.externat import _open_stage_dialog
             ui.button("+ Nouveau stage", on_click=lambda: _open_stage_dialog(ui.navigate.reload)).props(
                 "unelevated size=sm"
             ).style(

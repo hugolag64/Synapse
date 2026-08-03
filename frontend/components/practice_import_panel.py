@@ -47,18 +47,26 @@ def open_practice_import_dialog(refresh=None, item_number: str = "") -> None:
 
         async def _on_upload(event) -> None:
             try:
-                raw = await event.file.read()
+                if hasattr(event, "content"):
+                    raw = event.content.read()
+                elif hasattr(event, "file"):
+                    raw = await event.file.read()
+                else:
+                    raw = b""
+
                 try:
                     batch = parse_practice_bank(raw)
                 except ImportValidationError:
-                    batch = parse_practice_discussion(raw, source=event.file.name)
-            except (ImportValidationError, UnicodeDecodeError) as exc:
+                    batch = parse_practice_discussion(raw, source=getattr(event, "name", "Import"))
+            except (ImportValidationError, UnicodeDecodeError, Exception) as exc:
                 pending["batch"] = None
                 status.set_text(f"Import refusé : {exc}")
                 preview.clear()
                 return
+            
             pending["batch"] = batch
-            status.set_text(f"Fichier chargé : {event.file.name}")
+            file_name = getattr(event, "name", None) or getattr(getattr(event, "file", None), "name", "fichier")
+            status.set_text(f"✅ Fichier prêt : {file_name}")
             _show_preview(batch)
 
         ui.upload(on_upload=_on_upload, auto_upload=True).props("accept=.json,.txt,.md,.html color=primary")

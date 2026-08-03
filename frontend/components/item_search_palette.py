@@ -110,7 +110,10 @@ def open_item_search_palette() -> None:
                             ui.label(colleges).classes("item-search-college truncate")
 
     def _on_change(event) -> None:
-        state["query"] = event.value or ""
+        val = getattr(event, "value", None)
+        if val is None and hasattr(event, "args"):
+            val = event.args
+        state["query"] = str(val or "")
         state["selected"] = 0
         _render()
 

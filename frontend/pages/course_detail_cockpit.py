@@ -503,10 +503,6 @@ def render_item_cockpit(course_id: str) -> None:
                     ui.label("↗ Obsidian")
                 _obs.on("click", lambda: obsidian_service.open_course_note(course))
 
-            _obs_quick = ui.element("div").classes("ci-btn primary")
-            with _obs_quick:
-                ui.label("💡 + Mnémo / Image")
-            _obs_quick.on("click", lambda c=course: open_obsidian_quick_edit_dialog(c, lambda: ui.navigate.reload()))
 
             _context_open = ui.label("Contexte").classes("ci-context-open")
             _context_open.on("click", lambda: open_drawer(drawer_state["root"]) if drawer_state["root"] else None)
@@ -519,9 +515,11 @@ def render_item_cockpit(course_id: str) -> None:
             t_qcm = ui.tab("Entraînement")
             t_lac = ui.tab("Lacunes")
             t_oic = ui.tab("OIC")
+            t_pod = ui.tab("🎙️ Podcast")
             t_hist = ui.tab("Historique")
 
         oic_controller = None
+        podcast_loaded = False
         with ui.tab_panels(tabs, value=t_over, animated=False).classes("ci-panels w-full"):
             with ui.tab_panel(t_over):
                 _tab_overview(course, task, score, level, next_due, next_cycle,
@@ -549,15 +547,30 @@ def render_item_cockpit(course_id: str) -> None:
                     course_ids=oic_course_ids,
                     auto_load=False,
                 )
+            with ui.tab_panel(t_pod):
+                pod_container = ui.element("div").classes("w-full py-4 flex flex-col items-center justify-center")
+                with pod_container:
+                    ui.spinner(size="md", color="indigo").classes("my-6")
+
             with ui.tab_panel(t_hist):
                 _tab_history(sessions, qcm_sessions, lacunes, review_hist)
 
         async def _on_tab_change(event) -> None:
+            nonlocal podcast_loaded
             active = getattr(event, "value", event)
-            if oic_controller and should_load_on_tab_activation(active, oic_controller.loaded):
+            active_name = getattr(active, "text", active) if not isinstance(active, str) else active
+            if oic_controller and should_load_on_tab_activation(active_name, oic_controller.loaded):
                 await oic_controller.load()
+            if (active == t_pod or active_name == "🎙️ Podcast") and not podcast_loaded:
+                podcast_loaded = True
+                await _load_podcast_tab(course, pod_container)
 
         tabs.on_value_change(lambda event: asyncio.ensure_future(_on_tab_change(event)))
+        
+        # Si l'onglet initial est le podcast
+        if tabs.value == t_pod or getattr(tabs.value, "text", "") == "🎙️ Podcast":
+            podcast_loaded = True
+            ui.timer(0.05, lambda: _load_podcast_tab(course, pod_container), once=True)
 
     with panel:
         def _close_context() -> None:
@@ -694,7 +707,22 @@ def _tab_note(course, obs_path, obs_configured: bool, item_label: str) -> None:
         btn.on("click", lambda: asyncio.create_task(_create()))
         return
 
-    ui.label(str(obs_path)).classes("ci-path")
+    with ui.row().classes("w-full items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800"):
+        with ui.column().classes("gap-0 min-w-0 flex-1"):
+            ui.label("NOTE OBSIDIAN").classes("text-[10px] font-mono uppercase tracking-widest text-slate-400 font-semibold")
+            ui.label(str(obs_path)).classes("ci-path truncate m-0 p-0 text-xs text-slate-500")
+
+        with ui.row().classes("items-center gap-2 shrink-0"):
+            _btn_mnemo = ui.button("💡 + Mnémo / Image", icon="add").props(
+                "unelevated size=sm color=indigo"
+            ).classes("text-xs font-semibold no-caps rounded-lg")
+            _btn_mnemo.on("click", lambda c=course: open_obsidian_quick_edit_dialog(c, lambda: ui.navigate.reload()))
+
+            _btn_open = ui.button("Ouvrir dans Obsidian", icon="open_in_new").props(
+                "outline size=sm color=grey-8"
+            ).classes("text-xs font-medium no-caps rounded-lg")
+            _btn_open.on("click", lambda: obsidian_service.open_course_note(course))
+
     try:
         raw = obs_path.read_text(encoding="utf-8")
     except OSError as exc:
@@ -984,17 +1012,32 @@ def _review_anchor(row) -> None:
 
 
 def _tab_history(sessions, qcm_sessions, lacunes, review_hist) -> None:
-    # ── Historique Pédagogique & Typologie des Erreurs (QCM, DP, Annales UNESS) ──
-    with ui.element("div").classes("mb-6 p-4 rounded-xl bg-slate-900/60 border border-slate-800"):
-        ui.label("🎯 Historique Pédagogique & Typologie des Erreurs").classes("text-sm font-bold text-indigo-300 mb-2")
-        ui.label("Erreurs enregistrées par catégorie pour cet item (Annales UNESS, QCM, DP IA)").classes("text-xs text-slate-400 mb-4")
+    # ── Typologie des Erreurs de l'Item ──
+    cat_counts: dict[str, int] = {}
+    for l in lacunes:
+        cat = _row_get(l, "category") or _row_get(l, "weak_category")
+        if cat and str(cat).strip():
+            c_name = str(cat).strip()
+            cat_counts[c_name] = cat_counts.get(c_name, 0) + 1
 
-        with ui.row().classes("gap-2 mb-4"):
-            ui.chip("🛑 Rang A", color="red").props("outline dense")
-            ui.chip("⚠️ Piège EDN", color="orange").props("outline dense")
-            ui.chip("🔍 Diag Diff", color="indigo").props("outline dense")
-            ui.chip("⏱️ Temps", color="slate").props("outline dense")
+    with ui.column().classes("w-full gap-3 mb-6 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30"):
+        with ui.row().classes("w-full items-center justify-between"):
+            with ui.row().classes("items-center gap-2"):
+                ui.icon("analytics", size="xs").classes("text-indigo-500")
+                ui.label("TYPOLOGIE DES ERREURS").classes("text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400")
+            ui.label(f"{sum(cat_counts.values())} erreur(s) enregistrée(s)").classes("text-[11px] font-mono text-slate-400")
 
+        if cat_counts:
+            with ui.row().classes("gap-2 flex-wrap pt-1"):
+                for cat, count in cat_counts.items():
+                    with ui.row().classes("items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800/40"):
+                        ui.label(cat)
+                        ui.label(str(count)).classes("font-mono text-[10px] px-1 bg-rose-200/50 dark:bg-rose-800/50 rounded")
+        else:
+            with ui.row().classes("gap-2 flex-wrap pt-1 opacity-70"):
+                ui.label("Aucune erreur catégorisée (Rang A, Piège EDN, Diag Diff) sur cet item pour le moment.").classes("text-xs text-slate-400 italic")
+
+    # ── Timeline Chronologique (Style Linear) ──
     events: list[dict] = []
 
     for s in sessions:
@@ -1014,17 +1057,20 @@ def _tab_history(sessions, qcm_sessions, lacunes, review_hist) -> None:
         if not d:
             continue
         raw = _row_get(q, "score_raw") or (
-            f"{_row_get(q, 'score_percent')} %" if _row_get(q, "score_percent") else "—"
+            f"{_row_get(q, 'score_percent')} %" if _row_get(q, "score_percent") is not None else "—"
         )
         events.append({"date": d, "badge": "QCM",
-                       "detail": f"{raw} · {_row_get(q, 'platform', '?')}", "dur": ""})
+                       "detail": f"Score {raw} · {_row_get(q, 'platform', 'Synapse')}", "dur": ""})
 
     for l in lacunes:
         d = str(_row_get(l, "created_at", "") or "")[:10]
         if not d:
             continue
+        cat = _row_get(l, "category") or _row_get(l, "weak_category")
+        det = str(_row_get(l, "detail", "") or "")[:60]
+        label = f"[{cat}] {det}" if cat else det
         events.append({"date": d, "badge": "LACUNE",
-                       "detail": str(_row_get(l, "detail", "") or "")[:60], "dur": ""})
+                       "detail": label, "dur": ""})
 
     for r in review_hist:
         if _row_get(r, "status") != "done":
@@ -1040,13 +1086,71 @@ def _tab_history(sessions, qcm_sessions, lacunes, review_hist) -> None:
         return
 
     events.sort(key=lambda e: e["date"], reverse=True)
-    for ev in events[:25]:
-        with ui.element("div").classes("ci-hist"):
-            ui.label(_fmt_date(ev["date"])).classes("ci-hist-date")
-            ui.label(ev["badge"]).classes("ci-hist-badge")
-            ui.label(ev["detail"]).classes("ci-hist-detail")
-            if ev["dur"]:
-                ui.label(ev["dur"]).classes("ci-hist-dur")
+    with ui.column().classes("w-full gap-0 pt-2"):
+        ui.label("ACTIVITÉ RÉCENTE").classes("text-[10px] font-mono uppercase tracking-widest text-slate-400 font-semibold mb-3 px-1")
+        for ev in events[:30]:
+            with ui.element("div").classes("ci-hist"):
+                ui.label(_fmt_date(ev["date"])).classes("ci-hist-date")
+                ui.label(ev["badge"]).classes("ci-hist-badge")
+                ui.label(ev["detail"]).classes("ci-hist-detail")
+                if ev["dur"]:
+                    ui.label(ev["dur"]).classes("ci-hist-dur")
+
+
+
+async def _load_podcast_tab(course, container: ui.element) -> None:
+    """Charge et affiche les épisodes du podcast L'EXTERNE rattachés à cet item."""
+    from backend.core.podcast.podcast_service import get_episodes_for_item
+    
+    item_num = getattr(course, "item_number", None) or getattr(course, "display_item_number", None) or ""
+    item_num = str(item_num).strip()
+
+    try:
+        episodes = await asyncio.to_thread(get_episodes_for_item, item_num)
+    except Exception as exc:
+        episodes = []
+        logger.warning(f"Erreur chargement podcast pour item {item_num}: {exc}")
+
+    container.clear()
+    with container:
+        if not episodes:
+            with ui.column().classes("w-full py-12 items-center justify-center text-center rounded-lg border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20"):
+                ui.icon("podcasts", size="md").classes("mb-2 text-slate-400 opacity-60")
+                ui.label(f"Aucun épisode du podcast « L'EXTERNE » pour l'Item {item_num or '—'}").classes("text-xs font-semibold text-slate-600 dark:text-slate-400")
+                ui.label("Synchronisé automatiquement via le flux RSS.").classes("text-[11px] text-slate-400 mt-0.5")
+            return
+
+        with ui.column().classes("w-full gap-3 py-1"):
+            with ui.row().classes("w-full items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800/60"):
+                with ui.row().classes("items-center gap-2"):
+                    ui.icon("graphic_eq", size="xs").classes("text-indigo-500")
+                    ui.label("Podcast « L'EXTERNE »").classes("text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400")
+                ui.label(f"{len(episodes)} épisode{'s' if len(episodes) > 1 else ''}").classes("text-[11px] font-mono text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded")
+
+            for ep in episodes:
+                with ui.element("div").classes(
+                    "w-full p-4 rounded-xl border border-slate-200 dark:border-slate-800 "
+                    "bg-white dark:bg-slate-900 shadow-sm flex flex-col gap-3 transition-all hover:border-indigo-300 dark:hover:border-indigo-800"
+                ):
+                    with ui.row().classes("w-full justify-between items-start gap-3"):
+                        with ui.column().classes("gap-1 flex-1 min-w-0"):
+                            ui.label(ep.title).classes("text-sm font-semibold text-slate-800 dark:text-slate-100 leading-snug")
+                            with ui.row().classes("items-center gap-3 text-xs text-slate-500 dark:text-slate-400 font-mono"):
+                                if ep.pub_date:
+                                    ui.label(f"📅 {ep.pub_date}")
+                                if ep.duration:
+                                    ui.label(f"⏱️ {ep.duration}")
+
+                        if ep.link:
+                            ui.link("↗ Anchor", ep.link, new_tab=True).classes(
+                                "text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline shrink-0"
+                            )
+
+                    # Lecteur Audio NiceGUI Native
+                    with ui.row().classes("w-full items-center pt-1"):
+                        ui.audio(ep.audio_url).classes("w-full h-10 rounded-lg")
+
+
 
 
 # ── Panneau droit ─────────────────────────────────────────────────────────────
@@ -1094,5 +1198,14 @@ def _render_panel(course, lacunes, has_pdf: bool, obs_path) -> None:
         if fiche:
             ui.link("↗ Fiche EDN", fiche, new_tab=True).classes("ci-p-link")
             any_res = True
+
+        item_num = str(course.display_item_number or course.item_number or "").strip()
+        clean_num = item_num.replace("ITEM", "").strip()
+        ui.link("↗ Fiche EDNpro (LiSA 2.0)", f"https://ednpro.app/fiches?tab=lisa2&item={clean_num}", new_tab=True).classes("ci-p-link")
+        any_res = True
+
         if not any_res:
             ui.label("— aucune ressource liée").classes("ci-p-empty")
+
+
+

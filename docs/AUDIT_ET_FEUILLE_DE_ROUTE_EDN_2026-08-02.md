@@ -1,7 +1,8 @@
 # Synapse — Audit du Codebase & Feuille de Route d'Excellence EDN
 
-**Date** : 2 août 2026  
-**Objectif** : Analyse complète du logiciel Synapse et définition des améliorations et nouvelles fonctionnalités nécessaires pour maximiser la préparation à l'EDN (Examen Dématérialisé National).
+**Date d'origine** : 2 août 2026  
+**Dernière mise à jour** : 2 août 2026  
+**Objectif** : Analyse complète du logiciel Synapse, suivi de l'avancement et définition des améliorations nécessaires pour maximiser la préparation à l'EDN (Examen Dématérialisé National).
 
 ---
 
@@ -30,126 +31,82 @@ Pour garantir le **meilleur classement possible aux EDN**, le système doit rép
 - **Liaison Obsidian Bidirectionnelle** : Conservation du vault Markdown personnel avec intégration via `frontmatter` (`notion_id`, `synapse_id`).
 
 ### ⚠️ Points de Vigilance et Dette Technique
-1. **Coexistence Cockpit vs Vues Historiques** :
-   - Présence simultanée de pages standard et `_cockpit` (`todo.py` / `todo_cockpit.py`, `planning.py` / `planning_cockpit.py`).
-   - *Action requise* : Unifier définitivement le routage et nettoyer les composants doublons.
-2. **Enforcement de la Canonicalité des Items (CONTEXT.md)** :
-   - Un Item EDN canonique (ex: *Item 221 - Asthme*) peut apparaître dans plusieurs collèges (Pneumologie, Pédiatrie).
-   - *Action requise* : Veiller à ce que l'ensemble des tentatives QCM, lacunes et notes Obsidian soient rattachés à l'identifiant canonique de l'Item.
-3. **Résilience et Quotas Notion** :
-   - Prévoir un mode dégradé 100% offline à partir du cache SQLite si l'API Notion est indisponible ou limitée en quota.
+1. **Coexistence Cockpit vs Vues Historiques** : [🟡 PARTIEL]
+   - Vues Cockpit actives. Il reste à purger le code mort legacy post-return (~3 600 lignes).
+2. **Enforcement de la Canonicalité des Items (CONTEXT.md)** : [🟢 FAIT]
+   - Canonicalisation par `item_number` rattachée sur toutes les tentatives QCM, lacunes et notes Obsidian.
+3. **Résilience et Quotas Notion** : [🟡 PARTIEL]
+   - Cache SQLite réactif opérationnel. Backoff/retry sur client Notion en finition.
 
 ---
 
-## 3. Amélioration des Fonctionnalités Existantes
+## 3. État d'Avancement des Améliorations Existantes
 
-### A. Dédoublement de la Maîtrise : Rang A vs Rang B
-- **Problème** : Le score de maîtrise actuel (0-100) mélange toutes les notions d'un cours.
-- **Détection Automatique du Rang (Annales, QCM AI, OIC, Obsidian)** :
-  1. **Annales UNESS Officielles** : Extraction du rang (A ou B) depuis les métadonnées officielles des questions ou classification automatique par rapprochement avec l'intitulé LiSA/OIC de Rang A.
-  2. **QCM / DP / KFP Générés par IA** : Le moteur de génération IA accepte une consigne de rang (ex: `"Mode Rang A strict"` ou `"Mode Rang B approfondi"`) et étiquette chaque question générée avec son rang exact.
-  3. **Balises Obsidian & Callouts** : Parsing Regex des notes Markdown (`> [!RANG-A]`, `> [!RANG-B]`, `#rangA`, `#rangB`).
-- **Solution** : Splitter la mesure de maîtrise dans `mastery.py` :
-  - **Score Rang A (%)** : Objectif strict = 100% (Verrouillage de sécurité).
-  - **Score Rang B (%)** : Indicateur de compétition.
-- **Règle algorithmique** : Le moteur de recommandation priorise les révisions Rang A tant que ce dernier est jugé *fragile* ou *critique*.
+### A. Dédoublement de la Maîtrise : Rang A vs Rang B [🟢 FAIT]
+- **Mesure dédoublée (`mastery.py`)** : `score_rang_a` (%) et `score_rang_b` (%) calculés et mis à jour.
+- **Sécurité Rang A stricte** : Si `score_rang_a < 75%`, l'item est automatiquement bloqué en niveau `fragile` ou `critique`, interdisant le niveau `solide`/`maîtrisé`.
+- **Mode "Sprint Rang A" (`service.py`)** : Injection automatique d'un boost de **+35 points de priorité** sur les révisions dont le Rang A est sous 75%.
+- **Étiquetage IA des QCM / DP (`tasks.py`)** : Prise en charge des consignes `rank="A"` et `rank="B"` avec obligation pour le modèle de tagger chaque question.
+- **Affichage Dual-Rank (`mastery_indicator.py`)** : Composant `dual_rank_badges()` affichant côte à côte `[🛡️ A: XX%]` et `[🎖️ B: YY%]`.
 
-### B. Algorithme de Rétention Hybride (SM-2 + FSRS-4.5)
-- Ajustement dynamique de la stabilité et de la répétition espacée en fonction du nombre de jours restant avant la date du concours EDN.
-- Resserrement automatique des fenêtres de révision à l'approche du Jour J (Mode Sprint).
+### B. Algorithme de Rétention Hybride (SM-2 + FSRS-4.5) [🟢 FAIT]
+- Moteur FSRS/SM-2 hybride opérationnel avec calcul de rétention exponentielle et fenêtres de révision dynamique.
 
-### C. Diagnostic Fin & Historique des Erreurs dans la Vue ITEM (QCM, DP & Annales)
-- **Détection & Classification Automatique** : Lors de la correction d'une Annale ou d'un QCM/DP, le système catégorise automatiquement l'erreur (et permet un ajustement rapide) :
-  - 🛑 **Erreur de Rang A (Signal Rouge)** : Inconnaissance d'un indispensable / Zéro à la question.
-  - ⚠️ **Erreur de lecture / Piège classique** : Confusion 1ère intention vs 2nde intention, contre-indication.
-  - 🔍 **Lacune de diagnostic différentiel**.
-  - ⏱️ **Erreur de gestion du temps**.
-- **Centralisation dans la Vue Cockpit ITEM** :
-  - Ajout d'une section dédiée **"🎯 Historique Pédagogique & Typologie des Erreurs"** dans la page ITEM.
-  - Consultation et filtrage de tout l'historique d'entraînement (QCM, DP, Annales UNESS) par type d'erreur et par rang (A vs B).
-  - Possibilité de rejouer en 1 clic uniquement les questions ratées pour cause de *Piège* ou d'*Erreur de Rang A*.
+### C. Diagnostic Fin & Historique des Erreurs dans la Vue ITEM [🟢 FAIT]
+- Historiographie centralisée des tentatives (`local_store.get_item_pedagogical_history`).
+- Tagging et catégorisation des erreurs (*Erreur de Rang A*, *Piège*, *Lecture*, *Temps*).
 
-### D. Synchronisation Obsidian Enrichie (Extraction, Images & Édition Directe)
-- **Extraction Automatique** : Affichage des blocs d'ancrage issus des notes Obsidian (`> [!MNEMO]`, `## 6. Pièges EDN`, `> [!ALGO]`) dans le viewer de fiches et la modale de feedback.
-- **Édition Directe & Support des IMAGES depuis Synapse** :
-  - Boutons d'action rapide `+ Moyen Mnémotechnique`, `+ Piège EDN` ou `+ Schéma / Image`.
-  - **Prise en charge des Images** : Glisser-déposer, collage depuis le presse-papier ou sélection d'image (ECG, radio, schéma, tableau).
-  - Synapse copie automatiquement l'image dans le dossier de pièces jointes du Vault Obsidian (ex: `99 - Pièces jointes/`) et insère la syntaxe `![[image.png]]` directement dans la section du fichier `.md`.
-  - Rendu visuel immédiat dans le viewer Synapse et synchronisation fluide dans Obsidian.
+### D. Synchronisation Obsidian Enrichie (Images & Édition Directe) [🟢 FAIT]
+- **Service Obsidian (`service.py`)** : Synchronisation bidirectionnelle, mapping Notion/Vault, liens `obsidian://`.
+- **Édition Rapide & Images (`obsidian_quick_edit_dialog.py`)** : Ajout en 1 clic de mnémotechniques (`💡`), pièges EDN (`⚠️`) et upload/collage d'images enregistrées dans `99 - Pièces jointes/`.
 
-### E. Intégration du Podcast « L'Externe » dans la Vue ITEM
-
-- **Source** : flux RSS `https://anchor.fm/s/db4f429c/podcast/rss` — podcast **« L'EXTERNE »**, un épisode par item ECN/EDN.
-- **Format des titres (vérifié sur le flux réel)** : `Episode {N} - {Titre du sujet} (item {numéro})`, ex. *"Episode 122 - Addiction au tabac (item 75)"*. Le numéro d'item est donc directement extractible par regex (`\(item (\d+)\)`), et le titre du sujet correspond de près à l'intitulé canonique EDN de l'item (utilisable pour une vérification/fuzzy-match de confiance via le même mécanisme que `item_title()` / `difflib.SequenceMatcher` déjà utilisé pour le rapprochement Obsidian et la dédup de cours dans `backend/state/store.py::_deduplicate_cours`).
-- **Objectif** : à l'ouverture d'une fiche ITEM, si un épisode correspondant existe, l'afficher (lecteur audio intégré + lien direct) — sans navigation supplémentaire, sur le même principe que l'onglet **OIC** déjà présent dans `frontend/pages/course_detail_cockpit.py` (onglets actuels : Vue d'ensemble · Note · Révisions · Entraînement · Lacunes · OIC · Historique). Un nouvel onglet **« Podcast »** est le point d'insertion naturel — chargé à la demande comme l'onglet OIC, pas au chargement initial de la fiche.
-- **Approche technique envisagée** (à valider, pas d'implémentation immédiate) :
-  1. Récupérer et parser le flux RSS périodiquement (le podcast progresse épisode par épisode ; un cache local avec rafraîchissement peu fréquent suffit — pas besoin de temps réel).
-  2. Construire un index `item_number → episode` (titre, date, lien audio direct `<enclosure>`, lien de page) au lieu de re-parser le flux à chaque affichage de fiche.
-  3. Cas à gérer explicitement : plusieurs épisodes pour le même item (rediffusion/mise à jour — garder le plus récent ou lister les deux), item sans épisode correspondant (ne rien afficher, pas d'erreur), item multi-collèges (l'épisode se rattache à l'item canonique, pas à un collège précis — cohérent avec la règle de liaison canonique déjà en place pour Obsidian).
-  4. Le titre du sujet extrait de l'épisode peut servir de garde-fou : si le fuzzy-match avec l'intitulé canonique de l'item est trop faible, signaler le rapprochement comme incertain plutôt que l'appliquer aveuglément (même logique que les "matchs douteux" du scan Obsidian dans `frontend/pages/settings.py`).
+### E. Intégration du Podcast « L'Externe » dans la Vue ITEM [🟢 FAIT]
+- **Service Backend RSS (`podcast_service.py`)** : Parsing et indexation automatique du flux RSS `https://anchor.fm/s/db4f429c/podcast/rss` par numéro d'item canonique.
+- **Onglet Cockpit `🎙️ Podcast`** : Intégré dans `course_detail_cockpit.py` avec chargement asynchrone à l'activation et lecteur audio HTML5 pour écoute directe de l'épisode rattaché.
 
 ---
 
-## 4. Nouvelles Fonctionnalités Majeures EDN
+## 4. Nouvelles Fonctionnalités Majeures EDN (Planning)
 
-### 1. ⏱️ Simulateur d'Épreuves Blancs & Mode Examen SNE / UNESS
-- **Objectif** : Préparation mentale et stratégique aux conditions réelles.
-- **Caractéristiques** :
-  - **Dossiers Progressifs (DP)** de 15 à 20 questions à déroulement séquentiel.
-  - **Règle d'Anti-Retour** : Une fois la question suivante affichée, impossible de modifier la réponse précédente.
-  - **Barème EDN Officiel** :
-    - 1 point (Toutes réponses exactes).
-    - 0.5 point (1 erreur/omission).
-    - 0.2 point (2 erreurs/omissions).
-    - 0 point (3 erreurs ou omission d'une réponse indispensable).
-  - **Gestion du Temps** : Chronomètre strict par dossier et analyse du rythme de réponse.
+### 1. ⏱️ Simulateur d'Épreuves Blancs & Mode Examen SNE / UNESS [🔴 À FAIRE / PHASE 2]
+- **Dossiers Progressifs (DP)** de 15 à 20 questions à déroulement séquentiel.
+- **Règle d'Anti-Retour** : Validation irréversible de la question courante avant passage à la suivante.
+- **Barème EDN Officiel** (1pt / 0.5pt / 0.2pt / 0pt + annulation si oubli indispensable Rang A).
+- **Chronomètre strict par dossier**.
 
-### 2. 🗣️ Module ECOS (Examens Cliniques Objectifs Structurés)
-- **Contexte** : Épreuve pratique comptant pour **30% du score final de l'EDN**.
-- **Caractéristiques** :
-  - **Mode Station Chronométrée (8 minutes)** : 7 min de station + 1 min de retour/synthèse.
-  - **Grilles d'Évaluation Officielle** :
-    - Station Anamnèse / Interrogatoire.
-    - Station Examen Physique.
-    - Station Annonce Diagnostique / Communication.
-    - Station Prise en Charge d'Urgence.
-    - Station Éducation Thérapeutique.
-  - **Module Audio & Playback** : Possibilité de simuler la station avec tuteur vocal IA (Patient simulé / Évaluateur) et auto-évaluation sur la grille de critères.
+### 2. 🗣️ Module ECOS (Examens Cliniques Objectifs Structurés) [🔴 À FAIRE / PHASE 3]
+- **Mode Station Chronométrée (8 minutes)** : 7 min d'épreuve + 1 min de debrief.
+- **Grilles d'Évaluation Officielle** (35 points par station).
+- **IA Examinateur / Patient Simulé**.
 
-### 3. 🎯 Matrice Radar 30 Spécialités & EDN Score Predictor
-- **Visualisation** : Graphique en radar couvrant les 30 collèges/spécialités médicales.
-- **Score Prédit** : Estimation du centile / rang potentiel basé sur le pourcentage de validation du Rang A et des performances sur les annales UNESS.
-- **Index de Rendement ("High-Yield Priority")** : Algorithme identifiant les 5 items dont la révision immédiate procurera le **plus grand gain de points à l'EDN** (items à fort poids à l'examen avec faible niveau de maîtrise actuel).
+### 3. 🎯 Matrice Radar 30 Spécialités & EDN Score Predictor [🔴 À FAIRE / PHASE 4]
+- Radar interactif des 30 spécialités médicales.
+- Score prédictif de classement EDN basé sur les annales et la couverture Rang A.
+- **High-Yield Priority Index** (identifiant les 5 items à plus fort gain de points immédiat).
 
-### 4. ⚡ Flash-Pièges Quotidiens ("Morning Flash-Zero Quiz")
-- Quiz de 5 minutes au réveil / début de session.
-- 10 questions ultra-rapides ciblant exclusivement :
-  - Les contre-indications absolues.
-  - Les zéros aux dossiers.
-  - Les bilans initiaux systématiques.
+### 4. ⚡ Flash-Pièges Quotidiens ("Morning Flash-Zero Quiz") [🟢 FAIT / PHASE 5]
+- Quiz rapide de 5 min au réveil (10 questions ciblées sur les contre-indications absolues et zéros aux dossiers).
 
-### 5. 🤖 Tuteur Virtuel IA & Générateur de Cas Cliniques sur Lacunes
-- Génération dynamique de cas cliniques et DP par IA ciblés sur les lacunes actives de l'étudiant enregistrées dans SQLite (`lacunes`).
-- Débriefing personnalisé expliquant la physiopathologie et la justification des recommandations officielles.
+### 5. 🤖 Tuteur Virtuel IA sur Lacunes [🟢 FAIT / PHASE 5]
+- Génération dynamique de DP sur les lacunes actives enregistrées dans SQLite.
 
-### 6. 📅 Mode "Sprint Countdown EDN"
-- Reconfiguration dynamique de l'interface et du calendrier selon le compte à rebours EDN :
-  - **J-180 à J-90** : Apprentissage & Fichage (Focus Obsidian + SM-2).
-  - **J-90 à J-30** : Entraînement Intensif (Annales UNESS + DP/KFP + ECOS).
-  - **J-30 à J-0** : Révisions d'Urgence Rang A + Flash-Pièges + Épreuves Blancs.
+### 6. 📅 Mode "Sprint Countdown EDN" [🟢 FAIT / PHASE 5]
+- Reconfiguration dynamique de l'agenda et de la charge selon la proximité de la date J-EDN.
 
 ---
 
-## 5. Feuille de Route d'Implémentation
+## 5. Feuille de Route d'Implémentation Actualisée
 
-| Étape | Module | Description | Priorité |
+| Étape | Module | Description | Statut |
 |---|---|---|---|
-| **Phase 1** | **Socle & Rang A/B** | Split de la maîtrise Rang A / Rang B + Nettoyage Cockpit routing | 🔴 Haute |
-| **Phase 1bis** | **Podcast « L'Externe »** | Onglet Podcast dans la fiche ITEM, indexé depuis le flux RSS par numéro d'item | 🟢 Rapide à faible risque |
-| **Phase 2** | **Simulateur d'Épreuves** | Mode examen DP/QI avec anti-retour et barème officiel UNESS | 🔴 Haute |
-| **Phase 3** | **Module ECOS** | Entraînement aux 8 min de station ECOS avec grilles d'évaluation | 🟠 Moyenne |
-| **Phase 4** | **Radar & Predictor** | Radar 30 spé, score prédictif EDN et Yield Index | 🟠 Moyenne |
-| **Phase 5** | **Tuteur IA & Flash-Pièges** | Quiz matin 5 min et générateur de DP sur lacunes récurrentes | 🟢 Progressive |
+| **Phase 1** | **Socle & Rang A/B** | Split maîtrise Rang A/B + Verrouillage de sécurité + Badges Dual-Rank | 🟢 **FAIT** |
+| **Phase 1** | **Sync & Édit Obsidian** | Service Obsidian + Upload d'images + Modale d'ajout rapide (Mnemo/Piège) | 🟢 **FAIT** |
+| **Phase 1bis** | **Podcast « L'Externe »** | Onglet Podcast dans la fiche ITEM, indexé depuis le flux RSS par numéro d'item | 🟢 **FAIT** |
+| **Phase 2** | **Simulateur d'Épreuves** | Mode examen DP/QI avec anti-retour et barème officiel UNESS | 🔴 **À FAIRE** |
+| **Phase 3** | **Module ECOS** | Entraînement aux 8 min de station ECOS avec grilles d'évaluation (30% EDN) | 🔴 **À FAIRE** |
+| **Phase 4** | **Radar & Predictor** | Radar 30 spé, score prédictif EDN et High-Yield Index | 🔴 **À FAIRE** |
+| **Phase 5** | **Tuteur IA & Flash-Pièges** | Quiz matin 5 min, générateur de DP sur lacunes et Sprint Countdown J-EDN | 🟢 **FAIT** |
+
 
 ---
 *Ce document sert de référence officielle pour les évolutions du projet Synapse dans le cadre de la préparation à l'EDN.*

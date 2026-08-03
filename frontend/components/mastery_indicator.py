@@ -59,3 +59,28 @@ def mastery_indicator(score, level: str | None = None, *, width: str = "100%",
             ui.label(str(score) if score is not None else "—").classes(
                 "mastery-score"
             ).style(f"color:{color}")
+
+
+def dual_rank_badges(score_rang_a: int | None, score_rang_b: int | None) -> None:
+    """Affiche côte à côte les badges explicites Rang A % et Rang B %."""
+    ensure_styles()
+    val_a = f"{score_rang_a}%" if score_rang_a is not None else "—"
+    val_b = f"{score_rang_b}%" if score_rang_b is not None else "—"
+    
+    color_a = "#059669" if (score_rang_a or 0) >= 75 else "#DC2626"
+    bg_a = "rgba(5, 150, 105, 0.12)" if (score_rang_a or 0) >= 75 else "rgba(220, 38, 38, 0.12)"
+    icon_a = "shield" if (score_rang_a or 0) >= 75 else "warning"
+
+    with ui.element("div").classes("flex items-center gap-1.5 text-xs font-mono"):
+        with ui.element("span").classes("px-1.5 py-0.5 rounded flex items-center gap-1 font-semibold").style(
+            f"background:{bg_a}; color:{color_a}; border: 1px solid {color_a}40;"
+        ):
+            ui.icon(icon_a, size="12px")
+            ui.label(f"A: {val_a}")
+
+        with ui.element("span").classes("px-1.5 py-0.5 rounded flex items-center gap-1 font-semibold").style(
+            "background:rgba(99, 102, 241, 0.12); color:#4F46E5; border: 1px solid rgba(99, 102, 241, 0.3);"
+        ):
+            ui.icon("military_tech", size="12px")
+            ui.label(f"B: {val_b}")
+

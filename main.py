@@ -249,6 +249,13 @@ def qcm():
     qcm_page()
 
 
+@ui.page('/exam')
+def exam():
+    from frontend.pages.exam_simulator_page import render_exam_simulator_page
+    with frame('Examens Blancs'):
+        render_exam_simulator_page()
+
+
 @ui.page('/todo')
 async def todo():
     await todo_page()
@@ -263,6 +270,32 @@ async def planning():
 @ui.page('/cours/{course_id}')
 def cours(course_id: str):
     course_detail_page(course_id)
+
+
+@ui.page('/colleges')
+def colleges():
+    with frame('Collèges'):
+        colleges_page()
+
+
+@ui.page('/semestres')
+def semestres():
+    with frame('Semestres'):
+        semestres_page()
+
+
+@ui.page('/settings')
+def settings():
+    with frame('Paramètres'):
+        settings_page()
+
+
+@ui.page('/externat')
+def externat():
+    with frame('Mode Externat'):
+        externat_page()
+
+
 
 # externat_page is already decorated with @ui.page — imported above
 

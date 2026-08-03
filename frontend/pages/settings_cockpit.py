@@ -41,7 +41,21 @@ from backend.state.store import data_store
 from backend.config.settings import settings
 from backend.core.uness import import_service
 from frontend.components.uness_diagnostic_panel import render as render_uness_diagnostics
-from frontend.pages.settings import toggle_dark_mode, _validate_uness_annale_url
+
+def toggle_dark_mode(value: bool | None = None) -> bool:
+    dark = ui.dark_mode()
+    if value is None:
+        dark.toggle()
+    elif value:
+        dark.enable()
+    else:
+        dark.disable()
+    return dark.value
+
+def _validate_uness_annale_url(url: str) -> bool:
+    text = (url or "").strip().casefold()
+    return "uness.fr" in text or "side-sante.fr" in text or text.startswith("http")
+
 
 _CSS = """
 .se-wrap { max-width:700px; width:100%; }

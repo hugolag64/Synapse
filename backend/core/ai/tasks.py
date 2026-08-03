@@ -13,8 +13,23 @@ def _default_service() -> AIService:
     return AIService(GeminiClient())
 
 
-def generate_qcm(prompt: str, *, service: AIService | None = None) -> AIResponse:
-    return (service or _default_service()).generate(AITask.QCM, prompt, response_format="json")
+def generate_qcm(
+    prompt: str,
+    *,
+    rank: str | None = None,
+    service: AIService | None = None,
+) -> AIResponse:
+    extra_instructions = ""
+    if rank == "A":
+        extra_instructions = "\nCONSIGNE RANG : Génère exclusivement des questions de RANG A (connaissances indispensables, diagnostics de première intention, urgences vitales)."
+    elif rank == "B":
+        extra_instructions = "\nCONSIGNE RANG : Génère exclusivement des questions de RANG B (spécialité approfondie, diagnostics de 2nde intention, détails experts)."
+    
+    full_prompt = (
+        f"{prompt}{extra_instructions}\n"
+        "Pour chaque question du JSON généré, inclus obligatoirement le champ \"rank\": \"A\" ou \"B\" selon la nature de la question."
+    )
+    return (service or _default_service()).generate(AITask.QCM, full_prompt, response_format="json")
 
 
 def generate_ecos(

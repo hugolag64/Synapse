@@ -12,11 +12,12 @@ from frontend.components.qcm_replay import session_action_keys
 QCM_NODE_DIST = Path(__file__).parents[2] / "qcm_app" / "dist" / "index.html"
 
 
-def open_node_qcm(session_id: int) -> bool:
+def open_node_qcm(session_id: int, exam: bool = False) -> bool:
     """Open the approved Node reader when its production bundle is available."""
     if not QCM_NODE_DIST.exists():
         return False
-    ui.navigate.to(f"/qcm-app/?session={int(session_id)}")
+    suffix = "&exam=1" if exam else ""
+    ui.navigate.to(f"/qcm-app/?session={int(session_id)}{suffix}")
     return True
 
 

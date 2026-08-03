@@ -248,11 +248,14 @@ def get_course_mastery(
     else:
         score_rang_b = max(0, min(100, round(score * 0.9)))
 
-    # 4. Détermination du niveau
-    if score < 40:
+    # 4. Détermination du niveau (avec Sécurité Rang A stricte)
+    if score < 40 or (score_rang_a is not None and score_rang_a < 40):
         level = "critique"
-    elif score < 60:
+        reasons.append("Socle Rang A critique (<40%)")
+    elif score < 60 or (score_rang_a is not None and score_rang_a < 75):
         level = "fragile"
+        if score_rang_a is not None and score_rang_a < 75:
+            reasons.append("Sécurité Rang A non atteinte (<75%)")
     elif score >= 80 and qcm_done:
         level = "maîtrisé"
     else:

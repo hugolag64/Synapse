@@ -41,7 +41,10 @@ from frontend.components.responsive_drawer import (
 )
 from frontend.pages.dashboard._dialogs import open_session_feedback_dialog
 from frontend.components.flash_zero_cockpit import render_flash_zero_card, open_flash_zero_quiz
+from frontend.components.edn_insights_panel import render_edn_insights_panel
 from backend.config.settings import business_today
+from backend.core.edn.trajectory import build_progress_snapshot, project_to_exam
+from backend.core.planning.sprint_countdown import SprintCountdownService
 
 _DAYS_FR = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
 _MONTHS_FR = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet",
@@ -168,7 +171,7 @@ async def render_today_cockpit() -> None:
     state = DashboardState()
     sel: dict = {"task": None}
     drawer_state: dict = {"root": None}
-    _data: dict = {"urgent": [], "today": [], "load": {}, "qcm": {}, "lac": {}, "crit": 0, "target": {}, "flash_zero": None, "flash_zero_complete": False}
+    _data: dict = {"urgent": [], "today": [], "load": {}, "qcm": {}, "lac": {}, "crit": 0, "target": {}, "flash_zero": None, "flash_zero_complete": False, "edn_status": None, "edn_projections": ()}
 
     # ── Pipeline données (réplique de rebuild_all, partie data) ────────────────
     def _fetch() -> None:
@@ -207,8 +210,22 @@ async def render_today_cockpit() -> None:
         timezone_name = data_store.preferences.get("timezone", "Europe/Paris")
         flash_zero = local_store.ensure_daily_flash_zero(business_today(), timezone_name=timezone_name)
         flash_zero_complete = local_store.is_daily_flash_zero_complete(business_today(), timezone_name=timezone_name)
+        progress = build_progress_snapshot(
+            courses=list(getattr(data_store, "cours", []) or []),
+            tasks=all_tasks,
+            history=history,
+            as_of=business_today(),
+        )
+        countdown = SprintCountdownService()
+        edn_status = countdown.get_sprint_status(today=business_today(), progress=progress)
+        edn_projections = project_to_exam(
+            progress,
+            target_date=edn_status.target_date,
+            daily_capacity_minutes=int(data_store.preferences.get("daily_budget_min", 60) or 60),
+            today=business_today(),
+        )
 
-        _data.update(urgent=urgent, today=today, load=load, qcm=qcm, lac=lac, crit=crit, target=target, flash_zero=flash_zero, flash_zero_complete=flash_zero_complete)
+        _data.update(urgent=urgent, today=today, load=load, qcm=qcm, lac=lac, crit=crit, target=target, flash_zero=flash_zero, flash_zero_complete=flash_zero_complete, edn_status=edn_status, edn_projections=edn_projections)
 
     # ── Focus (réutilise open_focus_mode existant) ────────────────────────────
     def _open_focus(task: ReviewTask | None = None) -> None:
@@ -386,6 +403,9 @@ async def render_today_cockpit() -> None:
                     ui.label("Semaine").classes("ct-seg").tooltip("Bientôt (vue Planning)")
 
             _render_summary(_data["load"], _data["crit"], total)
+
+            if _data.get("edn_status"):
+                render_edn_insights_panel(_data["edn_status"], _data["edn_projections"])
 
             def _finish_flash_zero() -> None:
                 timezone_name = data_store.preferences.get("timezone", "Europe/Paris")

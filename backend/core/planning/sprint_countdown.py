@@ -10,7 +10,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime
 from enum import StrEnum
-from typing import Any
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from backend.core.edn.trajectory import ProgressSnapshot
 
 
 class SprintPhase(StrEnum):
@@ -29,6 +32,11 @@ class SprintConfig:
     recommended_qcm_dp_ratio: float
     daily_target_items: int
     focus_message: str
+    covered_items: int = 0
+    total_items: int = 0
+    average_mastery: float | None = None
+    overdue_reviews: int = 0
+    remaining_reviews: int = 0
 
 
 class SprintCountdownService:
@@ -40,7 +48,9 @@ class SprintCountdownService:
         except ValueError:
             self.target_date = date(2026, 10, 15)
 
-    def get_sprint_status(self, today: date | None = None) -> SprintConfig:
+    def get_sprint_status(
+        self, today: date | None = None, progress: "ProgressSnapshot | None" = None
+    ) -> SprintConfig:
         """Calcule le statut du sprint et préconise l'ajustement du rythme."""
         today = today or date.today()
         delta = (self.target_date - today).days
@@ -70,4 +80,9 @@ class SprintCountdownService:
             recommended_qcm_dp_ratio=qcm_r,
             daily_target_items=daily_items,
             focus_message=msg,
+            covered_items=getattr(progress, "covered_items", 0),
+            total_items=getattr(progress, "total_items", 0),
+            average_mastery=getattr(progress, "average_mastery", None),
+            overdue_reviews=getattr(progress, "overdue_reviews", 0),
+            remaining_reviews=getattr(progress, "remaining_reviews", 0),
         )

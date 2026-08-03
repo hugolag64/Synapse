@@ -6,13 +6,35 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # ── Fuseau horaire applicatif ──────────────────────────────────────────────────
-APP_TIMEZONE_NAME = os.getenv("APP_TIMEZONE", "Europe/Paris")
+SUPPORTED_TIMEZONES = ("Europe/Paris", "Indian/Reunion")
+DEFAULT_TIMEZONE_NAME = "Europe/Paris"
+
+
+def _normalize_timezone_name(name: str | None) -> str:
+    candidate = str(name or "").strip()
+    return candidate if candidate in SUPPORTED_TIMEZONES else DEFAULT_TIMEZONE_NAME
+
+
+APP_TIMEZONE_NAME = _normalize_timezone_name(os.getenv("APP_TIMEZONE"))
 APP_TIMEZONE = zoneinfo.ZoneInfo(APP_TIMEZONE_NAME)
+
+
+def get_app_timezone() -> zoneinfo.ZoneInfo:
+    """Retourne le fuseau métier actuellement sélectionné."""
+    return APP_TIMEZONE
+
+
+def set_app_timezone(name: str | None) -> zoneinfo.ZoneInfo:
+    """Sélectionne un fuseau métier supporté, avec Paris comme repli sûr."""
+    global APP_TIMEZONE_NAME, APP_TIMEZONE
+    APP_TIMEZONE_NAME = _normalize_timezone_name(name)
+    APP_TIMEZONE = zoneinfo.ZoneInfo(APP_TIMEZONE_NAME)
+    return APP_TIMEZONE
 
 
 def now_local() -> datetime.datetime:
     """Horloge applicative unique, dans le fuseau de l'utilisateur."""
-    return datetime.datetime.now(APP_TIMEZONE)
+    return datetime.datetime.now(get_app_timezone())
 
 
 def business_today() -> datetime.date:

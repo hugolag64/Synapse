@@ -16,7 +16,7 @@ from __future__ import annotations
 from loguru import logger
 from nicegui import ui
 
-from backend.config.settings import settings, NOTION_PROPS as P
+from backend.config.settings import business_today, settings, NOTION_PROPS as P
 from backend.core.notion.payloads import number, checkbox
 from backend.core.reviews import local_store
 from backend.core.evaluation.models import EvaluationInput
@@ -33,9 +33,6 @@ from backend.state.store import data_store
 import os
 import datetime
 import asyncio
-from zoneinfo import ZoneInfo
-
-_TZ_REUNION = ZoneInfo("Indian/Reunion")
 _IN_FLIGHT_ACTIONS: set[tuple[str, str, str]] = set()
 
 
@@ -316,7 +313,7 @@ def record_quick_qcm_result(course, platform: str, score_raw: str):
             course_title=getattr(course, "title", ""),
             item_number=getattr(course, "item_number", "") or "",
             platform=platform,
-            session_date=datetime.datetime.now(_TZ_REUNION).date().isoformat(),
+            session_date=business_today().isoformat(),
             score_percent=pct,
             score_raw=score_raw,
         )

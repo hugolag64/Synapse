@@ -75,6 +75,8 @@ _CSS = """
   border:1px solid var(--border); border-radius:8px; padding:12px 14px; }
 .se-appearance-label { font-size:13px; color:var(--text); }
 .se-appearance-sub { font-size:11.5px; color:var(--text-muted); margin-top:2px; }
+.se-timezone-row { display:flex; align-items:center; justify-content:space-between; gap:12px;
+  border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin-top:8px; }
 .se-switch { width:36px; height:20px; border-radius:10px; background:var(--surface-hover); position:relative;
   cursor:pointer; flex:0 0 auto; transition: background var(--duration-base) var(--ease-standard); }
 .se-switch.on { background:var(--accent); }
@@ -149,6 +151,21 @@ def render_settings_cockpit() -> None:
                     sw.classes(remove="on")
 
             switch.on("click", _toggle)
+
+        with ui.element("div").classes("se-timezone-row"):
+            with ui.column().classes("gap-0"):
+                ui.label("Fuseau horaire métier").classes("se-appearance-label")
+                ui.label("Utilisé pour les dates du planning et des sessions").classes("se-appearance-sub")
+            timezone_select = ui.select(
+                options={"Europe/Paris": "Europe/Paris", "Indian/Reunion": "Indian/Reunion"},
+                value=data_store.preferences.get("timezone", "Europe/Paris"),
+            ).props("outlined dense options-dense")
+
+            def _set_timezone(event):
+                data_store.set_preference("timezone", event.value)
+                ui.notify(f"Fuseau horaire : {event.value}", type="positive")
+
+            timezone_select.on("update:model-value", _set_timezone)
 
         ui.label("UNESS").classes("se-label")
         with ui.element("div").classes("se-uness-card"):

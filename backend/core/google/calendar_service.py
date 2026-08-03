@@ -1,9 +1,7 @@
 import os.path
 import datetime
 import asyncio
-from zoneinfo import ZoneInfo
-
-_TZ_REUNION = ZoneInfo("Indian/Reunion")
+from backend.config.settings import business_today, get_app_timezone
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -82,11 +80,11 @@ class GoogleCalendarService:
             "description": description,
             "start": {
                 "dateTime": start.isoformat(),
-                "timeZone": "Indian/Reunion",
+                "timeZone": get_app_timezone().key,
             },
             "end": {
                 "dateTime": end.isoformat(),
-                "timeZone": "Indian/Reunion",
+                "timeZone": get_app_timezone().key,
             },
         }
         
@@ -120,11 +118,12 @@ class GoogleCalendarService:
                 return []
             
         if date_obj is None:
-            date_obj = datetime.date.today()
-            
-        # Time range: Start of day to End of day (Indian/Reunion UTC+4)
-        start_dt = datetime.datetime.combine(date_obj, datetime.time.min, tzinfo=_TZ_REUNION)
-        end_dt = datetime.datetime.combine(date_obj, datetime.time.max, tzinfo=_TZ_REUNION)
+            date_obj = business_today()
+
+        # Time range: Start of day to End of day in the selected app timezone.
+        app_timezone = get_app_timezone()
+        start_dt = datetime.datetime.combine(date_obj, datetime.time.min, tzinfo=app_timezone)
+        end_dt = datetime.datetime.combine(date_obj, datetime.time.max, tzinfo=app_timezone)
         
         time_min = start_dt.isoformat()
         time_max = end_dt.isoformat()

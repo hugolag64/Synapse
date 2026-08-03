@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import asyncio
 import datetime
-from zoneinfo import ZoneInfo
 
 from nicegui import ui
 
@@ -53,8 +52,7 @@ from backend.core.reviews.local_store import (
 from frontend.components.item_search_palette import search_items
 from backend.core.google.calendar_service import calendar_service
 from backend.state.store import data_store
-
-_PLANNING_TZ = ZoneInfo("Indian/Reunion")
+from backend.config.settings import get_app_timezone
 
 _DAYS_ABBR = ["LUN", "MAR", "MER", "JEU", "VEN", "SAM", "DIM"]
 _MONTHS_FR = ["jan", "fév", "mar", "avr", "mai", "juin",
@@ -535,9 +533,10 @@ async def render_planning_cockpit() -> None:
         dialog.open()
 
     def _default_event_start(day: datetime.date) -> datetime.datetime:
-        now = datetime.datetime.now(_PLANNING_TZ)
+        app_timezone = get_app_timezone()
+        now = datetime.datetime.now(app_timezone)
         if day != now.date():
-            return datetime.datetime.combine(day, datetime.time(9, 0), tzinfo=_PLANNING_TZ)
+            return datetime.datetime.combine(day, datetime.time(9, 0), tzinfo=app_timezone)
         return (now + datetime.timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
 
     async def _create_calendar_event(
@@ -598,10 +597,10 @@ async def render_planning_cockpit() -> None:
                                 return
                             try:
                                 start_time = datetime.datetime.combine(
-                                    day, datetime.time.fromisoformat(str(start.value)), tzinfo=_PLANNING_TZ
+                                    day, datetime.time.fromisoformat(str(start.value)), tzinfo=get_app_timezone()
                                 )
                                 end_time = datetime.datetime.combine(
-                                    day, datetime.time.fromisoformat(str(end.value)), tzinfo=_PLANNING_TZ
+                                    day, datetime.time.fromisoformat(str(end.value)), tzinfo=get_app_timezone()
                                 )
                             except ValueError:
                                 ui.notify("Vérifie les horaires.", type="warning")

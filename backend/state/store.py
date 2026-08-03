@@ -5,6 +5,7 @@ from backend.core.notion.models import Cours
 from backend.core.notion.service import notion_service
 from backend.core.qcm.items_mapping import item_title
 from loguru import logger
+from backend.config.settings import set_app_timezone
 
 import json
 import os
@@ -73,6 +74,7 @@ class DataStore:
             'agenda_open': True,  # État du panneau Agenda du Jour
             'planning_capacity_minutes': 360,
             'planning_vacation': {'enabled': False},
+            'timezone': 'Europe/Paris',
         }
 
     @property
@@ -242,6 +244,8 @@ class DataStore:
 
     def set_preference(self, key: str, value):
         """Update a preference and save to disk."""
+        if key == "timezone":
+            value = set_app_timezone(value).key
         self.preferences[key] = value
         self.save_to_disk()
 
@@ -279,6 +283,8 @@ class DataStore:
             for k, v in default_prefs.items():
                 if k not in self.preferences:
                     self.preferences[k] = v
+
+            set_app_timezone(self.preferences.get("timezone"))
 
             # Reconstruct items_map — le setter normalise les clés en int
             raw_map = data.get("items_map", {})

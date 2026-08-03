@@ -3,7 +3,7 @@ from datetime import datetime
 from loguru import logger
 from backend.state.store import data_store
 from backend.core.notion.service import notion_service
-from backend.config.settings import APP_TIMEZONE
+from backend.config.settings import now_local
 
 # Cache pour les cours déjà correctement liés (liaison réussie uniquement)
 # Encapsulé dans une classe pour faciliter le reset entre tests
@@ -45,11 +45,11 @@ async def _delta_refresh_cours() -> None:
         updated = await notion_service.get_updated_cours(since.isoformat())
         if updated:
             count = await data_store.merge_cours_delta(updated)
-            data_store.cours_last_synced = datetime.now(APP_TIMEZONE)
+            data_store.cours_last_synced = now_local()
             data_store.save_to_disk()
             logger.success(f"[Delta cours] {count} cours mis à jour.")
         else:
-            data_store.cours_last_synced = datetime.now(APP_TIMEZONE)
+            data_store.cours_last_synced = now_local()
             logger.debug("Delta cours : aucun changement détecté.")
     except Exception as exc:
         logger.error(f"Delta refresh cours échoué : {exc}")
@@ -84,7 +84,7 @@ async def run_background_tasks():
                 try:
                     new_map = await notion_service.get_all_items_map()
                     data_store.items_map = new_map
-                    data_store.items_last_synced = datetime.now(APP_TIMEZONE)
+                    data_store.items_last_synced = now_local()
                     data_store.save_to_disk()
                     logger.success(f"{len(new_map)} items chargés.")
                 except Exception as e:
@@ -103,7 +103,7 @@ async def run_background_tasks():
                         new_map = await notion_service.get_all_items_map()
                         data_store.items_map = new_map
                         data_store.save_to_disk()
-                    data_store.items_last_synced = datetime.now(APP_TIMEZONE)
+                    data_store.items_last_synced = now_local()
                 except Exception as e:
                     logger.error(f"Échec sync différentielle items : {e}")
 

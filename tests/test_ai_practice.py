@@ -422,8 +422,8 @@ def test_practice_service_routes_dp_to_flash_and_persists():
         def __init__(self):
             self.calls = []
 
-        def generate(self, task, prompt, *, response_format):
-            self.calls.append((task, response_format))
+        def generate(self, task, prompt, *, context=None, response_format):
+            self.calls.append((task, context, response_format))
             payload = {"questions": [
                 {"kind": "open", "prompt": "P", "answer": "A", "explanation": "E"},
             ]}
@@ -441,7 +441,7 @@ def test_practice_service_routes_dp_to_flash_and_persists():
     ))
     assert result == 1
     assert fake.calls[0][0].value == "dp"
-    assert fake.calls[0][1] == "json"
+    assert fake.calls[0][2] == "json"
 
 
 def test_practice_service_prompt_mentions_concours_difficulty():
@@ -449,7 +449,7 @@ def test_practice_service_prompt_mentions_concours_difficulty():
         def __init__(self):
             self.prompt = ""
 
-        def generate(self, task, prompt, *, response_format):
+        def generate(self, task, prompt, *, context=None, response_format):
             self.prompt = prompt
             payload = {"questions": [
                 {"kind": "closed", "prompt": "P", "choices": ["A", "B"], "answer": "A", "explanation": "E"},

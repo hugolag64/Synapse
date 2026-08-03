@@ -2,7 +2,7 @@ import pytest
 
 
 def test_validate_uness_annale_url_accepts_course_url():
-    from frontend.pages.settings import _validate_uness_annale_url
+    from frontend.pages.settings_cockpit import _validate_uness_annale_url
 
     value = " https://entrainement.uness.fr/annales/course/view.php?id=29135 "
 
@@ -20,7 +20,7 @@ def test_local_collector_uses_same_url_contract():
     ["", "https://example.com/annales/course/view.php?id=29135", "http://entrainement.uness.fr/annales/course/view.php?id=29135", "https://entrainement.uness.fr/login"],
 )
 def test_validate_uness_annale_url_rejects_non_annales_urls(value):
-    from frontend.pages.settings import _validate_uness_annale_url
+    from frontend.pages.settings_cockpit import _validate_uness_annale_url
 
     with pytest.raises(ValueError):
         _validate_uness_annale_url(value)

@@ -98,6 +98,22 @@ def test_complete_review_does_not_mark_task_done_when_evaluation_persistence_fai
     assert _sessions("course-1") == []
 
 
+def test_complete_review_invalidates_review_cache_after_success(monkeypatch):
+    import backend.core.reviews.validation as validation
+
+    invalidations = []
+    monkeypatch.setattr(
+        validation,
+        "review_service",
+        type("ReviewServiceSpy", (), {"invalidate_cache": lambda self: invalidations.append(True)})(),
+        raising=False,
+    )
+
+    complete_review(_task())
+
+    assert invalidations == [True]
+
+
 def test_complete_review_compensates_session_when_review_state_persistence_fails(monkeypatch):
     import backend.core.reviews.validation as validation
 

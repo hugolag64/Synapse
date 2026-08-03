@@ -35,7 +35,7 @@ def test_annales_nav_entry_has_a_dynamic_uness_failures_badge():
         badge
         for _group_label, items in _NAV_GROUPS
         for _glyph, label, _route, badge in items
-        if label == "Annales"
+        if label == "Épreuves & Annales"
     ]
     assert annales_entries == [("dynamic_count", "uness_failures")]
 

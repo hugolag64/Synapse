@@ -20,7 +20,10 @@ def _service():
 def test_generate_qcm_uses_json_lite_route():
     service = _service()
     generate_qcm("qcm", service=service)
-    service.generate.assert_called_once_with(AITask.QCM, "qcm", response_format="json")
+    call = service.generate.call_args
+    assert call.args[0] is AITask.QCM
+    assert call.kwargs["response_format"] == "json"
+    assert '"rank": "A" ou "B"' in call.args[1]
 
 
 def test_generate_ecos_selects_lite_or_flash_by_complexity():
@@ -61,6 +64,7 @@ def test_generate_uness_correction_uses_visual_flash_route_when_images_present()
         "corrige ce quiz",
         response_format="json",
         images=images,
+        context=None,
     )
 
 
@@ -74,4 +78,5 @@ def test_generate_uness_correction_uses_lite_route_when_no_images():
         "corrige ce quiz",
         response_format="json",
         images=(),
+        context=None,
     )

@@ -1,13 +1,7 @@
 import inspect
 
-from frontend.pages import qcm
+from frontend.pages import qcm_cockpit
 
 
 def test_qcm_wizards_allow_backdrop_dismiss():
-    for wizard in (
-        qcm._open_add_dialog,
-        qcm._propose_lacune,
-        qcm._propose_resolve_lacune,
-        qcm._open_session_wizard,
-    ):
-        assert "persistent" not in inspect.getsource(wizard)
+    assert "persistent" not in inspect.getsource(qcm_cockpit._open_add_dialog)

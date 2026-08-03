@@ -4,6 +4,20 @@ from backend.config.settings import settings
 from loguru import logger
 import asyncio
 
+_MAX_RETRIES = 3
+_RETRY_DELAYS = (0.5, 1.0)
+_RETRYABLE_HTTP_STATUS = {408, 409, 425, 429}
+
+
+def _is_retryable_error(error: Exception) -> bool:
+    status = getattr(error, "status", None) or getattr(error, "status_code", None)
+    if status is not None:
+        try:
+            return int(status) in _RETRYABLE_HTTP_STATUS or int(status) >= 500
+        except (TypeError, ValueError):
+            pass
+    return isinstance(error, (asyncio.TimeoutError, TimeoutError, ConnectionError, OSError))
+
 class NotionClient:
     _instance = None
 
@@ -19,6 +33,20 @@ class NotionClient:
 
     async def close(self):
         await self.client.aclose()
+
+    async def _call_with_retry(self, operation, label: str):
+        for attempt in range(_MAX_RETRIES):
+            try:
+                return await operation()
+            except Exception as exc:
+                if attempt == _MAX_RETRIES - 1 or not _is_retryable_error(exc):
+                    raise
+                delay = _RETRY_DELAYS[attempt]
+                logger.warning(
+                    f"Notion {label} temporairement indisponible "
+                    f"(tentative {attempt + 1}/{_MAX_RETRIES}) : {exc}; retry dans {delay}s"
+                )
+                await asyncio.sleep(delay)
 
     async def query_database(self, database_id: str, filter_params: dict = None, sorts: list = None, page_size: int = None):
         """
@@ -41,10 +69,13 @@ class NotionClient:
                 if next_cursor:
                     request_body["start_cursor"] = next_cursor
 
-                response = await self.client.request(
-                    path=f"databases/{database_id}/query",
-                    method="POST",
-                    body=request_body
+                response = await self._call_with_retry(
+                    lambda: self.client.request(
+                        path=f"databases/{database_id}/query",
+                        method="POST",
+                        body=request_body,
+                    ),
+                    "query_database",
                 )
                 results.extend(response.get("results", []))
                 
@@ -64,7 +95,10 @@ class NotionClient:
     async def retrieve_database(self, database_id: str) -> dict:
         """Retrieve a database schema (properties, title, etc.)."""
         try:
-            return await self.client.databases.retrieve(database_id=database_id)
+            return await self._call_with_retry(
+                lambda: self.client.databases.retrieve(database_id=database_id),
+                "retrieve_database",
+            )
         except Exception as e:
             logger.error(f"Error retrieving database {database_id}: {e}")
             raise
@@ -72,7 +106,10 @@ class NotionClient:
     async def update_page(self, page_id: str, properties: dict):
         """Update a page properties."""
         try:
-            return await self.client.pages.update(page_id=page_id, properties=properties)
+            return await self._call_with_retry(
+                lambda: self.client.pages.update(page_id=page_id, properties=properties),
+                "update_page",
+            )
         except Exception as e:
             logger.error(f"Error updating page {page_id}: {e}")
             raise
@@ -87,7 +124,10 @@ class NotionClient:
             if children:
                 kwargs["children"] = children
                 
-            return await self.client.pages.create(**kwargs)
+            return await self._call_with_retry(
+                lambda: self.client.pages.create(**kwargs),
+                "create_page",
+            )
         except Exception as e:
             logger.error(f"Error creating page in db {parent_db_id}: {e}")
             raise
@@ -95,7 +135,10 @@ class NotionClient:
     async def archive_page(self, page_id: str):
         """Archive (soft-delete) a page."""
         try:
-            return await self.client.pages.update(page_id=page_id, archived=True)
+            return await self._call_with_retry(
+                lambda: self.client.pages.update(page_id=page_id, archived=True),
+                "archive_page",
+            )
         except Exception as e:
             logger.error(f"Error archiving page {page_id}: {e}")
             raise
@@ -103,7 +146,10 @@ class NotionClient:
     async def update_block(self, block_id: str, **kwargs):
         """Update a block's content (e.g. to_do checked state)."""
         try:
-            return await self.client.blocks.update(block_id=block_id, **kwargs)
+            return await self._call_with_retry(
+                lambda: self.client.blocks.update(block_id=block_id, **kwargs),
+                "update_block",
+            )
         except Exception as e:
             logger.error(f"Error updating block {block_id}: {e}")
             raise
@@ -111,7 +157,10 @@ class NotionClient:
     async def append_block_children(self, block_id: str, children: list):
         """Append children blocks to a block (or page)."""
         try:
-            return await self.client.blocks.children.append(block_id=block_id, children=children)
+            return await self._call_with_retry(
+                lambda: self.client.blocks.children.append(block_id=block_id, children=children),
+                "append_block_children",
+            )
         except Exception as e:
             logger.error(f"Error appending children to block {block_id}: {e}")
             raise
@@ -126,7 +175,10 @@ class NotionClient:
                 kwargs: dict = {"block_id": block_id, "page_size": 100}
                 if next_cursor:
                     kwargs["start_cursor"] = next_cursor
-                response = await self.client.blocks.children.list(**kwargs)
+                response = await self._call_with_retry(
+                    lambda: self.client.blocks.children.list(**kwargs),
+                    "retrieve_block_children",
+                )
                 all_blocks.extend(response.get("results", []))
                 has_more = response.get("has_more", False)
                 next_cursor = response.get("next_cursor")

@@ -8,6 +8,7 @@ from backend.core.reviews import local_store
 from backend.core.evaluation.models import EvaluationInput
 from backend.core.evaluation.service import record_evaluation
 from backend.core.reviews.models import ReviewTask
+from backend.core.reviews.service import review_service
 
 
 def complete_review(
@@ -95,5 +96,7 @@ def complete_review(
         if persisted_id is not None:
             local_store.delete_study_session(persisted_id)
         raise
+
+    review_service.invalidate_cache()
 
     return task

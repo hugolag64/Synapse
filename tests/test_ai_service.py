@@ -15,7 +15,10 @@ def test_service_routes_task_and_returns_client_response():
     result = service.generate(AITask.DP, "Construis un DP", response_format="json")
 
     assert result is expected
-    client.generate.assert_called_once_with("Construis un DP", AIModel.FLASH, "json")
+    client.generate.assert_called_once_with(
+        "Construis un DP", AIModel.FLASH, "json",
+        task_name="dp", context=None,
+    )
 
 
 def test_service_adds_bounded_context_with_explicit_markers():
@@ -46,6 +49,8 @@ def test_service_forwards_local_image_content_without_a_path_or_url():
         AIModel.FLASH_LITE,
         "text",
         images=(image,),
+        task_name="qcm",
+        context=None,
     )
 
 

@@ -28,6 +28,7 @@ from backend.config.settings import now_local
 # backend/core/reviews/local_store.py → 4 niveaux vers la racine du projet
 _ROOT = Path(__file__).parent.parent.parent.parent
 DB_PATH = _ROOT / "data" / "synapse_local.db"
+DB_BACKUP_DIR = _ROOT / "data" / "backups"
 
 
 # ── Connexion ─────────────────────────────────────────────────────────────────
@@ -92,8 +93,51 @@ def _conn() -> _LockedConnection:
 
 # ── Initialisation ────────────────────────────────────────────────────────────
 
+def backup_database(
+    *,
+    source_path: Path | None = None,
+    backup_dir: Path | None = None,
+    keep: int = 7,
+    now: datetime.datetime | None = None,
+) -> Path | None:
+    """Crée une copie SQLite cohérente et conserve les `keep` dernières."""
+    source_path = Path(source_path or DB_PATH)
+    if not source_path.exists():
+        return None
+
+    backup_dir = Path(backup_dir or DB_BACKUP_DIR)
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    stamp = (now or now_local()).strftime("%Y-%m-%d")
+    destination = backup_dir / f"synapse_local-{stamp}.db"
+    if destination.exists():
+        return destination
+
+    temporary = destination.with_suffix(".db.tmp")
+    try:
+        source = sqlite3.connect(source_path)
+        target = sqlite3.connect(temporary)
+        try:
+            source.backup(target)
+            target.commit()
+        finally:
+            target.close()
+            source.close()
+        os.replace(temporary, destination)
+        backups = sorted(backup_dir.glob("synapse_local-*.db"), key=lambda path: path.stat().st_mtime, reverse=True)
+        for old_backup in backups[keep:]:
+            old_backup.unlink(missing_ok=True)
+        logger.info(f"Sauvegarde SQLite créée : {destination}")
+        return destination
+    except Exception:
+        temporary.unlink(missing_ok=True)
+        logger.exception(f"Échec de la sauvegarde SQLite : {source_path}")
+        return None
+
 def init_db() -> None:
     """Crée toutes les tables si elles n'existent pas encore."""
+    database_existed = DB_PATH.exists()
+    if database_existed:
+        backup_database()
     with _conn() as con:
         con.executescript("""
         -- ── Table principale : historique des révisions ──────────────────────

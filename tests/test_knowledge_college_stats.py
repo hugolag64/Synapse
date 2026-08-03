@@ -1,100 +1,71 @@
-"""Tests unitaires — _compute_stats enrichi (frontend/pages/colleges.py).
+"""Tests du contrat courant du cockpit Collèges.
 
-Vérifie que _compute_stats agrège correctement le statut académique du
-collège (knowledge.store) et l'avancement du triage (knowledge.service),
-en plus des stats de couverture déjà existantes.
+Les anciens tests ciblaient ``frontend.pages.colleges._compute_stats``. Cette
+page est désormais un redirecteur ; les agrégats sont portés par les helpers
+du cockpit.
 """
-from dataclasses import dataclass
+from types import SimpleNamespace
 
-import pytest
-
-
-# ── Fixture : DB temporaire isolée (même pattern que tests/test_knowledge_store.py) ──
-
-@pytest.fixture(autouse=True)
-def isolated_db(tmp_path, monkeypatch):
-    import backend.core.reviews.local_store as ls
-    import backend.core.knowledge.store as ks
-
-    test_db = tmp_path / "test.db"
-    monkeypatch.setattr(ls, "DB_PATH", test_db)
-    monkeypatch.setattr(ls, "_DB", None)
-    ls.init_db()
-    ks.init_knowledge_tables()
-    yield
-    if ls._DB is not None:
-        ls._DB.close()
-    monkeypatch.setattr(ls, "_DB", None)
+from frontend.pages.colleges_cockpit import _college_item_rows, _pilotage_summary
 
 
-@dataclass
-class _FakeCours:
-    id: str
-    date_1ere_lecture: str | None
-
-
-_FAKE_COURSES = [
-    _FakeCours(id="course-1", date_1ere_lecture="2026-01-01"),
-    _FakeCours(id="course-2", date_1ere_lecture=None),
-    _FakeCours(id="course-3", date_1ere_lecture="2026-02-01"),
-]
-
-
-@pytest.fixture(autouse=True)
-def fake_courses(monkeypatch):
-    from backend.state.store import data_store
-
-    monkeypatch.setattr(
-        data_store, "get_cours_for_college", lambda name: list(_FAKE_COURSES)
+def _course(course_id: str, item_number: str, started: bool):
+    return SimpleNamespace(
+        id=course_id,
+        item_number=item_number,
+        title=f"Cours {item_number}",
+        date_1ere_lecture="2026-01-01" if started else None,
+        url_pdf="https://example.test/item.pdf",
     )
 
 
-def _import_compute_stats():
-    from frontend.pages.colleges import _compute_stats
-    return _compute_stats
+def test_college_item_rows_represente_les_items_non_commences():
+    rows = _college_item_rows(
+        [_course("course-1", "1", False)],
+        [],
+    )
+
+    assert rows[0]["level"] == "non_commence"
+    assert rows[0]["pct"] == 0
+    assert rows[0]["urgent"] is False
 
 
-def test_college_non_declare_est_non_etudie_sans_items_situes():
-    _compute_stats = _import_compute_stats()
-    stats = _compute_stats("Cardiovasculaire")
+def test_college_item_rows_reprend_la_maitrise_et_la_prochaine_revision():
+    task = SimpleNamespace(course_id="course-1", due_date=__import__("datetime").date.today())
+    rows = _college_item_rows(
+        [_course("course-1", "1", True)],
+        [task],
+        mastery_by_course={"course-1": (72, "à consolider")},
+        urgent_ids={"course-1"},
+        qcm_map={"course-1": {"last_score": 80}},
+    )
 
-    assert stats["status"] == "non_etudie"
-    assert stats["situes"] == 0
-    assert stats["n_items"] == 3
-
-
-def test_college_valide_reflete_son_statut_et_le_nombre_total_d_items():
-    import backend.core.knowledge.store as ks
-
-    ks.set_college_status("Cardiovasculaire", "valide")
-
-    _compute_stats = _import_compute_stats()
-    stats = _compute_stats("Cardiovasculaire")
-
-    assert stats["status"] == "valide"
-    assert stats["n_items"] == 3
-    assert stats["situes"] == 0
+    assert rows[0]["score"] == 72
+    assert rows[0]["level"] == "à consolider"
+    assert rows[0]["urgent"] is True
+    assert rows[0]["next_task"] is task
+    assert rows[0]["qcm_score"] == 80
 
 
-def test_situes_compte_les_items_declares_parmi_les_cours_du_college():
-    import backend.core.knowledge.store as ks
+def test_pilotage_summary_agrege_les_cours_et_les_retards():
+    summary = _pilotage_summary([
+        {"total": 3, "started": 2, "retard": 1, "fragile": 1, "no_pdf": False, "pct": 2 / 3},
+        {"total": 2, "started": 0, "retard": 0, "fragile": 0, "no_pdf": True, "pct": 0},
+    ])
 
-    ks.set_college_status("Cardiovasculaire", "valide")
-    ks.set_item_state("course-1", "solide")
-    ks.set_item_state("course-3", "correct")
-
-    _compute_stats = _import_compute_stats()
-    stats = _compute_stats("Cardiovasculaire")
-
-    assert stats["situes"] == 2
-    assert stats["n_items"] == 3
-    assert stats["status"] == "valide"
+    assert summary["total_courses"] == 5
+    assert summary["started"] == 2
+    assert summary["pct"] == 2 / 5
+    assert summary["overdue"] == 1
+    assert summary["no_pdf"] == 1
 
 
-def test_stats_de_couverture_existantes_restent_correctes():
-    _compute_stats = _import_compute_stats()
-    stats = _compute_stats("Cardiovasculaire")
+def test_pilotage_summary_expose_les_niveaux_et_la_charge():
+    summary = _pilotage_summary([
+        {"total": 2, "started": 2, "retard": 0, "fragile": 0, "no_pdf": False, "pct": 1.0},
+        {"total": 1, "started": 0, "retard": 0, "fragile": 1, "no_pdf": False, "pct": 0.0},
+    ])
 
-    assert stats["total"] == 3
-    assert stats["started"] == 2
-    assert stats["pct"] == pytest.approx(2 / 3)
+    assert summary["level_counts"]["solide"] == 1
+    assert summary["level_counts"]["non_commence"] == 1
+    assert summary["estimated_minutes"] == 20

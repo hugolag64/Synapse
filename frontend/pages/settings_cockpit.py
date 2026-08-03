@@ -54,9 +54,10 @@ def toggle_dark_mode(value: bool | None = None) -> bool:
         dark.disable()
     return dark.value
 
-def _validate_uness_annale_url(url: str) -> bool:
-    text = (url or "").strip().casefold()
-    return "uness.fr" in text or "side-sante.fr" in text or text.startswith("http")
+def _validate_uness_annale_url(url: str) -> str:
+    from scripts.uness.collector import validate_annale_url
+
+    return validate_annale_url(url)
 
 
 _CSS = """

@@ -1,22 +1,23 @@
-"""Tests pour les tokens de couleur de mastery du switch collèges."""
-from frontend.pages.colleges import _FILL, _GHOST, _TINT
+"""Tests pour les tokens de couleur du composant de maîtrise actuel."""
+from frontend.components.mastery_indicator import _LEVEL_COLOR
 
 
 def test_fragile_uses_da_amber_token():
-    assert _FILL["fragile"] == "#B45309"
+    assert _LEVEL_COLOR["fragile"] == "var(--warning)"
 
 
 def test_fragile_ghost_matches_fill_rgb():
-    assert _GHOST["fragile"] == "rgba(180,83,9,0.12)"
+    assert "fragile" in _LEVEL_COLOR
 
 
 def test_fragile_tint_matches_fill_rgb():
-    assert _TINT["fragile"] == "rgba(180,83,9,0.05)"
+    assert _LEVEL_COLOR["fragile"] != _LEVEL_COLOR["critique"]
 
 
 def test_other_levels_unchanged():
-    assert _FILL["solide"] == "#059669"
-    assert _FILL["correct"] == "#3B82F6"
-    assert _FILL["non_commence"] == "#CBD5E1"
-    assert _GHOST["solide"] == "rgba(5,150,105,0.12)"
-    assert _TINT["non_commence"] == "transparent"
+    assert _LEVEL_COLOR == {
+        "solide": "var(--success)",
+        "correct": "var(--text-muted)",
+        "fragile": "var(--warning)",
+        "critique": "var(--danger)",
+    }

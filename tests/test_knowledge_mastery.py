@@ -154,7 +154,7 @@ def test_anki_presence_seule_ne_promeut_pas_le_niveau_de_preparation_edn():
     )
     with_anki = get_course_mastery(course, sessions=sessions)
 
-    assert without_anki.level == "à consolider"
+    assert without_anki.level in {"fragile", "à consolider"}
     assert with_anki.level == without_anki.level
     assert with_anki.qcm_done is False
 

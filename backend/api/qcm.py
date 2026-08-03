@@ -168,7 +168,7 @@ def save_attempt(session_id: int, payload: AttemptPayload) -> dict:
         score_reason="" if scored is None else scored.score_reason,
         finalize_session=False,
     )
-    if scored is not None:
+    if scored is not None and attempt_id is not None:
         local_store.replace_ai_practice_attempt_propositions(attempt_id, scored.propositions)
     return {"ok": True, "score_mode": "" if scored is None else scored.score_mode}
 

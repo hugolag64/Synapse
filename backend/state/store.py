@@ -77,6 +77,13 @@ class DataStore:
             'timezone': 'Europe/Paris',
         }
 
+    def _load_preferences(self, raw_preferences) -> None:
+        preferences = self._get_default_preferences()
+        if isinstance(raw_preferences, dict):
+            preferences.update(raw_preferences)
+        self.preferences = preferences
+        set_app_timezone(self.preferences.get("timezone"))
+
     @property
     def items_map(self) -> Dict[int, str]:
         if not hasattr(self, '_items_map'):
@@ -262,30 +269,21 @@ class DataStore:
             with open(self.CACHE_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
+            # Les préférences vivent dans le même fichier que le cache cours,
+            # mais leur durée de vie est indépendante.
+            self._load_preferences(data.get("preferences", {}))
+
             # Auto-cleaning cache si > 12h (sauf mode force)
             if not force and "last_updated" in data:
                 last_updated = datetime.fromisoformat(data["last_updated"])
                 if (datetime.now() - last_updated).total_seconds() > 12 * 3600:
-                    logger.info("Cache obsolète (>12h), nettoyage forcé.")
+                    logger.info("Cache obsolète (>12h), cours ignorés mais préférences conservées.")
                     return False
             
             self.cours = [Cours(**c) for c in data.get("cours", [])]
             self.colleges_order = data.get("colleges_order", [])
             logger.debug(f"Loaded colleges_order from {self.CACHE_FILE}: {self.colleges_order}")
             
-            self.preferences = data.get("preferences", {
-                'college_sort': 'newest',
-                'college_last_tab': None
-            })
-
-            # Merge with default preferences to ensure new keys exist
-            default_prefs = self._get_default_preferences()
-            for k, v in default_prefs.items():
-                if k not in self.preferences:
-                    self.preferences[k] = v
-
-            set_app_timezone(self.preferences.get("timezone"))
-
             # Reconstruct items_map — le setter normalise les clés en int
             raw_map = data.get("items_map", {})
             self.items_map = raw_map  # le setter gère la normalisation float→int

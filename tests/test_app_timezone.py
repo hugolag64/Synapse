@@ -1,4 +1,6 @@
 import backend.config.settings as app_settings
+import datetime
+import json
 from backend.state.store import DataStore
 
 
@@ -23,3 +25,25 @@ def test_app_timezone_can_switch_between_supported_zones_and_invalid_falls_back(
 
 def test_datastore_timezone_preference_defaults_to_paris():
     assert DataStore().preferences["timezone"] == "Europe/Paris"
+
+
+def test_stale_cache_keeps_user_preferences(tmp_path, monkeypatch):
+    cache_path = tmp_path / "data_cache.json"
+    cache_path.write_text(
+        json.dumps({
+            "last_updated": (datetime.datetime.now() - datetime.timedelta(days=2)).isoformat(),
+            "preferences": {"dark_mode": True, "timezone": "Indian/Reunion"},
+            "cours": [],
+        }),
+        encoding="utf-8",
+    )
+    store = DataStore()
+    monkeypatch.setattr(store, "CACHE_FILE", str(cache_path))
+
+    try:
+        assert store.load_from_disk() is False
+        assert store.preferences["dark_mode"] is True
+        assert store.preferences["timezone"] == "Indian/Reunion"
+        assert app_settings.get_app_timezone().key == "Indian/Reunion"
+    finally:
+        app_settings.set_app_timezone("Europe/Paris")

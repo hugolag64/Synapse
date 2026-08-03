@@ -15,7 +15,7 @@ def test_ranked_question_uses_official_edn_scale():
     assert result.propositions[1]["discordance"] == "exces"
 
 
-def test_question_without_rank_is_explicitly_training():
+def test_question_without_rank_still_uses_edn_mode():
     result = score_closed_attempt(
         "A",
         [
@@ -25,5 +25,5 @@ def test_question_without_rank_is_explicitly_training():
     )
 
     assert result.score_percent == 100.0
-    assert result.score_mode == "training"
-    assert "rang" in result.score_reason.lower()
+    assert result.score_mode == "edn"
+    assert result.score_reason == ""

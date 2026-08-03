@@ -65,10 +65,7 @@ def score_closed_attempt(response: str, choices: Sequence[object], answer: str =
     expected = {choice["id"] for choice in normalized_choices if choice["expected"]}
     if not expected and answer:
         expected = _selected_ids(answer, normalized_choices)
-    ranks_known = bool(normalized_choices) and all(choice["rank"] in {"A", "B"} for choice in normalized_choices)
     score = compute_question_score_edn(selected, expected)
-    mode = "edn" if ranks_known else "training"
-    reason = "" if ranks_known else "Rangs des propositions indisponibles : score d'entraînement non calibré EDN."
     propositions = []
     for choice in normalized_choices:
         is_selected = choice["id"] in selected
@@ -83,8 +80,8 @@ def score_closed_attempt(response: str, choices: Sequence[object], answer: str =
         })
     return ScoredAttempt(
         score_percent=float(score["score"]) * 100.0,
-        score_mode=mode,
-        score_reason=reason,
+        score_mode="edn",
+        score_reason="",
         propositions=propositions,
     )
 

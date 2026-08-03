@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from backend.core.evaluation.models import EvaluationInput
 from backend.core.evaluation.service import record_evaluation
+from backend.core.practice.item_evidence import get_session_item_evidence
 from backend.core.reviews import local_store
+
+
+__all__ = ["get_session_item_evidence", "record_ai_practice_mastery"]
 
 
 def record_ai_practice_mastery(session_id: int):
@@ -35,16 +39,26 @@ def record_ai_practice_mastery(session_id: int):
             platform="Synapse IA",
         )
     elif kind in {"qcm", "dp", "kfp"}:
-        evaluation = EvaluationInput(
-            source="qcm",
-            course_id=session["course_id"],
-            item_number=session["item_number"],
-            course_title=session["course_title"],
-            score_percent=session["score_percent"],
-            total_questions=session["total_questions"],
-            session_type=kind.upper(),
-            platform="Synapse IA",
-        )
+        evidence = get_session_item_evidence(session_id)
+        if not evidence or not session.get("course_id"):
+            return None
+        outcomes = []
+        for item_number, item_evidence in sorted(evidence.items()):
+            evaluation = EvaluationInput(
+                source="qcm",
+                course_id=session["course_id"],
+                item_number=item_number,
+                course_title=session["course_title"],
+                score_percent=item_evidence["score_percent"],
+                total_questions=item_evidence["total_questions"],
+                correct_answers=item_evidence["correct_answers"],
+                wrong_answers=item_evidence["wrong_answers"],
+                session_type=kind.upper(),
+                platform="Synapse IA",
+            )
+            outcomes.append(record_evaluation(evaluation))
+        local_store.mark_ai_practice_mastery_recorded(session_id)
+        return outcomes[-1]
     else:
         return None
 

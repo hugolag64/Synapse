@@ -40,6 +40,7 @@ from nicegui import ui
 from backend.state.store import data_store
 from backend.config.settings import settings
 from backend.core.uness import import_service
+from backend.core.lisa import item_service
 from frontend.components.uness_diagnostic_panel import render as render_uness_diagnostics
 
 def toggle_dark_mode(value: bool | None = None) -> bool:
@@ -284,6 +285,64 @@ def render_settings_cockpit() -> None:
                 on_click=_scan_verified,
             ).props("unelevated color=purple size=sm rounded").classes("mt-3")
             ui.label("Échange local : UNESS/à_vérifier → UNESS/vérifiés → UNESS/archives").classes("se-uness-status")
+
+        ui.label("LISA / OIC").classes("se-label")
+        with ui.element("div").classes("se-uness-card"):
+            ui.label("Objectifs de connaissance (OIC)").classes("se-appearance-label")
+            ui.label(
+                "Récupère les OIC LiSA pour tous les items déjà liés à un cours. "
+                "Sans risque à relancer : la maîtrise et le niveau déjà acquis sont "
+                "préservés, seuls les ajouts/retraits LiSA sont pris en compte."
+            ).classes("se-appearance-sub")
+            oic_status = ui.label("Jamais lancé.").classes("se-uness-status mt-3")
+            oic_progress = {"done": 0, "total": 0}
+            oic_timer_holder: dict = {}
+
+            def _on_oic_progress(done: int, total: int, item_key: str) -> None:
+                oic_progress["done"] = done
+                oic_progress["total"] = total
+
+            def _tick_oic_progress() -> None:
+                if oic_progress["total"]:
+                    oic_status.set_text(f"En cours… {oic_progress['done']}/{oic_progress['total']} items")
+
+            async def _refresh_all_oic(button) -> None:
+                button.props(add="loading")
+                oic_progress.update(done=0, total=0)
+                oic_timer_holder["timer"] = ui.timer(0.5, _tick_oic_progress)
+                try:
+                    result = await asyncio.to_thread(
+                        item_service.scrape_all_items,
+                        list(data_store.cours),
+                        _on_oic_progress,
+                    )
+                    failed = result["items_failed"]
+                    oic_status.set_text(
+                        f"Terminé : {result['items_ok']}/{result['items_total']} items mis à jour"
+                        + (f", {failed} échec(s)" if failed else "")
+                    )
+                    oic_status.style("color:var(--danger)" if failed else "color:var(--success)")
+                    ui.notify(
+                        f"OIC rafraîchis : {result['items_ok']}/{result['items_total']}"
+                        + (f" ({failed} échec(s))" if failed else ""),
+                        type="warning" if failed else "positive",
+                        icon="school",
+                    )
+                except Exception as exc:
+                    oic_status.set_text(f"Erreur : {exc}")
+                    oic_status.style("color:var(--danger)")
+                    ui.notify(f"Échec du rafraîchissement OIC : {exc}", type="negative")
+                finally:
+                    timer = oic_timer_holder.pop("timer", None)
+                    if timer:
+                        timer.deactivate()
+                    button.props(remove="loading")
+
+            oic_button = ui.button(
+                "Rafraîchir tous les OIC (LiSA)",
+                icon="refresh",
+            ).props("outline color=violet size=sm rounded").classes("mt-3")
+            oic_button.on("click", lambda: asyncio.ensure_future(_refresh_all_oic(oic_button)))
 
         with ui.expansion("CONSOMMATION, TÉLÉMÉTRIE & PARTIELS IMPORTÉS", icon="analytics").classes("w-full border border-slate-700 rounded-lg mt-4 bg-slate-900/40 text-sm font-semibold"):
             from backend.core.reviews.local_store import get_ai_usage_summary

@@ -1799,20 +1799,24 @@ def set_ai_practice_session_items(session_id: int, item_number: str, item_number
             )
 
 
-def get_item_numbers_with_dp_session() -> set[str]:
-    """Items EDN ayant déjà au moins un DP (item principal OU secondaire d'un
-    DP transverse) — sert à repérer les items qui n'ont encore aucun cas
-    personnalisé, pour les créer manuellement plutôt qu'à l'aveugle."""
+def get_dp_count_by_item() -> dict[str, int]:
+    """Nombre de DP distincts couvrant chaque item EDN (item principal OU
+    secondaire d'un DP transverse) — sert au panneau « Couverture DP par
+    item » (Paramètres) pour repérer les items sans cas personnalisé à créer
+    manuellement plutôt qu'à l'aveugle."""
     with _conn() as con:
         rows = con.execute(
-            """SELECT item_number FROM ai_practice_sessions
-               WHERE practice_kind = 'DP' AND TRIM(COALESCE(item_number, '')) != ''
-               UNION
-               SELECT i.item_number FROM ai_practice_session_items i
-               JOIN ai_practice_sessions s ON s.id = i.session_id
-               WHERE s.practice_kind = 'DP'"""
+            """SELECT item_number, COUNT(DISTINCT session_id) AS n FROM (
+                   SELECT id AS session_id, item_number FROM ai_practice_sessions
+                   WHERE practice_kind = 'DP' AND TRIM(COALESCE(item_number, '')) != ''
+                   UNION ALL
+                   SELECT i.session_id, i.item_number FROM ai_practice_session_items i
+                   JOIN ai_practice_sessions s ON s.id = i.session_id
+                   WHERE s.practice_kind = 'DP'
+               )
+               GROUP BY item_number"""
         ).fetchall()
-    return {row["item_number"] for row in rows}
+    return {row["item_number"]: row["n"] for row in rows}
 
 
 def get_ai_practice_sessions(*, item_number: str = "", course_id: str = "", limit: int = 50) -> list:

@@ -42,6 +42,7 @@ from backend.config.settings import settings
 from backend.core.uness import import_service
 from backend.core.lisa import item_service
 from frontend.components.uness_diagnostic_panel import render as render_uness_diagnostics
+from frontend.components.dp_coverage_panel import render as render_dp_coverage
 
 def toggle_dark_mode(value: bool | None = None) -> bool:
     dark = ui.dark_mode()
@@ -343,6 +344,11 @@ def render_settings_cockpit() -> None:
                 icon="refresh",
             ).props("outline color=violet size=sm rounded").classes("mt-3")
             oic_button.on("click", lambda: asyncio.ensure_future(_refresh_all_oic(oic_button)))
+
+        with ui.expansion("COUVERTURE DP PAR ITEM", icon="assignment").classes(
+            "w-full border border-slate-700 rounded-lg mt-4"
+        ):
+            render_dp_coverage(ui.column().classes("w-full p-4"))
 
         with ui.expansion("CONSOMMATION, TÉLÉMÉTRIE & PARTIELS IMPORTÉS", icon="analytics").classes("w-full border border-slate-700 rounded-lg mt-4 bg-slate-900/40 text-sm font-semibold"):
             from backend.core.reviews.local_store import get_ai_usage_summary

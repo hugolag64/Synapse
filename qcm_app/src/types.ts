@@ -61,12 +61,24 @@ export type Question = {
   correction?: CorrectionMetadata
 }
 
+export type PropositionCorrection = {
+  proposition_id: string
+  text?: string
+  selected: number | boolean
+  expected: number | boolean
+  rank?: string
+  points: number
+  discordance: string
+}
+
 export type Session = {
   id: number
   course_title?: string
   item_number?: string
   total_questions: number
   completed_at?: string | null
+  score_mode?: string
+  score_reason?: string
 }
 
 export type SessionPayload = {
@@ -84,6 +96,7 @@ export type CorrectionRow = {
   choices: string[]
   question: Question
   correction?: CorrectionMetadata
+  propositions?: PropositionCorrection[]
 }
 
 export type CorrectionPayload = {

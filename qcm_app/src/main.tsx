@@ -206,13 +206,12 @@ export function Reader({ payload, onCorrection }: { payload: SessionPayload; onC
   </main>
 }
 
-function Correction({ payload, onReplay }: { payload: CorrectionPayload; onReplay: (id: number) => void }) {
+export function Correction({ payload, onReplay }: { payload: CorrectionPayload; onReplay: (id: number) => void }) {
   const [errorsOnly, setErrorsOnly] = useState(false)
   const [followUp, setFollowUp] = useState(payload.follow_up)
   const rows = errorsOnly ? payload.rows.filter((row) => row.status !== 'correct') : payload.rows
   const scorePercent = payload.session.score_percent == null ? 0 : payload.session.score_percent
   const score20 = ((scorePercent / 100) * 20).toFixed(1)
-  const isValidatedRangA = Number(score20) >= 14.0
 
   const followUpCard = followUp && <section className="follow-up"><div><strong>Plusieurs échecs sur ce contexte</strong><p>{followUp.failure_streak} sessions sous 70 %. Veux-tu transformer cette difficulté en support de révision ?</p></div><div className="follow-up-actions"><button className="button secondary" onClick={async () => { await followUpAction(payload.session.id, 'anchor', followUp.question_id); setFollowUp(null) }}>Ancrer la question</button><button className="button primary" onClick={async () => { await followUpAction(payload.session.id, 'lacune'); setFollowUp(null) }}>Créer une fiche lacune</button><button className="button quiet" onClick={async () => { await followUpAction(payload.session.id, 'ignore'); setFollowUp(null) }}>Ignorer</button></div></section>
   return <main className="correction-page">{followUpCard}
@@ -220,10 +219,11 @@ function Correction({ payload, onReplay }: { payload: CorrectionPayload; onRepla
     <div className="reader-kicker">CORRECTION TERMINÉE · {new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}</div>
     <h1>{payload.session.course_title || 'QCM'}</h1>
     <p className="reader-subtitle">Tu peux parcourir les erreurs, relire les explications et relancer ce QCM quand tu veux.</p>
+    <div className="score-mode-banner"><strong>Barème EDN propositionnel</strong><span>Chaque question suit la grille 1 / 0,5 / 0,2 / 0.</span></div>
     <section className="kpis">
       <div>
-        <strong className={isValidatedRangA ? 'success' : 'danger'}>{score20} / 20</strong>
-        <span>Note EDN {isValidatedRangA ? '· Validé Rang A ✓' : '· Non validé Rang A'}</span>
+        <strong>{score20} / 20</strong>
+        <span>Note EDN</span>
       </div>
       <div><strong>{payload.session.correct_count || 0} / {payload.rows.length}</strong><span>bonnes réponses</span></div>
       <div><strong className="danger">{payload.session.incorrect_count || 0}</strong><span>à retravailler</span></div>
@@ -253,6 +253,18 @@ export function CorrectionCard({ row, sessionId }: { row: CorrectionRow; session
       <div className="correction-body"><div className="answers"><div className="answer-label">Ta réponse</div><p className="answer-wrong">{row.response || 'Aucune réponse'}</p><div className="answer-label">Réponse correcte</div><p className="answer-right">{row.correct_answer}</p>
         {official && <details className="official-correction"><summary>Correction officielle UNESS</summary><p>{official.answer.length ? official.answer.join(', ') : 'Non disponible'}{official.available ? '' : ' (partielle)'}</p></details>}
       </div><aside><h3>POURQUOI ?</h3><p>{row.explanation}</p></aside></div>
+      {row.propositions && row.propositions.length > 0 && <section className="proposition-correction" aria-label="Détail des propositions">
+        <h3>Détail propositionnel EDN</h3>
+        <div className="proposition-list" role="list">
+          {row.propositions.map((proposition) => <div className="proposition-line" role="listitem" key={proposition.proposition_id}>
+            <strong>{proposition.proposition_id}{proposition.text ? ` · ${proposition.text}` : ''}</strong>
+            <span>{Boolean(proposition.selected) ? 'Sélectionnée' : 'Non sélectionnée'}</span>
+            <span>{Boolean(proposition.expected) ? 'Attendue' : 'Non attendue'}</span>
+            {proposition.rank && <span>Rang {proposition.rank}</span>}
+            <span>{proposition.points} pt · {proposition.discordance}</span>
+          </div>)}
+        </div>
+      </section>}
     </div>}
   </article>
 }

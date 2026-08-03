@@ -45,6 +45,51 @@ const unessQuestion = {
 }
 
 describe('UNESS replay disclosure', () => {
+  it('renders the unified EDN mode and proposition-level correction', () => {
+    const Correction = (components as any).Correction
+    expect(typeof Correction).toBe('function')
+    const payload = {
+      session: {
+        id: 12,
+        total_questions: 1,
+        course_title: 'Cardiologie',
+        score_percent: 50,
+        score_mode: 'edn',
+        correct_count: 0,
+        incorrect_count: 1,
+      },
+      rows: [{
+        position: 1,
+        status: 'incorrect',
+        response: 'A',
+        correct_answer: 'B',
+        explanation: 'Correction EDN.',
+        choices: ['A', 'B'],
+        question: {
+          id: 1,
+          prompt: 'Question',
+          choices: ['A', 'B'],
+          question_kind: 'closed',
+        },
+        propositions: [
+          { proposition_id: 'A', text: 'A', selected: 1, expected: 0, rank: 'A', points: 0, discordance: 'exces' },
+          { proposition_id: 'B', text: 'B', selected: 0, expected: 1, rank: '', points: 0, discordance: 'omission' },
+        ],
+      }],
+      follow_up: null,
+    }
+
+    const markup = renderToStaticMarkup(
+      createElement(Correction as any, { payload, onReplay: () => undefined }),
+    )
+
+    expect(markup).toContain('Barème EDN propositionnel')
+    expect(markup).toContain('A')
+    expect(markup).toContain('omission')
+    expect(markup).toContain('Rang A')
+    expect(markup).not.toContain('Validé Rang A')
+  })
+
   it('renders DP context, the imported image, and the visual-only warning in the reader', () => {
     const payload: SessionPayload = {
       session: { id: 12, total_questions: 1, course_title: 'Gériatrie' },

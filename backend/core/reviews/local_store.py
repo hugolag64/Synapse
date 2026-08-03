@@ -318,6 +318,34 @@ def init_db() -> None:
         CREATE INDEX IF NOT EXISTS idx_external_results_item_date
             ON external_results(item_number, session_date DESC);
 
+        CREATE TABLE IF NOT EXISTS error_signals (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            item_number  TEXT NOT NULL,
+            category     TEXT NOT NULL,
+            occurred_at  TEXT NOT NULL,
+            source       TEXT NOT NULL,
+            evidence_id  TEXT NOT NULL,
+            detail       TEXT NOT NULL DEFAULT '',
+            created_at   TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_error_signals_item_date
+            ON error_signals(item_number, occurred_at DESC);
+
+        CREATE TABLE IF NOT EXISTS edn_recommendations (
+            id                INTEGER PRIMARY KEY AUTOINCREMENT,
+            recommendation_type TEXT NOT NULL,
+            item_number       TEXT NOT NULL,
+            category          TEXT NOT NULL,
+            detail            TEXT NOT NULL,
+            evidence_json     TEXT NOT NULL DEFAULT '[]',
+            dedupe_key        TEXT NOT NULL,
+            status            TEXT NOT NULL DEFAULT 'proposée',
+            created_at        TEXT NOT NULL,
+            updated_at        TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_edn_recommendations_status
+            ON edn_recommendations(status, created_at DESC);
+
         -- ── Table Télémétrie et Coûts des appels IA ──────────────────────
         CREATE TABLE IF NOT EXISTS ai_usage_logs (
             id               INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -580,6 +608,86 @@ def get_external_results(
             value["metadata"] = {}
         result.append(value)
     return result
+
+
+def insert_error_signal(
+    item_number: str, category: str, occurred_at: str, source: str, evidence_id: str, detail: str = ""
+) -> int:
+    with _conn() as con:
+        cursor = con.execute(
+            """INSERT INTO error_signals
+               (item_number, category, occurred_at, source, evidence_id, detail, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (str(item_number), str(category), str(occurred_at), str(source), str(evidence_id), str(detail), _now()),
+        )
+    return int(cursor.lastrowid)
+
+
+def get_error_signals(*, item_number: str | None = None, days: int | None = None) -> list[dict]:
+    clauses = []
+    params: list[object] = []
+    if item_number:
+        clauses.append("item_number = ?")
+        params.append(str(item_number).strip().removeprefix("ITEM "))
+    if days is not None:
+        cutoff = (now_local().date() - datetime.timedelta(days=int(days))).isoformat()
+        clauses.append("occurred_at >= ?")
+        params.append(cutoff)
+    where = f" WHERE {' AND '.join(clauses)}" if clauses else ""
+    with _conn() as con:
+        rows = con.execute(
+            f"SELECT * FROM error_signals{where} ORDER BY occurred_at DESC, id DESC",
+            params,
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def create_edn_recommendation(
+    *, recommendation_type: str, item_number: str, category: str, detail: str,
+    evidence_ids: list[str], dedupe_key: str,
+) -> int:
+    now = _now()
+    with _conn() as con:
+        cursor = con.execute(
+            """INSERT INTO edn_recommendations
+               (recommendation_type, item_number, category, detail, evidence_json,
+                dedupe_key, status, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, 'proposée', ?, ?)""",
+            (recommendation_type, item_number, category, detail, json.dumps(evidence_ids), dedupe_key, now, now),
+        )
+    return int(cursor.lastrowid)
+
+
+def get_edn_recommendations(*, status: str | None = None) -> list[dict]:
+    with _conn() as con:
+        if status:
+            rows = con.execute(
+                "SELECT * FROM edn_recommendations WHERE status = ? ORDER BY created_at DESC, id DESC",
+                (status,),
+            ).fetchall()
+        else:
+            rows = con.execute(
+                "SELECT * FROM edn_recommendations ORDER BY created_at DESC, id DESC"
+            ).fetchall()
+    result = []
+    for row in rows:
+        value = dict(row)
+        value["evidence_ids"] = json.loads(value.pop("evidence_json") or "[]")
+        result.append(value)
+    return result
+
+
+def get_edn_recommendation(recommendation_id: int) -> dict | None:
+    rows = [row for row in get_edn_recommendations() if int(row["id"]) == int(recommendation_id)]
+    return rows[0] if rows else None
+
+
+def update_edn_recommendation(recommendation_id: int, status: str) -> None:
+    with _conn() as con:
+        con.execute(
+            "UPDATE edn_recommendations SET status = ?, updated_at = ? WHERE id = ?",
+            (status, _now(), int(recommendation_id)),
+        )
 
 
 def _migrate_ai_practice_v1() -> None:

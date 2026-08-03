@@ -19,11 +19,10 @@ import sqlite3
 import threading
 import uuid
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
 from loguru import logger
 
-_TZ_REUNION = ZoneInfo("Indian/Reunion")
+from backend.config.settings import now_local
 
 # ── Emplacement de la base ────────────────────────────────────────────────────
 # backend/core/reviews/local_store.py → 4 niveaux vers la racine du projet
@@ -435,6 +434,7 @@ def init_db() -> None:
     _migrate_routine_tables()
     _migrate_oic_anythingllm_validation()
     _migrate_ai_practice_v1()
+    _migrate_reliable_practice_loop()
     _migrate_uness_annales()
     _migrate_uness_correction_failures()
     _migrate_uness_scanned_catalog()
@@ -444,7 +444,7 @@ def init_db() -> None:
 # ── Helpers internes ──────────────────────────────────────────────────────────
 
 def _now() -> str:
-    return datetime.datetime.now(_TZ_REUNION).isoformat(timespec="seconds")
+    return now_local().isoformat(timespec="seconds")
 
 
 def _migrate_ai_practice_v1() -> None:
@@ -463,6 +463,74 @@ def _migrate_ai_practice_v1() -> None:
                 "ALTER TABLE ai_practice_questions "
                 "ADD COLUMN import_metadata_json TEXT NOT NULL DEFAULT '{}'"
             )
+
+
+def _migrate_reliable_practice_loop() -> None:
+    """Ajoute le contrat de finalisation et de correction détaillée, sans perte d'historique."""
+    with _conn() as con:
+        columns = {
+            row["name"]
+            for row in con.execute("PRAGMA table_info(ai_practice_sessions)").fetchall()
+        }
+        migrations = [
+            ("completion_state", "ALTER TABLE ai_practice_sessions ADD COLUMN completion_state TEXT NOT NULL DEFAULT 'draft'"),
+            ("score_mode", "ALTER TABLE ai_practice_sessions ADD COLUMN score_mode TEXT NOT NULL DEFAULT ''"),
+            ("score_reason", "ALTER TABLE ai_practice_sessions ADD COLUMN score_reason TEXT NOT NULL DEFAULT ''"),
+        ]
+        for column, statement in migrations:
+            if column not in columns:
+                con.execute(statement)
+
+        attempt_columns = {
+            row["name"]
+            for row in con.execute("PRAGMA table_info(ai_practice_attempts)").fetchall()
+        }
+        for column, statement in [
+            ("score_mode", "ALTER TABLE ai_practice_attempts ADD COLUMN score_mode TEXT NOT NULL DEFAULT ''"),
+            ("score_reason", "ALTER TABLE ai_practice_attempts ADD COLUMN score_reason TEXT NOT NULL DEFAULT ''"),
+        ]:
+            if column not in attempt_columns:
+                con.execute(statement)
+
+        con.executescript("""
+            CREATE TABLE IF NOT EXISTS ai_practice_attempt_propositions (
+                attempt_id      INTEGER NOT NULL,
+                proposition_id  TEXT NOT NULL,
+                selected        INTEGER NOT NULL DEFAULT 0,
+                expected        INTEGER NOT NULL DEFAULT 0,
+                rank            TEXT NOT NULL DEFAULT '',
+                points          REAL NOT NULL DEFAULT 0,
+                discordance     TEXT NOT NULL DEFAULT '',
+                PRIMARY KEY (attempt_id, proposition_id),
+                FOREIGN KEY (attempt_id) REFERENCES ai_practice_attempts(id) ON DELETE CASCADE
+            );
+            CREATE TABLE IF NOT EXISTS ai_practice_question_items (
+                question_id         INTEGER NOT NULL,
+                item_number         TEXT NOT NULL,
+                oic_code            TEXT NOT NULL DEFAULT '',
+                confidence          REAL NOT NULL DEFAULT 1.0,
+                source              TEXT NOT NULL DEFAULT 'manual',
+                classifier_version  TEXT NOT NULL DEFAULT '',
+                PRIMARY KEY (question_id, item_number),
+                FOREIGN KEY (question_id) REFERENCES ai_practice_questions(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS idx_ai_practice_question_items_item
+                ON ai_practice_question_items(item_number);
+        """)
+        con.execute("""
+            UPDATE ai_practice_sessions
+            SET completion_state = CASE
+                WHEN mastery_recorded_at IS NOT NULL THEN 'recorded'
+                WHEN completed_at IS NOT NULL THEN 'scored'
+                ELSE 'draft'
+            END
+            WHERE completion_state IS NULL OR completion_state = '' OR completion_state = 'draft'
+        """)
+        con.execute("""
+            UPDATE ai_practice_sessions
+            SET score_mode = 'training'
+            WHERE score_percent IS NOT NULL AND (score_mode IS NULL OR score_mode = '')
+        """)
 
 
 def _migrate_uness_annales() -> None:
@@ -1438,6 +1506,13 @@ def create_ai_practice_session(*, spec, questions: list[dict], model: str) -> in
                 "INSERT INTO ai_practice_session_questions(session_id, question_id, position) VALUES (?,?,?)",
                 (session_id, int(cur.lastrowid), position),
             )
+            if spec.item_number:
+                con.execute(
+                    """INSERT OR IGNORE INTO ai_practice_question_items
+                       (question_id, item_number, confidence, source, classifier_version)
+                       VALUES (?,?,?,?,?)""",
+                    (int(cur.lastrowid), spec.item_number, 1.0, "rule", "session-primary-v1"),
+                )
         item_numbers = tuple(dict.fromkeys(
             n for n in (spec.item_numbers or ((spec.item_number,) if spec.item_number else ()))
             if n
@@ -2036,6 +2111,7 @@ def record_ai_practice_attempt(
     *, session_id: int, question_id: int, response: str,
     is_correct: bool | None = None, score_percent: float | None = None,
     duration_seconds: int | None = None, hints_used: int = 0, finalize_session: bool = True,
+    score_mode: str = "", score_reason: str = "",
 ) -> int:
     """Enregistre une réponse sans modifier l'énoncé ni sa correction."""
     now = _now()
@@ -2043,10 +2119,10 @@ def record_ai_practice_attempt(
         cur = con.execute(
             """INSERT INTO ai_practice_attempts
                (session_id, question_id, response, is_correct, score_percent,
-                duration_seconds, hints_used, answered_at)
-               VALUES (?,?,?,?,?,?,?,?)""",
+                duration_seconds, hints_used, answered_at, score_mode, score_reason)
+               VALUES (?,?,?,?,?,?,?,?,?,?)""",
             (session_id, question_id, response, None if is_correct is None else int(is_correct),
-             score_percent, duration_seconds, hints_used, now),
+             score_percent, duration_seconds, hints_used, now, score_mode, score_reason),
         )
         if score_percent is not None and finalize_session:
             avg = con.execute(
@@ -2060,8 +2136,49 @@ def record_ai_practice_attempt(
         return int(cur.lastrowid)
 
 
+def replace_ai_practice_attempt_propositions(attempt_id: int, propositions: list[dict]) -> None:
+    """Remplace la correction détaillée d'une tentative de manière idempotente."""
+    with _conn() as con:
+        con.execute("DELETE FROM ai_practice_attempt_propositions WHERE attempt_id = ?", (attempt_id,))
+        for row in propositions:
+            con.execute(
+                """INSERT INTO ai_practice_attempt_propositions
+                   (attempt_id, proposition_id, selected, expected, rank, points, discordance)
+                   VALUES (?,?,?,?,?,?,?)""",
+                (
+                    attempt_id,
+                    str(row.get("proposition_id") or ""),
+                    int(bool(row.get("selected"))),
+                    int(bool(row.get("expected"))),
+                    str(row.get("rank") or ""),
+                    float(row.get("points") or 0),
+                    str(row.get("discordance") or ""),
+                ),
+            )
+
+
+def get_ai_practice_attempt_propositions(attempt_id: int) -> list[dict]:
+    with _conn() as con:
+        return [dict(row) for row in con.execute(
+            """SELECT proposition_id, selected, expected, rank, points, discordance
+               FROM ai_practice_attempt_propositions
+               WHERE attempt_id = ? ORDER BY proposition_id""",
+            (attempt_id,),
+        ).fetchall()]
+
+
+def get_ai_practice_question_items(question_id: int) -> list[dict]:
+    with _conn() as con:
+        return [dict(row) for row in con.execute(
+            """SELECT item_number, oic_code, confidence, source, classifier_version
+               FROM ai_practice_question_items WHERE question_id = ?
+               ORDER BY item_number""",
+            (question_id,),
+        ).fetchall()]
+
+
 def finalize_ai_practice_session(session_id: int) -> dict | None:
-    """Calcule le score courant d'une session à partir de la dernière tentative par question."""
+    """Score une session complète une seule fois, sans laisser les effets annexes la bloquer."""
     with _conn() as con:
         session = con.execute(
             "SELECT * FROM ai_practice_sessions WHERE id = ?", (session_id,)
@@ -2080,56 +2197,79 @@ def finalize_ai_practice_session(session_id: int) -> dict | None:
                WHERE a.session_id = ?""",
             (session_id, session_id),
         ).fetchall()
+        question_rows = con.execute(
+            """SELECT question_id, position FROM ai_practice_session_questions
+               WHERE session_id = ? ORDER BY position""",
+            (session_id,),
+        ).fetchall()
+        latest_by_question = {int(row["question_id"]): row for row in latest}
+        missing_positions = [
+            int(question["position"])
+            for question in question_rows
+            if question["question_id"] not in latest_by_question
+            or latest_by_question[question["question_id"]]["score_percent"] is None
+        ]
         scored = [row["score_percent"] for row in latest if row["score_percent"] is not None]
-        score = round(sum(scored) / len(scored), 2) if scored else None
-        now = _now()
-        con.execute(
-            "UPDATE ai_practice_sessions SET score_percent = ?, completed_at = ? WHERE id = ?",
-            (score, now if latest else None, session_id),
-        )
-        updated = con.execute(
-            "SELECT * FROM ai_practice_sessions WHERE id = ?", (session_id,)
-        ).fetchone()
+        state = str(session["completion_state"] or "draft")
+        if missing_positions or state in {"scored", "recorded"}:
+            updated = session
+        else:
+            score = round(sum(scored) / len(scored), 2)
+            attempt_modes = {str(row["score_mode"] or "") for row in latest}
+            score_mode = "edn" if attempt_modes == {"edn"} else "training"
+            score_reason = next(
+                (str(row["score_reason"] or "") for row in latest if row["score_reason"]),
+                "" if score_mode == "edn" else "Score d'entraînement non calibré EDN.",
+            )
+            con.execute(
+                """UPDATE ai_practice_sessions
+                   SET score_percent = ?, completed_at = ?, completion_state = 'scored',
+                       score_mode = ?, score_reason = ?
+                   WHERE id = ?""",
+                (score, _now(), score_mode, score_reason, session_id),
+            )
+            updated = con.execute(
+                "SELECT * FROM ai_practice_sessions WHERE id = ?", (session_id,)
+            ).fetchone()
 
-    # Détection de lacunes récurrentes : exige 2 erreurs enregistrées sur la même notion / question
-    if updated and latest:
-        updated_dict = dict(updated)
-        for att in latest:
-            att_dict = dict(att)
-            score_p = att_dict.get("score_percent")
-            if score_p is not None and float(score_p) < 50.0:
-                c_id = updated_dict.get("course_id") or ""
-                item_n = updated_dict.get("item_number") or ""
-                c_title = updated_dict.get("title") or f"Annale {updated_dict.get('annale_id', '')}"
-                q_id = att_dict.get("question_id")
-                with _conn() as con:
-                    q_row = con.execute("SELECT statement_html FROM ai_practice_questions WHERE id = ?", (q_id,)).fetchone()
-                    q_text = (q_row["statement_html"] if q_row else f"Question {q_id}")[:120]
-                    
-                    # Comptage des échecs passés sur cette même question/notion
-                    past_failures = con.execute(
-                        """SELECT COUNT(*) as cnt FROM ai_practice_attempts a
-                           WHERE a.question_id = ? AND a.score_percent < 50.0""",
-                        (q_id,)
-                    ).fetchone()["cnt"]
+    result = {
+        **dict(updated),
+        "answered_count": len(latest),
+        "scored_count": len(scored),
+        "missing_positions": missing_positions,
+    }
+    if missing_positions or str(updated["completion_state"] or "draft") != "scored":
+        return result
 
-                # Ne crée une Lacune que si l'erreur s'est produite au moins 2 fois (récurrence)
-                if past_failures >= 2:
-                    detail_text = f"Lacune Récurrente (2x échecs) : {q_text}"
-                    try:
-                        add_weak_point(
-                            course_id=c_id,
-                            detail=detail_text,
-                            course_title=c_title,
-                            item_number=str(item_n),
-                            category=f"Item {item_n}" if item_n else "Annale UNESS",
-                            severity=3,  # Sévérité renforcée
-                            source_session_id=session_id
-                        )
-                    except Exception:
-                        pass
-
-    return {**dict(updated), "answered_count": len(latest), "scored_count": len(scored)}
+    # Traitement secondaire : aucune erreur de lacune ne peut annuler le score.
+    for attempt in latest:
+        if attempt["score_percent"] is None or float(attempt["score_percent"]) >= 50.0:
+            continue
+        try:
+            with _conn() as con:
+                question = con.execute(
+                    "SELECT prompt FROM ai_practice_questions WHERE id = ?",
+                    (attempt["question_id"],),
+                ).fetchone()
+                failures = con.execute(
+                    """SELECT COUNT(*) AS count FROM ai_practice_attempts
+                       WHERE question_id = ? AND score_percent < 50.0""",
+                    (attempt["question_id"],),
+                ).fetchone()["count"]
+            if failures >= 2:
+                prompt = str(question["prompt"] if question else f"Question {attempt['question_id']}")[:120]
+                add_weak_point(
+                    course_id=str(updated["course_id"] or ""),
+                    detail=f"Lacune récurrente (2 échecs) : {prompt}",
+                    course_title=str(updated["course_title"] or ""),
+                    item_number=str(updated["item_number"] or ""),
+                    category=f"Item {updated['item_number']}" if updated["item_number"] else "Annale UNESS",
+                    severity=3,
+                    source_session_id=session_id,
+                )
+        except Exception:
+            logger.exception("Détection de lacune non bloquante pour la session {}", session_id)
+    return result
 
 
 def mark_ai_practice_mastery_recorded(session_id: int) -> None:

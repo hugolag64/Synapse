@@ -152,6 +152,7 @@ def get_course_mastery(
     # 3. Calcul du score (cours commencés)
     score = 50
     reasons: list[str] = []
+    recent_low_qcm = False
 
     is_consolidation = nb_lectures >= 3 or qcm_done
 
@@ -196,6 +197,27 @@ def get_course_mastery(
                 reasons.append("QCM raté")
             elif all(r == "réussi" for r in qcm_results):
                 score += 10
+
+    # Une performance fraîche est un signal diagnostique, pas une simple
+    # exposition : un échec robuste doit immédiatement remonter dans le plan.
+    try:
+        from backend.core.reviews import local_store
+        today = datetime.date.today()
+        recent_rows = local_store.get_qcm_sessions_by_course(course.id)
+        for row in recent_rows:
+            try:
+                when = _coerce_evidence_date(_safe_get(row, "session_date"), today)
+                percent = float(_safe_get(row, "score_percent"))
+                total = int(_safe_get(row, "total_questions") or 0)
+            except (TypeError, ValueError):
+                continue
+            if 0 <= (today - when).days <= 14 and total >= 10 and percent < 50:
+                score -= 15
+                reasons.append(f"QCM récent faible ({int(percent)}% sur {total} questions)")
+                recent_low_qcm = True
+                break
+    except Exception:
+        pass
 
     # Prise en compte prioritaire des sessions d'annales UNESS officielles
     if item_number:
@@ -269,7 +291,9 @@ def get_course_mastery(
 
     # Action suggérée
     next_action = "Réviser"
-    if level == "en construction":
+    if recent_low_qcm:
+        next_action = "Corriger les erreurs"
+    elif level == "en construction":
         next_action = "Ficher/Résumer"
     elif level == "à consolider":
         next_action = "Faire Anki"
@@ -358,17 +382,20 @@ def _canonical_retention_evidence(
     from backend.core.reviews import local_store
 
     evidence: list[Evidence] = []
+    qcm_by_day: dict[tuple[str, datetime.date], float] = {}
     for row in local_store.get_qcm_sessions_by_course(course.id):
         source = _qcm_source(_safe_get(row, "session_type"))
         if source is None:
             continue
         session_date = _coerce_evidence_date(_safe_get(row, "session_date"), fallback_date)
         if (source, session_date) not in study_evidence_keys:
-            evidence.append(Evidence(
-                session_date,
-                source,
-                _qcm_score_quality(_safe_get(row, "score_percent"), _safe_get(row, "score_raw")),
-            ))
+            quality = _qcm_score_quality(_safe_get(row, "score_percent"), _safe_get(row, "score_raw"))
+            # Plusieurs rejouages le même jour sont une seule exposition : on
+            # conserve la qualité la plus prudente au lieu de gonfler la stabilité.
+            key = (source, session_date)
+            qcm_by_day[key] = min(qcm_by_day.get(key, quality), quality)
+
+    evidence.extend(Evidence(day, source, quality) for (source, day), quality in qcm_by_day.items())
 
     for oic_row in local_store.get_lisa_oic(course.id) or []:
         for attempt in local_store.get_oic_attempts(_safe_get(oic_row, "id")):

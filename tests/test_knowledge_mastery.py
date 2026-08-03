@@ -380,3 +380,35 @@ def test_le_snapshot_expose_la_couverture_oic_et_le_badge():
     snap = get_course_mastery(_course())
     assert snap.oic_coverage_a == 1.0
     assert snap.has_rang_a_badge is True
+
+
+def test_same_day_qcm_results_contribute_one_retention_evidence():
+    import backend.core.reviews.local_store as ls
+
+    today = datetime.date.today().isoformat()
+    for score in (20, 95):
+        ls.add_qcm_session_full(
+            platform="Synapse", session_date=today, course_id="course-1",
+            session_type="QCM", score_percent=score, total_questions=20,
+        )
+
+    evidence = _build_retention_evidence(_course(), "college", [], [])
+
+    assert [row for row in evidence if row.source == "qcm"] == [Evidence(datetime.date.today(), "qcm", 0.2)]
+
+
+def test_recent_low_qcm_prioritizes_error_correction():
+    import backend.core.reviews.local_store as ls
+
+    ls.add_qcm_session_full(
+        platform="Synapse", session_date=datetime.date.today().isoformat(),
+        course_id="course-1", session_type="QCM", score_percent=25,
+        total_questions=20,
+    )
+
+    snapshot = get_course_mastery(
+        _course(first_read=datetime.date.today(), nb_lectures=3), qcm_done_local=True,
+    )
+
+    assert "QCM récent faible (25% sur 20 questions)" in snapshot.reasons
+    assert snapshot.next_action == "Corriger les erreurs"

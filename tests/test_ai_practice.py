@@ -250,6 +250,69 @@ def test_partial_scored_attempt_does_not_complete_session(practice_db):
     assert summary["completed_at"] is None
 
 
+def test_finalizing_partial_session_keeps_it_draft_and_unrecorded(practice_db):
+    session_id = local_store.create_ai_practice_session(
+        spec=spec(total_questions=2, open_questions=0, closed_questions=2),
+        questions=[
+            {"prompt": "Q1", "kind": QuestionKind.CLOSED, "choices": ["A", "B"], "answer": "A", "explanation": "E1"},
+            {"prompt": "Q2", "kind": QuestionKind.CLOSED, "choices": ["A", "B"], "answer": "B", "explanation": "E2"},
+        ],
+        model="test-model",
+    )
+    first_question = local_store.get_ai_practice_session(session_id)[0]
+    local_store.record_ai_practice_attempt(
+        session_id=session_id, question_id=first_question["id"], response="A",
+        is_correct=True, score_percent=100, finalize_session=False,
+    )
+
+    summary = local_store.finalize_ai_practice_session(session_id)
+
+    assert summary["completion_state"] == "draft"
+    assert summary["missing_positions"] == [2]
+    assert summary["completed_at"] is None
+    assert record_ai_practice_mastery(session_id) is None
+
+
+def test_incorrect_answer_finalizes_when_weak_point_creation_fails(practice_db, monkeypatch):
+    session_id = local_store.create_ai_practice_session(
+        spec=spec(total_questions=1, open_questions=0, closed_questions=1),
+        questions=[{"prompt": "Q1", "kind": QuestionKind.CLOSED, "choices": ["A", "B"], "answer": "A", "explanation": "E1"}],
+        model="test-model",
+    )
+    question = local_store.get_ai_practice_session(session_id)[0]
+    local_store.record_ai_practice_attempt(
+        session_id=session_id, question_id=question["id"], response="B",
+        is_correct=False, score_percent=0, finalize_session=False,
+    )
+    monkeypatch.setattr(local_store, "add_weak_point", lambda **_: (_ for _ in ()).throw(RuntimeError("lacune indisponible")))
+
+    summary = local_store.finalize_ai_practice_session(session_id)
+
+    assert summary["completion_state"] == "scored"
+    assert summary["completed_at"] is not None
+
+
+def test_reliable_practice_migration_is_idempotent(practice_db):
+    local_store.init_db()
+    local_store.init_db()
+
+    with local_store._conn() as con:
+        columns = {
+            row["name"]
+            for row in con.execute("PRAGMA table_info(ai_practice_sessions)").fetchall()
+        }
+        tables = {
+            row["name"]
+            for row in con.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+        }
+
+    assert {"completion_state", "score_mode", "score_reason"} <= columns
+    assert {
+        "ai_practice_attempt_propositions",
+        "ai_practice_question_items",
+    } <= tables
+
+
 def test_explicit_finalization_completes_deferred_scored_attempts(practice_db):
     session_id = local_store.create_ai_practice_session(
         spec=spec(total_questions=2, open_questions=0, closed_questions=2),

@@ -10,7 +10,12 @@ from backend.core.reviews import local_store
 def record_ai_practice_mastery(session_id: int):
     """Envoie une session scorée au moteur de maîtrise une seule fois."""
     session = local_store.finalize_ai_practice_session(session_id)
-    if not session or session.get("mastery_recorded_at") or session.get("score_percent") is None:
+    if (
+        not session
+        or session.get("completion_state") != "scored"
+        or session.get("mastery_recorded_at")
+        or session.get("score_percent") is None
+    ):
         return None
 
     kind = str(session["practice_kind"]).lower()

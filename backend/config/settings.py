@@ -1,10 +1,23 @@
+import datetime
+import os
 import zoneinfo
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # ── Fuseau horaire applicatif ──────────────────────────────────────────────────
-APP_TIMEZONE = zoneinfo.ZoneInfo("Indian/Reunion")
+APP_TIMEZONE_NAME = os.getenv("APP_TIMEZONE", "Europe/Paris")
+APP_TIMEZONE = zoneinfo.ZoneInfo(APP_TIMEZONE_NAME)
+
+
+def now_local() -> datetime.datetime:
+    """Horloge applicative unique, dans le fuseau de l'utilisateur."""
+    return datetime.datetime.now(APP_TIMEZONE)
+
+
+def business_today() -> datetime.date:
+    """Date civile utilisée par le planning, les sessions et les rappels."""
+    return now_local().date()
 
 # ── Noms des propriétés Notion ─────────────────────────────────────────────────
 # Source de vérité unique — extraits des screenshots de la DB Notion.

@@ -1,7 +1,6 @@
 """Tests unitaires — local_store SQLite (ReviewHistory)."""
 import pytest
 import datetime
-from zoneinfo import ZoneInfo
 import tempfile
 import sqlite3
 from pathlib import Path
@@ -76,7 +75,8 @@ class TestMarkDone:
         tid = ls.make_task_id("c1", "college", "J7", _due())
         ls.mark_done(tid, "c1", "college", "J7", _due())
         row = ls.get_history(tid)
-        today_str = datetime.datetime.now(ZoneInfo("Indian/Reunion")).date().isoformat()
+        from backend.config.settings import business_today
+        today_str = business_today().isoformat()
         assert row["completed_at"].startswith(today_str), (
             f"completed_at={row['completed_at']!r} ne commence pas par {today_str}"
         )

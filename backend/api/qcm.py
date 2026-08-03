@@ -7,6 +7,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from backend.core.practice.mastery import record_ai_practice_mastery
+from backend.core.practice.scoring import score_closed_attempt
 from backend.core.reviews import local_store
 from backend.core.uness import import_service
 from backend.core.uness.import_service import (
@@ -148,21 +149,28 @@ def save_attempt(session_id: int, payload: AttemptPayload) -> dict:
     question = next((row for row in questions if int(row["id"]) == payload.question_id), None)
     if question is None:
         raise HTTPException(status_code=404, detail="Question QCM introuvable")
-    local_store.record_ai_practice_attempt(
+    is_open = str(question.get("question_kind", "")).lower() == "open"
+    scored = None
+    if not is_open:
+        proposition_choices = (
+            (question.get("uness") or {}).get("propositions")
+            or question.get("choices")
+            or []
+        )
+        scored = score_closed_attempt(payload.response, proposition_choices, str(question.get("answer") or ""))
+    attempt_id = local_store.record_ai_practice_attempt(
         session_id=session_id,
         question_id=payload.question_id,
         response=payload.response,
-        is_correct=None if str(question.get("question_kind", "")).lower() == "open" else _same_closed_answer(
-            payload.response, question.get("answer", ""), question.get("choices") or []
-        ),
-        score_percent=(
-            None
-            if str(question.get("question_kind", "")).lower() == "open"
-            else (100.0 if _same_closed_answer(payload.response, question.get("answer", ""), question.get("choices") or []) else 0.0)
-        ),
+        is_correct=None if scored is None else scored.score_percent == 100.0,
+        score_percent=None if scored is None else scored.score_percent,
+        score_mode="" if scored is None else scored.score_mode,
+        score_reason="" if scored is None else scored.score_reason,
         finalize_session=False,
     )
-    return {"ok": True}
+    if scored is not None:
+        local_store.replace_ai_practice_attempt_propositions(attempt_id, scored.propositions)
+    return {"ok": True, "score_mode": "" if scored is None else scored.score_mode}
 
 
 @router.post("/sessions/{session_id}/complete")
@@ -170,14 +178,29 @@ def complete_session(session_id: int) -> dict:
     summary = local_store.finalize_ai_practice_session(session_id)
     if summary is None:
         raise HTTPException(status_code=404, detail="Session QCM introuvable")
+    if summary.get("missing_positions"):
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": "Toutes les questions doivent être corrigées avant la finalisation.",
+                "missing_positions": summary["missing_positions"],
+            },
+        )
     record_ai_practice_mastery(session_id)
     questions = local_store.get_ai_practice_session(session_id)
     current = local_store.get_ai_practice_session_summary(session_id)
     rows = build_correction_rows(questions, current)
+    latest_attempts = {
+        int(attempt["question_id"]): int(attempt["id"])
+        for attempt in (current or {}).get("latest_attempts", [])
+    }
     for row in rows:
         correction = row.get("question", {}).get("correction")
         if correction:
             row["correction"] = correction
+        attempt_id = latest_attempts.get(int(row["question"]["id"]))
+        if attempt_id is not None:
+            row["propositions"] = local_store.get_ai_practice_attempt_propositions(attempt_id)
     return {
         "session": summary,
         "rows": rows,

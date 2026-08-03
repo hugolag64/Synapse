@@ -6,7 +6,87 @@ et conversion des notes sur 20 avec seuil de validation Rang A.
 
 from __future__ import annotations
 
+import json
+import re
+from dataclasses import dataclass
 from typing import Any, Sequence
+
+
+@dataclass(frozen=True)
+class ScoredAttempt:
+    score_percent: float
+    score_mode: str
+    score_reason: str
+    propositions: list[dict[str, Any]]
+
+
+def _choice_data(choices: Sequence[object]) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
+    for index, raw in enumerate(choices):
+        if isinstance(raw, dict):
+            identifier = str(raw.get("id") or raw.get("label") or chr(ord("A") + index)).strip().upper()
+            text = str(raw.get("texte") or raw.get("text") or raw.get("label") or identifier)
+            expected = bool(raw.get("reponse_uness", raw.get("is_correct", raw.get("correct", False))))
+            rank = str(raw.get("rank") or raw.get("rang") or "").strip().upper()
+        else:
+            identifier = chr(ord("A") + index)
+            text = str(raw)
+            expected = False
+            rank = ""
+        result.append({"id": identifier, "text": text, "expected": expected, "rank": rank})
+    return result
+
+
+def _selected_ids(response: str, choices: list[dict[str, Any]]) -> set[str]:
+    try:
+        parsed = json.loads(str(response or ""))
+    except (TypeError, ValueError):
+        parsed = None
+    if isinstance(parsed, list):
+        tokens = [str(value).strip() for value in parsed]
+    else:
+        tokens = [part.strip() for part in re.split(r"[,;|/]", str(response or "")) if part.strip()]
+    selected: set[str] = set()
+    for token in tokens:
+        normalized = token.casefold()
+        match = next(
+            (choice["id"] for choice in choices if normalized in {choice["id"].casefold(), choice["text"].casefold()}),
+            None,
+        )
+        if match:
+            selected.add(match)
+    return selected
+
+
+def score_closed_attempt(response: str, choices: Sequence[object], answer: str = "") -> ScoredAttempt:
+    """Score côté serveur et expose une correction propositionnelle stable."""
+    normalized_choices = _choice_data(choices)
+    selected = _selected_ids(response, normalized_choices)
+    expected = {choice["id"] for choice in normalized_choices if choice["expected"]}
+    if not expected and answer:
+        expected = _selected_ids(answer, normalized_choices)
+    ranks_known = bool(normalized_choices) and all(choice["rank"] in {"A", "B"} for choice in normalized_choices)
+    score = compute_question_score_edn(selected, expected)
+    mode = "edn" if ranks_known else "training"
+    reason = "" if ranks_known else "Rangs des propositions indisponibles : score d'entraînement non calibré EDN."
+    propositions = []
+    for choice in normalized_choices:
+        is_selected = choice["id"] in selected
+        is_expected = choice["id"] in expected
+        propositions.append({
+            "proposition_id": choice["id"],
+            "selected": is_selected,
+            "expected": is_expected,
+            "rank": choice["rank"],
+            "points": float(score["score"]) if is_selected == is_expected else 0.0,
+            "discordance": "correct" if is_selected == is_expected else ("omission" if is_expected else "exces"),
+        })
+    return ScoredAttempt(
+        score_percent=float(score["score"]) * 100.0,
+        score_mode=mode,
+        score_reason=reason,
+        propositions=propositions,
+    )
 
 
 def compute_question_score_edn(

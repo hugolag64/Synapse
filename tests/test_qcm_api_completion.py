@@ -83,5 +83,9 @@ def test_completed_closed_question_exposes_training_mode_and_propositions(client
     response = client.post(f"/api/qcm/sessions/{session_id}/complete")
 
     assert response.status_code == 200
-    assert response.json()["session"]["score_mode"] == "training"
-    assert response.json()["rows"][0]["propositions"][0]["discordance"] == "correct"
+    payload = response.json()
+    assert payload["session"]["score_mode"] == "edn"
+    assert payload["rows"][0]["propositions"][0]["text"] == "A"
+    assert payload["rows"][0]["propositions"][0]["selected"] == 1
+    assert payload["rows"][0]["propositions"][0]["expected"] == 1
+    assert payload["rows"][0]["propositions"][0]["discordance"] == "correct"

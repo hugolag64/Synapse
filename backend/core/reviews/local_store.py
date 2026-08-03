@@ -2158,13 +2158,40 @@ def replace_ai_practice_attempt_propositions(attempt_id: int, propositions: list
 
 
 def get_ai_practice_attempt_propositions(attempt_id: int) -> list[dict]:
+    import json as _json
+
     with _conn() as con:
-        return [dict(row) for row in con.execute(
+        rows = [dict(row) for row in con.execute(
             """SELECT proposition_id, selected, expected, rank, points, discordance
                FROM ai_practice_attempt_propositions
                WHERE attempt_id = ? ORDER BY proposition_id""",
             (attempt_id,),
         ).fetchall()]
+        question = con.execute(
+            """SELECT q.choices_json
+               FROM ai_practice_attempts a
+               JOIN ai_practice_questions q ON q.id = a.question_id
+               WHERE a.id = ?""",
+            (attempt_id,),
+        ).fetchone()
+
+    try:
+        choices = _json.loads(question["choices_json"] or "[]") if question else []
+    except (TypeError, ValueError):
+        choices = []
+    proposition_texts = {}
+    for index, choice in enumerate(choices):
+        if isinstance(choice, dict):
+            proposition_id = str(choice.get("id") or choice.get("label") or chr(ord("A") + index)).upper()
+            text = str(choice.get("text") or choice.get("texte") or choice.get("label") or proposition_id)
+        else:
+            proposition_id = chr(ord("A") + index)
+            text = str(choice)
+        proposition_texts[proposition_id] = text
+    return [
+        {**row, "text": proposition_texts.get(str(row["proposition_id"]).upper(), "")}
+        for row in rows
+    ]
 
 
 def get_ai_practice_question_items(question_id: int) -> list[dict]:

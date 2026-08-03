@@ -200,8 +200,14 @@ def build_correction_rows(questions: list[dict], summary: dict) -> list[dict]:
     }
     rows = []
     for position, question in enumerate(questions, start=1):
-        result = build_question_result(question, latest_attempts.get(int(question["id"])))
-        rows.append({"question": question, "position": position, **result})
+        attempt = latest_attempts.get(int(question["id"]))
+        result = build_question_result(question, attempt)
+        propositions = (
+            local_store.get_ai_practice_attempt_propositions(int(attempt["id"]))
+            if attempt and attempt.get("id") is not None
+            else []
+        )
+        rows.append({"question": question, "position": position, "propositions": propositions, **result})
     return rows
 
 

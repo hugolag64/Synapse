@@ -170,6 +170,31 @@ def test_correction_rows_render_a_finished_two_out_of_three_session():
     assert [row["response"] for row in rows] == ["A", "B", "B"]
 
 
+def test_correction_rows_include_persisted_proposition_text(replay_db):
+    session_id = local_store.create_ai_practice_session(
+        spec=stored_spec(),
+        questions=[{
+            "prompt": "Q1", "kind": QuestionKind.CLOSED, "choices": ["A", "B"],
+            "answer": "A", "explanation": "E1",
+        }],
+        model="test-model",
+    )
+    stored_question = local_store.get_ai_practice_session(session_id)[0]
+    attempt_id = local_store.record_ai_practice_attempt(
+        session_id=session_id, question_id=stored_question["id"], response="A",
+        is_correct=True, score_percent=100, finalize_session=False,
+    )
+    local_store.replace_ai_practice_attempt_propositions(attempt_id, [{
+        "proposition_id": "A", "selected": True, "expected": True,
+        "rank": "A", "points": 1, "discordance": "correct",
+    }])
+
+    summary = local_store.get_ai_practice_session_summary(session_id)
+    rows = build_correction_rows(local_store.get_ai_practice_session(session_id), summary)
+
+    assert rows[0]["propositions"][0]["text"] == "A"
+
+
 def test_qcm_correction_discloses_official_uness_correction(monkeypatch):
     """Catches the NiceGUI correction view dropping the stored official UNESS answer."""
     labels = []

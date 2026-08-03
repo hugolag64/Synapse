@@ -97,3 +97,30 @@ def project_to_exam(
             confidence=confidence_label,
         ))
     return tuple(scenarios)
+
+
+def rank_gain_potential(*, items, available_minutes: int | None = None) -> list[dict]:
+    """Classe des priorités d'étude relatives avec facteurs explicables."""
+    ranked = []
+    for item in items:
+        mastery = max(0.0, min(100.0, float(item.get("mastery", 0) or 0)))
+        weight = max(0.0, min(1.0, float(item.get("edn_weight", 0.5) or 0.5)))
+        error_recurrence = max(0.0, min(1.0, float(item.get("error_count", 0) or 0) / 5))
+        availability = max(0.0, min(1.0, float(item.get("available_questions", 0) or 0) / 20))
+        effort = max(1.0, float(item.get("estimated_minutes", 30) or 30) / 30)
+        if available_minutes is not None and effort * 30 > available_minutes:
+            effort *= 1.15
+        gap = (100.0 - mastery) / 100.0
+        score = round(100 * (0.35 * weight + 0.35 * gap + 0.20 * error_recurrence + 0.10 * availability) / effort, 2)
+        ranked.append({
+            **item,
+            "potential_score": score,
+            "factors": {
+                "edn_weight": round(weight, 2),
+                "mastery_gap": round(gap, 2),
+                "error_recurrence": round(error_recurrence, 2),
+                "question_availability": round(availability, 2),
+                "estimated_minutes": round(effort * 30, 1),
+            },
+        })
+    return sorted(ranked, key=lambda row: (-row["potential_score"], str(row.get("item_number", ""))))

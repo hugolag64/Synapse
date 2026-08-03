@@ -16,6 +16,11 @@ from nicegui import ui
 from loguru import logger
 
 from backend.core.reviews import local_store
+from backend.core.edn.gap_suggestions import (
+    accept_gap_suggestion,
+    ignore_gap_suggestion,
+    suggest_gap_candidates,
+)
 from backend.core.reviews.anchors import anchor_priority, anchor_status, is_anchor_due
 from backend.config.settings import settings
 from frontend.components.weak_point_card import _get
@@ -72,6 +77,17 @@ def filter_weak_points_view(rows: list, view: str) -> list:
     return active
 
 
+def edn_suggestion_model(row: dict) -> dict[str, object]:
+    """Résumé stable d'une suggestion F6 pour l'affichage et les tests UI."""
+    evidence_count = len(row.get("evidence_ids") or [])
+    return {
+        "title": f"Item {row.get('item_number', '—')} · {row.get('category', 'non_classé')}",
+        "detail": str(row.get("detail", "")),
+        "evidence": f"{evidence_count} évidence(s)",
+        "id": int(row["id"]),
+    }
+
+
 def render_weak_points_cockpit() -> None:
     ui.add_head_html(f"<style>{_CSS}</style>", shared=True)
 
@@ -79,6 +95,7 @@ def render_weak_points_cockpit() -> None:
     with ui.element("div").classes("wp-wrap"):
         topbar = ui.element("div").classes("wp-topbar")
         chips_row = ui.element("div").classes("wp-chips")
+        suggestions_col = ui.element("div")
         list_col = ui.element("div").classes("wp-list")
 
     def _select_view(view: str) -> None:
@@ -175,10 +192,61 @@ def render_weak_points_cockpit() -> None:
             for w in rows:
                 weak_point_row(w, on_refresh=_render)
 
+    def _draw_suggestions(rows: list[dict]) -> None:
+        suggestions_col.clear()
+        if not rows:
+            return
+        with suggestions_col:
+            ui.label("Suggestions EDN · erreurs répétées").classes("text-sm font-semibold")
+            ui.label(
+                "Ces propositions sont explicables et restent à valider par vous."
+            ).classes("text-xs text-slate-500 mb-2")
+            with ui.column().classes("w-full gap-2"):
+                for row in rows:
+                    model = edn_suggestion_model(row)
+                    with ui.element("div").classes("w-full p-3 rounded-lg border border-amber-200 bg-amber-50/50 dark:border-amber-900 dark:bg-amber-950/20"):
+                        with ui.row().classes("w-full items-center justify-between gap-2"):
+                            with ui.column().classes("gap-0"):
+                                ui.label(model["title"]).classes("text-sm font-semibold")
+                                ui.label(model["detail"]).classes("text-xs text-slate-500")
+                                ui.label(model["evidence"]).classes("text-[11px] text-slate-500")
+                            with ui.row().classes("gap-1"):
+                                ui.button(
+                                    "Créer",
+                                    on_click=lambda suggestion_id=model["id"]: _accept_suggestion(suggestion_id),
+                                ).props("unelevated color=teal size=sm rounded")
+                                ui.button(
+                                    "Ignorer",
+                                    on_click=lambda suggestion_id=model["id"]: _ignore_suggestion(suggestion_id),
+                                ).props("flat color=grey size=sm")
+
+    def _accept_suggestion(suggestion_id: int) -> None:
+        try:
+            accept_gap_suggestion(suggestion_id, store=local_store)
+            ui.notify("Lacune créée", type="positive")
+            _render()
+        except Exception as exc:
+            ui.notify(f"Impossible de créer la lacune : {exc}", type="negative")
+
+    def _ignore_suggestion(suggestion_id: int) -> None:
+        try:
+            ignore_gap_suggestion(suggestion_id, store=local_store)
+            ui.notify("Suggestion ignorée", type="info")
+            _render()
+        except Exception as exc:
+            ui.notify(f"Impossible d'ignorer la suggestion : {exc}", type="negative")
+
     def _render() -> None:
         rows = local_store.get_all_weak_points_table(limit=300)
+        try:
+            suggest_gap_candidates(days=30, store=local_store)
+            suggestions = local_store.get_edn_recommendations(status="proposée")
+        except Exception as exc:
+            logger.warning(f"Suggestions F6 indisponibles : {exc}")
+            suggestions = []
         _draw_topbar(rows)
         _draw_chips(rows)
+        _draw_suggestions(suggestions)
         _draw_list(filter_weak_points_view(rows, state["view"]))
 
     _render()

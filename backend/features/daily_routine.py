@@ -8,6 +8,9 @@ from loguru import logger
 # Caractères PowerShell qui permettent l'injection de commandes
 _PS_UNSAFE = re.compile(r'[`$;|&<>()\[\]{}\\]')
 from backend.core.notion.service import notion_service
+from backend.config.settings import business_today
+from backend.core.reviews.local_store import ensure_daily_flash_zero
+from backend.state.store import data_store
 
 # Set locale for French date formatting (if system supports it, otherwise fallback)
 try:
@@ -97,14 +100,19 @@ async def _send_morning_notification() -> None:
         logger.debug(f"Morning notification échouée (non bloquant): {exc}")
 
 
+def ensure_morning_flash_zero() -> dict:
+    timezone_name = data_store.preferences.get("timezone", "Europe/Paris")
+    return ensure_daily_flash_zero(business_today(), timezone_name=timezone_name)
+
+
 async def run_daily_routine():
     """
     Execute the daily routine:
     1. Archive past tasks (Status 'À faire'/'En cours' -> 'Terminé')
     2. Ensure tasks exist for Today, Tomorrow, Day+2
     """
-    from backend.state.store import data_store
-    today = date.today()
+    today = business_today()
+    ensure_morning_flash_zero()
     if data_store.preferences.get("_routine_date") == today.isoformat():
         logger.debug("Daily Routine déjà exécutée aujourd'hui — skip.")
         await _send_morning_notification()

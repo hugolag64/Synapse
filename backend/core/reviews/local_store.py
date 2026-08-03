@@ -2598,7 +2598,7 @@ def get_recent_study_sessions(limit: int = 50) -> list:
 
 # ── Planifications manuelles du cockpit Planning ─────────────────────────────
 
-_MANUAL_PLANNING_ACTIVITY_TYPES = {"revision", "lecture", "qcm", "lacune"}
+_MANUAL_PLANNING_ACTIVITY_TYPES = {"revision", "lecture", "qcm", "lacune", "flash_zero"}
 
 
 def create_manual_planning_entry(
@@ -2646,6 +2646,61 @@ def get_manual_planning_entries(
             (start_iso, end_iso),
         ).fetchall()
     return [dict(row) for row in rows]
+
+
+def ensure_daily_flash_zero(entry_date: datetime.date, *, timezone_name: str) -> dict:
+    """Crée la tâche Flash-Zero du jour une seule fois par fuseau métier."""
+    course_id = f"flash-zero:{timezone_name}"
+    date_iso = entry_date.isoformat() if isinstance(entry_date, datetime.date) else str(entry_date)
+    with _conn() as con:
+        existing = con.execute(
+            """SELECT * FROM manual_planning_entries
+               WHERE entry_date = ? AND activity_type = 'flash_zero' AND course_id = ?
+               ORDER BY id LIMIT 1""",
+            (date_iso, course_id),
+        ).fetchone()
+    if existing:
+        return dict(existing)
+    return create_manual_planning_entry(
+        entry_date=entry_date,
+        course_id=course_id,
+        course_title="Flash-Zero du matin",
+        item_number="",
+        activity_type="flash_zero",
+        duration_minutes=5,
+    )
+
+
+def get_daily_flash_zero(entry_date: datetime.date, *, timezone_name: str) -> dict | None:
+    course_id = f"flash-zero:{timezone_name}"
+    return next(
+        (
+            row for row in get_manual_planning_entries(entry_date, entry_date)
+            if row["activity_type"] == "flash_zero" and row["course_id"] == course_id
+        ),
+        None,
+    )
+
+
+def complete_daily_flash_zero(entry_date: datetime.date, *, timezone_name: str) -> None:
+    date_iso = entry_date.isoformat() if isinstance(entry_date, datetime.date) else str(entry_date)
+    item_name = f"flash_zero:{timezone_name}"
+    with _conn() as con:
+        con.execute(
+            """INSERT INTO routine_checks(date, item_name, checked) VALUES (?, ?, 1)
+               ON CONFLICT(date, item_name) DO UPDATE SET checked = 1""",
+            (date_iso, item_name),
+        )
+
+
+def is_daily_flash_zero_complete(entry_date: datetime.date, *, timezone_name: str) -> bool:
+    date_iso = entry_date.isoformat() if isinstance(entry_date, datetime.date) else str(entry_date)
+    with _conn() as con:
+        row = con.execute(
+            "SELECT checked FROM routine_checks WHERE date = ? AND item_name = ?",
+            (date_iso, f"flash_zero:{timezone_name}"),
+        ).fetchone()
+    return bool(row and row["checked"])
 
 
 def delete_manual_planning_entry(entry_id: int) -> bool:

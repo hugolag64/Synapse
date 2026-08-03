@@ -118,7 +118,7 @@ class PracticeService:
 
     def generate_questions(self, spec: PracticeSessionSpec, context: str = "") -> list[dict]:
         task = _task_for(spec.practice_kind)
-        ctx_label = f"ITEM {spec.item_number}" if spec.item_number else (context or spec.practice_kind.value.upper())
+        ctx_label = context or (f"ITEM {spec.item_number}" if spec.item_number else spec.practice_kind.value.upper())
         response = self.ai_service.generate(
             task,
             _prompt_for(spec, context),
@@ -135,6 +135,42 @@ class PracticeService:
             questions=questions,
             model=model_for_task(_task_for(spec.practice_kind), spec.difficulty).value,
         )
+
+    def create_tutor_dp_session(
+        self,
+        *,
+        item_number: str,
+        course_id: str,
+        course_title: str,
+        dossier_context: str,
+        errors: list[dict],
+        gap_details: list[str],
+        total_questions: int = 5,
+    ) -> int:
+        """Génère une session DP ciblée sur l'historique pédagogique de l'item."""
+        error_lines = [
+            f"- {row.get('category', 'non_classe')}: {row.get('detail', '')}".strip()
+            for row in errors
+        ] or ["- aucune erreur catégorisée"]
+        gap_lines = [f"- {detail}" for detail in gap_details] or ["- aucune lacune active"]
+        context = "\n".join([
+            f"DOSSIER PROGRESSIF : {dossier_context}",
+            "ERREURS À CIBLER :",
+            *error_lines,
+            "LACUNES À CONSOLIDER :",
+            *gap_lines,
+        ])
+        spec = PracticeSessionSpec(
+            practice_kind=PracticeKind.DP,
+            total_questions=total_questions,
+            open_questions=0,
+            closed_questions=total_questions,
+            item_number=item_number,
+            course_id=course_id,
+            course_title=course_title,
+            difficulty=PracticeDifficulty.EDN,
+        )
+        return self.create_new_session(spec, context=context)
 
     def replay_session(self, session_id: int) -> int:
         return self.store.replay_ai_practice_session(session_id)

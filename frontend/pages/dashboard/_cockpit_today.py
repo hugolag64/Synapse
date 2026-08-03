@@ -40,10 +40,55 @@ from frontend.components.responsive_drawer import (
     responsive_drawer, close_drawer, open_drawer, ensure_styles as _drawer_styles,
 )
 from frontend.pages.dashboard._dialogs import open_session_feedback_dialog
+from frontend.components.flash_zero_cockpit import render_flash_zero_card, open_flash_zero_quiz
+from frontend.components.edn_insights_panel import render_edn_insights_panel
+from backend.config.settings import business_today
+from backend.core.edn.trajectory import build_progress_snapshot, project_to_exam, rank_gain_potential
+from backend.core.planning.sprint_countdown import SprintCountdownService
 
 _DAYS_FR = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
 _MONTHS_FR = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet",
               "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
+
+def build_gain_items(*, courses: list, tasks: list, error_signals: list[dict]) -> list[dict]:
+    """Construit les priorités F3 à partir des données locales disponibles."""
+    courses_by_item: dict[str, object] = {}
+    for course in courses:
+        item_number = str(getattr(course, "item_number", "") or "").strip()
+        if item_number:
+            courses_by_item.setdefault(item_number, course)
+
+    tasks_by_item: dict[str, list] = {}
+    for task in tasks:
+        item_number = str(getattr(task, "item_number", "") or "").strip()
+        if item_number:
+            tasks_by_item.setdefault(item_number, []).append(task)
+
+    error_counts: dict[str, int] = {}
+    for signal in error_signals:
+        item_number = str(signal.get("item_number", "") or "").strip()
+        if item_number:
+            error_counts[item_number] = error_counts.get(item_number, 0) + 1
+
+    items = []
+    for item_number, course in courses_by_item.items():
+        item_tasks = tasks_by_item.get(item_number, [])
+        scores = [
+            float(task.mastery_score)
+            for task in item_tasks
+            if getattr(task, "mastery_score", None) is not None
+        ]
+        items.append({
+            "item_number": item_number,
+            "title": str(getattr(course, "title", "") or ""),
+            "edn_weight": 0.7,
+            "mastery": sum(scores) / len(scores) if scores else 0,
+            "error_count": error_counts.get(item_number, 0),
+            "available_questions": 10,
+            "estimated_minutes": 30,
+        })
+    return rank_gain_potential(items=items)
+
 
 _CSS = """
 .cockpit-today { display:grid; grid-template-columns:minmax(0, 1fr) 8px var(--ct-panel-width,296px);
@@ -166,7 +211,7 @@ async def render_today_cockpit() -> None:
     state = DashboardState()
     sel: dict = {"task": None}
     drawer_state: dict = {"root": None}
-    _data: dict = {"urgent": [], "today": [], "load": {}, "qcm": {}, "lac": {}, "crit": 0, "target": {}}
+    _data: dict = {"urgent": [], "today": [], "load": {}, "qcm": {}, "lac": {}, "crit": 0, "target": {}, "flash_zero": None, "flash_zero_complete": False, "edn_status": None, "edn_projections": (), "gain_items": ()}
 
     # ── Pipeline données (réplique de rebuild_all, partie data) ────────────────
     def _fetch() -> None:
@@ -202,7 +247,34 @@ async def render_today_cockpit() -> None:
         except Exception:
             crit = 0
 
-        _data.update(urgent=urgent, today=today, load=load, qcm=qcm, lac=lac, crit=crit, target=target)
+        timezone_name = data_store.preferences.get("timezone", "Europe/Paris")
+        flash_zero = local_store.ensure_daily_flash_zero(business_today(), timezone_name=timezone_name)
+        flash_zero_complete = local_store.is_daily_flash_zero_complete(business_today(), timezone_name=timezone_name)
+        progress = build_progress_snapshot(
+            courses=list(getattr(data_store, "cours", []) or []),
+            tasks=all_tasks,
+            history=history,
+            as_of=business_today(),
+        )
+        countdown = SprintCountdownService()
+        edn_status = countdown.get_sprint_status(today=business_today(), progress=progress)
+        edn_projections = project_to_exam(
+            progress,
+            target_date=edn_status.target_date,
+            daily_capacity_minutes=int(data_store.preferences.get("daily_budget_min", 60) or 60),
+            today=business_today(),
+        )
+        try:
+            error_signals = local_store.get_error_signals(days=30)
+        except Exception:
+            error_signals = []
+        gain_items = build_gain_items(
+            courses=list(getattr(data_store, "cours", []) or []),
+            tasks=all_tasks,
+            error_signals=error_signals,
+        )
+
+        _data.update(urgent=urgent, today=today, load=load, qcm=qcm, lac=lac, crit=crit, target=target, flash_zero=flash_zero, flash_zero_complete=flash_zero_complete, edn_status=edn_status, edn_projections=edn_projections, gain_items=gain_items)
 
     # ── Focus (réutilise open_focus_mode existant) ────────────────────────────
     def _open_focus(task: ReviewTask | None = None) -> None:
@@ -380,6 +452,26 @@ async def render_today_cockpit() -> None:
                     ui.label("Semaine").classes("ct-seg").tooltip("Bientôt (vue Planning)")
 
             _render_summary(_data["load"], _data["crit"], total)
+
+            if _data.get("edn_status"):
+                render_edn_insights_panel(
+                    _data["edn_status"],
+                    _data["edn_projections"],
+                    _data["gain_items"],
+                )
+
+            def _finish_flash_zero() -> None:
+                timezone_name = data_store.preferences.get("timezone", "Europe/Paris")
+                local_store.complete_daily_flash_zero(business_today(), timezone_name=timezone_name)
+                _full_rebuild()
+                ui.notify("Flash-Zero terminé", type="positive")
+
+            if _data.get("flash_zero"):
+                render_flash_zero_card(
+                    _data["flash_zero"],
+                    completed=_data["flash_zero_complete"],
+                    on_open=lambda: open_flash_zero_quiz(on_complete=_finish_flash_zero),
+                )
 
             if tasks:
                 _render_recommended(tasks[0])

@@ -43,6 +43,7 @@ from backend.core.uness import import_service
 from backend.core.lisa import item_service
 from frontend.components.uness_diagnostic_panel import render as render_uness_diagnostics
 from frontend.components.dp_coverage_panel import render as render_dp_coverage
+from frontend.components.edn_insights_panel import render_external_result_import
 
 def toggle_dark_mode(value: bool | None = None) -> bool:
     dark = ui.dark_mode()
@@ -304,6 +305,11 @@ def render_settings_cockpit() -> None:
                 on_click=_scan_verified,
             ).props("unelevated color=purple size=sm rounded").classes("mt-3")
             ui.label("Échange local : UNESS/à_vérifier → UNESS/vérifiés → UNESS/archives").classes("se-uness-status")
+
+        with ui.element("div").classes("se-uness-card mt-3"):
+            render_external_result_import(
+                lambda _report: ui.notify("Le tableau de bord EDN sera actualisé", type="info")
+            )
 
         ui.label("LISA / OIC").classes("se-label")
         with ui.element("div").classes("se-uness-card"):

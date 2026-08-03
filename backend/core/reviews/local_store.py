@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import datetime
 import hashlib
+import json
 import os
 import sqlite3
 import threading
@@ -298,6 +299,53 @@ def init_db() -> None:
         CREATE INDEX IF NOT EXISTS idx_imported_cases_items
             ON imported_practice_cases(item_numbers);
 
+        CREATE TABLE IF NOT EXISTS external_results (
+            id               INTEGER PRIMARY KEY AUTOINCREMENT,
+            source           TEXT NOT NULL,
+            external_id      TEXT NOT NULL,
+            session_date     TEXT NOT NULL,
+            item_number      TEXT NOT NULL,
+            activity_type    TEXT NOT NULL DEFAULT 'QCM',
+            score_percent    REAL,
+            total_questions  INTEGER,
+            rank_a_percent   REAL,
+            rank_b_percent   REAL,
+            metadata_json    TEXT NOT NULL DEFAULT '{}',
+            imported_at      TEXT NOT NULL,
+            updated_at       TEXT NOT NULL,
+            UNIQUE (source, external_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_external_results_item_date
+            ON external_results(item_number, session_date DESC);
+
+        CREATE TABLE IF NOT EXISTS error_signals (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            item_number  TEXT NOT NULL,
+            category     TEXT NOT NULL,
+            occurred_at  TEXT NOT NULL,
+            source       TEXT NOT NULL,
+            evidence_id  TEXT NOT NULL,
+            detail       TEXT NOT NULL DEFAULT '',
+            created_at   TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_error_signals_item_date
+            ON error_signals(item_number, occurred_at DESC);
+
+        CREATE TABLE IF NOT EXISTS edn_recommendations (
+            id                INTEGER PRIMARY KEY AUTOINCREMENT,
+            recommendation_type TEXT NOT NULL,
+            item_number       TEXT NOT NULL,
+            category          TEXT NOT NULL,
+            detail            TEXT NOT NULL,
+            evidence_json     TEXT NOT NULL DEFAULT '[]',
+            dedupe_key        TEXT NOT NULL,
+            status            TEXT NOT NULL DEFAULT 'proposée',
+            created_at        TEXT NOT NULL,
+            updated_at        TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_edn_recommendations_status
+            ON edn_recommendations(status, created_at DESC);
+
         -- ── Table Télémétrie et Coûts des appels IA ──────────────────────
         CREATE TABLE IF NOT EXISTS ai_usage_logs (
             id               INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -489,6 +537,157 @@ def init_db() -> None:
 
 def _now() -> str:
     return now_local().isoformat(timespec="seconds")
+
+
+def upsert_external_result(result) -> str:
+    """Insère ou met à jour un résultat externe par clé source/identifiant."""
+    now = _now()
+    values = (
+        str(result.source),
+        str(result.external_id),
+        result.session_date.isoformat(),
+        str(result.item_number),
+        str(result.activity_type or "QCM"),
+        result.score_percent,
+        result.total_questions,
+        result.rank_a_percent,
+        result.rank_b_percent,
+        json.dumps(result.metadata or {}, ensure_ascii=False, sort_keys=True),
+    )
+    with _conn() as con:
+        existing = con.execute(
+            "SELECT id FROM external_results WHERE source = ? AND external_id = ?",
+            values[:2],
+        ).fetchone()
+        if existing:
+            con.execute(
+                """UPDATE external_results SET session_date=?, item_number=?, activity_type=?,
+                   score_percent=?, total_questions=?, rank_a_percent=?, rank_b_percent=?,
+                   metadata_json=?, updated_at=? WHERE source=? AND external_id=?""",
+                values[2:] + (now, values[0], values[1]),
+            )
+            return "updated"
+        con.execute(
+            """INSERT INTO external_results
+               (source, external_id, session_date, item_number, activity_type,
+                score_percent, total_questions, rank_a_percent, rank_b_percent,
+                metadata_json, imported_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            values + (now, now),
+        )
+    return "inserted"
+
+
+def get_external_results(
+    *, item_number: str | None = None, source: str | None = None, days: int | None = None
+) -> list[dict]:
+    clauses = []
+    params: list[object] = []
+    if item_number:
+        clauses.append("item_number = ?")
+        params.append(str(item_number).strip().removeprefix("ITEM "))
+    if source:
+        clauses.append("source = ?")
+        params.append(str(source))
+    if days is not None:
+        cutoff = (now_local().date() - datetime.timedelta(days=int(days))).isoformat()
+        clauses.append("session_date >= ?")
+        params.append(cutoff)
+    where = f" WHERE {' AND '.join(clauses)}" if clauses else ""
+    with _conn() as con:
+        rows = con.execute(
+            f"SELECT * FROM external_results{where} ORDER BY session_date DESC, id DESC",
+            params,
+        ).fetchall()
+    result = []
+    for row in rows:
+        value = dict(row)
+        try:
+            value["metadata"] = json.loads(value.pop("metadata_json") or "{}")
+        except json.JSONDecodeError:
+            value["metadata"] = {}
+        result.append(value)
+    return result
+
+
+def insert_error_signal(
+    item_number: str, category: str, occurred_at: str, source: str, evidence_id: str, detail: str = ""
+) -> int:
+    with _conn() as con:
+        cursor = con.execute(
+            """INSERT INTO error_signals
+               (item_number, category, occurred_at, source, evidence_id, detail, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (str(item_number), str(category), str(occurred_at), str(source), str(evidence_id), str(detail), _now()),
+        )
+    return int(cursor.lastrowid)
+
+
+def get_error_signals(*, item_number: str | None = None, days: int | None = None) -> list[dict]:
+    clauses = []
+    params: list[object] = []
+    if item_number:
+        clauses.append("item_number = ?")
+        params.append(str(item_number).strip().removeprefix("ITEM "))
+    if days is not None:
+        cutoff = (now_local().date() - datetime.timedelta(days=int(days))).isoformat()
+        clauses.append("occurred_at >= ?")
+        params.append(cutoff)
+    where = f" WHERE {' AND '.join(clauses)}" if clauses else ""
+    with _conn() as con:
+        rows = con.execute(
+            f"SELECT * FROM error_signals{where} ORDER BY occurred_at DESC, id DESC",
+            params,
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def create_edn_recommendation(
+    *, recommendation_type: str, item_number: str, category: str, detail: str,
+    evidence_ids: list[str], dedupe_key: str,
+) -> int:
+    now = _now()
+    with _conn() as con:
+        cursor = con.execute(
+            """INSERT INTO edn_recommendations
+               (recommendation_type, item_number, category, detail, evidence_json,
+                dedupe_key, status, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, 'proposée', ?, ?)""",
+            (recommendation_type, item_number, category, detail, json.dumps(evidence_ids), dedupe_key, now, now),
+        )
+    return int(cursor.lastrowid)
+
+
+def get_edn_recommendations(*, status: str | None = None) -> list[dict]:
+    with _conn() as con:
+        if status:
+            rows = con.execute(
+                "SELECT * FROM edn_recommendations WHERE status = ? ORDER BY created_at DESC, id DESC",
+                (status,),
+            ).fetchall()
+        else:
+            rows = con.execute(
+                "SELECT * FROM edn_recommendations ORDER BY created_at DESC, id DESC"
+            ).fetchall()
+    result = []
+    for row in rows:
+        value = dict(row)
+        value["evidence_ids"] = json.loads(value.pop("evidence_json") or "[]")
+        result.append(value)
+    return result
+
+
+def get_edn_recommendation(recommendation_id: int) -> dict | None:
+    rows = [row for row in get_edn_recommendations() if int(row["id"]) == int(recommendation_id)]
+    return rows[0] if rows else None
+
+
+def update_edn_recommendation(recommendation_id: int, status: str) -> None:
+    with _conn() as con:
+        con.execute(
+            "UPDATE edn_recommendations SET status = ?, updated_at = ? WHERE id = ?",
+            (status, _now(), int(recommendation_id)),
+        )
 
 
 def _migrate_ai_practice_v1() -> None:
@@ -2399,7 +2598,7 @@ def get_recent_study_sessions(limit: int = 50) -> list:
 
 # ── Planifications manuelles du cockpit Planning ─────────────────────────────
 
-_MANUAL_PLANNING_ACTIVITY_TYPES = {"revision", "lecture", "qcm", "lacune"}
+_MANUAL_PLANNING_ACTIVITY_TYPES = {"revision", "lecture", "qcm", "lacune", "flash_zero"}
 
 
 def create_manual_planning_entry(
@@ -2447,6 +2646,61 @@ def get_manual_planning_entries(
             (start_iso, end_iso),
         ).fetchall()
     return [dict(row) for row in rows]
+
+
+def ensure_daily_flash_zero(entry_date: datetime.date, *, timezone_name: str) -> dict:
+    """Crée la tâche Flash-Zero du jour une seule fois par fuseau métier."""
+    course_id = f"flash-zero:{timezone_name}"
+    date_iso = entry_date.isoformat() if isinstance(entry_date, datetime.date) else str(entry_date)
+    with _conn() as con:
+        existing = con.execute(
+            """SELECT * FROM manual_planning_entries
+               WHERE entry_date = ? AND activity_type = 'flash_zero' AND course_id = ?
+               ORDER BY id LIMIT 1""",
+            (date_iso, course_id),
+        ).fetchone()
+    if existing:
+        return dict(existing)
+    return create_manual_planning_entry(
+        entry_date=entry_date,
+        course_id=course_id,
+        course_title="Flash-Zero du matin",
+        item_number="",
+        activity_type="flash_zero",
+        duration_minutes=5,
+    )
+
+
+def get_daily_flash_zero(entry_date: datetime.date, *, timezone_name: str) -> dict | None:
+    course_id = f"flash-zero:{timezone_name}"
+    return next(
+        (
+            row for row in get_manual_planning_entries(entry_date, entry_date)
+            if row["activity_type"] == "flash_zero" and row["course_id"] == course_id
+        ),
+        None,
+    )
+
+
+def complete_daily_flash_zero(entry_date: datetime.date, *, timezone_name: str) -> None:
+    date_iso = entry_date.isoformat() if isinstance(entry_date, datetime.date) else str(entry_date)
+    item_name = f"flash_zero:{timezone_name}"
+    with _conn() as con:
+        con.execute(
+            """INSERT INTO routine_checks(date, item_name, checked) VALUES (?, ?, 1)
+               ON CONFLICT(date, item_name) DO UPDATE SET checked = 1""",
+            (date_iso, item_name),
+        )
+
+
+def is_daily_flash_zero_complete(entry_date: datetime.date, *, timezone_name: str) -> bool:
+    date_iso = entry_date.isoformat() if isinstance(entry_date, datetime.date) else str(entry_date)
+    with _conn() as con:
+        row = con.execute(
+            "SELECT checked FROM routine_checks WHERE date = ? AND item_name = ?",
+            (date_iso, f"flash_zero:{timezone_name}"),
+        ).fetchone()
+    return bool(row and row["checked"])
 
 
 def delete_manual_planning_entry(entry_id: int) -> bool:

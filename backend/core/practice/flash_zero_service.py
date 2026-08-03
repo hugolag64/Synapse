@@ -13,6 +13,21 @@ from typing import Any
 from backend.core.reviews import local_store
 
 
+def build_flash_zero_priority(signals, today=None) -> list[str]:
+    """Classe les items par répétition puis par récence, sans dépendre de l'IA."""
+    grouped: dict[str, list[str]] = {}
+    for signal in signals or []:
+        item = str(signal.get("item_number") or "").strip().removeprefix("ITEM ")
+        if item:
+            grouped.setdefault(item, []).append(str(signal.get("occurred_at") or ""))
+    return [
+        item
+        for item, dates in sorted(
+            grouped.items(), key=lambda pair: (len(pair[1]), max(pair[1])), reverse=True
+        )
+    ]
+
+
 @dataclass(frozen=True)
 class FlashZeroQuestion:
     id: str
@@ -32,7 +47,7 @@ class FlashZeroService:
     def __init__(self, store=None):
         self.store = store or local_store
 
-    def get_morning_quiz(self, count: int = 10) -> list[FlashZeroQuestion]:
+    def get_morning_quiz(self, count: int = 10, *, item_number: str | None = None) -> list[FlashZeroQuestion]:
         """
         Génère un quiz de `count` questions (par défaut 10) axé sur :
         1. Les lacunes / erreurs de Rang A récentes dans SQLite.
@@ -157,6 +172,14 @@ class FlashZeroService:
             ),
         ]
 
-        quiz = canonical_flash_bank.copy()
-        random.shuffle(quiz)
-        return quiz[:count]
+        try:
+            signals = self.store.get_error_signals(item_number=item_number, days=30)
+        except Exception:
+            signals = []
+        priority = build_flash_zero_priority(signals)
+        rank = {item: index for index, item in enumerate(priority)}
+        targeted = [q for q in canonical_flash_bank if q.item_number.removeprefix("ITEM ") in rank]
+        fallback = [q for q in canonical_flash_bank if q not in targeted]
+        targeted.sort(key=lambda q: rank[q.item_number.removeprefix("ITEM ")])
+        random.shuffle(fallback)
+        return (targeted + fallback)[:count]

@@ -54,7 +54,7 @@ from frontend.components.course_quick_actions import (
     open_start_tracking_dialog,
 )
 from frontend.components.anki_review_session import open_anki_review_session
-from frontend.components.ai_practice_panel import render_ai_practice_panel
+from frontend.components.ai_practice_panel import render_ai_practice_panel, render_dp_tutor_action
 from frontend.components.responsive_drawer import (
     responsive_drawer, close_drawer, open_drawer, ensure_styles as _drawer_styles,
 )
@@ -553,7 +553,7 @@ def render_item_cockpit(course_id: str) -> None:
                     ui.spinner(size="md", color="indigo").classes("my-6")
 
             with ui.tab_panel(t_hist):
-                _tab_history(sessions, qcm_sessions, lacunes, review_hist)
+                _tab_history(course, sessions, qcm_sessions, lacunes, review_hist)
 
         async def _on_tab_change(event) -> None:
             nonlocal podcast_loaded
@@ -1011,7 +1011,7 @@ def _review_anchor(row) -> None:
     ui.navigate.reload()
 
 
-def _tab_history(sessions, qcm_sessions, lacunes, review_hist) -> None:
+def _tab_history(course, sessions, qcm_sessions, lacunes, review_hist) -> None:
     # ── Typologie des Erreurs de l'Item ──
     cat_counts: dict[str, int] = {}
     for l in lacunes:
@@ -1083,18 +1083,54 @@ def _tab_history(sessions, qcm_sessions, lacunes, review_hist) -> None:
 
     if not events:
         ui.label("Aucune activité enregistrée sur cet item.").classes("ci-empty")
-        return
+    else:
+        events.sort(key=lambda e: e["date"], reverse=True)
+        with ui.column().classes("w-full gap-0 pt-2"):
+            ui.label("ACTIVITÉ RÉCENTE").classes("text-[10px] font-mono uppercase tracking-widest text-slate-400 font-semibold mb-3 px-1")
+            for ev in events[:30]:
+                with ui.element("div").classes("ci-hist"):
+                    ui.label(_fmt_date(ev["date"])).classes("ci-hist-date")
+                    ui.label(ev["badge"]).classes("ci-hist-badge")
+                    ui.label(ev["detail"]).classes("ci-hist-detail")
+                    if ev["dur"]:
+                        ui.label(ev["dur"]).classes("ci-hist-dur")
 
-    events.sort(key=lambda e: e["date"], reverse=True)
-    with ui.column().classes("w-full gap-0 pt-2"):
-        ui.label("ACTIVITÉ RÉCENTE").classes("text-[10px] font-mono uppercase tracking-widest text-slate-400 font-semibold mb-3 px-1")
-        for ev in events[:30]:
-            with ui.element("div").classes("ci-hist"):
-                ui.label(_fmt_date(ev["date"])).classes("ci-hist-date")
-                ui.label(ev["badge"]).classes("ci-hist-badge")
-                ui.label(ev["detail"]).classes("ci-hist-detail")
-                if ev["dur"]:
-                    ui.label(ev["dur"]).classes("ci-hist-dur")
+    item_number = str(getattr(course, "item_number", "") or getattr(course, "display_item_number", "") or "")
+    ai_history = local_store.get_ai_practice_history(item_number=item_number, limit=30) if item_number else []
+    dp_history = [entry for entry in ai_history if str(entry["session"].get("practice_kind", "")).lower() == "dp"]
+    errors = [
+        {"category": _row_get(l, "category") or "non_classe", "detail": _row_get(l, "detail") or ""}
+        for l in lacunes
+    ]
+    gap_details = [str(_row_get(l, "detail") or "") for l in lacunes]
+    with ui.column().classes("w-full gap-2 mt-5 p-4 rounded-xl border border-indigo-200 dark:border-indigo-900 bg-indigo-50/40 dark:bg-indigo-950/20"):
+        ui.label("TUTEUR DP").classes("text-[10px] font-mono uppercase tracking-widest text-indigo-500 font-semibold")
+        if dp_history:
+            for entry in dp_history[:5]:
+                session = entry["session"]
+                questions = entry.get("questions", [])
+                dossier_context = "\n".join(str(q.get("prompt") or "") for q in questions[:5])
+                ui.button(
+                    f"Ouvrir le Tuteur DP · Session #{session['id']}",
+                    on_click=lambda session=session, dossier_context=dossier_context: render_dp_tutor_action(
+                        item_number=item_number,
+                        dp_session={**session, "dossier_context": dossier_context, "course_id": course.id, "course_title": course.title},
+                        errors=errors,
+                        gap_details=gap_details,
+                        refresh=lambda: None,
+                    ),
+                ).props("flat color=indigo align=left")
+        else:
+            ui.button(
+                "Ouvrir le Tuteur DP sur cet Item",
+                on_click=lambda: render_dp_tutor_action(
+                    item_number=item_number,
+                    dp_session={"course_id": course.id, "course_title": course.title, "dossier_context": ""},
+                    errors=errors,
+                    gap_details=gap_details,
+                    refresh=lambda: None,
+                ),
+            ).props("unelevated color=indigo")
 
 
 
@@ -1206,6 +1242,4 @@ def _render_panel(course, lacunes, has_pdf: bool, obs_path) -> None:
 
         if not any_res:
             ui.label("— aucune ressource liée").classes("ci-p-empty")
-
-
 

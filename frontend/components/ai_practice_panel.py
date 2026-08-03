@@ -167,6 +167,61 @@ def _open_correction_dialog(session_id: int, refresh) -> None:
     )
 
 
+def build_dp_tutor_context(dossier_context: str, errors: list[dict], gap_details: list[str]) -> str:
+    error_lines = [
+        f"- {row.get('category', 'non_classe')}: {row.get('detail', '')}".strip()
+        for row in errors
+    ] or ["- aucune erreur catégorisée"]
+    gap_lines = [f"- {detail}" for detail in gap_details] or ["- aucune lacune active"]
+    return "\n".join([
+        "DOSSIER PROGRESSIF :",
+        dossier_context or "Contexte à préciser depuis l'historique.",
+        "ERREURS À CIBLER :",
+        *error_lines,
+        "LACUNES À CONSOLIDER :",
+        *gap_lines,
+    ])
+
+
+def render_dp_tutor_action(
+    *, item_number: str, dp_session: dict, errors: list[dict], gap_details: list[str], refresh
+) -> None:
+    context = build_dp_tutor_context(
+        dp_session.get("dossier_context", ""), errors, gap_details
+    )
+    with ui.dialog() as dialog, ui.card().classes("w-[620px] max-w-[95vw] p-5 gap-4"):
+        ui.label("Tuteur DP").classes("text-lg font-semibold")
+        ui.label("Le dossier et les erreurs de l'historique serviront de contexte.").classes("text-xs text-slate-500")
+        context_input = ui.textarea(value=context).props("outlined autogrow").classes("w-full")
+        status = ui.label().classes("text-xs text-slate-500")
+
+        async def _generate() -> None:
+            status.set_text("Génération en cours…")
+            try:
+                session_id = await asyncio.to_thread(
+                    PracticeService().create_tutor_dp_session,
+                    item_number=item_number,
+                    course_id=str(dp_session.get("course_id") or item_number),
+                    course_title=str(dp_session.get("course_title") or f"ITEM {item_number}"),
+                    dossier_context=str(context_input.value or ""),
+                    errors=errors,
+                    gap_details=gap_details,
+                    total_questions=5,
+                )
+            except Exception as exc:
+                status.set_text(f"Échec : {exc}")
+                return
+            dialog.close()
+            ui.notify(f"Tuteur DP #{session_id} enregistré", type="positive")
+            refresh()
+            open_qcm_session(session_id, on_complete=lambda _sid: None, on_back=lambda: None)
+
+        with ui.row().classes("justify-end gap-2"):
+            ui.button("Annuler", on_click=dialog.close).props("flat")
+            ui.button("Générer le Tuteur DP", on_click=_generate).props("unelevated color=indigo")
+    dialog.open()
+
+
 def _render_history(item_number: str, refresh) -> None:
     history = local_store.get_ai_practice_history(item_number=item_number, limit=30)
     if not history:

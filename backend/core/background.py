@@ -128,9 +128,16 @@ async def run_background_tasks():
             # doublons. L'import se fait maintenant uniquement via le bouton
             # "Importer QCM" dans la page QCM.
 
-            # ── 7. Capture EDN Pro — DÉSACTIVÉ (fetch manuel via bouton) ─────────
-            # L'auto-fetch toutes les heures créait des sessions fantômes.
-            # Appeler ednpro_sync.sync() depuis le bouton "Importer QCM".
+            # ── 7. Fréquences EDNpro — snapshot léger tous les 90 jours ───────
+            # La collecte Playwright est planifiée sans bloquer ce cycle et
+            # quitte proprement si le profil Google n'est pas authentifié.
+            try:
+                from backend.core.ednpro.frequency_sync import schedule_if_due
+
+                if schedule_if_due():
+                    logger.info("Synchronisation des fréquences EDNpro planifiée.")
+            except Exception as exc:
+                logger.warning(f"Planification fréquences EDNpro ignorée : {exc}")
 
             # ── 8. Retry des corrections UNESS en échec (borné, silencieux) ───────
             await _retry_pending_uness_corrections()

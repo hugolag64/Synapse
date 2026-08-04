@@ -13,6 +13,7 @@ from backend.core.practice.models import (
     QuestionKind,
 )
 from backend.core.practice.service import PracticeService
+from backend.core.ednpro.frequency import calculate_gain_priority
 from backend.core.reviews import local_store
 from frontend.components.practice_import_panel import open_practice_import_dialog
 from frontend.components.qcm_replay import (
@@ -324,7 +325,99 @@ def _start_random_imported_case(course, refresh) -> None:
     _start_imported_case(rows[0]["id"], course, refresh)
 
 
-def render_ai_practice_panel(course) -> None:
+def _start_ednpro_training(course, refresh) -> None:
+    item_number = _item_number(course)
+    rows = local_store.get_ednpro_practice_questions(item_number, limit=50)
+    if not rows:
+        ui.notify("Aucune question EDNpro importée pour cet item", type="warning")
+        return
+    questions = [
+        {
+            "prompt": row["prompt"],
+            "kind": row["question_kind"],
+            "choices": row.get("choices", []),
+            "answer": row["answer"],
+            "explanation": row["explanation"],
+            "source_refs": row.get("source_refs", []),
+            "item_numbers": [item_number],
+            "import_metadata": row.get("import_metadata", {}),
+        }
+        for row in rows
+    ]
+    open_count = sum(question["kind"] == QuestionKind.OPEN.value for question in questions)
+    spec = PracticeSessionSpec(
+        practice_kind=PracticeKind.QCM,
+        total_questions=len(questions),
+        open_questions=open_count,
+        closed_questions=len(questions) - open_count,
+        item_number=item_number,
+        course_id=str(getattr(course, "id", "") or ""),
+        course_title=str(getattr(course, "title", "") or f"Item {item_number}"),
+        difficulty=PracticeDifficulty.EDN,
+    )
+    session_id = local_store.create_ai_practice_session(
+        spec=spec, questions=questions, model="ednpro-import"
+    )
+    ui.notify(f"Session EDNpro #{session_id} prête", type="positive")
+    _open_answer_dialog(session_id, refresh)
+
+
+def _render_ednpro_frequency(course, mastery_score, refresh) -> None:
+    item_number = _item_number(course)
+    frequency = local_store.get_ednpro_item_frequency(item_number)
+
+    async def _sync_now() -> None:
+        from backend.core.ednpro.frequency_sync import sync_if_due
+
+        try:
+            result = await sync_if_due(force=True)
+            if result.get("status") == "auth_required":
+                ui.notify("Reconnecte-toi à EDNpro dans le profil Playwright", type="warning")
+            elif result.get("status") == "updated":
+                ui.notify(f"Fréquences EDNpro mises à jour ({result['rows']} items)", type="positive")
+            else:
+                ui.notify("Aucune donnée EDNpro exploitable", type="warning")
+            refresh()
+        except Exception as exc:
+            ui.notify(f"Synchronisation EDNpro impossible : {exc}", type="negative")
+
+    if not frequency:
+        with ui.row().classes("w-full items-center justify-between mb-4"):
+            ui.label("Fréquence EDNpro : synchronisation à effectuer").classes("ci-empty")
+            ui.button("Synchroniser maintenant", icon="sync", on_click=_sync_now).props("flat color=primary")
+        return
+    imported = local_store.get_ednpro_practice_questions(item_number, limit=100)
+    gain = calculate_gain_priority(
+        session_count=frequency["session_count"],
+        mastery=mastery_score,
+        question_count=frequency["question_count"],
+        imported_question_count=len(imported),
+    )
+    with ui.card().classes("w-full p-4 mb-4 border border-amber-200 bg-amber-50/40"):
+        with ui.row().classes("w-full items-center justify-between gap-3"):
+            with ui.column().classes("gap-0"):
+                ui.label("Annales EDNpro").classes("ci-section-title")
+                ui.label("Source tierce fiable, non officielle").classes("text-xs text-slate-500")
+            ui.label(f"Potentiel de gain {gain:g}").classes("text-sm font-semibold text-amber-700")
+        with ui.row().classes("items-center gap-4 flex-wrap mt-2"):
+            ui.label(f"{frequency['priority'].replace('_', ' ').title()}").classes("text-sm font-medium")
+            ui.label(f"{frequency['session_count']} session(s)").classes("text-sm text-slate-600")
+            ui.label(f"{frequency['question_count']} question(s)").classes("text-sm text-slate-600")
+            ui.label("Années : " + (", ".join(map(str, frequency["years"])) or "—")).classes("text-sm text-slate-600")
+        with ui.row().classes("items-center justify-between w-full mt-3"):
+            updated = str(frequency["collected_at"])[:16].replace("T", " ")
+            ui.label(f"Mis à jour le {updated}").classes("text-xs text-slate-400")
+            with ui.row().classes("items-center gap-2"):
+                ui.button("Synchroniser", icon="sync", on_click=_sync_now).props("flat color=primary")
+                train = ui.button("Travailler les annales", icon="school", on_click=lambda: _start_ednpro_training(course, refresh)).props(
+                    "outline color=primary"
+                )
+                if not imported:
+                    train.disable()
+                    train.tooltip("Importer d'abord les annales EDNpro")
+
+
+def render_ai_practice_panel(course, mastery_score=None) -> None:
     """Ajoute la génération, le rejeu et l'historique au Cockpit ITEM."""
     item_number = _item_number(course)
     container = ui.element("div").classes("w-full")
@@ -335,6 +428,7 @@ def render_ai_practice_panel(course) -> None:
             _render_content()
 
     def _render_content() -> None:
+        _render_ednpro_frequency(course, mastery_score, refresh)
         with ui.row().classes("items-center justify-between w-full mb-3"):
             with ui.column().classes("gap-0"):
                 ui.label("Questions IA").classes("ci-section-title")

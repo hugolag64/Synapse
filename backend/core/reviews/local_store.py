@@ -202,6 +202,19 @@ def init_db() -> None:
         CREATE INDEX IF NOT EXISTS idx_qs_item_date   ON qcm_sessions(item_number, session_date);
         CREATE INDEX IF NOT EXISTS idx_qs_course_date ON qcm_sessions(course_id, session_date DESC);
 
+        CREATE TABLE IF NOT EXISTS ednpro_item_frequency (
+            item_number       TEXT PRIMARY KEY,
+            priority          TEXT NOT NULL,
+            session_count     INTEGER NOT NULL DEFAULT 0,
+            question_count    INTEGER NOT NULL DEFAULT 0,
+            years_json        TEXT NOT NULL DEFAULT '[]',
+            source_url        TEXT NOT NULL DEFAULT '',
+            collected_at      TEXT NOT NULL,
+            raw_payload_json  TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_ednpro_frequency_collected
+            ON ednpro_item_frequency(collected_at DESC);
+
         -- ── Questions IA immuables et tentatives rejouables ────────────────
         CREATE TABLE IF NOT EXISTS ai_practice_sessions (
             id                  INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -537,6 +550,90 @@ def init_db() -> None:
 
 def _now() -> str:
     return now_local().isoformat(timespec="seconds")
+
+
+def replace_ednpro_item_frequencies(rows: list[dict]) -> int:
+    """Replace the complete EDNpro frequency snapshot in one transaction."""
+    if not rows:
+        raise ValueError("Un snapshot EDNpro ne peut pas être vide")
+    with _conn() as con:
+        con.execute("DELETE FROM ednpro_item_frequency")
+        for row in rows:
+            con.execute(
+                """INSERT INTO ednpro_item_frequency
+                   (item_number, priority, session_count, question_count, years_json,
+                    source_url, collected_at, raw_payload_json)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    str(row["item_number"]), str(row.get("priority", "basique")),
+                    int(row.get("session_count", 0) or 0), int(row.get("question_count", 0) or 0),
+                    json.dumps(list(row.get("years", [])), ensure_ascii=False),
+                    str(row.get("source_url", "")), str(row.get("collected_at", "")),
+                    row.get("raw_payload_json"),
+                ),
+            )
+    return len(rows)
+
+
+def _frequency_row(row) -> dict:
+    value = dict(row)
+    try:
+        value["years"] = json.loads(value.pop("years_json") or "[]")
+    except (TypeError, json.JSONDecodeError):
+        value["years"] = []
+    return value
+
+
+def get_ednpro_item_frequency(item_number: str) -> dict | None:
+    with _conn() as con:
+        row = con.execute(
+            "SELECT * FROM ednpro_item_frequency WHERE item_number = ?",
+            (str(item_number).strip().removeprefix("ITEM "),),
+        ).fetchone()
+    return _frequency_row(row) if row else None
+
+
+def get_ednpro_frequency_snapshot() -> dict | None:
+    with _conn() as con:
+        row = con.execute(
+            "SELECT collected_at, source_url, COUNT(*) AS item_count "
+            "FROM ednpro_item_frequency GROUP BY collected_at, source_url "
+            "ORDER BY collected_at DESC LIMIT 1"
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def get_ednpro_practice_questions(item_number: str, limit: int = 100) -> list[dict]:
+    """Return imported EDNpro questions tagged with one item for replay."""
+    with _conn() as con:
+        rows = con.execute(
+            """SELECT DISTINCT q.*
+               FROM ai_practice_questions q
+               JOIN ai_practice_question_items qi ON qi.question_id = q.id
+               WHERE qi.item_number = ?
+               ORDER BY q.created_at DESC, q.id DESC LIMIT ?""",
+            (str(item_number).strip().removeprefix("ITEM "), int(limit)),
+        ).fetchall()
+    result = []
+    for row in rows:
+        value = dict(row)
+        try:
+            metadata = json.loads(value.pop("import_metadata_json") or "{}")
+        except (TypeError, json.JSONDecodeError):
+            metadata = {}
+        provenance = metadata.get("uness", {}).get("provenance", {}) if isinstance(metadata, dict) else {}
+        source = str(metadata.get("source") or provenance.get("source") or "").strip().lower()
+        if source != "ednpro":
+            continue
+        try:
+            value["choices"] = json.loads(value.pop("choices_json") or "[]")
+            value["source_refs"] = json.loads(value.pop("source_refs_json") or "[]")
+        except (TypeError, json.JSONDecodeError):
+            continue
+        value["import_metadata"] = metadata
+        value["item_numbers"] = [str(item_number).strip().removeprefix("ITEM ")]
+        result.append(value)
+    return result
 
 
 def upsert_external_result(result) -> str:

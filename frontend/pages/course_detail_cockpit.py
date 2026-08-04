@@ -529,7 +529,7 @@ def render_item_cockpit(course_id: str) -> None:
             with ui.tab_panel(t_rev):
                 _tab_revisions(course, stages, manual_reviews, review_hist, _open_focus)
             with ui.tab_panel(t_qcm):
-                _tab_qcm(course, qcm_summary, qcm_sessions, lacunes)
+                _tab_qcm(course, qcm_summary, qcm_sessions, lacunes, score)
             with ui.tab_panel(t_lac):
                 _tab_lacunes(lacunes)
             with ui.tab_panel(t_oic):
@@ -872,8 +872,8 @@ def _open_manual_review_dialog(course) -> None:
     )
 
 
-def _tab_qcm(course, qcm_summary, qcm_sessions, lacunes) -> None:
-    render_ai_practice_panel(course)
+def _tab_qcm(course, qcm_summary, qcm_sessions, lacunes, mastery_score=None) -> None:
+    render_ai_practice_panel(course, mastery_score=mastery_score)
 
     anki_btn = ui.element("div").classes("ci-btn")
     with anki_btn:

@@ -661,6 +661,8 @@ def import_source_exam(exam: UnessExam, *, source: str, matiere: str = "") -> in
     source_url = str(exam.provenance.get("source_url", "")).strip()
     if not source_url:
         raise ValueError("Une source_url est requise pour un import multi-source")
+    if not exam.questions:
+        raise ValueError("L'examen source ne contient aucune question importable")
     subject = matiere or str(exam.metadata.get("subject", ""))
     annale = local_store.get_uness_annale_by_source_url(source_url)
     if annale is None:

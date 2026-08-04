@@ -8,11 +8,14 @@ helpers remain cheap and deterministic to test.
 from __future__ import annotations
 
 import re
+from datetime import datetime, timezone
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
 from bs4 import BeautifulSoup
 
 _ITEM_PATTERN = re.compile(r"\bitem\s*#?\s*(\d{1,3}(?:\.\d+)?)\b", re.IGNORECASE)
+
+
 def normalize_stable_resource_url(value: str) -> str:
     """Return a stable page URL, dropping fragments and ephemeral query data."""
     raw = str(value or "").strip()
@@ -77,3 +80,152 @@ def parse_annale_links(html: str, base_url: str) -> list[dict]:
         seen.add(url)
         rows.append({"title": link.get_text(" ", strip=True), "url": url})
     return rows
+
+
+def _unique_strings(values: object) -> list[str]:
+    if isinstance(values, (list, tuple, set)):
+        candidates = values
+    else:
+        candidates = [values]
+    return list(dict.fromkeys(
+        str(value).strip() for value in candidates
+        if value is not None and str(value).strip()
+    ))
+
+
+def _record_index(records: list[dict], key: str) -> dict[str, dict]:
+    return {
+        str(record.get(key)): record
+        for record in records
+        if record.get(key) is not None
+    }
+
+
+def build_video_resources_from_records(records: list[dict]) -> list[dict]:
+    """Turn EDNpro's item-linked video rows into stable Synapse resources.
+
+    The page is a React view backed by Supabase, so this is intentionally based
+    on the row contract rather than on the visual card markup. Rows without a
+    stable URL are ignored instead of creating unusable resources.
+    """
+    resources: list[dict] = []
+    seen: set[tuple[str, str]] = set()
+    for record in records:
+        raw_url = record.get("url") or record.get("video_url") or record.get("href")
+        if not raw_url:
+            continue
+        try:
+            url = normalize_stable_resource_url(str(raw_url))
+        except ValueError:
+            continue
+        title = str(record.get("title") or record.get("name") or "Vidéo EDNpro").strip()
+        item_values = record.get("item_edn")
+        if item_values is None:
+            item_values = record.get("item_number")
+        if item_values is None:
+            item_values = record.get("item_numbers")
+        item_numbers = _unique_strings(item_values)
+        if not item_numbers:
+            item_numbers = _item_numbers(title)
+        key = (url, ",".join(item_numbers))
+        if key in seen:
+            continue
+        seen.add(key)
+        resources.append({
+            "title": title,
+            "url": url,
+            "type": "video",
+            "item_numbers": item_numbers,
+        })
+    return resources
+
+
+def build_ednpro_exam_payload(
+    *,
+    session: dict,
+    dossiers: list[dict],
+    questions: list[dict],
+    propositions: list[dict],
+    question_oic: list[dict],
+    resources: list[dict] | None = None,
+    url: str | None = None,
+) -> dict:
+    """Join the records returned by the EDNpro annale player.
+
+    EDNpro separates its data into session, dossier, question, proposition and
+    OIC/item tables. Keeping this join pure makes it testable without a browser
+    and prevents an empty shell from ever reaching the import service.
+    """
+    session_id = str(session.get("id") or "").strip()
+    if not session_id:
+        raise ValueError("Session EDNpro sans identifiant")
+    if not questions:
+        raise ValueError("L'annale EDNpro ne contient aucune question")
+
+    dossier_by_id = _record_index(dossiers, "id")
+    propositions_by_question: dict[str, list[dict]] = {}
+    for proposition in propositions:
+        question_id = str(proposition.get("question_id") or "").strip()
+        if question_id:
+            propositions_by_question.setdefault(question_id, []).append(proposition)
+    for rows in propositions_by_question.values():
+        rows.sort(key=lambda row: str(row.get("lettre") or row.get("id") or ""))
+
+    items_by_question: dict[str, list[str]] = {}
+    for link in question_oic:
+        question_id = str(link.get("question_id") or "").strip()
+        item_number = link.get("item_number")
+        if question_id and item_number is not None:
+            items_by_question.setdefault(question_id, []).append(str(item_number).strip())
+
+    year = session.get("annee", session.get("year"))
+    if isinstance(year, str) and year.isdigit():
+        year = int(year)
+    if not isinstance(year, int) or isinstance(year, bool):
+        raise ValueError("Année EDNpro invalide")
+    session_label = str(session.get("session_label") or "").strip()
+    epreuve = str(session.get("epreuve") or "").strip()
+    suffix = " · ".join(value for value in (session_label, epreuve) if value)
+    title = f"EDN {year}" + (f" — {suffix}" if suffix else "")
+    source_url = url or f"https://ednpro.app/annales/{session_id}?mode=consultation"
+
+    normalized_questions = []
+    for index, question in enumerate(questions, start=1):
+        question_id = str(question.get("id") or f"{session_id}-q-{index}")
+        dossier = dossier_by_id.get(str(question.get("dossier_id") or ""), {})
+        choices = []
+        for choice_index, proposition in enumerate(propositions_by_question.get(question_id, []), start=1):
+            choice_id = str(proposition.get("id") or f"{question_id}-p-{choice_index}")
+            choices.append({
+                "id": choice_id,
+                "text": str(proposition.get("texte") or proposition.get("text") or "").strip(),
+                "correct": proposition.get("is_correct"),
+            })
+        item_numbers = list(dict.fromkeys(
+            item for item in items_by_question.get(question_id, []) if item
+        ))
+        normalized_questions.append({
+            "id": question_id,
+            "type": str(question.get("type") or ""),
+            "stem": str(question.get("enonce") or question.get("stem") or "").strip(),
+            "choices": choices,
+            "item_numbers": item_numbers,
+            "dp_context": {
+                "dossier_id": str(question.get("dossier_id") or ""),
+                "dossier_number": dossier.get("numero_dossier"),
+                "dossier_type": dossier.get("type_dossier", ""),
+            },
+        })
+
+    return {
+        "title": title,
+        "year": year,
+        "session_id": session_id,
+        "exam_id": session_id,
+        "url": source_url,
+        "subject": str(session.get("subject") or session.get("matiere") or "").strip(),
+        "questions": normalized_questions,
+        "resources": resources or [],
+        "collected_at": datetime.now(timezone.utc).isoformat(),
+        "collection_status": "captured",
+    }

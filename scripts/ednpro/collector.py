@@ -21,6 +21,8 @@ from bs4 import BeautifulSoup
 from backend.core.ednpro.ai_pipeline import generate_and_import_ednpro
 from backend.core.ednpro.collector import (
     _item_numbers,
+    build_ednpro_exam_payload,
+    build_video_resources_from_records,
     normalize_stable_resource_url,
     parse_annale_links,
     parse_video_cards,
@@ -112,6 +114,76 @@ def extract_exam_payload(
     }
 
 
+_EDNPRO_TABLES = {
+    "annales_sessions",
+    "annales_dossiers",
+    "annales_questions",
+    "annales_propositions",
+    "annales_propositions_safe",
+    "annales_question_oic",
+    "learning_videos",
+    "pedagogy_videos",
+    "video_item_subjects",
+}
+
+
+def _table_from_response_url(url: str) -> str:
+    return str(url).split("?", 1)[0].rstrip("/").rsplit("/", 1)[-1]
+
+
+def _deduplicate_records(records: list[dict]) -> list[dict]:
+    result = []
+    seen = set()
+    for record in records:
+        key = str(record.get("id") or json.dumps(record, sort_keys=True, ensure_ascii=False))
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(record)
+    return result
+
+
+async def capture_ednpro_table_records(page: Any, url: str, *, wait_ms: int = 2500) -> dict[str, list[dict]]:
+    """Capture the authenticated Supabase rows used by an EDNpro page.
+
+    EDNpro is a client-rendered SPA. The visible page is only a projection of
+    these responses; listening to the responses keeps the collector independent
+    from CSS classes and from the UNESS navigation model.
+    """
+    captured: dict[str, list[dict]] = {table: [] for table in _EDNPRO_TABLES}
+    tasks: list[asyncio.Task] = []
+
+    async def consume(response: Any, table: str) -> None:
+        try:
+            data = await response.json()
+        except Exception:
+            return
+        rows = data if isinstance(data, list) else [data] if isinstance(data, dict) else []
+        captured[table].extend(row for row in rows if isinstance(row, dict))
+
+    def on_response(response: Any) -> None:
+        table = _table_from_response_url(response.url)
+        if table in _EDNPRO_TABLES:
+            tasks.append(asyncio.create_task(consume(response, table)))
+
+    page.on("response", on_response)
+    try:
+        await page.goto(url, wait_until="domcontentloaded")
+        await page.wait_for_timeout(wait_ms)
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
+    finally:
+        page.remove_listener("response", on_response)
+    return {table: _deduplicate_records(rows) for table, rows in captured.items()}
+
+
+def _session_title(session: dict, year: int, session_id: str) -> str:
+    label = str(session.get("session_label") or "").strip()
+    epreuve = str(session.get("epreuve") or "").strip()
+    suffix = " · ".join(value for value in (label, epreuve) if value)
+    return f"EDN {year}" + (f" — {suffix}" if suffix else f" — {session_id}")
+
+
 async def collect_ednpro(
     *,
     start_year: int = 2023,
@@ -154,32 +226,78 @@ async def collect_ednpro(
                 await browser.close()
                 raise RuntimeError("Connexion Google EDNpro non terminée") from exc
 
-        annales = parse_annale_links(await page.content(), page.url)
-        await page.goto("https://ednpro.app/videos", wait_until="domcontentloaded")
-        video_rows = parse_video_cards(await page.content(), page.url)
-        for row in annales:
-            year = _year(f"{row['title']} {row['url']}", start_year)
+        catalog = await capture_ednpro_table_records(page, "https://ednpro.app/annales")
+        sessions = [
+            row for row in catalog["annales_sessions"]
+            if str(row.get("status") or "published") == "published"
+            and str(row.get("category") or "annale") in {"annale", "ecni_annale"}
+        ]
+        if not sessions:
+            raise RuntimeError(
+                "Aucune session EDNpro reçue. Vérifier la connexion Google et le chargement de /annales."
+            )
+
+        videos_page = await capture_ednpro_table_records(page, "https://ednpro.app/videos")
+        video_records = videos_page["learning_videos"]
+        video_rows = build_video_resources_from_records(video_records)
+        if not video_rows:
+            # Keep a cheap DOM fallback for older accounts/builds whose video
+            # table is not exposed on the page, without making it the primary
+            # EDNpro collection strategy.
+            video_rows = parse_video_cards(await page.content(), page.url)
+
+        for session in sessions:
+            raw_year = session.get("annee", session.get("year"))
+            year = int(raw_year) if str(raw_year).isdigit() else _year(str(session), start_year)
             if year < start_year or (end_year is not None and year > end_year):
                 continue
-            session_id = _slug(row["url"].rstrip("/").split("/")[-1])
-            entry = {"title": row["title"], "url": row["url"], "year": year, "session_id": session_id}
+            session_id = str(session.get("id") or "").strip()
+            if not session_id:
+                continue
+            session_url = f"https://ednpro.app/annales/{session_id}?mode=consultation"
+            entry = {
+                "title": _session_title(session, year, session_id),
+                "url": session_url,
+                "year": year,
+                "session_id": session_id,
+            }
             try:
-                await page.goto(row["url"], wait_until="domcontentloaded")
-                title = (await page.title()).strip() or row["title"] or session_id
-                payload = extract_exam_payload(
-                    await page.content(),
-                    url=page.url,
-                    title=title,
-                    year=year,
-                    session_id=session_id,
+                session_data = await capture_ednpro_table_records(page, session_url)
+                session_row = next(
+                    (row for row in session_data["annales_sessions"] if str(row.get("id")) == session_id),
+                    session,
+                )
+                dossiers = [
+                    row for row in session_data["annales_dossiers"]
+                    if str(row.get("session_id")) == session_id
+                ]
+                dossier_ids = {str(row.get("id")) for row in dossiers}
+                questions = [
+                    row for row in session_data["annales_questions"]
+                    if str(row.get("dossier_id")) in dossier_ids
+                ]
+                question_ids = {str(row.get("id")) for row in questions}
+                propositions = [
+                    row for row in (session_data["annales_propositions"] or session_data["annales_propositions_safe"])
+                    if str(row.get("question_id")) in question_ids
+                ]
+                question_oic = [
+                    row for row in session_data["annales_question_oic"]
+                    if str(row.get("question_id")) in question_ids
+                ]
+                payload = build_ednpro_exam_payload(
+                    session=session_row,
+                    dossiers=dossiers,
+                    questions=questions,
+                    propositions=propositions,
+                    question_oic=question_oic,
                     resources=video_rows,
+                    url=session_url,
                 )
                 source_path = run_dir / f"{session_id}.source.json"
                 source_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
                 entry.update({"source_json": str(source_path), "questions": len(payload["questions"])})
                 if auto_correct:
-                    if not payload["questions"]:
-                        raise ValueError("Aucune question détectée ; import bloqué pour éviter un faux EDN complet")
                     output_path = import_service.VERIFIED_DIR / f"ednpro-{year}-{session_id}.json"
                     entry["import"] = generate_and_import_ednpro(payload, service=service, output_path=output_path)
                     entry["status"] = "imported"

@@ -19,6 +19,21 @@ Les vidéos ne sont pas téléchargées. Synapse conserve uniquement leur URL de
 page, leur titre et leurs éventuels numéros d'item. Cela évite de stocker des
 médias ou des URLs CDN temporaires et permet de les afficher dans la vue item.
 
+### Structure EDNpro utilisée
+
+EDNpro ne suit pas le même parcours que le catalogue UNESS : les cartes visibles
+sur `/annales` ouvrent une session React sous la forme
+`/annales/{identifiant}?mode=consultation`. Le collecteur écoute les réponses
+JSON authentifiées de cette session et assemble les tables `annales_sessions`,
+`annales_dossiers`, `annales_questions`, `annales_propositions` et
+`annales_question_oic`. Une session sans question est refusée avant toute
+création d'annale locale ; cela évite les lignes `0/0 sous-parties`.
+
+Les vidéos liées aux items sont indexées depuis les lignes `learning_videos`
+(`item_edn`, titre, URL), avec un repli HTML pour les anciennes versions du
+site. Les liens sont ensuite visibles dans le panneau **Ressources** de la fiche
+item après l'import.
+
 ## Premier lancement
 
 Depuis la racine du projet :

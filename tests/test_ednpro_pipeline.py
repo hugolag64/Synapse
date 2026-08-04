@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from backend.core.reviews import local_store
 from backend.core.ai.routing import AIModel, AIResponse
 from backend.core.uness.models import UnessExam
@@ -13,7 +15,7 @@ def _exam() -> UnessExam:
             "level": "EDN",
             "year": 2023,
             "title": "EDN 2023 — P1",
-            "questions": [],
+            "questions": [{"id": "q-1", "type_question": "QROC", "enonce": "Question"}],
             "provenance": {
                 "source": "EDNpro",
                 "source_url": "https://ednpro.app/annales/2023-p1",
@@ -38,6 +40,20 @@ def test_import_source_exam_creates_ednpro_annale_group(monkeypatch):
     assert annale["source"] == "EDNpro"
     assert annale["type_annale"] == "edn_complet"
     assert annale["source_exam_id"] == "2023-p1"
+
+
+def test_import_source_exam_rejects_empty_exam_before_creating_group():
+    from backend.core.ednpro.normalizer import normalize_ednpro_payload
+    from backend.core.uness import import_service
+
+    payload = _source_payload()
+    payload["questions"] = []
+    payload["url"] = "https://ednpro.app/annales/empty-import-guard"
+    exam = normalize_ednpro_payload(payload)
+
+    with pytest.raises(ValueError, match="aucune question"):
+        import_service.import_source_exam(exam, source="EDNpro", matiere="Cardiologie")
+    assert local_store.get_uness_annale_by_source_url(payload["url"]) is None
 
 
 def _source_payload() -> dict:

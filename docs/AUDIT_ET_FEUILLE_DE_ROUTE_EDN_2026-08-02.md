@@ -263,4 +263,21 @@ Les deux idées EDN à plus fort effet de levier pour la suite, une fois la base
 
 ### Limite restante
 
+## Mise à jour du 4 août 2026 — correction de l'import EDNpro après vérification terrain
+
+Les captures utilisateur ont révélé que l'ancien collecteur enregistrait seulement l'enveloppe de l'annale EDNpro : les groupes apparaissaient mais restaient à `0/0 sous-parties`, car le HTML de l'application React ne contenait pas les cartes de questions attendues. Le parcours EDNpro est différent d'UNESS et utilise une session `/annales/{id}?mode=consultation`.
+
+### Corrigé
+
+- Le collecteur Playwright écoute désormais les réponses JSON de la session EDNpro et joint les dossiers, questions, propositions et liens question→item ; il ne dépend plus des sélecteurs HTML de la page.
+- Les sessions sont identifiées par leur véritable UUID EDNpro et leur libellé/épreuve, au lieu d'un slug inventé à partir du lien de catalogue.
+- Les vidéos sont indexées depuis les données `learning_videos` associées à `item_edn`, puis enregistrées comme liens de page dans `prep_resources` ; aucune vidéo ni URL CDN temporaire n'est téléchargée.
+- Une garde dans `import_source_exam` interdit maintenant de créer une annale locale sans question importable.
+- Les quatre enveloppes EDNpro vides issues des tests (`0/0`) et la ressource vidéo de test ont été retirées après vérification qu'elles n'avaient aucune session liée. Une sauvegarde a été créée dans `data/backups/synapse_local-2026-08-04-pre-ednpro-empty-cleanup.db`.
+
+### Vérification
+
+- Tests ciblés EDNpro/import : **17 tests passants**.
+- La collecte réelle et la génération IA n'ont pas pu être exécutées dans cette session : le refresh EDNpro local est expiré/refusé. Après reconnexion Google, le bouton **Importer les EDN** lancera bien la capture structurée, la correction IA Lite, l'écriture/relecture du JSON canonique et l'import Synapse.
+
 La première collecte réelle n'a pas encore été lancée : elle nécessite la connexion Google EDNpro de l'utilisateur et déclenchera les appels IA réels. Le flux est disponible via `python scripts/ednpro/collector.py --start-year 2023` ou le bouton **Importer les EDN** de l'onglet Prépa.

@@ -89,3 +89,54 @@ def test_extract_exam_payload_keeps_source_answers_and_video_refs():
     assert payload["questions"][0]["item_numbers"] == ["221"]
     assert payload["questions"][0]["choices"][0]["correct"] is True
     assert payload["resources"][0]["url"] == "https://ednpro.app/videos/ecg"
+
+
+def test_build_ednpro_exam_payload_joins_session_dossiers_questions_and_items():
+    from backend.core.ednpro.collector import build_ednpro_exam_payload
+
+    payload = build_ednpro_exam_payload(
+        session={"id": "session-2023-p1", "annee": 2023, "session_label": "Session 1", "epreuve": "P1"},
+        dossiers=[
+            {"id": "dossier-1", "session_id": "session-2023-p1", "numero_dossier": 1, "type_dossier": "KFP"},
+        ],
+        questions=[
+            {"id": "question-1", "dossier_id": "dossier-1", "numero_question": 1, "type": "QRM", "enonce": "Quel examen ?", "nb_reponses_attendues": 1},
+        ],
+        propositions=[
+            {"id": "prop-a", "question_id": "question-1", "lettre": "A", "texte": "ECG", "is_correct": True},
+            {"id": "prop-b", "question_id": "question-1", "lettre": "B", "texte": "IRM", "is_correct": False},
+        ],
+        question_oic=[{"question_id": "question-1", "item_number": 221, "rang": 1}],
+        resources=[{"title": "ECG", "url": "https://ednpro.app/videos/ecg", "item_numbers": ["221"]}],
+    )
+
+    assert payload["title"] == "EDN 2023 — Session 1 · P1"
+    assert payload["questions"][0]["item_numbers"] == ["221"]
+    assert payload["questions"][0]["choices"][0] == {
+        "id": "prop-a", "text": "ECG", "correct": True,
+    }
+    assert payload["questions"][0]["dp_context"]["dossier_number"] == 1
+
+
+def test_build_ednpro_exam_payload_rejects_empty_question_set():
+    import pytest
+    from backend.core.ednpro.collector import build_ednpro_exam_payload
+
+    with pytest.raises(ValueError, match="aucune question"):
+        build_ednpro_exam_payload(
+            session={"id": "session-1", "annee": 2023, "session_label": "Session 1", "epreuve": "P1"},
+            dossiers=[], questions=[], propositions=[], question_oic=[],
+        )
+
+
+def test_build_video_resources_from_records_uses_item_edn_links():
+    from backend.core.ednpro.collector import build_video_resources_from_records
+
+    assert build_video_resources_from_records([
+        {"id": "video-1", "title": "Athérome", "url": "https://ednpro.app/videos/221", "item_edn": 221},
+    ]) == [{
+        "title": "Athérome",
+        "url": "https://ednpro.app/videos/221",
+        "type": "video",
+        "item_numbers": ["221"],
+    }]

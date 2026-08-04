@@ -25,3 +25,13 @@ def test_flash_zero_card_has_a_hover_dismiss_control():
 
     assert ".flash-zero-card:hover .flash-zero-dismiss" in source
     assert 'aria-label="Ignorer le Flash-Zero du jour"' in source
+    assert ".flash-zero-layout" in source
+    assert "top:8px !important" in source
+
+
+def test_sprint_card_uses_linear_layout_primitives():
+    source = Path("frontend/components/edn_insights_panel.py").read_text(encoding="utf-8")
+
+    assert ".edn-sprint-progress-track" in source
+    assert ".edn-sprint-metric" in source
+    assert ".edn-sprint-priority-row" in source

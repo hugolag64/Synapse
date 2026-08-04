@@ -10,11 +10,15 @@ from backend.core.reviews import local_store
 
 def edn_insights_model(status) -> dict[str, str]:
     mastery = "—" if status.average_mastery is None else f"{status.average_mastery:g} %"
+    total_items = int(status.total_items or 0)
+    covered_items = int(status.covered_items or 0)
+    coverage_percent = min(100, covered_items / total_items * 100 if total_items else 0)
     return {
         "countdown": f"J-{status.days_remaining}",
         "target": status.target_date.strftime("%d/%m/%Y"),
         "phase": str(status.phase.value).replace("_", " ").title(),
         "coverage": f"{status.covered_items}/{status.total_items}",
+        "coverage_percent": f"{coverage_percent:.1f}",
         "mastery": mastery,
         "overdue": str(status.overdue_reviews),
         "remaining": str(status.remaining_reviews),
@@ -39,9 +43,9 @@ def render_external_result_import(on_import=None) -> None:
         ui.label(
             "Collez un export CSV ou JSON. Les doublons sont mis à jour automatiquement."
         ).classes("text-xs text-slate-500")
-        fmt = ui.select(
-            {"csv": "CSV", "json": "JSON"}, value="csv", label="Format"
-        ).props("outlined dense")
+        fmt = ui.select({"csv": "CSV", "json": "JSON"}, value="csv", label="Format").props(
+            "outlined dense"
+        )
         payload = ui.textarea(
             label="Contenu de l'export",
             placeholder="source,external_id,session_date,item_number,score_percent",
@@ -74,14 +78,22 @@ def render_external_result_import(on_import=None) -> None:
 
 
 _SPRINT_CSS = """
-.edn-sprint-panel { position:relative; border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:8px; background:var(--surface); box-shadow:var(--shadow-popover); }
-.edn-sprint-title { color:var(--text); letter-spacing:-.01em; }
-.edn-sprint-subtitle { color:var(--text-muted); }
-.edn-sprint-stats { gap:6px; }
-.edn-sprint-stats > * { padding:5px 8px; border:1px solid var(--border); border-radius:6px; background:var(--bg-alt); color:var(--text-muted); font-family:var(--font-mono); font-size:10px; }
-.edn-sprint-scenarios { gap:6px; }
-.edn-sprint-scenario { padding:5px 8px; border:1px solid var(--border); border-radius:6px; background:var(--bg-alt); color:var(--text-muted); font-size:11px; }
-.edn-sprint-priority { color:var(--text); font-size:11px; font-family:var(--font-mono); }
+.edn-sprint-panel { border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:8px; background:var(--bg); box-shadow:var(--shadow-popover); }
+.edn-sprint-header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+.edn-sprint-title { color:var(--text); letter-spacing:-.01em; font-size:14px; font-weight:600; }
+.edn-sprint-subtitle { color:var(--text-muted); font-size:11px; }
+.edn-sprint-stats { display:flex; gap:16px; flex-wrap:wrap; justify-content:flex-end; }
+.edn-sprint-metric { display:flex; flex-direction:column; gap:2px; min-width:54px; }
+.edn-sprint-metric-label { color:var(--text-dim); font-family:var(--font-mono); font-size:9px; text-transform:uppercase; letter-spacing:.04em; }
+.edn-sprint-metric-value { color:var(--text); font-family:var(--font-mono); font-size:12px; font-weight:600; }
+.edn-sprint-progress-track { height:5px; border-radius:3px; background:var(--surface-hover); overflow:hidden; }
+.edn-sprint-progress-fill { height:100%; border-radius:3px; background:var(--accent); }
+.edn-sprint-scenarios { display:flex; gap:6px; flex-wrap:wrap; }
+.edn-sprint-scenario { padding:5px 8px; border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--text-muted); font-size:10px; }
+.edn-sprint-priority-row { display:flex; align-items:center; gap:8px; min-height:24px; color:var(--text); font-size:11px; font-family:var(--font-mono); }
+.edn-sprint-priority-dot { width:5px; height:5px; flex:0 0 5px; border-radius:50%; background:var(--accent); }
+.edn-sprint-priority-meta { margin-left:auto; color:var(--text-dim); }
+@media (max-width: 720px) { .edn-sprint-header { flex-direction:column; } .edn-sprint-stats { justify-content:flex-start; } }
 """
 
 
@@ -89,27 +101,42 @@ def render_edn_insights_panel(status, projections=(), gain_items=()) -> None:
     ui.add_head_html(f"<style>{_SPRINT_CSS}</style>", shared=True)
     model = edn_insights_model(status)
     with ui.element("div").classes("edn-sprint-panel w-full p-4 mb-4"):
-        with ui.row().classes("w-full items-center justify-between gap-3"):
+        with ui.element("div").classes("edn-sprint-header"):
             with ui.column().classes("gap-0"):
-                ui.label(f"Sprint EDN · {model['countdown']}").classes("text-sm font-semibold")
-                ui.label(f"Objectif {model['target']} · phase {model['phase']}").classes("text-xs text-slate-500")
-            with ui.row().classes("edn-sprint-stats"):
-                ui.label(f"Items {model['coverage']}")
-                ui.label(f"Maîtrise {model['mastery']}")
-                ui.label(f"Retard {model['overdue']}")
-                ui.label(f"Restant {model['remaining']}")
+                ui.label(f"Sprint EDN · {model['countdown']}").classes("edn-sprint-title")
+                ui.label(
+                    f"Objectif {model['target']} · phase {model['phase']}"
+                ).classes("edn-sprint-subtitle")
+            with ui.element("div").classes("edn-sprint-stats"):
+                for label, value in (
+                    ("Items", model["coverage"]),
+                    ("Maîtrise", model["mastery"]),
+                    ("Retard", model["overdue"]),
+                    ("Restant", model["remaining"]),
+                ):
+                    with ui.element("div").classes("edn-sprint-metric"):
+                        ui.label(label).classes("edn-sprint-metric-label")
+                        ui.label(value).classes("edn-sprint-metric-value")
+        with ui.element("div").classes("edn-sprint-progress-track mt-3"):
+            ui.element("div").classes("edn-sprint-progress-fill").style(
+                f"width:{model['coverage_percent']}%"
+            )
         if projections:
-            with ui.row().classes("edn-sprint-scenarios mt-3 flex-wrap"):
+            with ui.element("div").classes("edn-sprint-scenarios mt-3"):
                 for projection in projections:
                     ui.label(
                         f"{projection.name.title()} · {projection.projected_coverage:g}% couverture"
                     ).classes("edn-sprint-scenario")
         if gain_items:
             ui.label("Priorités de gain relatives").classes("text-xs font-semibold mt-3")
-            with ui.column().classes("w-full gap-1 mt-1"):
+            with ui.column().classes("w-full gap-0 mt-1"):
                 for item in gain_items[:3]:
-                    ui.label(
-                        f"Item {item.get('item_number', '—')} · "
-                        f"potentiel {item.get('potential_score', 0):g} · "
-                        f"{item.get('estimated_minutes', 30):g} min"
-                    ).classes("edn-sprint-priority")
+                    with ui.element("div").classes("edn-sprint-priority-row"):
+                        ui.element("span").classes("edn-sprint-priority-dot")
+                        ui.label(f"Item {item.get('item_number', '—')}")
+                        ui.label(
+                            f"potentiel {item.get('potential_score', 0):g}"
+                        ).classes("edn-sprint-priority-meta")
+                        ui.label(f"{item.get('estimated_minutes', 30):g} min").classes(
+                            "edn-sprint-priority-meta"
+                        )

@@ -19,6 +19,7 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
 from backend.core.ednpro.ai_pipeline import generate_and_import_ednpro
+from backend.core.ednpro.auth import wait_for_ednpro_auth
 from backend.core.ednpro.collector import (
     _item_numbers,
     build_ednpro_exam_payload,
@@ -219,8 +220,8 @@ async def collect_ednpro(
         await page.goto("https://ednpro.app/annales", wait_until="domcontentloaded")
         if "/auth" in page.url:
             try:
-                await page.wait_for_url(lambda url: "/auth" not in url, timeout=300_000)
-            except PlaywrightTimeoutError as exc:
+                page = await wait_for_ednpro_auth(page, browser)
+            except (PlaywrightTimeoutError, TimeoutError) as exc:
                 manifest["status"] = "connexion_requise"
                 (run_dir / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
                 await browser.close()

@@ -11,6 +11,7 @@ from typing import Any
 from backend.core.reviews import local_store
 from loguru import logger
 
+from .auth import wait_for_ednpro_auth
 from .frequency import is_frequency_sync_due, normalize_training_payload
 
 TRAINING_URL = "https://ednpro.app/training-v2"
@@ -59,6 +60,7 @@ async def collect_frequency(
 
     payloads: list[object] = []
     pending: list[asyncio.Task] = []
+    tracked_pages: list[Any] = []
 
     async with async_playwright() as playwright:
         profile_dir.mkdir(parents=True, exist_ok=True)
@@ -78,16 +80,29 @@ async def collect_frequency(
             if "json" in content_type:
                 pending.append(asyncio.create_task(consume(response)))
 
-        page.on("response", on_response)
+        def track_page(target: Any) -> None:
+            if target in tracked_pages:
+                return
+            target.on("response", on_response)
+            tracked_pages.append(target)
+
+        track_page(page)
         try:
             await page.goto(source_url, wait_until="domcontentloaded")
             if "/auth" in page.url:
-                return {"status": "auth_required", "rows": 0, "url": page.url}
+                if headless:
+                    return {"status": "auth_required", "rows": 0, "url": page.url}
+                try:
+                    page = await wait_for_ednpro_auth(page, browser)
+                    track_page(page)
+                except TimeoutError:
+                    return {"status": "auth_required", "rows": 0, "url": page.url}
             await page.wait_for_timeout(2500)
             if pending:
                 await asyncio.gather(*pending, return_exceptions=True)
         finally:
-            page.remove_listener("response", on_response)
+            for tracked_page in tracked_pages:
+                tracked_page.remove_listener("response", on_response)
             await browser.close()
 
     if not payloads:

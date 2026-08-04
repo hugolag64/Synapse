@@ -10,11 +10,18 @@ from backend.core.practice.flash_zero_service import FlashZeroService
 
 
 _CSS = """
-.flash-zero-card { position:relative; border:1px solid var(--border); border-left:3px solid var(--warning); border-radius:8px; background:var(--surface); box-shadow:var(--shadow-popover); }
-.flash-zero-card:hover { border-color:var(--border-strong); }
-.flash-zero-dismiss { position:absolute; top:7px; right:7px; z-index:2; opacity:0; color:var(--text-muted); transition:opacity var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard); }
+.flash-zero-card { position:relative; border:1px solid var(--border); border-left:3px solid var(--warning); border-radius:8px; background:var(--bg); box-shadow:var(--shadow-popover); transition:border-color var(--duration-fast) var(--ease-standard), background var(--duration-fast) var(--ease-standard); }
+.flash-zero-card:hover { border-color:var(--border-strong); background:var(--surface); }
+.flash-zero-layout { display:flex; align-items:center; gap:12px; min-width:0; }
+.flash-zero-icon { width:28px; height:28px; flex:0 0 28px; display:flex; align-items:center; justify-content:center; border-radius:6px; background:rgba(229,162,63,.12); color:var(--warning); font-size:15px; }
+.flash-zero-copy { flex:1; min-width:0; }
+.flash-zero-title { color:var(--text); font-size:13px; font-weight:600; }
+.flash-zero-meta { color:var(--text-muted); font-family:var(--font-mono); font-size:11px; }
+.flash-zero-status { color:var(--text-dim); font-family:var(--font-mono); font-size:10px; }
+.flash-zero-dismiss { position:absolute !important; top:8px !important; right:8px !important; z-index:2; opacity:0; color:var(--text-muted); transition:opacity var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard); }
 .flash-zero-card:hover .flash-zero-dismiss, .flash-zero-card:focus-within .flash-zero-dismiss { opacity:1; }
 .flash-zero-dismiss:hover { color:var(--danger); }
+@media (max-width: 560px) { .flash-zero-status { display:none; } }
 """
 
 
@@ -27,7 +34,9 @@ def flash_zero_card_model(entry: dict, *, completed: bool) -> dict[str, str]:
     }
 
 
-def open_flash_zero_quiz(*, service: FlashZeroService | None = None, on_complete: Callable[[], None] | None = None) -> None:
+def open_flash_zero_quiz(
+    *, service: FlashZeroService | None = None, on_complete: Callable[[], None] | None = None
+) -> None:
     service = service or FlashZeroService()
     questions = service.get_morning_quiz(count=10)
     state = {"index": 0, "score": 0}
@@ -39,14 +48,20 @@ def open_flash_zero_quiz(*, service: FlashZeroService | None = None, on_complete
             body.clear()
             with body:
                 if state["index"] >= len(questions):
-                    ui.label(f"Flash-Zero terminé : {state['score']} / {len(questions)}").classes("text-lg font-semibold")
+                    ui.label(f"Flash-Zero terminé : {state['score']} / {len(questions)}").classes(
+                        "text-lg font-semibold"
+                    )
                     ui.button("Fermer", on_click=dialog.close).props("flat")
                     if on_complete:
                         on_complete()
                     return
                 question = questions[state["index"]]
-                ui.label(f"Flash-Zero · Question {state['index'] + 1}/{len(questions)}").classes("text-sm text-slate-500")
-                ui.label(f"{question.item_number} · {question.category}").classes("text-xs text-slate-500")
+                ui.label(f"Flash-Zero · Question {state['index'] + 1}/{len(questions)}").classes(
+                    "text-sm text-slate-500"
+                )
+                ui.label(f"{question.item_number} · {question.category}").classes(
+                    "text-xs text-slate-500"
+                )
                 ui.label(question.question_text).classes("text-base font-medium")
                 choices = ui.radio(list(question.choices), value=None).props("dense")
 
@@ -75,12 +90,16 @@ def render_flash_zero_card(
 ) -> None:
     model = flash_zero_card_model(entry, completed=completed)
     ui.add_head_html(f"<style>{_CSS}</style>", shared=True)
-    with ui.element("div").classes("flash-zero-card w-full p-4 mb-4"):
+    with ui.element("div").classes("flash-zero-card w-full p-3 mb-4"):
         ui.button(icon="close", on_click=on_dismiss).props(
             'flat round dense aria-label="Ignorer le Flash-Zero du jour"'
         ).classes("flash-zero-dismiss")
-        with ui.row().classes("w-full items-center justify-between gap-3"):
-            with ui.column().classes("gap-0"):
-                ui.label("⚡ " + model["title"]).classes("text-sm font-semibold")
-                ui.label(f"{model['duration']} · {model['status']} · erreurs récentes et répétées").classes("text-xs text-slate-500")
-            ui.button(model["action"], on_click=on_open).props("unelevated color=primary size=sm rounded")
+        with ui.element("div").classes("flash-zero-layout w-full"):
+            ui.label("⚡").classes("flash-zero-icon")
+            with ui.element("div").classes("flash-zero-copy"):
+                ui.label(model["title"]).classes("flash-zero-title")
+                ui.label("Erreurs récentes et répétées").classes("flash-zero-meta")
+            ui.label(f"{model['duration']} · {model['status']}").classes("flash-zero-status")
+            ui.button(model["action"], on_click=on_open).props(
+                "unelevated color=primary size=sm rounded"
+            )

@@ -73,24 +73,37 @@ def render_external_result_import(on_import=None) -> None:
         )
 
 
+_SPRINT_CSS = """
+.edn-sprint-panel { position:relative; border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:8px; background:var(--surface); box-shadow:var(--shadow-popover); }
+.edn-sprint-title { color:var(--text); letter-spacing:-.01em; }
+.edn-sprint-subtitle { color:var(--text-muted); }
+.edn-sprint-stats { gap:6px; }
+.edn-sprint-stats > * { padding:5px 8px; border:1px solid var(--border); border-radius:6px; background:var(--bg-alt); color:var(--text-muted); font-family:var(--font-mono); font-size:10px; }
+.edn-sprint-scenarios { gap:6px; }
+.edn-sprint-scenario { padding:5px 8px; border:1px solid var(--border); border-radius:6px; background:var(--bg-alt); color:var(--text-muted); font-size:11px; }
+.edn-sprint-priority { color:var(--text); font-size:11px; font-family:var(--font-mono); }
+"""
+
+
 def render_edn_insights_panel(status, projections=(), gain_items=()) -> None:
+    ui.add_head_html(f"<style>{_SPRINT_CSS}</style>", shared=True)
     model = edn_insights_model(status)
-    with ui.element("div").classes("w-full p-4 mb-4 rounded-lg border border-indigo-200 bg-indigo-50/50 dark:border-indigo-900 dark:bg-indigo-950/20"):
+    with ui.element("div").classes("edn-sprint-panel w-full p-4 mb-4"):
         with ui.row().classes("w-full items-center justify-between gap-3"):
             with ui.column().classes("gap-0"):
                 ui.label(f"Sprint EDN · {model['countdown']}").classes("text-sm font-semibold")
                 ui.label(f"Objectif {model['target']} · phase {model['phase']}").classes("text-xs text-slate-500")
-            with ui.row().classes("gap-4 text-xs"):
+            with ui.row().classes("edn-sprint-stats"):
                 ui.label(f"Items {model['coverage']}")
                 ui.label(f"Maîtrise {model['mastery']}")
                 ui.label(f"Retard {model['overdue']}")
                 ui.label(f"Restant {model['remaining']}")
         if projections:
-            with ui.row().classes("gap-2 mt-3 flex-wrap"):
+            with ui.row().classes("edn-sprint-scenarios mt-3 flex-wrap"):
                 for projection in projections:
                     ui.label(
                         f"{projection.name.title()} · {projection.projected_coverage:g}% couverture"
-                    ).classes("text-[11px] px-2 py-1 rounded bg-white/70 dark:bg-slate-900/50")
+                    ).classes("edn-sprint-scenario")
         if gain_items:
             ui.label("Priorités de gain relatives").classes("text-xs font-semibold mt-3")
             with ui.column().classes("w-full gap-1 mt-1"):
@@ -99,4 +112,4 @@ def render_edn_insights_panel(status, projections=(), gain_items=()) -> None:
                         f"Item {item.get('item_number', '—')} · "
                         f"potentiel {item.get('potential_score', 0):g} · "
                         f"{item.get('estimated_minutes', 30):g} min"
-                    ).classes("text-[11px] text-slate-600 dark:text-slate-300")
+                    ).classes("edn-sprint-priority")

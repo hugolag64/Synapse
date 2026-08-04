@@ -1,4 +1,12 @@
 from types import SimpleNamespace
+from pathlib import Path
+
+
+def test_settings_no_longer_exposes_manual_external_result_import():
+    source = Path("frontend/pages/settings_cockpit.py").read_text(encoding="utf-8")
+
+    assert "render_external_result_import" not in source
+    assert "Contenu de l'export" not in source
 
 
 def test_import_report_model_is_compact_and_explicit():

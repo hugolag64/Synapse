@@ -27,6 +27,20 @@ def test_datastore_timezone_preference_defaults_to_paris():
     assert DataStore().preferences["timezone"] == "Europe/Paris"
 
 
+def test_datastore_edn_target_date_defaults_to_october_15():
+    assert DataStore().preferences["edn_target_date"] == "2026-10-15"
+
+
+def test_datastore_rejects_invalid_edn_target_date():
+    store = DataStore()
+    try:
+        store.set_preference("edn_target_date", "not-a-date")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("An invalid EDN target date must be rejected")
+
+
 def test_stale_cache_keeps_user_preferences(tmp_path, monkeypatch):
     cache_path = tmp_path / "data_cache.json"
     cache_path.write_text(

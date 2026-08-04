@@ -33,6 +33,7 @@ from __future__ import annotations
 import os
 import asyncio
 import sys
+from datetime import date
 from pathlib import Path
 
 from nicegui import ui
@@ -43,7 +44,6 @@ from backend.core.uness import import_service
 from backend.core.lisa import item_service
 from frontend.components.uness_diagnostic_panel import render as render_uness_diagnostics
 from frontend.components.dp_coverage_panel import render as render_dp_coverage
-from frontend.components.edn_insights_panel import render_external_result_import
 
 def toggle_dark_mode(value: bool | None = None) -> bool:
     dark = ui.dark_mode()
@@ -107,8 +107,8 @@ def _connection_rows() -> list[tuple[str, bool | None, str]]:
         ("Notion", notion_ok, "Connecté" if notion_ok else "Non configuré"),
         ("Obsidian", obsidian_ok, "Connecté" if obsidian_ok else "Non configuré"),
         ("Google Calendar", calendar_ok, "Connecté" if calendar_ok else "Non configuré"),
-        ("EDNpro", None, "Saisie manuelle"),
-        ("Hypocampus", None, "Saisie manuelle"),
+        ("EDNpro", None, "Automatisation à connecter"),
+        ("Hypocampus", None, "Automatisation à connecter"),
     ]
 
 
@@ -168,6 +168,28 @@ def render_settings_cockpit() -> None:
                 ui.notify(f"Fuseau horaire : {event.value}", type="positive")
 
             timezone_select.on("update:model-value", _set_timezone)
+
+        ui.label("PLANIFICATION EDN").classes("se-label")
+        with ui.element("div").classes("se-timezone-row"):
+            with ui.column().classes("gap-0"):
+                ui.label("Date cible EDN").classes("se-appearance-label")
+                ui.label("Utilisée pour le compte à rebours et les projections").classes("se-appearance-sub")
+            target_date = ui.input(
+                label="Date",
+                value=data_store.preferences.get("edn_target_date", "2026-10-15"),
+            ).props("outlined dense type=date")
+
+            def _set_target_date(event) -> None:
+                value = str(event.value or "").strip()
+                try:
+                    date.fromisoformat(value)
+                    data_store.set_preference("edn_target_date", value)
+                    ui.notify("Date cible EDN mise à jour", type="positive")
+                except ValueError:
+                    ui.notify("Date EDN invalide", type="negative")
+                    target_date.value = data_store.preferences.get("edn_target_date", "2026-10-15")
+
+            target_date.on("update:model-value", _set_target_date)
 
         ui.label("UNESS").classes("se-label")
         with ui.element("div").classes("se-uness-card"):
@@ -305,11 +327,6 @@ def render_settings_cockpit() -> None:
                 on_click=_scan_verified,
             ).props("unelevated color=purple size=sm rounded").classes("mt-3")
             ui.label("Échange local : UNESS/à_vérifier → UNESS/vérifiés → UNESS/archives").classes("se-uness-status")
-
-        with ui.element("div").classes("se-uness-card mt-3"):
-            render_external_result_import(
-                lambda _report: ui.notify("Le tableau de bord EDN sera actualisé", type="info")
-            )
 
         ui.label("LISA / OIC").classes("se-label")
         with ui.element("div").classes("se-uness-card"):

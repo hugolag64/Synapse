@@ -42,7 +42,8 @@ class SprintConfig:
 class SprintCountdownService:
     """Service de gestion du compte à rebours EDN et adaptation des rythmes de révision."""
 
-    def __init__(self, target_date_str: str = "2026-10-15"):
+    def __init__(self, target_date_str: str | None = None):
+        target_date_str = target_date_str or "2026-10-15"
         try:
             self.target_date = datetime.strptime(target_date_str, "%Y-%m-%d").date()
         except ValueError:

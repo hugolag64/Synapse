@@ -52,6 +52,19 @@ def test_daily_flash_zero_task_is_idempotent():
     assert local_store.is_daily_flash_zero_complete(today, timezone_name="Indian/Reunion") is True
 
 
+def test_daily_flash_zero_can_be_dismissed_without_being_completed():
+    from backend.core.reviews import local_store
+
+    today = datetime.date(2026, 8, 3)
+    local_store.ensure_daily_flash_zero(today, timezone_name="Indian/Reunion")
+
+    assert local_store.is_daily_flash_zero_dismissed(today, timezone_name="Indian/Reunion") is False
+    local_store.dismiss_daily_flash_zero(today, timezone_name="Indian/Reunion")
+
+    assert local_store.is_daily_flash_zero_dismissed(today, timezone_name="Indian/Reunion") is True
+    assert local_store.is_daily_flash_zero_complete(today, timezone_name="Indian/Reunion") is False
+
+
 def test_daily_routine_uses_configured_business_timezone(monkeypatch):
     from backend.features import daily_routine
 

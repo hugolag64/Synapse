@@ -9,6 +9,15 @@ from nicegui import ui
 from backend.core.practice.flash_zero_service import FlashZeroService
 
 
+_CSS = """
+.flash-zero-card { position:relative; border:1px solid var(--border); border-left:3px solid var(--warning); border-radius:8px; background:var(--surface); box-shadow:var(--shadow-popover); }
+.flash-zero-card:hover { border-color:var(--border-strong); }
+.flash-zero-dismiss { position:absolute; top:7px; right:7px; z-index:2; opacity:0; color:var(--text-muted); transition:opacity var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard); }
+.flash-zero-card:hover .flash-zero-dismiss, .flash-zero-card:focus-within .flash-zero-dismiss { opacity:1; }
+.flash-zero-dismiss:hover { color:var(--danger); }
+"""
+
+
 def flash_zero_card_model(entry: dict, *, completed: bool) -> dict[str, str]:
     return {
         "title": str(entry.get("course_title") or "Flash-Zero du matin"),
@@ -57,11 +66,21 @@ def open_flash_zero_quiz(*, service: FlashZeroService | None = None, on_complete
     dialog.open()
 
 
-def render_flash_zero_card(entry: dict, *, completed: bool, on_open: Callable[[], None]) -> None:
+def render_flash_zero_card(
+    entry: dict,
+    *,
+    completed: bool,
+    on_open: Callable[[], None],
+    on_dismiss: Callable[[], None],
+) -> None:
     model = flash_zero_card_model(entry, completed=completed)
-    with ui.element("div").classes("w-full p-4 mb-4 rounded-lg border border-amber-200 bg-amber-50/60 dark:border-amber-900 dark:bg-amber-950/20"):
+    ui.add_head_html(f"<style>{_CSS}</style>", shared=True)
+    with ui.element("div").classes("flash-zero-card w-full p-4 mb-4"):
+        ui.button(icon="close", on_click=on_dismiss).props(
+            'flat round dense aria-label="Ignorer le Flash-Zero du jour"'
+        ).classes("flash-zero-dismiss")
         with ui.row().classes("w-full items-center justify-between gap-3"):
             with ui.column().classes("gap-0"):
                 ui.label("⚡ " + model["title"]).classes("text-sm font-semibold")
                 ui.label(f"{model['duration']} · {model['status']} · erreurs récentes et répétées").classes("text-xs text-slate-500")
-            ui.button(model["action"], on_click=on_open).props("unelevated color=amber-8 size=sm")
+            ui.button(model["action"], on_click=on_open).props("unelevated color=primary size=sm rounded")

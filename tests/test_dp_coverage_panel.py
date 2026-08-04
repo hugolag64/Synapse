@@ -41,3 +41,9 @@ def test_coverage_rows_deduplicate_course_aliases(monkeypatch):
 def test_dp_coverage_css_uses_a_non_scrolling_grid():
     assert "grid-template-columns:56px minmax(0,1fr) 64px" in panel._CSS
     assert "overflow-x:hidden" in panel._CSS
+
+
+def test_dp_coverage_css_exposes_a_modern_inner_scrollbar():
+    assert "overflow-y:scroll" in panel._CSS
+    assert "scrollbar-gutter:stable" in panel._CSS
+    assert ".dpc-scroll::-webkit-scrollbar" in panel._CSS

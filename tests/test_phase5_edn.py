@@ -34,3 +34,9 @@ def test_sprint_countdown_service():
     status_near = service_near.get_sprint_status()
     assert status_near.phase == SprintPhase.SPRINT_FLASH
     assert status_near.recommended_qcm_dp_ratio == 0.60
+
+
+def test_sprint_countdown_accepts_the_persisted_target_date():
+    service = SprintCountdownService(target_date_str="2026-10-15")
+
+    assert service.target_date == date(2026, 10, 15)

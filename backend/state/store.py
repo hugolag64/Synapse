@@ -75,12 +75,19 @@ class DataStore:
             'planning_capacity_minutes': 360,
             'planning_vacation': {'enabled': False},
             'timezone': 'Europe/Paris',
+            'edn_target_date': '2026-10-15',
         }
 
     def _load_preferences(self, raw_preferences) -> None:
         preferences = self._get_default_preferences()
         if isinstance(raw_preferences, dict):
             preferences.update(raw_preferences)
+        try:
+            preferences['edn_target_date'] = datetime.strptime(
+                str(preferences.get('edn_target_date', '2026-10-15')), '%Y-%m-%d'
+            ).date().isoformat()
+        except (TypeError, ValueError):
+            preferences['edn_target_date'] = '2026-10-15'
         self.preferences = preferences
         set_app_timezone(self.preferences.get("timezone"))
 
@@ -253,6 +260,8 @@ class DataStore:
         """Update a preference and save to disk."""
         if key == "timezone":
             value = set_app_timezone(value).key
+        elif key == "edn_target_date":
+            value = datetime.strptime(str(value), '%Y-%m-%d').date().isoformat()
         self.preferences[key] = value
         self.save_to_disk()
 

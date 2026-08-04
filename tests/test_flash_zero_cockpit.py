@@ -1,3 +1,6 @@
+from pathlib import Path
+
+
 def test_flash_zero_card_model_exposes_morning_task_and_action():
     from frontend.components.flash_zero_cockpit import flash_zero_card_model
 
@@ -15,3 +18,10 @@ def test_flash_zero_card_model_marks_completed_task():
     from frontend.components.flash_zero_cockpit import flash_zero_card_model
 
     assert flash_zero_card_model({"duration_minutes": 5}, completed=True)["status"] == "Fait"
+
+
+def test_flash_zero_card_has_a_hover_dismiss_control():
+    source = Path("frontend/components/flash_zero_cockpit.py").read_text(encoding="utf-8")
+
+    assert ".flash-zero-card:hover .flash-zero-dismiss" in source
+    assert 'aria-label="Ignorer le Flash-Zero du jour"' in source

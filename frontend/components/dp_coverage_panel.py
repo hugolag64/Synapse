@@ -25,7 +25,11 @@ _CSS = """
 .dpc-count.zero { color:var(--danger); }
 .dpc-empty { padding:24px 12px; text-align:center; color:var(--text-dim); font-size:12.5px; }
 .dpc-summary { font-size:11.5px; color:var(--text-muted); margin-bottom:8px; }
-.dpc-scroll { max-height:440px; overflow-y:auto; overflow-x:hidden; min-width:0; }
+.dpc-scroll { max-height:520px; overflow-y:scroll; overflow-x:hidden; min-width:0; scrollbar-gutter:stable; scrollbar-width:thin; scrollbar-color:var(--border-strong) var(--bg-alt); overscroll-behavior:contain; }
+.dpc-scroll::-webkit-scrollbar { width:10px; }
+.dpc-scroll::-webkit-scrollbar-track { background:var(--bg-alt); border-left:1px solid var(--border); }
+.dpc-scroll::-webkit-scrollbar-thumb { background:var(--border-strong); border:2px solid var(--bg-alt); border-radius:999px; }
+.dpc-scroll::-webkit-scrollbar-thumb:hover { background:var(--text-dim); }
 @media (max-width:560px) {
   .dpc-head, .dpc-row { grid-template-columns:46px minmax(0,1fr) 52px; gap:8px; padding-left:10px; padding-right:10px; }
 }

@@ -211,7 +211,7 @@ async def render_today_cockpit() -> None:
     state = DashboardState()
     sel: dict = {"task": None}
     drawer_state: dict = {"root": None}
-    _data: dict = {"urgent": [], "today": [], "load": {}, "qcm": {}, "lac": {}, "crit": 0, "target": {}, "flash_zero": None, "flash_zero_complete": False, "edn_status": None, "edn_projections": (), "gain_items": ()}
+    _data: dict = {"urgent": [], "today": [], "load": {}, "qcm": {}, "lac": {}, "crit": 0, "target": {}, "flash_zero": None, "flash_zero_dismissed": False, "flash_zero_complete": False, "edn_status": None, "edn_projections": (), "gain_items": ()}
 
     # ── Pipeline données (réplique de rebuild_all, partie data) ────────────────
     def _fetch() -> None:
@@ -249,6 +249,7 @@ async def render_today_cockpit() -> None:
 
         timezone_name = data_store.preferences.get("timezone", "Europe/Paris")
         flash_zero = local_store.ensure_daily_flash_zero(business_today(), timezone_name=timezone_name)
+        flash_zero_dismissed = local_store.is_daily_flash_zero_dismissed(business_today(), timezone_name=timezone_name)
         flash_zero_complete = local_store.is_daily_flash_zero_complete(business_today(), timezone_name=timezone_name)
         progress = build_progress_snapshot(
             courses=list(getattr(data_store, "cours", []) or []),
@@ -256,7 +257,7 @@ async def render_today_cockpit() -> None:
             history=history,
             as_of=business_today(),
         )
-        countdown = SprintCountdownService()
+        countdown = SprintCountdownService(data_store.preferences.get("edn_target_date", "2026-10-15"))
         edn_status = countdown.get_sprint_status(today=business_today(), progress=progress)
         edn_projections = project_to_exam(
             progress,
@@ -274,7 +275,7 @@ async def render_today_cockpit() -> None:
             error_signals=error_signals,
         )
 
-        _data.update(urgent=urgent, today=today, load=load, qcm=qcm, lac=lac, crit=crit, target=target, flash_zero=flash_zero, flash_zero_complete=flash_zero_complete, edn_status=edn_status, edn_projections=edn_projections, gain_items=gain_items)
+        _data.update(urgent=urgent, today=today, load=load, qcm=qcm, lac=lac, crit=crit, target=target, flash_zero=flash_zero, flash_zero_dismissed=flash_zero_dismissed, flash_zero_complete=flash_zero_complete, edn_status=edn_status, edn_projections=edn_projections, gain_items=gain_items)
 
     # ── Focus (réutilise open_focus_mode existant) ────────────────────────────
     def _open_focus(task: ReviewTask | None = None) -> None:
@@ -466,11 +467,18 @@ async def render_today_cockpit() -> None:
                 _full_rebuild()
                 ui.notify("Flash-Zero terminé", type="positive")
 
-            if _data.get("flash_zero"):
+            def _dismiss_flash_zero() -> None:
+                timezone_name = data_store.preferences.get("timezone", "Europe/Paris")
+                local_store.dismiss_daily_flash_zero(business_today(), timezone_name=timezone_name)
+                _full_rebuild()
+                ui.notify("Flash-Zero ignorÃ© pour aujourd'hui", type="info")
+
+            if _data.get("flash_zero") and not _data.get("flash_zero_dismissed"):
                 render_flash_zero_card(
                     _data["flash_zero"],
                     completed=_data["flash_zero_complete"],
                     on_open=lambda: open_flash_zero_quiz(on_complete=_finish_flash_zero),
+                    on_dismiss=_dismiss_flash_zero,
                 )
 
             if tasks:

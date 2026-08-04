@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +15,7 @@ from .frequency import is_frequency_sync_due, normalize_training_payload
 
 TRAINING_URL = "https://ednpro.app/training-v2"
 _running_task: asyncio.Task | None = None
+_last_scheduled_at: datetime | None = None
 
 
 def extract_training_records(payload: object) -> list[dict]:
@@ -108,12 +109,16 @@ async def sync_if_due(
 
 def schedule_if_due(*, profile_dir: Path = Path("data/ednpro/browser-profile")) -> bool:
     """Schedule at most one due collection, without blocking the background loop."""
-    global _running_task
+    global _last_scheduled_at, _running_task
     if _running_task is not None and not _running_task.done():
+        return False
+    now = datetime.now(timezone.utc)
+    if _last_scheduled_at is not None and now - _last_scheduled_at < timedelta(days=1):
         return False
     snapshot = local_store.get_ednpro_frequency_snapshot()
     if snapshot and not is_frequency_sync_due(snapshot.get("collected_at")):
         return False
+    _last_scheduled_at = now
     _running_task = asyncio.create_task(sync_if_due(profile_dir=profile_dir))
     _running_task.add_done_callback(_log_completed_task)
     return True

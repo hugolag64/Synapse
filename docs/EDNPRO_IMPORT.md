@@ -29,6 +29,14 @@ JSON authentifiées de cette session et assemble les tables `annales_sessions`,
 `annales_question_oic`. Une session sans question est refusée avant toute
 création d'annale locale ; cela évite les lignes `0/0 sous-parties`.
 
+Les dossiers sont ensuite conservés dans le JSON canonique avec leur type,
+numéro et contexte patient. À l'import, chaque dossier devient une sous-partie
+de la même annale Synapse ; les questions sans dossier restent dans une
+sous-partie complémentaire. Les explications déjà présentes dans EDNpro sont
+archivées intégralement, puis condensées dans la correction affichée. Si les
+explications par proposition sont complètes, aucune nouvelle correction IA
+n'est demandée ; l'IA Lite ne sert que de repli.
+
 Les vidéos liées aux items sont indexées depuis les lignes `learning_videos`
 (`item_edn`, titre, URL), avec un repli HTML pour les anciennes versions du
 site. Les liens sont ensuite visibles dans le panneau **Ressources** de la fiche

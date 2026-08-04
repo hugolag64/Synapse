@@ -101,6 +101,14 @@ def _record_index(records: list[dict], key: str) -> dict[str, dict]:
     }
 
 
+def _record_text(record: dict, *keys: str) -> str:
+    for key in keys:
+        value = record.get(key)
+        if isinstance(value, str) and value.strip():
+            return " ".join(value.split())
+    return ""
+
+
 def build_video_resources_from_records(records: list[dict]) -> list[dict]:
     """Turn EDNpro's item-linked video rows into stable Synapse resources.
 
@@ -190,16 +198,44 @@ def build_ednpro_exam_payload(
     source_url = url or f"https://ednpro.app/annales/{session_id}?mode=consultation"
 
     normalized_questions = []
+    normalized_dossiers = []
+    for dossier in dossiers:
+        dossier_id = str(dossier.get("id") or "").strip()
+        if not dossier_id:
+            continue
+        normalized_dossiers.append({
+            "id": dossier_id,
+            "numero": dossier.get("numero_dossier"),
+            "type": str(dossier.get("type_dossier") or "").strip(),
+            "title": _record_text(dossier, "title", "nom", "label"),
+            "context": _record_text(
+                dossier, "enonce", "enonce_patient", "context", "description", "texte", "content"
+            ),
+            "question_ids": [
+                str(row.get("id")) for row in questions
+                if str(row.get("dossier_id") or "") == dossier_id and row.get("id") is not None
+            ],
+        })
     for index, question in enumerate(questions, start=1):
         question_id = str(question.get("id") or f"{session_id}-q-{index}")
         dossier = dossier_by_id.get(str(question.get("dossier_id") or ""), {})
+        dossier_context = _record_text(
+            dossier, "enonce", "enonce_patient", "context", "description", "texte", "content"
+        )
         choices = []
         for choice_index, proposition in enumerate(propositions_by_question.get(question_id, []), start=1):
             choice_id = str(proposition.get("id") or f"{question_id}-p-{choice_index}")
+            raw_correct = proposition.get("is_correct")
+            correct = raw_correct if isinstance(raw_correct, bool) else (
+                bool(raw_correct) if raw_correct in (0, 1) else None
+            )
             choices.append({
                 "id": choice_id,
                 "text": str(proposition.get("texte") or proposition.get("text") or "").strip(),
-                "correct": proposition.get("is_correct"),
+                "correct": correct,
+                "source_explanation": _record_text(
+                    proposition, "explanation", "ai_explanation"
+                ),
             })
         item_numbers = list(dict.fromkeys(
             item for item in items_by_question.get(question_id, []) if item
@@ -208,12 +244,14 @@ def build_ednpro_exam_payload(
             "id": question_id,
             "type": str(question.get("type") or ""),
             "stem": str(question.get("enonce") or question.get("stem") or "").strip(),
+            "source_explanation": _record_text(question, "explanation", "ai_explanation"),
             "choices": choices,
             "item_numbers": item_numbers,
             "dp_context": {
                 "dossier_id": str(question.get("dossier_id") or ""),
                 "dossier_number": dossier.get("numero_dossier"),
                 "dossier_type": dossier.get("type_dossier", ""),
+                "dossier_context": dossier_context,
             },
         })
 
@@ -224,6 +262,7 @@ def build_ednpro_exam_payload(
         "exam_id": session_id,
         "url": source_url,
         "subject": str(session.get("subject") or session.get("matiere") or "").strip(),
+        "dossiers": normalized_dossiers,
         "questions": normalized_questions,
         "resources": resources or [],
         "collected_at": datetime.now(timezone.utc).isoformat(),

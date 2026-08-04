@@ -20,6 +20,54 @@ from backend.core.uness.json_io import load_exam, save_exam
 from .normalizer import normalize_ednpro_payload
 
 
+def condense_explanation(text: str, *, max_chars: int = 360) -> str:
+    """Keep EDNpro's useful explanation while making it readable in Synapse."""
+    cleaned = re.sub(r"\s+", " ", str(text or "")).strip()
+    cleaned = re.sub(r"^(?:VRAI|FAUX)\s*[:.-]\s*", "", cleaned, flags=re.IGNORECASE)
+    if len(cleaned) <= max_chars:
+        return cleaned
+    sentences = re.split(r"(?<=[.!?])\s+", cleaned)
+    selected = ""
+    for sentence in sentences:
+        candidate = f"{selected} {sentence}".strip()
+        if len(candidate) > max_chars:
+            break
+        selected = candidate
+    if selected:
+        return selected.rstrip(" .") + "…"
+    return cleaned[: max_chars - 1].rsplit(" ", 1)[0].rstrip(" .,;:") + "…"
+
+
+def apply_source_correction(source_payload: dict[str, Any]) -> tuple[dict[str, Any], bool]:
+    """Reuse complete EDNpro AI explanations before paying for a new pass.
+
+    EDNpro already exposes a detailed, non-official correction. When every
+    closed proposition has a source answer and explanation, we preserve the
+    full text in the source JSON and use a compact version as Synapse's IA
+    explanation. Incomplete sessions still go through the existing Lite model.
+    """
+    result = deepcopy(source_payload)
+    closed_questions = [question for question in result.get("questions", []) if question.get("choices")]
+    complete = bool(closed_questions) and all(
+        isinstance(choice.get("correct"), bool)
+        and bool(choice.get("source_explanation") or choice.get("source_ai_explanation"))
+        for question in closed_questions
+        for choice in question.get("choices", [])
+    )
+    if not complete:
+        return result, False
+
+    for question in result.get("questions", []):
+        question["verification_status"] = "verified"
+        for choice in question.get("choices", []):
+            source_explanation = choice.get("source_explanation") or choice.get("source_ai_explanation")
+            choice["ai_verdict"] = choice.get("correct")
+            choice["ai_explanation"] = condense_explanation(str(source_explanation))
+            choice["ai_confidence"] = 0.9
+    result.setdefault("metadata", {})["ai_correction"] = "ednpro_source"
+    return result, True
+
+
 def build_correction_prompt(source_payload: dict[str, Any]) -> str:
     """Build a compact, deterministic prompt from EDNpro's structured questions."""
     questions = []
@@ -99,12 +147,15 @@ def generate_and_import_ednpro(
     output_path: Path | None = None,
 ) -> dict[str, Any]:
     """Generate correction JSON, reload it through the canonical contract, import it."""
-    response = generate_uness_correction(
-        build_correction_prompt(source_payload),
-        context=str(source_payload.get("title", "EDNpro")),
-        service=service,
-    )
-    corrected_payload = merge_ai_correction(source_payload, _parse_json_response(response.text))
+    corrected_payload, used_source_correction = apply_source_correction(source_payload)
+    response = None
+    if not used_source_correction:
+        response = generate_uness_correction(
+            build_correction_prompt(source_payload),
+            context=str(source_payload.get("title", "EDNpro")),
+            service=service,
+        )
+        corrected_payload = merge_ai_correction(source_payload, _parse_json_response(response.text))
     exam = normalize_ednpro_payload(corrected_payload)
     target = output_path or (
         import_service.VERIFIED_DIR / f"{_safe_name(exam.title)}.json"
@@ -131,5 +182,5 @@ def generate_and_import_ednpro(
     return {
         "session_id": session_id,
         "json_path": str(target),
-        "ai_model": getattr(getattr(response, "model", None), "value", str(getattr(response, "model", ""))),
+        "ai_model": "EDNpro source" if used_source_correction else getattr(getattr(response, "model", None), "value", str(getattr(response, "model", ""))),
     }

@@ -87,6 +87,7 @@ def normalize_ednpro_payload(payload: dict[str, Any]) -> UnessExam:
                 propositions=propositions,
                 images=tuple(UnessImage.from_dict(image) for image in raw_question.get("images", [])),
                 verification_status=str(raw_question.get("verification_status", "unverified")),
+                dp_context=dict(raw_question.get("dp_context", {})),
                 item_numbers=tuple(dict.fromkeys(
                     str(item).strip() for item in raw_question.get("item_numbers", []) if str(item).strip()
                 )),
@@ -99,6 +100,19 @@ def normalize_ednpro_payload(payload: dict[str, Any]) -> UnessExam:
         "session_id": str(payload.get("session_id", "")),
         "correction_source": "ednpro",
         "correction_official": False,
+        "dossiers": list(payload.get("dossiers", [])),
+        "source_explanations": {
+            str(question.get("id")): {
+                "question": str(question.get("source_explanation", "")),
+                "propositions": {
+                    str(choice.get("id")): str(choice.get("source_explanation", ""))
+                    for choice in question.get("choices", [])
+                    if choice.get("source_explanation")
+                },
+            }
+            for question in payload.get("questions", [])
+            if any(choice.get("source_explanation") for choice in question.get("choices", []))
+        },
         "resources": _resource_rows(payload.get("resources")),
     }
     return UnessExam(

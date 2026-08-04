@@ -56,6 +56,33 @@ def test_import_source_exam_rejects_empty_exam_before_creating_group():
     assert local_store.get_uness_annale_by_source_url(payload["url"]) is None
 
 
+def test_import_source_exam_splits_ednpro_dossiers_into_subparts(monkeypatch):
+    from backend.core.ednpro.normalizer import normalize_ednpro_payload
+    from backend.core.uness import import_service
+
+    payload = _source_payload() | {
+        "url": "https://ednpro.app/annales/dossier-split-test",
+        "dossiers": [{"id": "d1", "numero": 1, "type": "KFP"}],
+        "questions": [{
+            **_source_payload()["questions"][0],
+            "dp_context": {"dossier_id": "d1"},
+        }],
+    }
+    exam = normalize_ednpro_payload(payload)
+    captured = []
+    monkeypatch.setattr(
+        import_service,
+        "import_uness_exam",
+        lambda exam, matiere="": captured.append(exam) or 901,
+    )
+    monkeypatch.setattr(import_service.local_store, "set_session_annale_id", lambda *args: None)
+
+    import_service.import_source_exam(exam, source="EDNpro", matiere="Cardiologie")
+
+    assert len(captured) == 1
+    assert captured[0].title.endswith("· KFP 1")
+
+
 def _source_payload() -> dict:
     return {
         "title": "EDN 2023 — P1",
@@ -112,6 +139,47 @@ def test_generate_and_import_writes_canonical_json_after_ai_correction(monkeypat
     assert Path(result["json_path"]).is_file()
     assert json.loads(output.read_text(encoding="utf-8"))["provenance"]["source"] == "EDNpro"
     assert captured["exam"].questions[0].propositions[0].verdict_ia is True
+
+
+def test_source_ednpro_explanations_are_condensed_without_losing_archive_text():
+    from backend.core.ednpro.ai_pipeline import apply_source_correction, condense_explanation
+
+    long_text = (
+        "VRAI. L'hypernatrémie entraîne une hyperosmolarité plasmatique. "
+        "L'eau sort des cellules vers le secteur extracellulaire, ce qui explique la déshydratation intracellulaire. "
+        "Cette précision supplémentaire est utile dans le cours complet."
+    )
+    payload = _source_payload()
+    payload["questions"][0]["choices"][0]["source_explanation"] = long_text
+    payload["questions"][0]["choices"][1]["source_explanation"] = "FAUX. Ce choix ne correspond pas au mécanisme."
+
+    corrected, used_source = apply_source_correction(payload)
+
+    assert used_source is True
+    assert corrected["questions"][0]["choices"][0]["ai_verdict"] is True
+    assert len(corrected["questions"][0]["choices"][0]["ai_explanation"]) < len(long_text)
+    assert corrected["questions"][0]["choices"][0]["source_explanation"] == long_text
+    assert condense_explanation("VRAI. Réponse courte.") == "Réponse courte."
+
+
+def test_generate_and_import_reuses_complete_ednpro_correction_without_new_ai_call(monkeypatch, tmp_path):
+    from backend.core.ednpro.ai_pipeline import generate_and_import_ednpro
+
+    payload = _source_payload()
+    payload["questions"][0]["choices"][0]["source_explanation"] = "VRAI. Réponse A justifiée."
+    payload["questions"][0]["choices"][1]["source_explanation"] = "FAUX. Réponse B écartée."
+    monkeypatch.setattr(
+        "backend.core.ednpro.ai_pipeline.generate_uness_correction",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("appel IA inattendu")),
+    )
+    monkeypatch.setattr(
+        "backend.core.ednpro.ai_pipeline.import_service.import_source_exam",
+        lambda *args, **kwargs: 779,
+    )
+
+    result = generate_and_import_ednpro(payload, output_path=tmp_path / "source.json")
+
+    assert result["session_id"] == 779
 
 
 def test_question_metadata_labels_ednpro_as_non_official_source():

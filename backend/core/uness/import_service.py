@@ -681,9 +681,44 @@ def import_source_exam(exam: UnessExam, *, source: str, matiere: str = "") -> in
         )
     else:
         annale_id = int(annale["id"])
-    session_id = import_uness_exam(exam, matiere=subject)
-    local_store.set_session_annale_id(session_id, annale_id)
-    return session_id
+    source_name = str(exam.provenance.get("source", source)).strip().lower()
+    sub_exams = [exam]
+    if source_name == "ednpro" and exam.metadata.get("dossiers"):
+        question_by_dossier: dict[str, list[UnessQuestion]] = {}
+        for question in exam.questions:
+            dossier_id = str(question.dp_context.get("dossier_id") or "").strip()
+            question_by_dossier.setdefault(dossier_id, []).append(question)
+        grouped: list[UnessExam] = []
+        assigned: set[str] = set()
+        for dossier in exam.metadata.get("dossiers", []):
+            dossier_id = str(dossier.get("id") or "").strip()
+            questions = question_by_dossier.get(dossier_id, [])
+            if not questions:
+                continue
+            number = dossier.get("numero")
+            kind = str(dossier.get("type") or "Dossier").strip()
+            label = f"{kind} {number}" if number is not None else kind
+            metadata = dict(exam.metadata)
+            metadata["dossiers"] = [dossier]
+            grouped.append(dataclasses.replace(
+                exam,
+                title=f"{exam.title} · {label}",
+                questions=tuple(questions),
+                metadata=metadata,
+            ))
+            assigned.update(question.id for question in questions)
+        remaining = tuple(question for question in exam.questions if question.id not in assigned)
+        if remaining:
+            grouped.append(dataclasses.replace(exam, questions=remaining, metadata={**exam.metadata, "dossiers": []}))
+        if grouped:
+            sub_exams = grouped
+
+    imported_session_ids = []
+    for sub_exam in sub_exams:
+        session_id = import_uness_exam(sub_exam, matiere=subject)
+        local_store.set_session_annale_id(session_id, annale_id)
+        imported_session_ids.append(session_id)
+    return imported_session_ids[0]
 
 
 def count_disagreements(exam: UnessExam) -> int:

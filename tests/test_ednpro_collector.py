@@ -97,13 +97,26 @@ def test_build_ednpro_exam_payload_joins_session_dossiers_questions_and_items():
     payload = build_ednpro_exam_payload(
         session={"id": "session-2023-p1", "annee": 2023, "session_label": "Session 1", "epreuve": "P1"},
         dossiers=[
-            {"id": "dossier-1", "session_id": "session-2023-p1", "numero_dossier": 1, "type_dossier": "KFP"},
+            {
+                "id": "dossier-1",
+                "session_id": "session-2023-p1",
+                "numero_dossier": 1,
+                "type_dossier": "KFP",
+                "enonce": "Patient de 84 ans avec hypernatrémie.",
+            },
         ],
         questions=[
             {"id": "question-1", "dossier_id": "dossier-1", "numero_question": 1, "type": "QRM", "enonce": "Quel examen ?", "nb_reponses_attendues": 1},
         ],
         propositions=[
-            {"id": "prop-a", "question_id": "question-1", "lettre": "A", "texte": "ECG", "is_correct": True},
+            {
+                "id": "prop-a",
+                "question_id": "question-1",
+                "lettre": "A",
+                "texte": "ECG",
+                "is_correct": True,
+                "explanation": "VRAI. Explication détaillée à conserver dans l'archive.",
+            },
             {"id": "prop-b", "question_id": "question-1", "lettre": "B", "texte": "IRM", "is_correct": False},
         ],
         question_oic=[{"question_id": "question-1", "item_number": 221, "rang": 1}],
@@ -114,8 +127,12 @@ def test_build_ednpro_exam_payload_joins_session_dossiers_questions_and_items():
     assert payload["questions"][0]["item_numbers"] == ["221"]
     assert payload["questions"][0]["choices"][0] == {
         "id": "prop-a", "text": "ECG", "correct": True,
+        "source_explanation": "VRAI. Explication détaillée à conserver dans l'archive.",
     }
     assert payload["questions"][0]["dp_context"]["dossier_number"] == 1
+    assert payload["questions"][0]["dp_context"]["dossier_context"] == "Patient de 84 ans avec hypernatrémie."
+    assert payload["questions"][0]["choices"][0]["source_explanation"].startswith("VRAI.")
+    assert payload["dossiers"][0]["question_ids"] == ["question-1"]
 
 
 def test_build_ednpro_exam_payload_rejects_empty_question_set():

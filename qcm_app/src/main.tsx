@@ -24,9 +24,12 @@ class RenderBoundary extends Component<React.PropsWithChildren, { error: Error |
   }
 }
 
-function contextText(context: Record<string, unknown> | undefined): string {
+export function contextText(context: Record<string, unknown> | undefined): string {
   if (!context) return ''
-  return Object.values(context)
+  const hiddenKeys = new Set(['dossier_id', 'dossier_number', 'dossier_type'])
+  return Object.entries(context)
+    .filter(([key]) => !hiddenKeys.has(key))
+    .map(([, value]) => value)
     .flatMap((value) => {
       if (typeof value === 'string' || typeof value === 'number') return [String(value)]
       return []

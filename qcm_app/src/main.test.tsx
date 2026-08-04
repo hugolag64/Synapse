@@ -45,6 +45,15 @@ const unessQuestion = {
 }
 
 describe('UNESS replay disclosure', () => {
+  it('keeps internal EDNpro dossier identifiers out of the visible context', () => {
+    expect((components as any).contextText({
+      dossier_id: 'dossier-1',
+      dossier_number: 1,
+      dossier_type: 'KFP',
+      dossier_context: 'Patient stable.',
+    })).toBe('Patient stable.')
+  })
+
   it('renders the unified EDN mode and proposition-level correction', () => {
     const Correction = (components as any).Correction
     expect(typeof Correction).toBe('function')
@@ -114,6 +123,8 @@ describe('UNESS replay disclosure', () => {
     expect(markup).toContain('Test de l’horloge')
     expect(markup).toContain('/api/qcm/sessions/12/questions/7/images/0')
     expect(markup).toContain('Support visuel uniquement')
+    expect(markup).not.toContain('dossier-1')
+    expect(markup).not.toContain('KFP')
   })
 
   it('shows a visible divergence warning and secondary official correction', () => {

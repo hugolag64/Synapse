@@ -281,3 +281,22 @@ Les captures utilisateur ont révélé que l'ancien collecteur enregistrait seul
 - La collecte réelle et la génération IA n'ont pas pu être exécutées dans cette session : le refresh EDNpro local est expiré/refusé. Après reconnexion Google, le bouton **Importer les EDN** lancera bien la capture structurée, la correction IA Lite, l'écriture/relecture du JSON canonique et l'import Synapse.
 
 La première collecte réelle n'a pas encore été lancée : elle nécessite la connexion Google EDNpro de l'utilisateur et déclenchera les appels IA réels. Le flux est disponible via `python scripts/ednpro/collector.py --start-year 2023` ou le bouton **Importer les EDN** de l'onglet Prépa.
+
+## Mise à jour du 4 août 2026 — hiérarchie des dossiers et réutilisation des corrections EDNpro
+
+Les captures EDNpro ont confirmé que l'unité à importer n'est pas une simple liste de questions : une session contient des dossiers KFP/DP/QI, un contexte patient éventuel, puis les questions et propositions de chaque dossier. Le parcours de collecte reproduit maintenant cette hiérarchie au niveau des données JSON, sans dépendre de clics DOM fragiles sur une application React.
+
+- Les dossiers, leur type, leur numéro et leur contexte patient sont conservés dans `metadata.dossiers` et `question.dp_context`.
+- L'import EDNpro crée une sous-partie Synapse par dossier, rattachée à la même annale. Les questions et propositions sont donc visibles dans le parcours annale avec le contexte du dossier.
+- Les réponses correctes, mauvaises et explications existantes EDNpro sont conservées dans l'archive JSON. Une version courte est affichée dans Synapse pour rester exploitable en révision.
+- Quand la correction EDNpro est complète, aucune nouvelle correction IA n'est appelée : le flux réutilise la source et évite un coût de tokens. Le modèle Lite reste le repli pour les dossiers incomplets.
+- La classification question → item et les ressources vidéo restent inchangées ; les liens vidéo sont des liens de page EDNpro, pas des téléchargements.
+
+### Vérification actualisée
+
+- `.venv\Scripts\python.exe -m pytest -q` : **1 033 tests passants**.
+- `npm test -- --run` dans `qcm_app` : **6 tests passants**.
+- `npm run build` dans `qcm_app` : build Vite réussi.
+- `python -m compileall -q backend frontend scripts` et `git diff --check` : réussis.
+
+La collecte réelle EDNpro reste conditionnée à une reconnexion Google dans le profil Chromium persistant ; aucun identifiant n'est automatisé ni stocké en clair par le collecteur.

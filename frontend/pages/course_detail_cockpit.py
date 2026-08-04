@@ -1191,6 +1191,31 @@ async def _load_podcast_tab(course, container: ui.element) -> None:
 
 # ── Panneau droit ─────────────────────────────────────────────────────────────
 
+def build_item_resources(item_number: str, rows=None) -> list[dict]:
+    """Return verified external resources attached to an item."""
+    if rows is None:
+        from backend.core.prep.resources import list_prep_resources_for_item
+
+        rows = list_prep_resources_for_item(item_number)
+
+    resources = []
+    for row in rows or []:
+        confidence = float(row.get("confidence", 0) or 0)
+        url = str(row.get("url", "")).strip()
+        if confidence < 0.8 or not url.startswith(("http://", "https://")):
+            continue
+        resources.append(
+            {
+                "label": str(row.get("title") or "Ressource externe"),
+                "provider": str(row.get("provider") or "Externe"),
+                "type": str(row.get("resource_type") or "resource"),
+                "url": url,
+                "confidence": confidence,
+            }
+        )
+    return resources
+
+
 def _render_panel(course, lacunes, has_pdf: bool, obs_path) -> None:
     by_id = {c.id: c for c in data_store.cours}
 
@@ -1240,6 +1265,12 @@ def _render_panel(course, lacunes, has_pdf: bool, obs_path) -> None:
         ui.link("↗ Fiche EDNpro (LiSA 2.0)", f"https://ednpro.app/fiches?tab=lisa2&item={clean_num}", new_tab=True).classes("ci-p-link")
         any_res = True
 
+        for resource in build_item_resources(item_num):
+            link = ui.link(target=resource["url"], new_tab=True).classes("ci-p-link")
+            with link:
+                ui.label(f"↗ {resource['label']}")
+                ui.label(f" · {resource['provider']}").classes("text-[10px] opacity-60")
+            any_res = True
+
         if not any_res:
             ui.label("— aucune ressource liée").classes("ci-p-empty")
-

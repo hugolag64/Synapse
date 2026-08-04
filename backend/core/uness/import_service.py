@@ -420,11 +420,12 @@ def _source_refs(question: UnessQuestion, exam: UnessExam) -> list[str]:
     refs = [source for proposition in question.propositions for source in proposition.sources_ia]
     artifact = str(exam.provenance.get("artifact_path", "")).strip()
     if artifact:
-        refs.append(f"UNESS: {artifact}")
+        refs.append(f"{exam.provenance.get('source', 'UNESS')}: {artifact}")
     return list(dict.fromkeys(ref for ref in refs if ref))
 
 
 def _question_metadata(question: UnessQuestion, exam: UnessExam) -> dict[str, Any]:
+    source_label = str(exam.provenance.get("source", "UNESS")).strip() or "UNESS"
     primary_answer = _choice_answers(question, official=False)
     official_answer = _choice_answers(question, official=True)
     disagreement_comments = [
@@ -437,7 +438,7 @@ def _question_metadata(question: UnessQuestion, exam: UnessExam) -> dict[str, An
     elif any(proposition.verdict_ia is not None for proposition in question.propositions):
         primary_source = "ia"
     else:
-        primary_source = "uness"
+        primary_source = source_label.lower()
     return {
         "uness": {
             "provenance": dict(exam.provenance),
@@ -448,13 +449,14 @@ def _question_metadata(question: UnessQuestion, exam: UnessExam) -> dict[str, An
                 "title": exam.title,
                 "dp_context": dict(exam.dp_context),
             },
-            "question": {
+                "question": {
                 "id": question.id,
                 "type_question": question.type_question,
                 "support_visuel_seul": question.support_visuel_seul,
                 "verification_status": question.verification_status,
                 "dp_context": dict(question.dp_context),
-                "images": [image.to_dict() for image in question.images],
+                    "images": [image.to_dict() for image in question.images],
+                    "item_numbers": list(question.item_numbers),
             },
             "propositions": [proposition.to_dict() for proposition in question.propositions],
         },
@@ -465,7 +467,8 @@ def _question_metadata(question: UnessQuestion, exam: UnessExam) -> dict[str, An
                 "explanation": _primary_explanation(question),
             },
             "official": {
-                "source": "UNESS",
+                "source": source_label,
+                "official": source_label.upper() == "UNESS",
                 "answer": official_answer,
                 "available": bool(question.propositions) and all(
                     proposition.reponse_uness is not None for proposition in question.propositions
@@ -510,6 +513,11 @@ def _to_practice_question(question: UnessQuestion, exam: UnessExam) -> dict[str,
         "explanation": primary["explanation"],
         "source_refs": _source_refs(question, exam),
         "import_metadata": metadata,
+        "item_numbers": tuple(question.item_numbers),
+        "item_classification_source": "source" if question.item_numbers else "",
+        "item_classification_confidence": 1.0 if question.item_numbers else 0.0,
+        "item_classifier_version": "source-explicit-v1" if question.item_numbers else "",
+        "allow_session_item_fallback": str(exam.provenance.get("source", "UNESS")).strip().lower() != "ednpro",
     }
 
 
@@ -613,12 +621,21 @@ def import_uness_exam(exam: UnessExam, *, matiere: str = "") -> int:
     assert_verified_exam(exam)
     if not exam.questions:
         raise ValueError("L'examen UNESS ne contient aucune question importable")
+    if str(exam.provenance.get("source", "")).strip().lower() == "ednpro":
+        from backend.core.uness.question_item_classifier import classify_exam_questions
+
+        exam = classify_exam_questions(exam, matiere or str(exam.metadata.get("subject", "")))
     questions = [_to_practice_question(question, exam) for question in exam.questions]
     closed = sum(question["kind"] is QuestionKind.CLOSED for question in questions)
 
     item_number = _session_value(exam, "item_number")
     item_numbers: tuple[str, ...] = (item_number,) if item_number else ()
-    if not item_number:
+    if not item_number and str(exam.provenance.get("source", "")).strip().lower() == "ednpro":
+        item_numbers = tuple(dict.fromkeys(
+            item for question in exam.questions for item in question.item_numbers
+        ))
+        item_number = item_numbers[0] if item_numbers else ""
+    elif not item_number:
         item_number, item_numbers = _classify_exam_items(exam, matiere)
 
     spec = PracticeSessionSpec(
@@ -633,6 +650,38 @@ def import_uness_exam(exam: UnessExam, *, matiere: str = "") -> int:
         difficulty=PracticeDifficulty.EDN,
     )
     return local_store.create_ai_practice_session(spec=spec, questions=questions, model="uness-verified-local")
+
+
+def import_source_exam(exam: UnessExam, *, source: str, matiere: str = "") -> int:
+    """Import any source-compatible exam and attach it to a typed annale group.
+
+    The legacy function remains the UNESS-compatible session importer; this
+    facade adds source provenance and lets EDNpro reuse the same QCM storage.
+    """
+    source_url = str(exam.provenance.get("source_url", "")).strip()
+    if not source_url:
+        raise ValueError("Une source_url est requise pour un import multi-source")
+    subject = matiere or str(exam.metadata.get("subject", ""))
+    annale = local_store.get_uness_annale_by_source_url(source_url)
+    if annale is None:
+        annale_id = local_store.create_uness_annale(
+            source_url=source_url,
+            collected_at=str(exam.provenance.get("collected_at", "")),
+            faculte=exam.faculty,
+            niveau=exam.level,
+            annee=exam.year,
+            matiere=subject,
+            titre=exam.title,
+            type_annale=str(exam.metadata.get("exam_type", "edn_complet")),
+            source=source,
+            source_exam_id=str(exam.provenance.get("external_exam_id", "")),
+            metadata_json=json.dumps(exam.metadata, ensure_ascii=False),
+        )
+    else:
+        annale_id = int(annale["id"])
+    session_id = import_uness_exam(exam, matiere=subject)
+    local_store.set_session_annale_id(session_id, annale_id)
+    return session_id
 
 
 def count_disagreements(exam: UnessExam) -> int:

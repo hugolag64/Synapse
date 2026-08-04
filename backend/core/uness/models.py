@@ -270,6 +270,7 @@ class UnessQuestion:
     support_visuel_seul: bool = False
     verification_status: UnessVerificationStatus = "unverified"
     dp_context: dict[str, Any] = field(default_factory=dict)
+    item_numbers: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if self.type_question not in _QUESTION_TYPES:
@@ -278,6 +279,8 @@ class UnessQuestion:
             raise ValueError("support_visuel_seul doit être un booléen")
         if self.verification_status not in _VERIFICATION_STATUSES:
             raise ValueError(f"verification_status inconnu: {self.verification_status}")
+        if not all(isinstance(item, str) and item.strip() for item in self.item_numbers):
+            raise ValueError("item_numbers doit contenir des chaînes non vides")
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> UnessQuestion:
@@ -292,6 +295,7 @@ class UnessQuestion:
             support_visuel_seul=payload.get("support_visuel_seul", False),
             verification_status=payload.get("verification_status", "unverified"),
             dp_context=dict(payload.get("dp_context", {})),
+            item_numbers=tuple(dict.fromkeys(str(item).strip() for item in payload.get("item_numbers", []) if str(item).strip())),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -304,6 +308,7 @@ class UnessQuestion:
             "support_visuel_seul": self.support_visuel_seul,
             "verification_status": self.verification_status,
             "dp_context": self.dp_context,
+            "item_numbers": list(self.item_numbers),
         }
 
 

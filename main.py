@@ -35,6 +35,7 @@ from frontend.pages.annales import annales_page
 from frontend.pages.annale_detail import annale_detail_page
 from frontend.pages.planning import planning_page
 from frontend.pages.externat import externat_page
+from frontend.pages.prepa import prepa_page
 from frontend.pages.triage import triage_page
 from frontend.pages.course_detail import course_detail_page
 from frontend.theme import frame

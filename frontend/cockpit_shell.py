@@ -59,6 +59,7 @@ _NAV_GROUPS = [
         ("≡", "Items",     "/items",     None),
         ("✓", "QCM",       "/qcm",       None),
         ("▧", "Épreuves & Annales", "/annales", ("dynamic_count", "uness_failures")),
+        ("↗", "Prépa",     "/prepa",     None),
         ("⚑", "Points faibles", "/lacunes", ("dot", "warning")),
     ]),
     ("Analyse", [
@@ -83,6 +84,7 @@ _TITLE_TO_NAV = {
     "Statistiques": "Statistiques", "Externat": "Externat",
     "Paramètres": "Paramètres", "Settings": "Paramètres",
     "Bilan semaine": "Revue hebdo",
+    "Prépa": "Prépa",
 }
 
 _SIDEBAR_CSS = """

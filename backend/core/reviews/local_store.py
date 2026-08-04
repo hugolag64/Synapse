@@ -783,6 +783,9 @@ def _migrate_uness_annales() -> None:
             """CREATE TABLE IF NOT EXISTS uness_annales (
                 id           INTEGER PRIMARY KEY AUTOINCREMENT,
                 source_url   TEXT NOT NULL UNIQUE,
+                source       TEXT NOT NULL DEFAULT 'UNESS',
+                source_exam_id TEXT NOT NULL DEFAULT '',
+                metadata_json TEXT NOT NULL DEFAULT '{}',
                 collected_at TEXT NOT NULL,
                 faculte      TEXT NOT NULL,
                 niveau       TEXT NOT NULL,
@@ -793,6 +796,14 @@ def _migrate_uness_annales() -> None:
                 created_at   TEXT NOT NULL
             )"""
         )
+        columns = {row[1] for row in con.execute("PRAGMA table_info(uness_annales)").fetchall()}
+        for column, statement in (
+            ("source", "ALTER TABLE uness_annales ADD COLUMN source TEXT NOT NULL DEFAULT 'UNESS'"),
+            ("source_exam_id", "ALTER TABLE uness_annales ADD COLUMN source_exam_id TEXT NOT NULL DEFAULT ''"),
+            ("metadata_json", "ALTER TABLE uness_annales ADD COLUMN metadata_json TEXT NOT NULL DEFAULT '{}'"),
+        ):
+            if column not in columns:
+                con.execute(statement)
         columns = {row[1] for row in con.execute("PRAGMA table_info(ai_practice_sessions)").fetchall()}
         if "annale_id" not in columns:
             con.execute(
@@ -1749,12 +1760,26 @@ def create_ai_practice_session(*, spec, questions: list[dict], model: str) -> in
                 "INSERT INTO ai_practice_session_questions(session_id, question_id, position) VALUES (?,?,?)",
                 (session_id, int(cur.lastrowid), position),
             )
-            if spec.item_number:
+            question_item_numbers = tuple(dict.fromkeys(
+                str(item).strip() for item in question.get("item_numbers", ()) if str(item).strip()
+            ))
+            if (
+                not question_item_numbers
+                and spec.item_number
+                and question.get("allow_session_item_fallback", True)
+            ):
+                question_item_numbers = (spec.item_number,)
+            for question_item in question_item_numbers:
                 con.execute(
                     """INSERT OR IGNORE INTO ai_practice_question_items
                        (question_id, item_number, confidence, source, classifier_version)
                        VALUES (?,?,?,?,?)""",
-                    (int(cur.lastrowid), spec.item_number, 1.0, "rule", "session-primary-v1"),
+                    (
+                        int(cur.lastrowid), question_item,
+                        float(question.get("item_classification_confidence", 1.0)),
+                        str(question.get("item_classification_source") or "rule"),
+                        str(question.get("item_classifier_version") or "session-primary-v1"),
+                    ),
                 )
         item_numbers = tuple(dict.fromkeys(
             n for n in (spec.item_numbers or ((spec.item_number,) if spec.item_number else ()))
@@ -1793,15 +1818,22 @@ def create_uness_annale(
     matiere: str,
     titre: str,
     type_annale: str,
+    source: str = "UNESS",
+    source_exam_id: str = "",
+    metadata_json: str = "{}",
 ) -> int:
     """Create one grouping row for a UNESS partiel. Raises sqlite3.IntegrityError on a duplicate source_url."""
     source_url = _normalize_uness_source_url(source_url)
     with _conn() as con:
         cur = con.execute(
             """INSERT INTO uness_annales
-               (source_url, collected_at, faculte, niveau, annee, matiere, titre, type_annale, created_at)
-               VALUES (?,?,?,?,?,?,?,?,?)""",
-            (source_url, collected_at, faculte, niveau, annee, matiere, titre, type_annale, _now()),
+               (source_url, source, source_exam_id, metadata_json, collected_at, faculte, niveau,
+                annee, matiere, titre, type_annale, created_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                source_url, source, source_exam_id, metadata_json, collected_at, faculte, niveau,
+                annee, matiere, titre, type_annale, _now(),
+            ),
         )
         return int(cur.lastrowid)
 
@@ -2699,6 +2731,27 @@ def is_daily_flash_zero_complete(entry_date: datetime.date, *, timezone_name: st
         row = con.execute(
             "SELECT checked FROM routine_checks WHERE date = ? AND item_name = ?",
             (date_iso, f"flash_zero:{timezone_name}"),
+        ).fetchone()
+    return bool(row and row["checked"])
+
+
+def dismiss_daily_flash_zero(entry_date: datetime.date, *, timezone_name: str) -> None:
+    date_iso = entry_date.isoformat() if isinstance(entry_date, datetime.date) else str(entry_date)
+    item_name = f"flash_zero_dismissed:{timezone_name}"
+    with _conn() as con:
+        con.execute(
+            """INSERT INTO routine_checks(date, item_name, checked) VALUES (?, ?, 1)
+               ON CONFLICT(date, item_name) DO UPDATE SET checked = 1""",
+            (date_iso, item_name),
+        )
+
+
+def is_daily_flash_zero_dismissed(entry_date: datetime.date, *, timezone_name: str) -> bool:
+    date_iso = entry_date.isoformat() if isinstance(entry_date, datetime.date) else str(entry_date)
+    with _conn() as con:
+        row = con.execute(
+            "SELECT checked FROM routine_checks WHERE date = ? AND item_name = ?",
+            (date_iso, f"flash_zero_dismissed:{timezone_name}"),
         ).fetchone()
     return bool(row and row["checked"])
 

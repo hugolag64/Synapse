@@ -240,3 +240,27 @@ Moyen
 7
 Tableau de bord items orphelins + calibration
 Les deux idées EDN à plus fort effet de levier pour la suite, une fois la base assainie.
+
+---
+
+## Mise à jour du 4 août 2026 — EDNpro, Prépa et ressources externes
+
+### Livré
+
+- **Connecteur EDNpro automatisé** : collecteur Playwright avec profil Chromium persistant et connexion Google réalisée manuellement dans la fenêtre visible. Les sessions EDN à partir de 2023 peuvent être capturées et reprises via un `manifest.json`.
+- **Correction IA + import** : chaque session capturée peut être corrigée automatiquement, écrite dans un JSON canonique puis relue et importée dans les annales/QCM Synapse. EDNpro est explicitement marqué comme source fiable mais non officielle (`official: false`).
+- **Classification question → item** : les items explicitement présents sont conservés ; sinon une classification IA limitée aux candidats plausibles est tentée. Les associations incertaines ne sont pas forcées et une question reçoit au maximum deux items.
+- **Ressources vidéo** : les pages vidéo EDNpro sont indexées par URL stable, titre, catégorie et item éventuel. Les médias et URLs CDN temporaires ne sont pas téléchargés. Les ressources suffisamment confiantes apparaissent dans le panneau Ressources de la fiche item.
+- **Onglet Prépa** : raccourcis intégrés pour EDNpro et Hypocampus, avec routes EDN, annales, iconographie, ECG, physiologie, anatomie/sémiologie et LCA. EDNi est préparé dans le catalogue mais désactivé tant que son accès n'est pas défini.
+- **Coût IA** : le flux texte réutilise le routage économique existant (`UNESS_CORRECTION` Lite) ; un modèle visuel plus coûteux n'est pertinent que si des images sont réellement collectées.
+
+### Vérification
+
+- `pytest -q` : **1 026 tests passants**, 2 avertissements de dépendances externes.
+- `python -m compileall -q backend frontend scripts` : réussi.
+- `git diff --check` : réussi.
+- Commits : `e671443` (intégration EDNpro/Prépa) et `0b24fa5` (cockpit, sprint et Flash-Zero).
+
+### Limite restante
+
+La première collecte réelle n'a pas encore été lancée : elle nécessite la connexion Google EDNpro de l'utilisateur et déclenchera les appels IA réels. Le flux est disponible via `python scripts/ednpro/collector.py --start-year 2023` ou le bouton **Importer les EDN** de l'onglet Prépa.

@@ -69,7 +69,7 @@ def list_prep_resources_for_item(item_number: str) -> list[dict]:
         rows = con.execute(
             """SELECT * FROM prep_resources
                WHERE item_number = ? AND confidence >= 0.8
-               ORDER BY confidence DESC, title COLLATE NOCASE""",
+               ORDER BY confidence DESC, last_verified DESC, title COLLATE NOCASE""",
             (str(item_number or "").strip(),),
         ).fetchall()
     return [dict(row) for row in rows]

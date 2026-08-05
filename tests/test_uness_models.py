@@ -257,6 +257,14 @@ def test_exam_rejects_token_bearing_urls_anywhere_in_nested_data(token_url: str)
         UnessExam.from_dict(payload)
 
 
+def test_exam_allows_prose_that_ends_with_secret_word() -> None:
+    payload = _valid_exam_payload(
+        metadata={"explanation": "Le signalement est couvert par le secret."}
+    )
+
+    assert UnessExam.from_dict(payload).metadata["explanation"].endswith("secret.")
+
+
 @pytest.mark.parametrize(
     "secret_text",
     [

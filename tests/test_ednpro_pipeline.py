@@ -182,6 +182,20 @@ def test_generate_and_import_reuses_complete_ednpro_correction_without_new_ai_ca
     assert result["session_id"] == 779
 
 
+def test_source_answers_are_reused_when_some_explanations_are_missing():
+    from backend.core.ednpro.ai_pipeline import apply_source_correction
+
+    payload = _source_payload()
+    payload["questions"][0]["choices"][0]["source_explanation"] = "VRAI. Réponse A."
+
+    corrected, used_source = apply_source_correction(payload)
+
+    assert used_source is True
+    assert corrected["questions"][0]["choices"][0]["ai_verdict"] is True
+    assert corrected["questions"][0]["choices"][1]["ai_verdict"] is None
+    assert corrected["questions"][0]["choices"][1]["ai_explanation"] == ""
+
+
 def test_question_metadata_labels_ednpro_as_non_official_source():
     from backend.core.ednpro.normalizer import normalize_ednpro_payload
     from backend.core.uness import import_service

@@ -48,22 +48,43 @@ def apply_source_correction(source_payload: dict[str, Any]) -> tuple[dict[str, A
     """
     result = deepcopy(source_payload)
     closed_questions = [question for question in result.get("questions", []) if question.get("choices")]
-    complete = bool(closed_questions) and all(
-        isinstance(choice.get("correct"), bool)
-        and bool(choice.get("source_explanation") or choice.get("source_ai_explanation"))
+    has_source_explanations = any(
+        bool(choice.get("source_explanation") or choice.get("source_ai_explanation"))
         for question in closed_questions
         for choice in question.get("choices", [])
     )
-    if not complete:
+    source_answers_complete = bool(closed_questions) and has_source_explanations and all(
+        isinstance(choice.get("correct"), bool)
+        for question in closed_questions
+        for choice in question.get("choices", [])
+    )
+    if not source_answers_complete:
         return result, False
 
     for question in result.get("questions", []):
-        question["verification_status"] = "verified"
+        question_has_missing_explanations = any(
+            not (choice.get("source_explanation") or choice.get("source_ai_explanation"))
+            for choice in question.get("choices", [])
+        )
+        question["verification_status"] = (
+            "unsupported"
+            if question.get("choices") and question_has_missing_explanations
+            else "verified"
+            if question.get("choices")
+            else "unverified"
+        )
         for choice in question.get("choices", []):
             source_explanation = choice.get("source_explanation") or choice.get("source_ai_explanation")
-            choice["ai_verdict"] = choice.get("correct")
-            choice["ai_explanation"] = condense_explanation(str(source_explanation))
-            choice["ai_confidence"] = 0.9
+            if source_explanation:
+                choice["ai_verdict"] = choice.get("correct")
+                choice["ai_explanation"] = condense_explanation(str(source_explanation))
+                choice["ai_confidence"] = 0.9
+            else:
+                # Keep EDNpro's source answer in `correct`, but do not claim
+                # an IA verification without the corresponding explanation.
+                choice["ai_verdict"] = None
+                choice["ai_explanation"] = ""
+                choice["ai_confidence"] = None
     result.setdefault("metadata", {})["ai_correction"] = "ednpro_source"
     return result, True
 

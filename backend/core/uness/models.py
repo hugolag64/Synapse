@@ -105,7 +105,15 @@ def _url_contains_sensitive_data(value: str) -> bool:
                 and (parsed.username or parsed.password)
             ):
                 return True
-            query_candidates = [candidate]
+            # Do not parse arbitrary prose as a query string: parse_qsl(...,
+            # keep_blank_values=True) treats the whole sentence as a key, so
+            # an explanation ending in "secret" used to be misclassified as
+            # a credential-bearing URL.
+            query_candidates: list[str] = (
+                [candidate]
+                if any(marker in candidate for marker in ("?", "&", "#", "="))
+                else []
+            )
             for component in (parsed.query, parsed.fragment):
                 if not component:
                     continue

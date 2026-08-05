@@ -7,6 +7,18 @@ from typing import Any
 from urllib.parse import urlparse
 
 
+class GoogleAutomationRejected(RuntimeError):
+    """Google rejected the automated browser before EDNpro authentication."""
+
+
+def is_google_automation_rejection_url(url: str) -> bool:
+    parsed = urlparse(str(url or ""))
+    return (
+        parsed.netloc.lower().split(":", 1)[0] == "accounts.google.com"
+        and parsed.path.rstrip("/").endswith("/signin/rejected")
+    )
+
+
 def is_authenticated_ednpro_url(url: str) -> bool:
     """Return whether *url* is an EDNpro page outside the login route."""
     parsed = urlparse(str(url or ""))
@@ -33,6 +45,11 @@ async def wait_for_ednpro_auth(
         for candidate in tuple(getattr(context, "pages", ())):
             if candidate.is_closed():
                 continue
+            if is_google_automation_rejection_url(candidate.url):
+                raise GoogleAutomationRejected(
+                    "Google a refusé le navigateur automatisé. Connecte-toi dans Chrome normal "
+                    "puis relance la collecte via l'attachement Chrome."
+                )
             if is_authenticated_ednpro_url(candidate.url):
                 return candidate
 

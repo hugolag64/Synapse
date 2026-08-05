@@ -11,6 +11,7 @@ import argparse
 import asyncio
 import json
 import re
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -18,8 +19,11 @@ from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 
+if __package__ in {None, ""}:  # Allow `python scripts/ednpro/collector.py` from the repo root.
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
 from backend.core.ednpro.ai_pipeline import generate_and_import_ednpro
-from backend.core.ednpro.auth import wait_for_ednpro_auth
+from backend.core.ednpro.auth import GoogleAutomationRejected, wait_for_ednpro_auth
 from backend.core.ednpro.collector import (
     _item_numbers,
     build_ednpro_exam_payload,
@@ -49,6 +53,18 @@ def _boolean_attribute(value: Any) -> bool | None:
     if normalized in {"false", "0", "no", "non", "incorrect", "faux"}:
         return False
     return None
+
+
+async def _open_ednpro_browser(playwright: Any, profile_dir: Path, cdp_url: str | None):
+    """Open an owned Playwright profile or attach to a user-launched Chrome."""
+    if cdp_url:
+        browser = await playwright.chromium.connect_over_cdp(cdp_url)
+        if not browser.contexts:
+            raise RuntimeError("Aucun contexte Chrome disponible sur l'URL CDP fournie")
+        return browser, browser.contexts[0], False
+    profile_dir.mkdir(parents=True, exist_ok=True)
+    context = await playwright.chromium.launch_persistent_context(str(profile_dir), headless=False)
+    return context, context, True
 
 
 def extract_exam_payload(
@@ -193,6 +209,7 @@ async def collect_ednpro(
     output_dir: Path = Path("data/ednpro/artifacts"),
     auto_correct: bool = True,
     service: Any = None,
+    cdp_url: str | None = None,
 ) -> Path:
     """Collect eligible annales, optionally correct them with Gemini and import them."""
     try:
@@ -204,7 +221,6 @@ async def collect_ednpro(
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     run_dir = Path(output_dir) / f"ednpro-{stamp}"
     run_dir.mkdir(parents=True, exist_ok=True)
-    profile_dir.mkdir(parents=True, exist_ok=True)
     manifest: dict[str, Any] = {
         "source": "EDNpro",
         "started_at": datetime.now(timezone.utc).isoformat(),
@@ -215,16 +231,23 @@ async def collect_ednpro(
     }
 
     async with async_playwright() as playwright:
-        browser = await playwright.chromium.launch_persistent_context(str(profile_dir), headless=False)
-        page = browser.pages[0] if browser.pages else await browser.new_page()
+        _connection, context, owns_context = await _open_ednpro_browser(playwright, profile_dir, cdp_url)
+        page = context.pages[0] if context.pages else await context.new_page()
         await page.goto("https://ednpro.app/annales", wait_until="domcontentloaded")
         if "/auth" in page.url:
             try:
-                page = await wait_for_ednpro_auth(page, browser)
+                page = await wait_for_ednpro_auth(page, context)
+            except GoogleAutomationRejected as exc:
+                manifest["status"] = "google_browser_rejected"
+                (run_dir / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+                if owns_context:
+                    await context.close()
+                raise RuntimeError(str(exc)) from exc
             except (PlaywrightTimeoutError, TimeoutError) as exc:
                 manifest["status"] = "connexion_requise"
                 (run_dir / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
-                await browser.close()
+                if owns_context:
+                    await context.close()
                 raise RuntimeError("Connexion Google EDNpro non terminée") from exc
 
         catalog = await capture_ednpro_table_records(page, "https://ednpro.app/annales")
@@ -307,7 +330,8 @@ async def collect_ednpro(
             except Exception as exc:  # keep later sessions resumable
                 entry.update({"status": "retryable_error", "error": str(exc)})
             manifest["sessions"].append(entry)
-        await browser.close()
+        if owns_context:
+            await context.close()
 
     manifest["status"] = "completed"
     manifest_path = run_dir / "manifest.json"
@@ -322,6 +346,10 @@ def main() -> None:
     parser.add_argument("--no-ai", action="store_true", help="collecte seule, sans correction ni import")
     parser.add_argument("--profile-dir", type=Path, default=Path("data/ednpro/browser-profile"))
     parser.add_argument("--output-dir", type=Path, default=Path("data/ednpro/artifacts"))
+    parser.add_argument(
+        "--cdp-url",
+        help="URL CDP d'un Chrome normal déjà authentifié (ex. http://127.0.0.1:9222)",
+    )
     args = parser.parse_args()
     path = asyncio.run(collect_ednpro(
         start_year=args.start_year,
@@ -329,6 +357,7 @@ def main() -> None:
         profile_dir=args.profile_dir,
         output_dir=args.output_dir,
         auto_correct=not args.no_ai,
+        cdp_url=args.cdp_url,
     ))
     print(path)
 

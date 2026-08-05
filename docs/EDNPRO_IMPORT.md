@@ -50,6 +50,31 @@ Depuis la racine du projet :
 python scripts/ednpro/collector.py --start-year 2023
 ```
 
+### Si Google refuse le navigateur automatisé
+
+Google peut refuser la connexion dans le Chromium lancé par Playwright avec
+`accounts.google.com/.../signin/rejected` et le message indiquant que le
+navigateur est contrôlé par un logiciel de test. Ce refus vient de Google, pas
+des identifiants EDNpro. Il ne faut pas tenter de le contourner avec un mode
+furtif.
+
+Utiliser alors un Chrome normal lancé avec un port de débogage local, se
+connecter à EDNpro dans ce Chrome, puis lancer la collecte en s'y attachant :
+
+```powershell
+& "C:\Program Files\Google\Chrome\Application\chrome.exe" `
+  --remote-debugging-port=9222 `
+  --user-data-dir="C:\Users\<utilisateur>\AppData\Local\Synapse\ednpro-chrome" `
+  "https://ednpro.app/auth"
+
+python scripts/ednpro/collector.py --start-year 2023 `
+  --cdp-url http://127.0.0.1:9222
+```
+
+La connexion Google doit être faite dans le Chrome normal avant la collecte.
+Le mode CDP n'exporte ni cookie, ni token, ni identifiant ; il observe les
+pages et les réponses nécessaires à la collecte dans le navigateur déjà ouvert.
+
 Une fenêtre Chromium s'ouvre. Faire la connexion Google dans cette fenêtre,
 puis laisser le collecteur poursuivre. Les fichiers de suivi sont dans
 `data/ednpro/artifacts/` ; le `manifest.json` indique les sessions importées

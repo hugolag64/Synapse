@@ -38,7 +38,7 @@ from frontend.components.mastery_indicator import mastery_indicator, ensure_styl
 from frontend.components.item_search_palette import open_item_search_palette
 
 _CSS = """
-.it-wrap { max-width:1200px; width:100%; min-width:0; overflow:hidden; }
+.it-wrap { max-width:none; width:100%; min-width:0; overflow:hidden; }
 .it-topbar { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:4px 0 14px; flex-wrap:wrap; }
 .it-title { font-size:20px; font-weight:600; color:var(--text); letter-spacing:-0.01em; }
 .it-subtitle { font-size:12.5px; color:var(--text-muted); margin-top:4px; }
@@ -114,6 +114,31 @@ def _sort_item_rows(rows: list[dict], mode: str = "item") -> list[dict]:
         rows,
         key=lambda r: (_safe_item_number(r["course"].item_number), r["course"].title.casefold()),
     )
+
+
+def visible_item_rows(rows: list[dict], filt: dict) -> list[dict]:
+    """
+    Lignes réellement rendues : filtre courant puis tri courant.
+
+    Le tri doit être appliqué au rendu et non à la collecte : `_compute()` n'est
+    exécuté qu'une fois par chargement de page, alors que le mode de tri change
+    à chaque clic sur un chip.
+    """
+    college = filt.get("college", "Tous")
+    mode = filt.get("mode", "all")
+
+    if college != "Tous":
+        selected = [r for r in rows if college in (r["course"].college or [])]
+    elif mode == "fragile":
+        selected = [r for r in rows if r["mastery_level"] in ("fragile", "critique")]
+    elif mode == "overdue":
+        selected = [r for r in rows if r["overdue"]]
+    else:
+        selected = list(rows)
+
+    return _sort_item_rows(selected, filt.get("sort", "item"))
+
+
 def _last_review_info(sessions: list) -> tuple[str, str]:
     """(couleur token, libellé relatif) à partir des study_sessions d'un cours."""
     if not sessions:
@@ -209,15 +234,6 @@ def items_page(request: Request) -> None:
             })
         return _sort_item_rows(rows, filt["sort"])
 
-    def _visible(rows: list[dict]) -> list[dict]:
-        mode = filt["mode"]
-        if filt["college"] != "Tous":
-            return [r for r in rows if filt["college"] in (r["course"].college or [])]
-        if mode == "fragile":
-            return [r for r in rows if r["mastery_level"] in ("fragile", "critique")]
-        if mode == "overdue":
-            return [r for r in rows if r["overdue"]]
-        return rows
 
     def _draw_topbar() -> None:
         topbar.clear()
@@ -332,7 +348,7 @@ def items_page(request: Request) -> None:
 
     def _draw_list(rows: list[dict]) -> None:
         list_col.clear()
-        visible = _visible(rows)
+        visible = visible_item_rows(rows, filt)
         with list_col:
             if not visible:
                 with ui.element("div").classes("it-empty"):

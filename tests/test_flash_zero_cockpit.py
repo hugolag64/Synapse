@@ -26,7 +26,26 @@ def test_flash_zero_card_has_a_hover_dismiss_control():
     assert ".flash-zero-card:hover .flash-zero-dismiss" in source
     assert 'aria-label="Ignorer le Flash-Zero du jour"' in source
     assert ".flash-zero-layout" in source
-    assert "top:8px !important" in source
+
+
+def test_dismiss_control_no_longer_overlaps_the_action_button():
+    """La croix était en position:absolute right:8px, c'est-à-dire sous le
+    bouton « Lancer ». Elle doit vivre dans le flux, avant ce bouton."""
+    source = Path("frontend/components/flash_zero_cockpit.py").read_text(encoding="utf-8")
+
+    assert "position:absolute" not in source
+    assert "top:8px !important" not in source
+    assert "pointer-events:none" in source
+    assert source.index("flash-zero-dismiss") < source.index('model["action"]')
+
+
+def test_correction_separates_given_answer_from_expected_answer():
+    source = Path("frontend/components/flash_zero_cockpit.py").read_text(encoding="utf-8")
+
+    assert ".flash-zero-answer-label" in source
+    assert ".flash-zero-answer-value" in source
+    assert '"Ta réponse"' in source
+    assert '"Réponse attendue"' in source
 
 
 def test_flash_zero_wizard_has_separate_correction_step():

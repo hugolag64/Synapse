@@ -10,7 +10,7 @@ from backend.core.practice.flash_zero_service import FlashZeroService
 
 
 _CSS = """
-.flash-zero-card { position:relative; border:1px solid var(--border); border-left:3px solid var(--warning); border-radius:8px; background:var(--bg); box-shadow:var(--shadow-popover); transition:border-color var(--duration-fast) var(--ease-standard), background var(--duration-fast) var(--ease-standard); }
+.flash-zero-card { border:1px solid var(--border); border-left:3px solid var(--warning); border-radius:8px; background:var(--bg); box-shadow:var(--shadow-popover); transition:border-color var(--duration-fast) var(--ease-standard), background var(--duration-fast) var(--ease-standard); }
 .flash-zero-card:hover { border-color:var(--border-strong); background:var(--surface); }
 .flash-zero-layout { display:flex; align-items:center; gap:12px; min-width:0; }
 .flash-zero-icon { width:28px; height:28px; flex:0 0 28px; display:flex; align-items:center; justify-content:center; border-radius:6px; background:rgba(229,162,63,.12); color:var(--warning); font-size:15px; }
@@ -18,9 +18,15 @@ _CSS = """
 .flash-zero-title { color:var(--text); font-size:13px; font-weight:600; }
 .flash-zero-meta { color:var(--text-muted); font-family:var(--font-mono); font-size:11px; }
 .flash-zero-status { color:var(--text-dim); font-family:var(--font-mono); font-size:10px; }
-.flash-zero-dismiss { position:absolute !important; top:8px !important; right:8px !important; z-index:2; opacity:0; color:var(--text-muted); transition:opacity var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard); }
-.flash-zero-card:hover .flash-zero-dismiss, .flash-zero-card:focus-within .flash-zero-dismiss { opacity:1; }
+/* Dans le flux, avant le bouton d'action : en absolute right:8px elle se
+   retrouvait sous « Lancer » et n'était jamais cliquable. L'espace reste
+   réservé même masquée, pour que le survol ne décale pas la carte. */
+.flash-zero-dismiss { flex:0 0 auto; opacity:0; pointer-events:none; color:var(--text-muted); transition:opacity var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard); }
+.flash-zero-card:hover .flash-zero-dismiss, .flash-zero-card:focus-within .flash-zero-dismiss { opacity:1; pointer-events:auto; }
 .flash-zero-dismiss:hover { color:var(--danger); }
+.flash-zero-answer { display:flex; flex-direction:column; gap:2px; margin-top:10px; }
+.flash-zero-answer-label { font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-dim); font-weight:600; }
+.flash-zero-answer-value { font-size:13px; color:var(--text); line-height:1.4; }
 .flash-zero-wizard { border:1px solid var(--border); border-radius:12px; overflow:hidden; }
 .flash-zero-wizard-header { border-bottom:1px solid var(--border); background:var(--surface); }
 .flash-zero-wizard-progress { height:4px; border-radius:999px; background:var(--border); overflow:hidden; }
@@ -120,9 +126,13 @@ def open_flash_zero_quiz(
                             ui.label("Correction").classes("text-xs font-semibold uppercase tracking-wide text-slate-500")
                             ui.label("Bonne réponse" if is_correct else "À revoir").classes("text-sm font-semibold")
                             if selected is not None:
-                                ui.label(f"Ta réponse : {question.choices[selected]}").classes("text-sm")
-                            ui.label(f"Réponse attendue : {question.choices[question.correct_idx]}").classes("text-sm")
-                            ui.label(question.explanation).classes("text-sm text-slate-600 mt-2")
+                                with ui.element("div").classes("flash-zero-answer"):
+                                    ui.label("Ta réponse").classes("flash-zero-answer-label")
+                                    ui.label(question.choices[selected]).classes("flash-zero-answer-value")
+                            with ui.element("div").classes("flash-zero-answer"):
+                                ui.label("Réponse attendue").classes("flash-zero-answer-label")
+                                ui.label(question.choices[question.correct_idx]).classes("flash-zero-answer-value")
+                            ui.label(question.explanation).classes("text-sm text-slate-600 mt-3")
                         def next_question() -> None:
                             state["index"] += 1
                             state["phase"] = "question"
@@ -145,15 +155,15 @@ def render_flash_zero_card(
     model = flash_zero_card_model(entry, completed=completed)
     ui.add_head_html(f"<style>{_CSS}</style>", shared=True)
     with ui.element("div").classes("flash-zero-card w-full p-3 mb-4"):
-        ui.button(icon="close", on_click=on_dismiss).props(
-            'flat round dense aria-label="Ignorer le Flash-Zero du jour"'
-        ).classes("flash-zero-dismiss")
         with ui.element("div").classes("flash-zero-layout w-full"):
             ui.label("⚡").classes("flash-zero-icon")
             with ui.element("div").classes("flash-zero-copy"):
                 ui.label(model["title"]).classes("flash-zero-title")
                 ui.label("Erreurs récentes et répétées").classes("flash-zero-meta")
             ui.label(f"{model['duration']} · {model['status']}").classes("flash-zero-status")
+            ui.button(icon="close", on_click=on_dismiss).props(
+                'flat round dense aria-label="Ignorer le Flash-Zero du jour"'
+            ).classes("flash-zero-dismiss")
             ui.button(model["action"], on_click=on_open).props(
                 "unelevated color=primary size=sm rounded"
             )

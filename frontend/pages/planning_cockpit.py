@@ -58,6 +58,26 @@ _DAYS_ABBR = ["LUN", "MAR", "MER", "JEU", "VEN", "SAM", "DIM"]
 _MONTHS_FR = ["jan", "fév", "mar", "avr", "mai", "juin",
               "juil", "août", "sep", "oct", "nov", "déc"]
 
+
+# ── Cible de navigation d'un bloc de la grille ────────────────────────────────
+
+_LACUNE_SLOT_TYPES = {"lacune", "lacune_crit"}
+
+
+def block_target(slot_type: str, course_id: str | None) -> str | None:
+    """
+    Route à ouvrir quand on clique le corps d'un bloc de la grille.
+
+    Retourne None pour un bloc non navigable (événement Google Calendar, ou
+    slot sans cours rattaché) : le bloc reste alors inerte plutôt que d'ouvrir
+    une page vide.
+    """
+    if slot_type in _LACUNE_SLOT_TYPES:
+        return "/lacunes"
+    if not course_id:
+        return None
+    return f"/cours/{course_id}"
+
 _CSS = """
 .pl-wrap { max-width:none; width:100%; }
 .pl-topbar { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:4px 0 18px; flex-wrap:wrap; }
@@ -90,6 +110,8 @@ _CSS = """
 .pl-grid[data-days="1"] .pl-block-title { white-space:normal; }
 .pl-block { transition:background .14s ease, transform .14s ease; }
 .pl-block:hover { background:var(--surface); transform:translateY(-1px); }
+.pl-block-clickable { cursor:pointer; }
+.pl-block-clickable:hover { border-color:var(--border-strong); background:var(--surface); }
 .pl-focus { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:18px; }
 .pl-focus-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:11px 12px;
   border:1px solid var(--border); border-radius:8px; background:var(--surface); cursor:pointer;
@@ -413,12 +435,23 @@ async def render_planning_cockpit() -> None:
                 slot_classes = "pl-block pl-block-task"
                 if slot.slot_type == "consolidation":
                     slot_classes += " pl-block-consolidation"
-                with ui.element("div").classes(slot_classes).tooltip(slot.label):
+                target = block_target(slot.slot_type, getattr(slot, "course_id", None))
+                if target:
+                    slot_classes += " pl-block-clickable"
+                block = ui.element("div").classes(slot_classes).tooltip(slot.label)
+                if target:
+                    block.on("click", lambda route=target: ui.navigate.to(route))
+                with block:
                     ui.label(slot.label).classes("pl-block-title")
                     if slot.subtitle:
                         ui.label(f"{slot.subtitle} · {slot.duration_min} min").classes("pl-block-sub")
             for entry in manual_entries:
-                with ui.element("div").classes("pl-block pl-block-task"):
+                target = block_target("manual", entry["course_id"])
+                classes = "pl-block pl-block-task" + (" pl-block-clickable" if target else "")
+                block = ui.element("div").classes(classes)
+                if target:
+                    block.on("click", lambda route=target: ui.navigate.to(route))
+                with block:
                     title = f"{entry['course_title']} · {entry['activity_type']}"
                     ui.label(title).classes("pl-block-title")
                     ui.label(f"Planifié manuellement · {entry['duration_minutes']} min").classes("pl-block-sub")

@@ -22,21 +22,26 @@ def open_obsidian_quick_edit_dialog(
         ui.notify("Aucun cours sélectionné", type="warning")
         return
 
-    with ui.dialog() as dialog, ui.card().classes("w-full max-w-lg p-6 bg-slate-900 text-white rounded-xl shadow-2xl border border-slate-700"):
-        ui.label(f"💡 Ajouter à Obsidian — Item {getattr(course, 'display_item_number', '')}").classes("text-lg font-bold text-indigo-400 mb-2")
-        ui.label(course.title).classes("text-sm text-slate-400 mb-4")
+    with ui.dialog() as dialog, ui.card().classes("w-full max-w-lg p-6").style(
+        "background:var(--bg); color:var(--text); border:1px solid var(--border); "
+        "border-radius:var(--radius-lg); box-shadow:var(--shadow-popover);"
+    ):
+        ui.label(
+            f"Ajouter à Obsidian — Item {getattr(course, 'display_item_number', '')}"
+        ).classes("text-lg font-bold mb-2").style("color:var(--accent);")
+        ui.label(course.title).classes("text-sm mb-4").style("color:var(--text-muted);")
 
         # Type d'élément
         target_section = ui.radio(
-            options={"mnemo": "💡 Moyen Mnémotechnique / À savoir", "piege": "⚠️ Piège EDN / Zéro au dossier"},
+            options={"mnemo": "Moyen Mnémotechnique / À savoir", "piege": "Piège EDN / Zéro au dossier"},
             value="mnemo",
-        ).props("inline color=indigo").classes("mb-4 text-sm")
+        ).props("inline color=primary").classes("mb-4 text-sm")
 
         # Zone de texte
         text_input = ui.textarea(
             label="Texte ou mnémotechnique",
             placeholder="Ex: TRAP: Tension / Remplissage / Atropine / Pace...",
-        ).props("outlined dark rows=3").classes("w-full mb-4 text-slate-200")
+        ).props("outlined rows=3").classes("w-full mb-4")
 
         # Zone upload image
         image_bytes: list[bytes] = []
@@ -54,12 +59,14 @@ def open_obsidian_quick_edit_dialog(
                 logger.error(f"Erreur upload image : {exc}")
                 ui.notify("Erreur lors du chargement de l'image", type="negative")
 
-        ui.label("📷 Image / Schéma (optionnel)").classes("text-xs font-semibold text-slate-400 mb-1")
+        ui.label("Image / Schéma (optionnel)").classes("text-xs font-semibold mb-1").style(
+            "color:var(--text-muted);"
+        )
         ui.upload(
             on_upload=handle_upload,
             max_files=1,
             auto_upload=True,
-        ).props("accept='image/*' flat bordered dark").classes("w-full mb-4 text-xs")
+        ).props("accept='image/*' flat bordered").classes("w-full mb-4 text-xs")
 
         def submit():
             txt = text_input.value or ""
@@ -88,6 +95,6 @@ def open_obsidian_quick_edit_dialog(
 
         with ui.row().classes("w-full justify-end gap-3 mt-2"):
             ui.button("Annuler", on_click=dialog.close).props("flat color=grey")
-            ui.button("Enregistrer sur Obsidian", on_click=submit).props("unelevated color=indigo icon=save")
+            ui.button("Enregistrer sur Obsidian", on_click=submit).props("unelevated color=primary icon=save")
 
     dialog.open()

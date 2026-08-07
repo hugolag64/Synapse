@@ -242,23 +242,24 @@ def open_session_feedback_dialog(
 
     with ui.dialog() as dialog:
         with ui.card().classes(
-            "w-[520px] max-w-[calc(100vw-24px)] max-h-[calc(100vh-24px)] self-end mr-0 "
-            "flex flex-col rounded-none sm:rounded-lg p-0 overflow-hidden bg-white "
-            "dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl"
+            "w-[520px] max-w-[calc(100vw-24px)] max-h-[calc(100vh-24px)] "
+            "flex flex-col rounded-lg p-0 overflow-hidden"
+        ).style(
+            "background:var(--bg); border:1px solid var(--border); box-shadow:var(--shadow-popover);"
         ):
 
-            with ui.element("div").classes(
-                "px-6 pt-5 pb-4 border-b border-slate-100 dark:border-slate-800"
+            with ui.element("div").classes("px-6 pt-5 pb-4").style(
+                "border-bottom:1px solid var(--border);"
             ):
                 with ui.row().classes("items-start justify-between w-full gap-3"):
                     with ui.column().classes("gap-0.5 min-w-0 flex-1"):
                         ui.label("RETOUR DE SÉANCE").classes(
-                            "text-[11px] font-bold tracking-[0.16em] text-slate-500"
-                        )
+                            "text-[11px] font-bold tracking-[0.16em]"
+                        ).style("color:var(--text-muted);")
                         ui.label(
                             item_label
-                        ).classes("text-sm font-semibold text-slate-900 dark:text-slate-50").style(
-                            "overflow:hidden;white-space:nowrap;text-overflow:ellipsis"
+                        ).classes("text-sm font-semibold").style(
+                            "color:var(--text); overflow:hidden;white-space:nowrap;text-overflow:ellipsis"
                         )
                     ui.button(icon="close", on_click=dialog.close).props(
                         "flat round dense size=sm color=grey-7"
@@ -269,11 +270,11 @@ def open_session_feedback_dialog(
             ):
 
                 ui.label("Comment s'est passée cette séance ?").classes(
-                    "text-base font-semibold text-slate-900 dark:text-slate-50"
-                )
+                    "text-base font-semibold"
+                ).style("color:var(--text);")
                 ui.label(
                     "La validation mettra à jour la maîtrise de l'item et sa prochaine révision."
-                ).classes("text-xs text-slate-500")
+                ).classes("text-xs").style("color:var(--text-muted);")
 
                 if manual_date is not None:
                     ui.label("DATE DE SÉANCE").classes(
@@ -507,9 +508,8 @@ def open_session_feedback_dialog(
                                 )
 
             with ui.element("div").classes(
-                "shrink-0 sticky bottom-0 px-5 py-3 bg-slate-50 dark:bg-slate-800/50 "
-                "border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2"
-            ):
+                "shrink-0 sticky bottom-0 px-5 py-3 flex justify-end gap-2"
+            ).style("background:var(--bg-alt); border-top:1px solid var(--border);"):
                 ui.button("Annuler", on_click=dialog.close).props("flat color=grey-8")
 
                 async def _submit():

@@ -155,9 +155,9 @@ def open_command_palette() -> None:
                     ui.label("ACTIONS RAPIDES").classes("cmd-palette-section")
                 with ui.element("div").classes("flex gap-2 px-4 pb-3 flex-wrap"):
                     for label, icon, color, action in [
-                        ("+ Lacune",  "report_problem", "orange", lambda: _quick_action("lacune", dlg)),
-                        ("+ QCM",     "quiz",           "indigo", lambda: _quick_action("qcm",    dlg)),
-                        ("+ Séance",  "school",         "blue",   lambda: _quick_action("séance", dlg)),
+                        ("Lacune",  "report_problem", "orange", lambda: _quick_action("lacune", dlg)),
+                        ("QCM",     "quiz",           "indigo", lambda: _quick_action("qcm",    dlg)),
+                        ("Séance",  "school",         "blue",   lambda: _quick_action("séance", dlg)),
                     ]:
                         ui.button(
                             label, icon=icon,
@@ -221,9 +221,9 @@ def open_command_palette() -> None:
 
             with ui.element("div").classes("flex gap-2 px-4 py-4 flex-wrap"):
                 for label, icon_name, color, action in [
-                    ("+ Lacune",    "report_problem", "orange", lambda: _open_lacune_for_course(course, dlg)),
-                    ("+ QCM",       "quiz",           "indigo", lambda: _open_qcm_for_course(course, dlg)),
-                    ("+ Séance",    "school",         "blue",   lambda: _open_session_for_course(course, dlg)),
+                    ("Lacune",    "report_problem", "orange", lambda: _open_lacune_for_course(course, dlg)),
+                    ("QCM",       "quiz",           "indigo", lambda: _open_qcm_for_course(course, dlg)),
+                    ("Séance",    "school",         "blue",   lambda: _open_session_for_course(course, dlg)),
                     ("Voir fiche",  "open_in_new",    "slate",  lambda c=course: (dlg.close(), ui.navigate.to(f"/cours/{c.id}"))),
                 ]:
                     ui.button(

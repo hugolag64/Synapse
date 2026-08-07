@@ -41,7 +41,7 @@ _IN_FLIGHT_ACTIONS: set[tuple[str, str, str]] = set()
 
 _ACTIONS: dict[str, dict] = {
     "lecture": {
-        "label": "+ Lecture",
+        "label": "Lecture",
         "icon": "menu_book",
         "activity_types": ["lecture"],
         "duration": 20,

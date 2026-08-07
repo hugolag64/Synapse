@@ -121,7 +121,7 @@ def render_externat_cockpit() -> None:
             with ui.column().classes("gap-0"):
                 ui.label("Externat").classes("ex-title")
                 ui.label("Stages cliniques · items rattachés").classes("ex-subtitle")
-            ui.button("+ Nouveau stage", on_click=lambda: _open_stage_dialog(ui.navigate.reload)).props(
+            ui.button("Nouveau stage", on_click=lambda: _open_stage_dialog(ui.navigate.reload)).props(
                 "unelevated size=sm"
             ).style(
                 "background:var(--accent); color:var(--accent-text); border-radius:6px; font-weight:500; font-size:12px;"

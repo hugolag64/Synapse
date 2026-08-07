@@ -21,7 +21,7 @@ _ANNALES_CSS = """
 .ans-subtitle { font-size:12.5px; color:var(--text-muted); margin-top:4px; }
 .ans-filters { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--border); }
 .ans-list { display:flex; flex-direction:column; gap:8px; width:100%; }
-.ans-card { width:100%; padding:14px 16px; border:1px solid var(--border); border-radius:8px; background:var(--surface); transition:background var(--duration-fast) ease; }
+.ans-card { width:100%; padding:14px 16px; border:1px solid var(--border); border-radius:8px; background:var(--bg); transition:background var(--duration-fast) ease; }
 .ans-card:hover { background:var(--surface-hover); }
 .ans-card-title { font-size:14.5px; font-weight:600; color:var(--text); }
 .ans-card-sub { font-size:12px; color:var(--text-muted); margin-top:2px; }

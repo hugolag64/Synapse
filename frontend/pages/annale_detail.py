@@ -26,7 +26,7 @@ _ANNALE_DETAIL_CSS = """
 .an-subtitle { font-size:12.5px; color:var(--text-muted); margin-top:4px; }
 .an-section-title { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-dim); font-weight:600; margin-bottom:12px; }
 .an-parts-list { display:flex; flex-direction:column; gap:10px; width:100%; margin-top:8px; }
-.an-part-card { width:100%; padding:16px 18px; border:1px solid var(--border); border-radius:8px; background:var(--surface); transition:background var(--duration-fast) ease; }
+.an-part-card { width:100%; padding:16px 18px; border:1px solid var(--border); border-radius:8px; background:var(--bg); transition:background var(--duration-fast) ease; }
 .an-part-card:hover { background:var(--surface-hover); }
 .an-part-title { font-size:15px; font-weight:600; color:var(--text); }
 .an-part-meta { font-size:12px; color:var(--text-muted); margin-top:3px; }

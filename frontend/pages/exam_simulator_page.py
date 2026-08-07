@@ -24,11 +24,11 @@ _EXAM_CSS = """
 .ex-title { font-size:22px; font-weight:600; color:var(--text); letter-spacing:-0.015em; margin:0; }
 .ex-subtitle { font-size:13px; color:var(--text-muted); margin-top:4px; }
 
-.ex-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; }
+.ex-card { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; }
 .ex-card-header { font-size:14px; font-weight:600; color:var(--text); border-bottom:1px solid var(--border); padding-bottom:12px; margin-bottom:16px; }
 
 .ex-panel-enonce { background:var(--bg-alt); border:1px solid var(--border); border-radius:var(--radius-md); padding:16px; height:580px; overflow-y:auto; font-size:13.5px; color:var(--text); line-height:1.6; }
-.ex-panel-q { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:20px; min-height:580px; display:flex; flex-direction:column; justify-between:space-between; }
+.ex-panel-q { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-md); padding:20px; min-height:580px; display:flex; flex-direction:column; justify-between:space-between; }
 
 .ex-prop-row { display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--bg); transition:all var(--duration-fast) ease; margin-bottom:8px; cursor:pointer; }
 .ex-prop-row:hover { border-color:var(--border-strong); background:var(--surface-hover); }

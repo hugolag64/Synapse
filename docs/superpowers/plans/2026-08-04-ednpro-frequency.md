@@ -9,7 +9,7 @@ questions EDNpro déjà importées et calculer un potentiel de gain local.
 ## Contraintes retenues
 
 - EDNpro est une source tierce fiable mais non officielle.
-- La collecte est due tous les 90 jours, non bloquante au démarrage.
+- La collecte est due tous les 180 jours, non bloquante au démarrage.
 - Playwright intercepte les réponses JSON de la page authentifiée ; aucune
   lecture de cookies ou extraction de jeton n’est nécessaire.
 - Aucun appel IA n’est ajouté à cette fonctionnalité : la collecte et le score
@@ -29,7 +29,7 @@ Ajouter d’abord des tests qui décrivent :
 
 - la normalisation de plusieurs formes de JSON EDNpro ;
 - la fusion des doublons, le tri des années et les catégories ;
-- le seuil de 90 jours ;
+- le seuil de 180 jours ;
 - le score `fréquence × (100 - maîtrise) × disponibilité`.
 
 Lancer le fichier de tests et constater l’échec avant l’implémentation.
@@ -100,7 +100,7 @@ Ne pas créer de lecteur parallèle ni de nouveau format de question.
 Mettre à jour `docs/AUDIT_2026-08-03.md` et/ou la feuille de route avec :
 
 - le snapshot SQLite et le collecteur implémentés ;
-- la cadence de 90 jours ;
+- la cadence de 180 jours ;
 - l’exploitation dans la fiche item ;
 - la limite actuelle : une session EDNpro authentifiée est requise pour une
   collecte réelle.

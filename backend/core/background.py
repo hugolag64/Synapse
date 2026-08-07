@@ -128,7 +128,7 @@ async def run_background_tasks():
             # doublons. L'import se fait maintenant uniquement via le bouton
             # "Importer QCM" dans la page QCM.
 
-            # ── 7. Fréquences EDNpro — snapshot léger tous les 90 jours ───────
+            # ── 7. Fréquences EDNpro — snapshot léger tous les 6 mois ────────
             # La collecte Playwright est planifiée sans bloquer ce cycle et
             # quitte proprement si le profil Google n'est pas authentifié.
             try:

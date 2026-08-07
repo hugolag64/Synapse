@@ -43,7 +43,8 @@ async def sync_from_payload(
     for index, row in enumerate(rows):
         row["raw_payload_json"] = raw_payload if index == 0 else None
     local_store.replace_ednpro_item_frequencies(rows)
-    return {"status": "updated", "rows": len(rows), "collected_at": stamp}
+    changes = local_store.compare_latest_ednpro_frequency_snapshots()
+    return {"status": "updated", "rows": len(rows), "changed_items": len(changes), "collected_at": stamp}
 
 
 async def collect_frequency(

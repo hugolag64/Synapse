@@ -47,3 +47,36 @@ def test_frequency_snapshot_round_trip_and_item_question_filter():
         model="ednpro-import",
     )
     assert [row["prompt"] for row in local_store.get_ednpro_practice_questions("221")] == ["Q1"]
+
+
+def test_frequency_history_keeps_snapshots_and_reports_changes():
+    from backend.core.reviews import local_store
+
+    local_store.replace_ednpro_item_frequencies([
+        {
+            "item_number": "221", "priority": "important", "session_count": 2,
+            "question_count": 8, "years": [2023], "source_url": "training-v2",
+            "collected_at": "2026-08-04T08:00:00+00:00",
+        },
+    ])
+    local_store.replace_ednpro_item_frequencies([
+        {
+            "item_number": "221", "priority": "indispensable", "session_count": 3,
+            "question_count": 10, "years": [2023, 2025], "source_url": "training-v2",
+            "collected_at": "2027-02-04T08:00:00+00:00",
+        },
+        {
+            "item_number": "330", "priority": "basique", "session_count": 1,
+            "question_count": 2, "years": [2026], "source_url": "training-v2",
+            "collected_at": "2027-02-04T08:00:00+00:00",
+        },
+    ])
+
+    history = local_store.get_ednpro_frequency_history()
+    changes = local_store.compare_latest_ednpro_frequency_snapshots()
+
+    assert [row["item_count"] for row in history] == [2, 1]
+    assert {row["item_number"]: row["status"] for row in changes} == {
+        "221": "changed",
+        "330": "added",
+    }

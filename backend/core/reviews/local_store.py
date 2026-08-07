@@ -214,6 +214,15 @@ def init_db() -> None:
         );
         CREATE INDEX IF NOT EXISTS idx_ednpro_frequency_collected
             ON ednpro_item_frequency(collected_at DESC);
+        CREATE TABLE IF NOT EXISTS ednpro_frequency_history (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            collected_at  TEXT NOT NULL,
+            source_url    TEXT NOT NULL DEFAULT '',
+            item_count    INTEGER NOT NULL,
+            rows_json     TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_ednpro_frequency_history_collected
+            ON ednpro_frequency_history(collected_at DESC);
 
         -- ── Questions IA immuables et tentatives rejouables ────────────────
         CREATE TABLE IF NOT EXISTS ai_practice_sessions (
@@ -556,7 +565,57 @@ def replace_ednpro_item_frequencies(rows: list[dict]) -> int:
     """Replace the complete EDNpro frequency snapshot in one transaction."""
     if not rows:
         raise ValueError("Un snapshot EDNpro ne peut pas être vide")
+
+    def _history_rows(values: list[dict]) -> list[dict]:
+        return [
+            {
+                "item_number": str(row["item_number"]),
+                "priority": str(row.get("priority", "basique")),
+                "session_count": int(row.get("session_count", 0) or 0),
+                "question_count": int(row.get("question_count", 0) or 0),
+                "years": list(row.get("years", [])),
+                "source_url": str(row.get("source_url", "")),
+                "collected_at": str(row.get("collected_at", "")),
+            }
+            for row in values
+        ]
+
     with _conn() as con:
+        if not con.execute("SELECT 1 FROM ednpro_frequency_history LIMIT 1").fetchone():
+            previous = con.execute(
+                "SELECT item_number, priority, session_count, question_count, years_json, source_url, collected_at "
+                "FROM ednpro_item_frequency ORDER BY item_number"
+            ).fetchall()
+            if previous:
+                previous_rows = [
+                    {
+                        "item_number": row["item_number"],
+                        "priority": row["priority"],
+                        "session_count": row["session_count"],
+                        "question_count": row["question_count"],
+                        "years": json.loads(row["years_json"] or "[]"),
+                        "source_url": row["source_url"],
+                        "collected_at": row["collected_at"],
+                    }
+                    for row in previous
+                ]
+                con.execute(
+                    "INSERT INTO ednpro_frequency_history (collected_at, source_url, item_count, rows_json) "
+                    "VALUES (?, ?, ?, ?)",
+                    (
+                        previous_rows[0]["collected_at"], previous_rows[0]["source_url"],
+                        len(previous_rows), json.dumps(previous_rows, ensure_ascii=False),
+                    ),
+                )
+        snapshot_rows = _history_rows(rows)
+        con.execute(
+            "INSERT INTO ednpro_frequency_history (collected_at, source_url, item_count, rows_json) "
+            "VALUES (?, ?, ?, ?)",
+            (
+                snapshot_rows[0]["collected_at"], snapshot_rows[0]["source_url"],
+                len(snapshot_rows), json.dumps(snapshot_rows, ensure_ascii=False),
+            ),
+        )
         con.execute("DELETE FROM ednpro_item_frequency")
         for row in rows:
             con.execute(
@@ -601,6 +660,40 @@ def get_ednpro_frequency_snapshot() -> dict | None:
             "ORDER BY collected_at DESC LIMIT 1"
         ).fetchone()
     return dict(row) if row else None
+
+
+def get_ednpro_frequency_history(limit: int = 12) -> list[dict]:
+    """Return recent frequency snapshots, newest first."""
+    with _conn() as con:
+        rows = con.execute(
+            "SELECT id, collected_at, source_url, item_count "
+            "FROM ednpro_frequency_history ORDER BY collected_at DESC, id DESC LIMIT ?",
+            (max(1, int(limit)),),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def compare_latest_ednpro_frequency_snapshots() -> list[dict]:
+    """Compare the two latest snapshots without changing the active snapshot."""
+    with _conn() as con:
+        snapshots = con.execute(
+            "SELECT id, rows_json FROM ednpro_frequency_history "
+            "ORDER BY collected_at DESC, id DESC LIMIT 2"
+        ).fetchall()
+    if len(snapshots) < 2:
+        return []
+    current = {row["item_number"]: row for row in json.loads(snapshots[0]["rows_json"])}
+    previous = {row["item_number"]: row for row in json.loads(snapshots[1]["rows_json"])}
+    changes = []
+    for item_number in sorted(set(current) | set(previous)):
+        before, after = previous.get(item_number), current.get(item_number)
+        if before is None:
+            changes.append({"item_number": item_number, "status": "added", "before": None, "after": after})
+        elif after is None:
+            changes.append({"item_number": item_number, "status": "removed", "before": before, "after": None})
+        elif before != after:
+            changes.append({"item_number": item_number, "status": "changed", "before": before, "after": after})
+    return changes
 
 
 def get_ednpro_practice_questions(item_number: str, limit: int = 100) -> list[dict]:

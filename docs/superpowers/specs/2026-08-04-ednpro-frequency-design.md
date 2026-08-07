@@ -27,7 +27,7 @@ signal externe séparé.
 
 ## Synchronisation
 
-La synchronisation est considérée comme due après 90 jours. Au démarrage de
+La synchronisation est considérée comme due après 180 jours. Au démarrage de
 Synapse, le service vérifie la date de dernière collecte et déclenche une
 collecte non bloquante lorsqu'elle est due. Un bouton **Synchroniser maintenant**
 permet de forcer une mise à jour.
@@ -110,7 +110,7 @@ ou une note EDN.
 Le changement sera développé en TDD avec :
 
 - tests de normalisation des cartes/réponses JSON EDNpro ;
-- tests de persistance SQLite et de seuil de 90 jours ;
+- tests de persistance SQLite et de seuil de 180 jours ;
 - tests du score de priorité avec maîtrise faible, forte et absence de
   questions importées ;
 - test du filtrage d'entraînement par item ;

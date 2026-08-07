@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 PRIORITIES = ("indispensable", "important", "basique", "jamais_tombe")
+DEFAULT_FREQUENCY_INTERVAL_DAYS = 180
 _ITEM_RE = re.compile(r"(?:item\s*#?\s*)?(\d{1,3})(?:\b|$)", re.IGNORECASE)
 
 
@@ -123,7 +124,10 @@ def normalize_training_payload(
 
 
 def is_frequency_sync_due(
-    collected_at: str | None, *, now: datetime | None = None, interval_days: int = 90
+    collected_at: str | None,
+    *,
+    now: datetime | None = None,
+    interval_days: int = DEFAULT_FREQUENCY_INTERVAL_DAYS,
 ) -> bool:
     if not collected_at:
         return True

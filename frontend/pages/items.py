@@ -35,7 +35,7 @@ from backend.core.reviews.local_store import (
 from backend.core.reviews.service import review_service
 from frontend.components.study_task_row import _ring_glyph, due_info
 from frontend.components.mastery_indicator import mastery_indicator, ensure_styles as _mastery_styles
-from frontend.components.item_search_palette import open_item_search_palette
+from frontend.components.command_palette import open_command_palette
 
 _CSS = """
 .it-wrap { max-width:none; width:100%; min-width:0; overflow:hidden; }
@@ -246,7 +246,7 @@ def items_page(request: Request) -> None:
                 ui.label("⌕")
                 ui.label("Filtrer")
                 ui.html("<kbd>Ctrl+Alt+P</kbd>")
-            search.on("click", open_item_search_palette)
+            search.on("click", open_command_palette)
 
     def _select(mode: str) -> None:
         filt["mode"] = mode
@@ -367,6 +367,3 @@ def items_page(request: Request) -> None:
         _draw_list(_all_rows["value"])
 
     _render()
-
-    from frontend.keybindings import register_item_search_keybinding
-    register_item_search_keybinding(open_item_search_palette)

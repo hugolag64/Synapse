@@ -49,7 +49,7 @@ from backend.core.reviews.local_store import (
     get_all_weak_points_table,
     get_manual_planning_entries,
 )
-from frontend.components.item_search_palette import search_items
+from frontend.components.command_palette import search_items
 from backend.core.google.calendar_service import calendar_service
 from backend.state.store import data_store
 from backend.config.settings import get_app_timezone

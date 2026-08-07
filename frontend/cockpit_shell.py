@@ -250,6 +250,9 @@ def cockpit_frame(page_title: str):
 
     active = _TITLE_TO_NAV.get(page_title, page_title)
 
+    from frontend.keybindings import register_keybindings
+    register_keybindings()
+
     side = ui.element("aside").classes("cockpit-sidebar")
     topbar_mobile = ui.element("div").classes("cockpit-topbar-mobile")
     bottomnav = ui.element("nav").classes("cockpit-bottomnav")
@@ -276,7 +279,7 @@ def cockpit_frame(page_title: str):
         with ui.element("div").classes("cockpit-search").on("click", open_command_palette):
             ui.label("⌕").style("font-size:14px;flex:0 0 auto")
             ui.label("Rechercher").classes("lbl").style("flex:1")
-            ui.html("<kbd>⌘K</kbd>")
+            ui.html("<kbd>Ctrl Alt P</kbd>")
 
         # Nav groupée
         for group_label, items in _NAV_GROUPS:

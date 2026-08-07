@@ -105,6 +105,18 @@ def test_generation_dialog_can_open_or_only_conserve_the_session():
     assert "if open_after_generation.value" in source
 
 
+def test_dp_tutor_uses_a_guided_configurable_wizard_with_retry():
+    from pathlib import Path
+
+    source = Path("frontend/components/ai_practice_panel.py").read_text(encoding="utf-8")
+
+    assert "Tuteur DP · étape 1/3" in source
+    assert "total_questions = ui.select" in source
+    assert "max_attempts=2" in source
+    assert "Ouvrir la session" in source
+    assert "dialog.close()" in source
+
+
 def test_closed_qcm_accepts_multiple_correct_choices_in_any_order():
     choices = ["HTA", "Tabac", "Âge"]
     assert _same_closed_answer("Tabac, HTA", "A, B", choices)
@@ -468,6 +480,89 @@ def test_practice_service_prompt_mentions_concours_difficulty():
     ))
     assert "niveau Concours" in fake.prompt
     assert "distracteurs très proches" in fake.prompt
+
+
+def test_tutor_dp_retries_wrong_question_count_before_persisting(practice_db):
+    class FakeAI:
+        def __init__(self):
+            self.calls = 0
+
+        def generate(self, task, prompt, *, context=None, response_format):
+            self.calls += 1
+            count = 1 if self.calls == 1 else 2
+            payload = {"questions": [
+                {
+                    "kind": "closed",
+                    "prompt": f"Q{i}",
+                    "choices": ["A", "B"],
+                    "answer": "A",
+                    "explanation": "E",
+                }
+                for i in range(count)
+            ]}
+            return AIResponse(json.dumps(payload), AIModel.FLASH, 10, 10)
+
+    fake = FakeAI()
+    service = PracticeService(ai_service=fake, store=local_store)
+
+    session_id = service.create_tutor_dp_session(
+        item_number="115",
+        course_id="course-115",
+        course_title="Insuffisance cardiaque",
+        dossier_context="Patient avec dyspnée.",
+        errors=[],
+        gap_details=[],
+        total_questions=2,
+        max_attempts=2,
+    )
+
+    assert fake.calls == 2
+    assert len(local_store.get_ai_practice_session(session_id)) == 2
+
+
+def test_tutor_dp_does_not_persist_after_exhausted_count_retry(practice_db):
+    class FakeAI:
+        def generate(self, task, prompt, *, context=None, response_format):
+            payload = {"questions": [{
+                "kind": "closed",
+                "prompt": "Q1",
+                "choices": ["A", "B"],
+                "answer": "A",
+                "explanation": "E",
+            }]}
+            return AIResponse(json.dumps(payload), AIModel.FLASH, 10, 10)
+
+    service = PracticeService(ai_service=FakeAI(), store=local_store)
+
+    with pytest.raises(PracticeGenerationError, match="nombre"):
+        service.create_tutor_dp_session(
+            item_number="115",
+            course_id="course-115",
+            course_title="Insuffisance cardiaque",
+            dossier_context="Patient avec dyspnée.",
+            errors=[],
+            gap_details=[],
+            total_questions=2,
+            max_attempts=2,
+        )
+
+    assert local_store.get_ai_practice_sessions(limit=10) == []
+
+
+@pytest.mark.parametrize("total_questions", [0, 11])
+def test_tutor_dp_rejects_unreasonable_question_count(practice_db, total_questions):
+    service = PracticeService(ai_service=SimpleNamespace(), store=local_store)
+
+    with pytest.raises(ValueError, match="entre 1 et 10"):
+        service.create_tutor_dp_session(
+            item_number="115",
+            course_id="course-115",
+            course_title="Insuffisance cardiaque",
+            dossier_context="Patient avec dyspnée.",
+            errors=[],
+            gap_details=[],
+            total_questions=total_questions,
+        )
 
 
 def test_scored_ai_session_updates_mastery_evaluation_once(practice_db):

@@ -190,36 +190,109 @@ def render_dp_tutor_action(
     context = build_dp_tutor_context(
         dp_session.get("dossier_context", ""), errors, gap_details
     )
-    with ui.dialog() as dialog, ui.card().classes("w-[620px] max-w-[95vw] p-5 gap-4"):
-        ui.label("Tuteur DP").classes("text-lg font-semibold")
-        ui.label("Le dossier et les erreurs de l'historique serviront de contexte.").classes("text-xs text-slate-500")
-        context_input = ui.textarea(value=context).props("outlined autogrow").classes("w-full")
-        status = ui.label().classes("text-xs text-slate-500")
+    with ui.dialog() as dialog, ui.card().classes("w-[680px] max-w-[95vw] p-0 gap-0").style(
+        "border:1px solid var(--border);border-radius:12px;overflow:hidden"
+    ):
+        with ui.column().classes("w-full gap-0"):
+            with ui.row().classes("w-full items-center justify-between px-5 py-4 border-b"):
+                with ui.column().classes("gap-0"):
+                    ui.label("Tuteur DP").classes("text-lg font-semibold")
+                    ui.label(f"ITEM {item_number} · génération ciblée").classes("text-xs text-slate-500")
+                step_label = ui.label("Tuteur DP · étape 1/3").classes("text-xs font-medium text-indigo-600")
 
-        async def _generate() -> None:
-            status.set_text("Génération en cours…")
-            try:
-                session_id = await asyncio.to_thread(
-                    PracticeService().create_tutor_dp_session,
-                    item_number=item_number,
-                    course_id=str(dp_session.get("course_id") or item_number),
-                    course_title=str(dp_session.get("course_title") or f"ITEM {item_number}"),
-                    dossier_context=str(context_input.value or ""),
-                    errors=errors,
-                    gap_details=gap_details,
-                    total_questions=5,
-                )
-            except Exception as exc:
-                status.set_text(f"Échec : {exc}")
-                return
-            dialog.close()
-            ui.notify(f"Tuteur DP #{session_id} enregistré", type="positive")
-            refresh()
-            open_qcm_session(session_id, on_complete=lambda _sid: None, on_back=lambda: None)
+            with ui.column().classes("w-full p-5 gap-4"):
+                context_panel = ui.column().classes("w-full gap-3")
+                with context_panel:
+                    ui.label("Contexte pédagogique").classes("text-sm font-semibold")
+                    ui.label("Le dossier, tes erreurs et tes lacunes servent à cibler les questions.").classes("text-xs text-slate-500")
+                    context_input = ui.textarea(value=context).props("outlined autogrow").classes("w-full")
 
-        with ui.row().classes("justify-end gap-2"):
-            ui.button("Annuler", on_click=dialog.close).props("flat")
-            ui.button("Générer le Tuteur DP", on_click=_generate).props("unelevated color=indigo")
+                options_panel = ui.column().classes("w-full gap-3")
+                with options_panel:
+                    ui.label("Paramètres de la session").classes("text-sm font-semibold")
+                    ui.label("Le modèle sera relancé automatiquement si le format demandé n’est pas respecté.").classes("text-xs text-slate-500")
+                    total_questions = ui.select(
+                        options={3: "3 questions", 5: "5 questions", 8: "8 questions", 10: "10 questions"},
+                        value=5,
+                        label="Nombre de questions",
+                    ).props("outlined dense").classes("w-full")
+                    ui.label("Difficulté : EDN · questions fermées · raisonnement clinique").classes("text-xs text-slate-500")
+
+                status = ui.label().classes("text-xs text-slate-500")
+                result_panel = ui.column().classes("w-full gap-2")
+                with result_panel:
+                    ui.label("Session prête").classes("text-sm font-semibold")
+                    result_label = ui.label().classes("text-xs text-slate-500")
+
+                options_panel.set_visibility(False)
+                result_panel.set_visibility(False)
+                state: dict[str, int | None] = {"session_id": None}
+
+                async def _generate() -> None:
+                    step_label.set_text("Tuteur DP · génération")
+                    status.set_text("Génération en cours…")
+                    generate_button.disable()
+                    try:
+                        session_id = await asyncio.to_thread(
+                            PracticeService().create_tutor_dp_session,
+                            item_number=item_number,
+                            course_id=str(dp_session.get("course_id") or item_number),
+                            course_title=str(dp_session.get("course_title") or f"ITEM {item_number}"),
+                            dossier_context=str(context_input.value or ""),
+                            errors=errors,
+                            gap_details=gap_details,
+                            total_questions=int(total_questions.value or 5),
+                            max_attempts=2,
+                        )
+                    except Exception as exc:
+                        generate_button.enable()
+                        status.set_text(f"Échec après deux tentatives : {exc}")
+                        return
+                    state["session_id"] = session_id
+                    step_label.set_text("Tuteur DP · session prête")
+                    status.set_text("Génération validée et session enregistrée.")
+                    result_label.set_text(f"Session #{session_id} · {int(total_questions.value or 5)} questions")
+                    result_panel.set_visibility(True)
+                    generate_button.set_visibility(False)
+                    open_button.set_visibility(True)
+
+                def _show_options() -> None:
+                    step_label.set_text("Tuteur DP · étape 2/3")
+                    context_panel.set_visibility(False)
+                    options_panel.set_visibility(True)
+                    back_button.set_visibility(True)
+                    next_button.set_visibility(False)
+                    generate_button.set_visibility(True)
+                    open_button.set_visibility(False)
+
+                def _show_context() -> None:
+                    step_label.set_text("Tuteur DP · étape 1/3")
+                    context_panel.set_visibility(True)
+                    options_panel.set_visibility(False)
+                    result_panel.set_visibility(False)
+                    back_button.set_visibility(False)
+                    next_button.set_visibility(True)
+                    generate_button.set_visibility(False)
+                    open_button.set_visibility(False)
+
+                def _open_session() -> None:
+                    session_id = state.get("session_id")
+                    if not session_id:
+                        return
+                    dialog.close()
+                    ui.notify(f"Tuteur DP #{session_id} enregistré", type="positive")
+                    refresh()
+                    open_qcm_session(session_id, on_complete=lambda _sid: None, on_back=lambda: None)
+
+                with ui.row().classes("w-full justify-end gap-2 pt-2"):
+                    ui.button("Annuler", on_click=dialog.close).props("flat")
+                    back_button = ui.button("Retour", on_click=_show_context).props("flat")
+                    next_button = ui.button("Continuer", on_click=_show_options).props("unelevated color=indigo")
+                    generate_button = ui.button("Générer le Tuteur DP", on_click=_generate).props("unelevated color=indigo")
+                    open_button = ui.button("Ouvrir la session", on_click=_open_session).props("unelevated color=indigo")
+                    back_button.set_visibility(False)
+                    generate_button.set_visibility(False)
+                    open_button.set_visibility(False)
     dialog.open()
 
 

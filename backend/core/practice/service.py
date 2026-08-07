@@ -116,20 +116,49 @@ class PracticeService:
             store = local_store
         self.store = store
 
-    def generate_questions(self, spec: PracticeSessionSpec, context: str = "") -> list[dict]:
+    def generate_questions(
+        self,
+        spec: PracticeSessionSpec,
+        context: str = "",
+        *,
+        max_attempts: int = 1,
+    ) -> list[dict]:
+        if not 1 <= int(max_attempts) <= 3:
+            raise ValueError("max_attempts doit être compris entre 1 et 3")
         task = _task_for(spec.practice_kind)
         ctx_label = context or (f"ITEM {spec.item_number}" if spec.item_number else spec.practice_kind.value.upper())
-        response = self.ai_service.generate(
-            task,
-            _prompt_for(spec, context),
-            context=ctx_label,
-            response_format="json",
-        )
-        questions = _parse_questions(response, spec)
-        return [asdict(q) for q in questions]
+        last_error: PracticeGenerationError | None = None
+        for attempt in range(int(max_attempts)):
+            retry_hint = ""
+            if last_error is not None:
+                retry_hint = (
+                    "\nREPRISE OBLIGATOIRE : la réponse précédente était invalide "
+                    f"({last_error}). Retourne exactement {spec.total_questions} question(s), "
+                    "sans texte hors JSON."
+                )
+            response = self.ai_service.generate(
+                task,
+                _prompt_for(spec, context) + retry_hint,
+                context=ctx_label,
+                response_format="json",
+            )
+            try:
+                questions = _parse_questions(response, spec)
+            except PracticeGenerationError as exc:
+                last_error = exc
+                continue
+            return [asdict(q) for q in questions]
+        assert last_error is not None
+        raise last_error
 
-    def create_new_session(self, spec: PracticeSessionSpec, context: str = "") -> int:
-        questions = self.generate_questions(spec, context)
+    def create_new_session(
+        self,
+        spec: PracticeSessionSpec,
+        context: str = "",
+        *,
+        max_attempts: int = 1,
+    ) -> int:
+        questions = self.generate_questions(spec, context, max_attempts=max_attempts)
         return self.store.create_ai_practice_session(
             spec=spec,
             questions=questions,
@@ -146,8 +175,11 @@ class PracticeService:
         errors: list[dict],
         gap_details: list[str],
         total_questions: int = 5,
+        max_attempts: int = 2,
     ) -> int:
         """Génère une session DP ciblée sur l'historique pédagogique de l'item."""
+        if not 1 <= int(total_questions) <= 10:
+            raise ValueError("Le Tuteur DP doit contenir entre 1 et 10 questions")
         error_lines = [
             f"- {row.get('category', 'non_classe')}: {row.get('detail', '')}".strip()
             for row in errors
@@ -170,7 +202,7 @@ class PracticeService:
             course_title=course_title,
             difficulty=PracticeDifficulty.EDN,
         )
-        return self.create_new_session(spec, context=context)
+        return self.create_new_session(spec, context=context, max_attempts=max_attempts)
 
     def replay_session(self, session_id: int) -> int:
         return self.store.replay_ai_practice_session(session_id)

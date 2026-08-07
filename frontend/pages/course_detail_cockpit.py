@@ -73,7 +73,7 @@ _STAGE_LABEL = {
 
 _CSS = """
 .ci-wrap { display:flex; gap:0; align-items:flex-start; width:100%; }
-.ci-center { flex:1 1 auto; min-width:0; max-width:900px; }
+.ci-center { flex:1 1 auto; min-width:0; max-width:1100px; }
 .ci-panel { flex:0 0 270px; width:270px; align-self:stretch; border-left:1px solid var(--border);
   padding:8px 8px 16px 20px; margin-left:24px; min-height:calc(100vh - 60px); }
 .ci-context-open { display:none; color:var(--accent); cursor:pointer; font-size:12px; }

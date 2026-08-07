@@ -103,6 +103,11 @@ _CSS = """
 .cg-qcm { flex:0 0 52px; text-align:right; font-family:var(--font-mono); font-size:12px; font-weight:600; }
 .cg-empty { padding:32px 10px; text-align:center; color:var(--text-dim); font-size:13px; }
 .cg-items { padding:8px 12px 12px 34px; background:var(--surface); border-bottom:1px solid var(--border); overflow-x:auto; }
+@keyframes cgItemsEnter {
+  0% { opacity: 0; transform: translateY(-8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.cg-items-enter { animation: cgItemsEnter var(--duration-base) var(--ease-standard) both; }
 .cg-context-open { display:none; color:var(--accent); cursor:pointer; font-size:12px; }
 @media (min-width: 900px) and (max-width: 1199.98px) {
   .cg-layout { display:block; }
@@ -436,7 +441,7 @@ def render_colleges_cockpit() -> None:
                 ui.label(f"{qcm_avg}%").classes("cg-qcm").style(f"color:{qcm_color}")
 
         if r["name"] in expanded:
-            with ui.element("div").classes("cg-items"):
+            with ui.element("div").classes("cg-items cg-items-enter"):
                 with ui.element("div").classes("cg-items-grid"):
                     with ui.element("div").classes("cg-item-head"):
                         for label in ("Item", "Progression", "Statut", "Retard", "Fragile", "Prochaine", "QCM", ""):

@@ -47,3 +47,16 @@ def test_college_item_grid_uses_status_columns_and_readable_empty_state():
     assert ".cg-item-status.non-commence" in source
     assert 'ui.label("—").classes("cg-item-cell cg-item-muted cg-item-action")' in source
     assert "aucune révision prévue" not in source
+
+
+def test_college_items_container_plays_an_entrance_animation_on_open():
+    """La fermeture d'un collège est instantanée par construction (le nœud est
+    détruit, pas transitionné) ; seule l'ouverture peut être animée puisque le
+    conteneur est toujours neuf à ce moment-là."""
+    from pathlib import Path
+
+    source = Path("frontend/pages/colleges_cockpit.py").read_text(encoding="utf-8")
+
+    assert "@keyframes cgItemsEnter" in source
+    assert ".cg-items-enter { animation: cgItemsEnter var(--duration-base) var(--ease-standard) both; }" in source
+    assert 'ui.element("div").classes("cg-items cg-items-enter")' in source

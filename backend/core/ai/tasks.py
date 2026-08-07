@@ -25,7 +25,7 @@ def generate_qcm(
         extra_instructions = "\nCONSIGNE RANG : Génère exclusivement des questions de RANG A (connaissances indispensables, diagnostics de première intention, urgences vitales)."
     elif rank == "B":
         extra_instructions = "\nCONSIGNE RANG : Génère exclusivement des questions de RANG B (spécialité approfondie, diagnostics de 2nde intention, détails experts)."
-    
+
     full_prompt = (
         f"{prompt}{extra_instructions}\n"
         "Pour chaque question du JSON généré, inclus obligatoirement le champ \"rank\": \"A\" ou \"B\" selon la nature de la question."
@@ -57,7 +57,7 @@ def generate_uness_correction(
     images: Sequence[AIImageContent] = (),
     context: str | None = None,
     service: AIService | None = None,
-) -> "UnessCorrectionResult":
+) -> UnessCorrectionResult:
     # Only worth the pricier visual-reasoning model when there's actually an image
     # to analyze (DP/scanner questions) — plain text corrections stay on the cheap
     # Lite tier, which is most of a typical partiel's sub-parts.

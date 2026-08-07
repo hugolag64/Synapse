@@ -21,6 +21,13 @@ _CSS = """
 .flash-zero-dismiss { position:absolute !important; top:8px !important; right:8px !important; z-index:2; opacity:0; color:var(--text-muted); transition:opacity var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard); }
 .flash-zero-card:hover .flash-zero-dismiss, .flash-zero-card:focus-within .flash-zero-dismiss { opacity:1; }
 .flash-zero-dismiss:hover { color:var(--danger); }
+.flash-zero-wizard { border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+.flash-zero-wizard-header { border-bottom:1px solid var(--border); background:var(--surface); }
+.flash-zero-wizard-progress { height:4px; border-radius:999px; background:var(--border); overflow:hidden; }
+.flash-zero-wizard-progress > div { height:100%; background:var(--accent); transition:width .18s ease; }
+.flash-zero-correction { border:1px solid var(--border); border-radius:8px; padding:14px; background:var(--bg-alt); }
+.flash-zero-correction.good { border-color:var(--success); background:color-mix(in srgb, var(--success) 8%, var(--bg-alt)); }
+.flash-zero-correction.bad { border-color:var(--danger); background:color-mix(in srgb, var(--danger) 7%, var(--bg-alt)); }
 @media (max-width: 560px) { .flash-zero-status { display:none; } }
 """
 
@@ -39,43 +46,90 @@ def open_flash_zero_quiz(
 ) -> None:
     service = service or FlashZeroService()
     questions = service.get_morning_quiz(count=10)
-    state = {"index": 0, "score": 0}
+    state = {
+        "index": 0,
+        "phase": "question",
+        "selected_idx": None,
+        "score": 0,
+        "zero_errors": 0,
+        "results": [],
+        "completed_notified": False,
+    }
 
-    with ui.dialog() as dialog, ui.card().classes("w-[620px] max-w-[95vw] p-5 gap-4"):
+    with ui.dialog() as dialog, ui.card().classes("flash-zero-wizard w-[720px] max-w-[95vw] p-0 gap-0"):
         body = ui.column().classes("w-full gap-3")
 
         def draw() -> None:
             body.clear()
             with body:
                 if state["index"] >= len(questions):
-                    ui.label(f"Flash-Zero terminé : {state['score']} / {len(questions)}").classes(
-                        "text-lg font-semibold"
-                    )
+                    ui.label("Flash-Zero terminé").classes("text-lg font-semibold")
+                    ui.label(f"Score : {state['score']} / {len(questions)}").classes("text-base")
+                    ui.label(
+                        f"{state['zero_errors']} erreur(s) sur les pièges zéro éliminatoire(s)."
+                    ).classes("text-sm text-slate-500")
+                    if state["results"]:
+                        with ui.column().classes("w-full gap-1"):
+                            ui.label("Résumé").classes("text-xs font-semibold uppercase tracking-wide text-slate-500")
+                            for result in state["results"]:
+                                ui.label(
+                                    f"{result['item']} · {'Correct' if result['is_correct'] else 'À revoir'}"
+                                ).classes("text-sm")
                     ui.button("Fermer", on_click=dialog.close).props("flat")
-                    if on_complete:
+                    if on_complete and not state["completed_notified"]:
+                        state["completed_notified"] = True
                         on_complete()
                     return
                 question = questions[state["index"]]
-                ui.label(f"Flash-Zero · Question {state['index'] + 1}/{len(questions)}").classes(
-                    "text-sm text-slate-500"
-                )
-                ui.label(f"{question.item_number} · {question.category}").classes(
-                    "text-xs text-slate-500"
-                )
-                ui.label(question.question_text).classes("text-base font-medium")
-                choices = ui.radio(list(question.choices), value=None).props("dense")
+                with ui.column().classes("w-full gap-0 p-5"):
+                    with ui.row().classes("w-full items-center justify-between"):
+                        ui.label("Flash-Zero · 5 min").classes("text-lg font-semibold")
+                        ui.label(f"{state['index'] + 1} / {len(questions)}").classes("text-xs font-mono text-slate-500")
+                    with ui.element("div").classes("flash-zero-wizard-progress w-full mt-3"):
+                        ui.element("div").style(f"width:{((state['index'] + (state['phase'] == 'correction')) / len(questions)) * 100:.0f}%")
+                    ui.label(f"{question.item_number} · {question.category}").classes("text-xs text-slate-500 mt-4")
+                    ui.label(question.question_text).classes("text-base font-medium mt-1")
 
-                def validate() -> None:
-                    if choices.value is None:
-                        ui.notify("Choisis une réponse", type="warning")
-                        return
-                    selected = question.choices.index(choices.value)
-                    if selected == question.correct_idx:
-                        state["score"] += 1
-                    state["index"] += 1
-                    draw()
+                    if state["phase"] == "question":
+                        choices = ui.radio(list(question.choices), value=None).props("dense").classes("mt-3")
 
-                ui.button("Valider", on_click=validate).props("unelevated color=indigo")
+                        def validate() -> None:
+                            if choices.value is None:
+                                ui.notify("Choisis une réponse", type="warning")
+                                return
+                            selected = question.choices.index(choices.value)
+                            is_correct = selected == question.correct_idx
+                            state["selected_idx"] = selected
+                            state["score"] += int(is_correct)
+                            state["zero_errors"] += int(not is_correct and question.is_zero_eliminatoire)
+                            state["results"].append({
+                                "item": question.item_number,
+                                "is_correct": is_correct,
+                                "selected": selected,
+                            })
+                            state["phase"] = "correction"
+                            draw()
+
+                        ui.button("Valider", on_click=validate).props("unelevated color=indigo").classes("mt-3")
+                    else:
+                        selected = state["selected_idx"]
+                        is_correct = selected == question.correct_idx
+                        with ui.element("div").classes(
+                            f"flash-zero-correction {'good' if is_correct else 'bad'} mt-4"
+                        ):
+                            ui.label("Correction").classes("text-xs font-semibold uppercase tracking-wide text-slate-500")
+                            ui.label("Bonne réponse" if is_correct else "À revoir").classes("text-sm font-semibold")
+                            if selected is not None:
+                                ui.label(f"Ta réponse : {question.choices[selected]}").classes("text-sm")
+                            ui.label(f"Réponse attendue : {question.choices[question.correct_idx]}").classes("text-sm")
+                            ui.label(question.explanation).classes("text-sm text-slate-600 mt-2")
+                        def next_question() -> None:
+                            state["index"] += 1
+                            state["phase"] = "question"
+                            state["selected_idx"] = None
+                            draw()
+
+                        ui.button("Question suivante", on_click=next_question).props("unelevated color=indigo").classes("mt-3")
 
         draw()
     dialog.open()

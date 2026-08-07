@@ -29,6 +29,16 @@ def test_flash_zero_card_has_a_hover_dismiss_control():
     assert "top:8px !important" in source
 
 
+def test_flash_zero_wizard_has_separate_correction_step():
+    source = Path("frontend/components/flash_zero_cockpit.py").read_text(encoding="utf-8")
+
+    assert '"phase": "question"' in source
+    assert "Question suivante" in source
+    assert "Correction" in source
+    assert "results" in source
+    assert 'aria-label="Ignorer le Flash-Zero du jour"' in source
+
+
 def test_sprint_card_uses_linear_layout_primitives():
     source = Path("frontend/components/edn_insights_panel.py").read_text(encoding="utf-8")
 

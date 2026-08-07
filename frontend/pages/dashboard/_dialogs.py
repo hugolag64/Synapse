@@ -303,16 +303,16 @@ def open_session_feedback_dialog(
                 with ui.row().classes("flex-wrap gap-2"):
                     for a_id, a_lbl in ACTIVITIES:
                         is_on = a_id in state_fb.activity_types
-                        b = ui.button(a_lbl).props(_chip_on("indigo") if is_on else _chip_off())
+                        b = ui.button(a_lbl).props(_chip_on("primary") if is_on else _chip_off())
                         act_btns[a_id] = b
 
                 def _toggle_act(a: str):
                     if a in state_fb.activity_types:
                         state_fb.activity_types.remove(a)
-                        act_btns[a].props(_chip_off(), remove=_chip_on("indigo"))
+                        act_btns[a].props(_chip_off(), remove=_chip_on("primary"))
                     else:
                         state_fb.activity_types.append(a)
-                        act_btns[a].props(_chip_on("indigo"), remove=_chip_off())
+                        act_btns[a].props(_chip_on("primary"), remove=_chip_off())
                     if qcm_section is not None:
                         qcm_section.set_visibility(
                             bool(set(state_fb.activity_types) & qcm_activity_ids())
@@ -326,7 +326,7 @@ def open_session_feedback_dialog(
                 with ui.row().classes("flex-wrap items-center gap-2"):
                     for d in DUR_PRESETS:
                         is_on = d == state_fb.duration
-                        b = ui.button(f"{d}′").props(_chip_on("indigo") if is_on else _chip_off())
+                        b = ui.button(f"{d}′").props(_chip_on("primary") if is_on else _chip_off())
                         dur_btns[d] = b
                     with ui.element("div").classes("flex items-center gap-1 ml-1"):
                         custom_dur = ui.number(
@@ -339,9 +339,9 @@ def open_session_feedback_dialog(
                     state_fb.duration = val
                     for dv, db in dur_btns.items():
                         if dv == val:
-                            db.props(_chip_on("indigo"), remove=_chip_off())
+                            db.props(_chip_on("primary"), remove=_chip_off())
                         else:
-                            db.props(_chip_off(), remove=_chip_on("indigo"))
+                            db.props(_chip_off(), remove=_chip_on("primary"))
 
                 for d in DUR_PRESETS:
                     dur_btns[d].on_click(lambda val=d: _set_dur(val))
@@ -350,18 +350,18 @@ def open_session_feedback_dialog(
                     if e.value:
                         state_fb.duration = int(e.value)
                         for db in dur_btns.values():
-                            db.props(_chip_off(), remove=_chip_on("indigo"))
+                            db.props(_chip_off(), remove=_chip_on("primary"))
                 custom_dur.on_value_change(_on_custom)
 
                 with ui.row().classes("w-full gap-8"):
                     with ui.column().classes("gap-2"):
                         _section("Confiance")
                         _CONF_CONFIG = [
-                            (1, "Très incertain", "red"),
-                            (2, "Incertain", "orange"),
-                            (3, "Correct", "blue"),
-                            (4, "Solide", "teal"),
-                            (5, "Très solide", "green"),
+                            (1, "Très incertain", "primary"),
+                            (2, "Incertain", "primary"),
+                            (3, "Correct", "primary"),
+                            (4, "Solide", "primary"),
+                            (5, "Très solide", "primary"),
                         ]
                         conf_btns: dict = {}
                         with ui.row().classes("gap-1.5 flex-wrap"):
@@ -442,15 +442,15 @@ def open_session_feedback_dialog(
                             _section("Erreur / piège EDN")
                             _ERR_CATS = [
                                 (None,                     "—",           "grey"),
-                                ("diagnostic",             "Diagnostic",  "red"),
-                                ("clinique",               "Clinique",    "orange"),
-                                ("examens complémentaires","Examens",     "deep-orange"),
-                                ("traitement",             "Traitement",  "blue"),
-                                ("complications",          "Complic.",    "purple"),
-                                ("physiopathologie",       "Physiopath.", "indigo"),
-                                ("piège EDN",              "Piège EDN",   "pink"),
-                                ("valeur chiffrée",        "Valeur chif.","teal"),
-                                ("autre",                  "Autre",       "blue-grey"),
+                                ("diagnostic",             "Diagnostic",  "primary"),
+                                ("clinique",               "Clinique",    "primary"),
+                                ("examens complémentaires","Examens",     "primary"),
+                                ("traitement",             "Traitement",  "primary"),
+                                ("complications",          "Complic.",    "primary"),
+                                ("physiopathologie",       "Physiopath.", "primary"),
+                                ("piège EDN",              "Piège EDN",   "primary"),
+                                ("valeur chiffrée",        "Valeur chif.","primary"),
+                                ("autre",                  "Autre",       "primary"),
                             ]
                             cat_btns: dict = {}
                             with ui.row().classes("flex-wrap gap-1.5"):

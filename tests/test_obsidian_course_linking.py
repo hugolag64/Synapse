@@ -74,3 +74,19 @@ def test_ambiguous_item_notes_are_not_assigned_automatically(tmp_path, monkeypat
     monkeypatch.setattr(settings_module.settings, "obsidian_vault_path", str(tmp_path))
 
     assert ObsidianService().find_course_note(_course("mg-75", "Médecine générale")) is None
+
+
+def test_item_match_has_priority_over_the_course_college_folder(tmp_path, monkeypatch):
+    from backend.config import settings as settings_module
+    from backend.core.obsidian.service import ObsidianService
+
+    wrong_folder = tmp_path / "01 - Cours EDN" / "Pneumologie" / "Cours"
+    right_folder = tmp_path / "01 - Cours EDN" / "Psychiatrie - Addictologie" / "Cours"
+    wrong_folder.mkdir(parents=True)
+    right_folder.mkdir(parents=True)
+    (wrong_folder / "75 - Wrong note.md").write_text("---\nitem: 76\n---\n", encoding="utf-8")
+    expected = right_folder / "75 - Correct note.md"
+    expected.write_text("---\nitem: 75\n---\n", encoding="utf-8")
+    monkeypatch.setattr(settings_module.settings, "obsidian_vault_path", str(tmp_path))
+
+    assert ObsidianService().find_course_note(_course("pneumo-75", "Pneumologie")) == expected

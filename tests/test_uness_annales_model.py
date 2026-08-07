@@ -141,6 +141,30 @@ def test_create_annale_rejects_duplicate_source_url() -> None:
         local_store.create_uness_annale(**kwargs)
 
 
+def test_identity_lookup_finds_same_exam_when_source_url_changes() -> None:
+    local_store.create_uness_annale(
+        source_url="https://example.test/one",
+        collected_at="2026-08-07T08:00:00+00:00",
+        faculte="EDNpro",
+        niveau="EDN",
+        annee=2023,
+        matiere="Cardiologie",
+        titre="EDN 2023 — P1",
+        type_annale="edn_complet",
+        source="EDNpro",
+    )
+
+    found = local_store.get_uness_annale_by_identity(
+        source="EDNpro",
+        annee=2023,
+        matiere="Cardiologie",
+        titre="EDN 2023 — P1",
+    )
+
+    assert found is not None
+    assert found["source_url"] == "https://example.test/one"
+
+
 def test_list_uness_annales_aggregates_sub_part_scores_and_supports_filters() -> None:
     annale_id = local_store.create_uness_annale(
         source_url="https://entrainement.uness.fr/annales/course/view.php?id=3",

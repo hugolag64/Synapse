@@ -16,7 +16,8 @@ from loguru import logger
 from nicegui import ui
 
 from backend.core.reviews import local_store
-from backend.core.reviews.mastery import get_course_mastery, PROGRESSION_COLORS
+from backend.core.reviews.mastery import PROGRESSION_COLORS
+from backend.core.reviews.service import review_service
 from backend.state.store import data_store
 from frontend.theme import frame
 from frontend.components.course_card import _ACCENT_HEX
@@ -80,9 +81,12 @@ def _get_all_mastery_snapshots() -> list[tuple]:
     for course in data_store.cours:
         try:
             sessions = sessions_map.get(course.id, [])
-            snap = get_course_mastery(
-                course, context="college", sessions=sessions,
-                total_postpone=postpone_map.get(course.id, 0),
+            snap = review_service._get_mastery_cached(
+                course,
+                context="college",
+                sessions=sessions,
+                postpone_count=postpone_map.get(course.id, 0),
+                qcm_done=bool(getattr(course, "qcm_done", False)),
             )
         except Exception:
             continue
@@ -283,7 +287,13 @@ def _get_fragile_courses(limit: int = 15) -> list[tuple]:
             nb_lec = getattr(course, "nb_lectures", 0) or 0
             if nb_lec == 0 and not sessions and not getattr(course, "qcm_done", False):
                 continue
-            snap = get_course_mastery(course, context="college", sessions=sessions, total_postpone=postpone_map.get(course.id, 0))
+            snap = review_service._get_mastery_cached(
+                course,
+                context="college",
+                sessions=sessions,
+                postpone_count=postpone_map.get(course.id, 0),
+                qcm_done=bool(getattr(course, "qcm_done", False)),
+            )
         except Exception:
             continue
         if snap.level in ("critique", "fragile"):

@@ -58,6 +58,11 @@ def _parse_item_page(page: dict) -> int | None:
     return None
 
 class NotionService:
+
+    def __init__(self):
+        self._streak_cache_date: date | None = None
+        self._streak_cache_value = 0
+
     
     async def get_all_ues_map(self) -> dict:
         """Récupère la base UE et crée un dictionnaire {id: {'nom': str, 'semestre': str}}."""
@@ -755,13 +760,15 @@ class NotionService:
 
     async def get_streak_counts(self) -> int:
         """Calculate the current streak of completed daily tasks."""
+        today = date.today()
+        if self._streak_cache_date == today:
+            return self._streak_cache_value
         try:
             # Query all daily tasks sorted by date descending
             sorts = [{"property": "Date", "direction": "descending"}]
             # We fetch a reasonable amount, e.g., last 100 days
             results = await notion_client.query_database(settings.notion.daily_db_id, sorts=sorts, page_size=100)
             
-            today = date.today()
             today_str = today.isoformat()
 
             tasks_map = {
@@ -786,6 +793,8 @@ class NotionService:
                 current_streak += 1
                 check_date -= timedelta(days=1)
 
+            self._streak_cache_date = today
+            self._streak_cache_value = current_streak
             return current_streak
 
         except Exception as e:

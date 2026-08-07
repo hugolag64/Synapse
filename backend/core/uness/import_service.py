@@ -665,6 +665,13 @@ def import_source_exam(exam: UnessExam, *, source: str, matiere: str = "") -> in
         raise ValueError("L'examen source ne contient aucune question importable")
     subject = matiere or str(exam.metadata.get("subject", ""))
     annale = local_store.get_uness_annale_by_source_url(source_url)
+    if annale is None and exam.title and (exam.year is not None or subject):
+        annale = local_store.get_uness_annale_by_identity(
+            source=source,
+            annee=exam.year,
+            matiere=subject,
+            titre=exam.title,
+        )
     if annale is None:
         annale_id = local_store.create_uness_annale(
             source_url=source_url,

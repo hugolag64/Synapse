@@ -173,9 +173,21 @@ class ObsidianService:
         path = self.get_course_note_path(course)
         if path is None:
             return None
+        item = str(getattr(course, "display_item_number", "") or "").strip()
+        if item:
+            root = path.parents[2]
+            item_candidates = []
+            for candidate in root.glob(f"*/Cours/{item} - *.md"):
+                frontmatter = self.read_frontmatter(candidate)
+                fm_item = str(frontmatter.get("item", "") or "").strip()
+                if not fm_item or fm_item == item:
+                    item_candidates.append(candidate)
+            if len(item_candidates) == 1:
+                return item_candidates[0]
+            if len(item_candidates) > 1:
+                return None
         if path.exists():
             return path
-        item = getattr(course, "display_item_number", "") or ""
         if item and path.parent.exists():
             matches = list(path.parent.glob(f"{item} - *.md"))
             if matches:

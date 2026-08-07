@@ -373,7 +373,7 @@ class DataStore:
             self.run_sqlite_migration()
 
             # F1 + F4 : graphe sémantique et stage actif
-            self.rebuild_semantic_graph()
+            await asyncio.to_thread(self.rebuild_semantic_graph)
             self.reload_active_stage()
 
             # F-Perf : reconstruire l'index de recherche fuzzy après sync

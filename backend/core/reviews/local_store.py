@@ -2180,6 +2180,23 @@ def get_uness_annale_by_source_url(source_url: str) -> dict | None:
     return dict(row) if row else None
 
 
+def get_uness_annale_by_identity(
+    *, source: str, annee: int | None, matiere: str, titre: str
+) -> dict | None:
+    """Find an imported exam when its source URL changed between collections."""
+    with _conn() as con:
+        row = con.execute(
+            """SELECT * FROM uness_annales
+               WHERE lower(trim(source)) = lower(trim(?))
+                 AND annee IS ?
+                 AND lower(trim(matiere)) = lower(trim(?))
+                 AND lower(trim(titre)) = lower(trim(?))
+               ORDER BY id ASC LIMIT 1""",
+            (str(source), annee, str(matiere), str(titre)),
+        ).fetchone()
+    return dict(row) if row else None
+
+
 def get_uness_annale(annale_id: int) -> dict | None:
     with _conn() as con:
         row = con.execute("SELECT * FROM uness_annales WHERE id = ?", (annale_id,)).fetchone()

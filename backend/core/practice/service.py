@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from typing import Any
 
 from backend.core.ai.routing import AITask, model_for_task
@@ -41,15 +41,17 @@ Génère une session médicale fiable pour l'ITEM {spec.item_number or 'non pré
 Type : {spec.practice_kind.value}. Total : {spec.total_questions} questions ({distribution}).
 Niveau de difficulté : {difficulty_instructions}.
 Objectif OIC : {spec.objective_code or 'non précisé'}.
-Contexte de cours : {context or 'aucun contexte supplémentaire'}
+Contexte de cours : fourni dans le bloc documentaire séparé.
 
 Retourne uniquement ce JSON :
 {{"questions":[{{"kind":"open|closed","prompt":"...","choices":["..."],"answer":"...","explanation":"...","source_refs":["..."]}}]}}
 
 Contraintes :
 - respecter exactement la répartition demandée ;
+- vérifier avant l'envoi que la liste contient exactement {spec.total_questions} question(s) ;
 - une question fermée contient au moins 2 choix ;
 - chaque question contient obligatoirement sa réponse correcte et une explication pédagogique ;
+- rester concis : énoncé inférieur à 280 caractères, explication inférieure à 500 caractères ;
 - ne jamais inventer une référence ; utiliser une liste vide si aucune source n'est fournie ;
 - pour DP/KFP, conserver le raisonnement clinique et les pièges pertinents.
 """.strip()
@@ -122,6 +124,7 @@ class PracticeService:
         context: str = "",
         *,
         max_attempts: int = 1,
+        recover_partial: bool = False,
     ) -> list[dict]:
         if not 1 <= int(max_attempts) <= 3:
             raise ValueError("max_attempts doit être compris entre 1 et 3")
@@ -149,7 +152,33 @@ class PracticeService:
                 continue
             return [asdict(q) for q in questions]
         assert last_error is not None
+        if recover_partial and "nombre de questions" in str(last_error):
+            return self._recover_partial_questions(spec, context, max_attempts=max_attempts)
         raise last_error
+
+    def _recover_partial_questions(
+        self,
+        spec: PracticeSessionSpec,
+        context: str,
+        *,
+        max_attempts: int,
+    ) -> list[dict]:
+        """Fallback borné : demande une question par appel si le lot est partiel."""
+        single_spec = replace(spec, total_questions=1, open_questions=0, closed_questions=1)
+        recovered: list[dict] = []
+        for position in range(spec.total_questions):
+            single_context = (
+                f"{context}\n\nLOT DE RATTRAPAGE : génère la question {position + 1} "
+                f"sur {spec.total_questions}. Retourne exactement une question."
+            )
+            recovered.extend(
+                self.generate_questions(
+                    single_spec,
+                    single_context,
+                    max_attempts=max_attempts,
+                )
+            )
+        return recovered
 
     def create_new_session(
         self,
@@ -157,8 +186,14 @@ class PracticeService:
         context: str = "",
         *,
         max_attempts: int = 1,
+        recover_partial: bool = False,
     ) -> int:
-        questions = self.generate_questions(spec, context, max_attempts=max_attempts)
+        questions = self.generate_questions(
+            spec,
+            context,
+            max_attempts=max_attempts,
+            recover_partial=recover_partial,
+        )
         return self.store.create_ai_practice_session(
             spec=spec,
             questions=questions,
@@ -202,7 +237,12 @@ class PracticeService:
             course_title=course_title,
             difficulty=PracticeDifficulty.EDN,
         )
-        return self.create_new_session(spec, context=context, max_attempts=max_attempts)
+        return self.create_new_session(
+            spec,
+            context=context,
+            max_attempts=max_attempts,
+            recover_partial=True,
+        )
 
     def replay_session(self, session_id: int) -> int:
         return self.store.replay_ai_practice_session(session_id)

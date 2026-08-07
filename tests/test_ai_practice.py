@@ -525,16 +525,16 @@ def test_tutor_dp_does_not_persist_after_exhausted_count_retry(practice_db):
         def generate(self, task, prompt, *, context=None, response_format):
             payload = {"questions": [{
                 "kind": "closed",
-                "prompt": "Q1",
+                "prompt": "",
                 "choices": ["A", "B"],
                 "answer": "A",
-                "explanation": "E",
+                "explanation": "",
             }]}
             return AIResponse(json.dumps(payload), AIModel.FLASH, 10, 10)
 
     service = PracticeService(ai_service=FakeAI(), store=local_store)
 
-    with pytest.raises(PracticeGenerationError, match="nombre"):
+    with pytest.raises(PracticeGenerationError, match="invalide"):
         service.create_tutor_dp_session(
             item_number="115",
             course_id="course-115",
@@ -547,6 +547,40 @@ def test_tutor_dp_does_not_persist_after_exhausted_count_retry(practice_db):
         )
 
     assert local_store.get_ai_practice_sessions(limit=10) == []
+
+
+def test_tutor_dp_recovers_partial_provider_responses_one_question_at_a_time(practice_db):
+    class FakeAI:
+        def __init__(self):
+            self.calls = 0
+
+        def generate(self, task, prompt, *, context=None, response_format):
+            self.calls += 1
+            payload = {"questions": [{
+                "kind": "closed",
+                "prompt": f"Question {self.calls}",
+                "choices": ["A", "B"],
+                "answer": "A",
+                "explanation": "E",
+            }]}
+            return AIResponse(json.dumps(payload), AIModel.FLASH, 10, 10)
+
+    fake = FakeAI()
+    service = PracticeService(ai_service=fake, store=local_store)
+
+    session_id = service.create_tutor_dp_session(
+        item_number="152",
+        course_id="course-152",
+        course_title="Endocardite infectieuse",
+        dossier_context="Patient fébrile.",
+        errors=[],
+        gap_details=[],
+        total_questions=3,
+        max_attempts=1,
+    )
+
+    assert fake.calls == 4
+    assert len(local_store.get_ai_practice_session(session_id)) == 3
 
 
 @pytest.mark.parametrize("total_questions", [0, 11])

@@ -89,3 +89,14 @@ def record_prep_access(shortcut_id: int) -> None:
             "UPDATE prep_shortcuts SET last_used=? WHERE id=?",
             (datetime.now(timezone.utc).isoformat(), int(shortcut_id)),
         )
+
+
+def list_recent_prep_shortcuts(limit: int = 5) -> list[dict]:
+    _ensure_table()
+    with local_store._conn() as con:
+        rows = con.execute(
+            "SELECT * FROM prep_shortcuts WHERE enabled=1 AND last_used IS NOT NULL "
+            "ORDER BY last_used DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    return [dict(row) for row in rows]

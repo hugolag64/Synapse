@@ -52,16 +52,6 @@ def _open_generation_dialog(course, refresh) -> None:
             {"OIC": "OIC", "QCM": "QCM", "DP": "DP", "KFP": "KFP"},
             value="QCM",
         ).props("spread no-caps unelevated").classes("w-full ai-practice-kind-toggle")
-        difficulty = ui.toggle(
-            {
-                PracticeDifficulty.STANDARD.value: "Standard",
-                PracticeDifficulty.EDN.value: "EDN",
-                PracticeDifficulty.DIFFICULT.value: "Difficile",
-                PracticeDifficulty.CONCOURS.value: "Concours",
-            },
-            value=PracticeDifficulty.EDN.value,
-        ).props("spread no-caps unelevated").classes("w-full ai-practice-kind-toggle mt-2")
-
         with ui.row().classes("w-full items-center justify-between mt-5"):
             total_label = ui.label().classes("text-sm font-medium")
             total_value_chip = ui.label().classes(
@@ -114,7 +104,7 @@ def _open_generation_dialog(course, refresh) -> None:
                     item_number=_item_number(course),
                     course_id=str(getattr(course, "id", "") or ""),
                     course_title=str(getattr(course, "title", "") or ""),
-                    difficulty=PracticeDifficulty(str(difficulty.value)),
+                    difficulty=PracticeDifficulty.EDN,
                 )
             except (TypeError, ValueError) as exc:
                 status.set_text(str(exc))

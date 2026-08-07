@@ -116,7 +116,7 @@ def test_item_picker_opens_generation_settings_on_item_click():
 
 
 def test_qcm_cockpit_is_full_width_with_handoff_content_bound():
-    assert "max-width:1200px" in qcm_cockpit.QCM_COCKPIT_CSS
+    assert "max-width:none" in qcm_cockpit.QCM_COCKPIT_CSS
     assert "align-self:stretch" in qcm_cockpit.QCM_COCKPIT_CSS
 
 

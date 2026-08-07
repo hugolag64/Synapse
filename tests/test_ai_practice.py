@@ -80,18 +80,16 @@ def test_generation_dialog_normalizes_qcm_toggle_value_to_enum():
     assert "PracticeKind(str(kind.value).upper())" in source
 
 
-def test_generation_dialog_exposes_edn_difficulty_by_default():
+def test_generation_dialog_has_no_difficulty_selector_and_hardcodes_edn():
+    """L'utilisateur ne prépare que l'EDN : le sélecteur de difficulté n'avait
+    jamais d'utilité réelle (chantier B1) — EDN est désormais fixé en dur."""
     import inspect
 
     from frontend.components import ai_practice_panel
 
     source = inspect.getsource(ai_practice_panel._open_generation_dialog)
-    assert 'PracticeDifficulty.STANDARD.value: "Standard"' in source
-    assert 'PracticeDifficulty.EDN.value: "EDN"' in source
-    assert 'PracticeDifficulty.DIFFICULT.value: "Difficile"' in source
-    assert 'PracticeDifficulty.CONCOURS.value: "Concours"' in source
-    assert "value=PracticeDifficulty.EDN.value" in source
-    assert "difficulty=PracticeDifficulty(str(difficulty.value))" in source
+    assert "difficulty = ui.toggle(" not in source
+    assert "difficulty=PracticeDifficulty.EDN," in source
 
 
 def test_generation_dialog_can_open_or_only_conserve_the_session():

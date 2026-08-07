@@ -197,6 +197,32 @@ def _nav_item(glyph: str, label: str, route, badge, active: str) -> None:
             ui.element("span").classes("cockpit-badge-dot")
 
 
+def _recent_nav_entries(limit: int = 5) -> list[tuple[str, str]]:
+    """(libellé, route) des dernières fiches ouvertes.
+
+    Un cours encore présent dans l'historique local mais disparu du store
+    (supprimé côté Notion) est ignoré : on ne rend pas de lien mort.
+    """
+    try:
+        from backend.core.reviews.local_store import get_recent_course_ids
+        course_ids = get_recent_course_ids(limit=limit)
+    except Exception:
+        return []
+
+    by_id = {c.id: c for c in data_store.cours}
+    entries: list[tuple[str, str]] = []
+    for course_id in course_ids:
+        course = by_id.get(course_id)
+        if course is None:
+            continue
+        number = str(
+            getattr(course, "display_item_number", "") or getattr(course, "item_number", "") or ""
+        ).strip()
+        label = f"Item {number} · {course.title}" if number else course.title
+        entries.append((label, f"/cours/{course.id}"))
+    return entries
+
+
 _BOTTOM_NAV = [
     ("◉", "Aujourd'hui", "/", "Aujourd'hui"),
     ("▦", "Planning", "/planning", "Planning"),
@@ -258,10 +284,12 @@ def cockpit_frame(page_title: str):
             for glyph, label, route, badge in items:
                 _nav_item(glyph, label, route, badge, active)
 
-        # Récents (placeholder — câblage réel session ultérieure)
-        ui.label("Récents").classes("cockpit-group-label")
-        _nav_item("○", "Item 221 · Athérome", "/", None, active="")
-        _nav_item("○", "Item 330 · Prescription", "/", None, active="")
+        # Récents — masqués tant qu'aucune fiche n'a été ouverte
+        recents = _recent_nav_entries()
+        if recents:
+            ui.label("Récents").classes("cockpit-group-label")
+            for label, route in recents:
+                _nav_item("○", label, route, None, active="")
 
         # Pied de la navigation
         ui.element("div").style("flex:1 1 auto;min-height:12px")

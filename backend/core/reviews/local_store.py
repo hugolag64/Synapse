@@ -503,6 +503,14 @@ def init_db() -> None:
             PRIMARY KEY (date, item_name)
         );
 
+        -- ── Historique de consultation des fiches (section « Récents ») ─────
+        CREATE TABLE IF NOT EXISTS recent_courses (
+            course_id TEXT PRIMARY KEY,
+            opened_at TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_recent_courses_opened
+            ON recent_courses(opened_at DESC);
+
         CREATE TABLE IF NOT EXISTS manual_planning_entries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             entry_date TEXT NOT NULL,
@@ -4960,6 +4968,33 @@ def set_routine_check(date_str: str, item_name: str, checked: bool) -> None:
             "ON CONFLICT(date, item_name) DO UPDATE SET checked = excluded.checked",
             (date_str, item_name, 1 if checked else 0),
         )
+
+
+# ── Historique de consultation ────────────────────────────────────────────────
+
+def record_course_visit(course_id: str) -> None:
+    """Enregistre l'ouverture d'une fiche cours (upsert : pas de doublon).
+
+    Précision microseconde (et non `_now()`, tronqué à la seconde) : deux
+    visites rapprochées doivent rester départageables pour l'ordre d'affichage.
+    """
+    if not course_id:
+        return
+    with _conn() as con:
+        con.execute(
+            "INSERT INTO recent_courses (course_id, opened_at) VALUES (?, ?) "
+            "ON CONFLICT(course_id) DO UPDATE SET opened_at = excluded.opened_at",
+            (course_id, now_local().isoformat()),
+        )
+
+
+def get_recent_course_ids(limit: int = 5) -> list[str]:
+    """Identifiants des dernières fiches ouvertes, de la plus récente à la plus ancienne."""
+    rows = _conn().execute(
+        "SELECT course_id FROM recent_courses ORDER BY opened_at DESC LIMIT ?",
+        (limit,),
+    ).fetchall()
+    return [r["course_id"] for r in rows]
 
 
 # ── API LiSA OIC ──────────────────────────────────────────────────────────────

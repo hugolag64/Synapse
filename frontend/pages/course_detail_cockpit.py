@@ -299,6 +299,13 @@ def render_item_cockpit(course_id: str) -> None:
             ui.link("‹ Retour à Aujourd'hui", "/").classes("ci-p-link")
         return
 
+    # Historique de consultation pour la section « Récents » de la sidebar.
+    # Une seule écriture upsert, jamais bloquante : cette page est déjà lente.
+    try:
+        local_store.record_course_visit(course_id)
+    except Exception as exc:
+        logger.warning(f"visite non enregistrée pour {course_id}: {exc}")
+
     # ── Données (mêmes sources que la vue classic) ────────────────────────────
     sessions = local_store.get_sessions_by_course().get(course_id, [])
     postpone_cnt = local_store.get_postpone_counts().get(course_id, 0)

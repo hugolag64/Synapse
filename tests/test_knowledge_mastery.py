@@ -61,6 +61,18 @@ def test_item_declare_et_jamais_lu_recoit_la_graine_comme_score():
     assert snap.declared_level == "solide"
 
 
+def test_cours_sans_preuve_rang_a_n_est_pas_fragile_sur_le_seuil_rang_a():
+    ks.set_item_state("course-1", "solide")
+    snap = get_course_mastery(
+        _course(first_read=datetime.date.today(), nb_lectures=2),
+    )
+
+    assert snap.score is not None
+    assert 60 <= snap.score < 75
+    assert snap.level != "fragile"
+    assert "Sécurité Rang A non atteinte (<75%)" not in snap.reasons
+
+
 def test_les_trois_crans_donnent_trois_niveaux_distincts():
     for level, expected_score, expected_label in [
         ("solide", 70, "à consolider"),

@@ -60,3 +60,23 @@ def test_dashboard_gain_items_uses_frequency_priority_and_question_catalog(monke
     assert by_item["221"]["edn_weight"] > by_item["340"]["edn_weight"]
     assert by_item["221"]["available_questions"] == 3
     assert by_item["340"]["available_questions"] == 1
+
+
+def test_gain_priority_uses_frequency_history_when_available():
+    from backend.core.edn.trajectory import rank_gain_potential
+
+    ranked = rank_gain_potential(items=[
+        {
+            "item_number": "221", "edn_weight": 1.0, "mastery": 40,
+            "error_count": 0, "available_questions": 10,
+            "frequency_sessions": 8, "estimated_minutes": 30,
+        },
+        {
+            "item_number": "340", "edn_weight": 1.0, "mastery": 40,
+            "error_count": 0, "available_questions": 10,
+            "frequency_sessions": 1, "estimated_minutes": 30,
+        },
+    ])
+
+    assert ranked[0]["item_number"] == "221"
+    assert ranked[0]["factors"]["frequency_recurrence"] > ranked[1]["factors"]["frequency_recurrence"]

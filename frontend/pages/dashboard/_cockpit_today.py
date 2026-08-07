@@ -57,14 +57,19 @@ _EDN_PRIORITY_WEIGHTS = {
 }
 
 
-def _gain_data_for_item(item_number: str) -> tuple[float, int]:
+def _gain_data_for_item(item_number: str) -> tuple[float, int, int | None]:
     frequency = local_store.get_ednpro_item_frequency(item_number) or {}
     priority = str(frequency.get("priority") or "basique").strip().lower()
     edn_weight = _EDN_PRIORITY_WEIGHTS.get(priority, 0.5)
     available_questions = len(
         local_store.get_ednpro_practice_questions(item_number, limit=1000) or []
     )
-    return edn_weight, available_questions
+    raw_sessions = frequency.get("session_count")
+    try:
+        session_count = int(raw_sessions) if raw_sessions is not None else None
+    except (TypeError, ValueError):
+        session_count = None
+    return edn_weight, available_questions, session_count
 
 def build_gain_items(*, courses: list, tasks: list, error_signals: list[dict]) -> list[dict]:
     """Construit les priorités F3 à partir des données locales disponibles."""
@@ -94,8 +99,8 @@ def build_gain_items(*, courses: list, tasks: list, error_signals: list[dict]) -
             for task in item_tasks
             if getattr(task, "mastery_score", None) is not None
         ]
-        edn_weight, available_questions = _gain_data_for_item(item_number)
-        items.append({
+        edn_weight, available_questions, frequency_sessions = _gain_data_for_item(item_number)
+        item = {
             "item_number": item_number,
             "title": str(getattr(course, "title", "") or ""),
             "edn_weight": edn_weight,
@@ -103,7 +108,10 @@ def build_gain_items(*, courses: list, tasks: list, error_signals: list[dict]) -
             "error_count": error_counts.get(item_number, 0),
             "available_questions": available_questions,
             "estimated_minutes": 30,
-        })
+        }
+        if frequency_sessions is not None:
+            item["frequency_sessions"] = frequency_sessions
+        items.append(item)
     return rank_gain_potential(items=items)
 
 

@@ -881,6 +881,45 @@ def _open_manual_review_dialog(course) -> None:
     )
 
 
+def _render_dp_tutor(course, lacunes) -> None:
+    item_number = str(getattr(course, "item_number", "") or getattr(course, "display_item_number", "") or "")
+    ai_history = local_store.get_ai_practice_history(item_number=item_number, limit=30) if item_number else []
+    dp_history = [entry for entry in ai_history if str(entry["session"].get("practice_kind", "")).lower() == "dp"]
+    errors = [
+        {"category": _row_get(l, "category") or "non_classe", "detail": _row_get(l, "detail") or ""}
+        for l in lacunes
+    ]
+    gap_details = [str(_row_get(l, "detail") or "") for l in lacunes]
+    with ui.column().classes("w-full gap-2 ci-reco"):
+        ui.label("TUTEUR DP").classes("ci-reco-meta")
+        if dp_history:
+            for entry in dp_history[:5]:
+                session = entry["session"]
+                questions = entry.get("questions", [])
+                dossier_context = "\n".join(str(q.get("prompt") or "") for q in questions[:5])
+                ui.button(
+                    f"Ouvrir le Tuteur DP · Session #{session['id']}",
+                    on_click=lambda session=session, dossier_context=dossier_context: render_dp_tutor_action(
+                        item_number=item_number,
+                        dp_session={**session, "dossier_context": dossier_context, "course_id": course.id, "course_title": course.title},
+                        errors=errors,
+                        gap_details=gap_details,
+                        refresh=lambda: None,
+                    ),
+                ).props("flat color=primary align=left")
+        else:
+            ui.button(
+                "Ouvrir le Tuteur DP sur cet Item",
+                on_click=lambda: render_dp_tutor_action(
+                    item_number=item_number,
+                    dp_session={"course_id": course.id, "course_title": course.title, "dossier_context": ""},
+                    errors=errors,
+                    gap_details=gap_details,
+                    refresh=lambda: None,
+                ),
+            ).props("unelevated color=primary")
+
+
 def _tab_qcm(course, qcm_summary, qcm_sessions, lacunes, mastery_score=None) -> None:
     render_ai_practice_panel(course, mastery_score=mastery_score)
 
@@ -903,6 +942,8 @@ def _tab_qcm(course, qcm_summary, qcm_sessions, lacunes, mastery_score=None) -> 
                 with ui.element("div").classes("ci-bar-row"):
                     ui.label(label).classes("ci-bar-label")
                     mastery_indicator(int(val) if val is not None else None)
+
+    _render_dp_tutor(course, lacunes)
 
     # Série adaptative : dérivée des lacunes récurrentes réelles
     active = [l for l in lacunes if (_row_get(l, "status", "") or "") != "résolue"]
@@ -1103,44 +1144,6 @@ def _tab_history(course, sessions, qcm_sessions, lacunes, review_hist) -> None:
                     ui.label(ev["detail"]).classes("ci-hist-detail")
                     if ev["dur"]:
                         ui.label(ev["dur"]).classes("ci-hist-dur")
-
-    item_number = str(getattr(course, "item_number", "") or getattr(course, "display_item_number", "") or "")
-    ai_history = local_store.get_ai_practice_history(item_number=item_number, limit=30) if item_number else []
-    dp_history = [entry for entry in ai_history if str(entry["session"].get("practice_kind", "")).lower() == "dp"]
-    errors = [
-        {"category": _row_get(l, "category") or "non_classe", "detail": _row_get(l, "detail") or ""}
-        for l in lacunes
-    ]
-    gap_details = [str(_row_get(l, "detail") or "") for l in lacunes]
-    with ui.column().classes("w-full gap-2 mt-5 p-4 rounded-xl border border-indigo-200 dark:border-indigo-900 bg-indigo-50/40 dark:bg-indigo-950/20"):
-        ui.label("TUTEUR DP").classes("text-[10px] font-mono uppercase tracking-widest text-indigo-500 font-semibold")
-        if dp_history:
-            for entry in dp_history[:5]:
-                session = entry["session"]
-                questions = entry.get("questions", [])
-                dossier_context = "\n".join(str(q.get("prompt") or "") for q in questions[:5])
-                ui.button(
-                    f"Ouvrir le Tuteur DP · Session #{session['id']}",
-                    on_click=lambda session=session, dossier_context=dossier_context: render_dp_tutor_action(
-                        item_number=item_number,
-                        dp_session={**session, "dossier_context": dossier_context, "course_id": course.id, "course_title": course.title},
-                        errors=errors,
-                        gap_details=gap_details,
-                        refresh=lambda: None,
-                    ),
-                ).props("flat color=indigo align=left")
-        else:
-            ui.button(
-                "Ouvrir le Tuteur DP sur cet Item",
-                on_click=lambda: render_dp_tutor_action(
-                    item_number=item_number,
-                    dp_session={"course_id": course.id, "course_title": course.title, "dossier_context": ""},
-                    errors=errors,
-                    gap_details=gap_details,
-                    refresh=lambda: None,
-                ),
-            ).props("unelevated color=indigo")
-
 
 
 async def _load_podcast_tab(course, container: ui.element) -> None:

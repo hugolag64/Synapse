@@ -422,6 +422,19 @@ class TestCourseMatching:
         )
         assert result is None
 
+    def test_duplicate_title_match_returns_none_instead_of_last_course(self):
+        from backend.core.obsidian.weak_points_sync import WeakPointsSyncService
+        from types import SimpleNamespace
+
+        first = SimpleNamespace(id="first", title="Cours commun", display_item_number="1")
+        second = SimpleNamespace(id="second", title="Cours commun", display_item_number="2")
+
+        result = WeakPointsSyncService()._match_course(
+            ["Cours commun"], "", {}, {"cours commun": [first, second]}
+        )
+
+        assert result is None
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Fixtures et helpers internes

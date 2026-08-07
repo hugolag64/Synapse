@@ -68,3 +68,20 @@ def test_retry_pending_notion_sync_replays_and_resolves_success(monkeypatch):
     asyncio.run(background._retry_pending_notion_sync())
 
     assert resolved == [7]
+
+
+def test_refresh_edn_recommendations_is_not_dependent_on_ui_page(monkeypatch):
+    from backend.core.edn import gap_suggestions
+
+    calls = []
+
+    monkeypatch.setattr(
+        gap_suggestions,
+        "suggest_gap_candidates",
+        lambda *, days, store: calls.append((days, store)) or [{"id": 1}, {"id": 2}],
+    )
+
+    background._refresh_edn_recommendations()
+
+    assert len(calls) == 1
+    assert calls[0][0] == 30

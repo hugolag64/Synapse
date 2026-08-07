@@ -39,13 +39,13 @@ def _session(*, item_numbers=("115", "221")):
     return session_id, questions
 
 
-def _link(question_id: int, item_number: str) -> None:
+def _link(question_id: int, item_number: str, confidence: float = 1.0) -> None:
     with local_store._conn() as con:
         con.execute(
             """INSERT INTO ai_practice_question_items
                (question_id, item_number, confidence, source, classifier_version)
                VALUES (?, ?, ?, ?, ?)""",
-            (question_id, item_number, 1.0, "manual", "test-v1"),
+            (question_id, item_number, confidence, "manual", "test-v1"),
         )
 
 
@@ -112,3 +112,21 @@ def test_record_ai_practice_mastery_persists_one_evaluation_per_item(practice_db
     ]
     assert mastery.record_ai_practice_mastery(session_id) is None
     assert len(calls) == 2
+
+
+def test_low_confidence_item_link_has_less_weight_in_item_score(practice_db):
+    session_id, questions = _session(item_numbers=("115",))
+    _link(questions[0]["id"], "115", confidence=1.0)
+    _link(questions[1]["id"], "115", confidence=0.25)
+    local_store.record_ai_practice_attempt(
+        session_id=session_id, question_id=questions[0]["id"], response="A",
+        is_correct=True, score_percent=100, finalize_session=False,
+    )
+    local_store.record_ai_practice_attempt(
+        session_id=session_id, question_id=questions[1]["id"], response="A",
+        is_correct=False, score_percent=0, finalize_session=False,
+    )
+
+    evidence = _get_evidence(session_id)
+
+    assert evidence["115"]["score_percent"] == 80.0

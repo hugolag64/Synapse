@@ -41,3 +41,15 @@ def test_missing_question_uses_bounded_ai_classification(monkeypatch):
     result = question_item_classifier.classify_exam_questions(_exam(), "Cardiologie")
 
     assert result.questions[1].item_numbers == ("222",)
+
+
+def test_exam_level_import_drops_item_numbers_when_classifier_is_not_confident(monkeypatch):
+    from backend.core.uness import import_service
+    from backend.core.uness.item_classifier import ItemClassification
+
+    monkeypatch.setattr(
+        "backend.core.uness.item_classifier.classify_exam_items",
+        lambda *args, **kwargs: ItemClassification(("222",), False),
+    )
+
+    assert import_service._classify_exam_items(_exam(), "Cardiologie") == ("", ())

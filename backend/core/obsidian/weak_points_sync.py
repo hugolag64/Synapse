@@ -168,7 +168,7 @@ class WeakPointsSyncService:
 
         # ── Index des cours ───────────────────────────────────────────────────
         by_item:  dict[str, object] = {}   # "235" → Cours
-        by_title: dict[str, object] = {}   # titre normalisé → Cours
+        by_title: dict[str, list[object]] = {}   # titre normalisé → cours candidats
 
         for c in courses:
             item = str(getattr(c, "display_item_number", "") or "").strip()
@@ -178,7 +178,7 @@ class WeakPointsSyncService:
                 by_item[item.replace(".", ",")] = c
             norm = _normalize(c.title or "")
             if norm:
-                by_title[norm] = c
+                by_title.setdefault(norm, []).append(c)
 
         # ── Scan de tous les .md ──────────────────────────────────────────────
         md_files = list(vault.rglob("*.md"))
@@ -384,8 +384,9 @@ class WeakPointsSyncService:
         # Priorité 2 : titre normalisé des liens
         for link in cours_lies:
             norm = _normalize(link)
-            if norm in by_title:
-                return by_title[norm]
+            candidates = by_title.get(norm, [])
+            if len(candidates) == 1:
+                return candidates[0]
 
         return None
 

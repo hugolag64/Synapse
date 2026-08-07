@@ -1,3 +1,5 @@
+import datetime
+
 import pytest
 
 
@@ -36,3 +38,15 @@ def test_error_profile_ignores_signals_outside_window():
     local_store.insert_error_signal("221", "oubli", "2026-01-01", "qcm", "old", "ancienne")
 
     assert build_error_profile(item_number="221", days=30, store=local_store) == {}
+
+
+def test_error_profile_falls_back_to_wider_window_when_recent_window_is_sparse():
+    from backend.core.edn.error_profile import build_error_profile
+    from backend.core.reviews import local_store
+
+    occurred_at = (local_store.now_local().date() - datetime.timedelta(days=45)).isoformat()
+    local_store.insert_error_signal("221", "oubli", occurred_at, "qcm", "older", "réactivation")
+
+    profile = build_error_profile(item_number="221", days=30, store=local_store)
+
+    assert profile["oubli"]["evidence_ids"] == ["older"]

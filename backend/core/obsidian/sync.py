@@ -93,7 +93,7 @@ class VaultSyncService:
 
         # ── Index des cours ───────────────────────────────────────────────────
         by_item:  dict[str, object] = {}   # "339" → Cours
-        by_title: dict[str, object] = {}   # titre normalisé → Cours
+        by_title: dict[str, list[object]] = {}   # titre normalisé → cours candidats
 
         for c in courses:
             item = str(getattr(c, "display_item_number", "") or "").strip()
@@ -105,7 +105,7 @@ class VaultSyncService:
 
             title_norm = self._normalize(c.title or "")
             if title_norm:
-                by_title[title_norm] = c
+                by_title.setdefault(title_norm, []).append(c)
 
         # ── Scan des fichiers ─────────────────────────────────────────────────
         confirmed: list[NoteMatch] = []
@@ -197,8 +197,9 @@ class VaultSyncService:
         # Essaie d'abord le titre du frontmatter, puis du nom de fichier
         for raw_title in [fm.get("title", ""), title_from_filename]:
             norm = self._normalize(str(raw_title))
-            if norm and norm in by_title:
-                c = by_title[norm]
+            candidates = by_title.get(norm, [])
+            if len(candidates) == 1:
+                c = candidates[0]
                 return NoteMatch(
                     path=path,
                     course_id=c.id,

@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from backend.core.reviews import local_store
+from backend.core.edn.error_profile import signals_since
 
 
 def build_flash_zero_priority(signals, today=None) -> list[str]:
@@ -173,7 +174,7 @@ class FlashZeroService:
         ]
 
         try:
-            signals = self.store.get_error_signals(item_number=item_number, days=30)
+            signals = signals_since(item_number=item_number, days=30, store=self.store)
         except Exception:
             signals = []
         priority = build_flash_zero_priority(signals)

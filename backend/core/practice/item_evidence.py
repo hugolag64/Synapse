@@ -11,7 +11,7 @@ def get_session_item_evidence(session_id: int) -> dict[str, dict]:
     """Aggregate the latest scored attempts by explicit question-item links."""
     with local_store._conn() as con:
         rows = con.execute(
-            """SELECT qi.item_number, sq.question_id, attempt.score_percent
+            """SELECT qi.item_number, qi.confidence, sq.question_id, attempt.score_percent
                FROM ai_practice_session_questions sq
                JOIN ai_practice_question_items qi
                  ON qi.question_id = sq.question_id
@@ -29,21 +29,29 @@ def get_session_item_evidence(session_id: int) -> dict[str, dict]:
             (session_id, session_id),
         ).fetchall()
 
-    scores: dict[str, list[float]] = defaultdict(list)
+    scores: dict[str, list[tuple[float, float]]] = defaultdict(list)
     question_ids: dict[str, list[int]] = defaultdict(list)
     for row in rows:
         item_number = str(row["item_number"] or "").strip()
         if not item_number:
             continue
-        scores[item_number].append(float(row["score_percent"]))
+        try:
+            confidence = max(0.0, float(row["confidence"] or 0.0))
+        except (TypeError, ValueError):
+            confidence = 1.0
+        scores[item_number].append((float(row["score_percent"]), confidence))
         question_ids[item_number].append(int(row["question_id"]))
 
     return {
         item_number: {
-            "score_percent": round(sum(values) / len(values), 2),
+            "score_percent": round(
+                sum(score * confidence for score, confidence in values)
+                / max(sum(confidence for _, confidence in values), 1.0),
+                2,
+            ),
             "total_questions": len(values),
-            "correct_answers": sum(value == 100.0 for value in values),
-            "wrong_answers": sum(value < 100.0 for value in values),
+            "correct_answers": sum(score == 100.0 for score, _ in values),
+            "wrong_answers": sum(score < 100.0 for score, _ in values),
             "question_ids": question_ids[item_number],
         }
         for item_number, values in scores.items()

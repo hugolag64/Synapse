@@ -63,3 +63,15 @@ def test_google_calendar_surfaces_authentication_failure(monkeypatch):
 
     with pytest.raises(GoogleCalendarAuthError, match="OAuth indisponible"):
         asyncio.run(service.get_events_for_day(datetime.date(2026, 7, 28)))
+
+
+def test_google_calendar_create_event_surfaces_authentication_failure(monkeypatch):
+    service = GoogleCalendarService()
+
+    def fail_authentication():
+        raise RuntimeError("OAuth indisponible")
+
+    monkeypatch.setattr(service, "authenticate", fail_authentication)
+
+    with pytest.raises(GoogleCalendarAuthError, match="OAuth indisponible"):
+        asyncio.run(service.create_event("Révision", "2026-08-07T09:00:00"))

@@ -71,7 +71,13 @@ class GoogleCalendarService:
     async def create_event(self, summary, start_time_iso, duration_minutes=60, description="", color_id=None, reminders=None):
         """Creates an event in the primary calendar. Thread-safe."""
         if not self.service:
-            await asyncio.to_thread(self.authenticate)
+            try:
+                await asyncio.to_thread(self.authenticate)
+            except Exception as error:
+                logger.error(f"Authentication failed before event creation: {error}")
+                raise GoogleCalendarAuthError(
+                    f"Authentification Google Calendar échouée : {error}"
+                ) from error
 
         # Handle start time
         if isinstance(start_time_iso, str):

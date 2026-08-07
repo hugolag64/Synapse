@@ -90,3 +90,18 @@ def test_item_match_has_priority_over_the_course_college_folder(tmp_path, monkey
     monkeypatch.setattr(settings_module.settings, "obsidian_vault_path", str(tmp_path))
 
     assert ObsidianService().find_course_note(_course("pneumo-75", "Pneumologie")) == expected
+
+
+def test_title_only_match_is_not_auto_assigned_when_title_is_ambiguous(tmp_path):
+    from backend.core.obsidian.sync import VaultSyncService
+
+    note = tmp_path / "01 - Cours EDN" / "Psychiatrie" / "Cours" / "Addiction au tabac.md"
+    note.parent.mkdir(parents=True)
+    note.write_text("---\n---\n# Addiction au tabac\n", encoding="utf-8")
+    courses = [_course("psy-75", "Psychiatrie"), _course("mg-75", "Médecine générale")]
+
+    result = VaultSyncService().scan_unlinked_notes(str(tmp_path), courses)
+
+    assert result.confirmed == []
+    assert result.uncertain == []
+    assert result.skipped == 1

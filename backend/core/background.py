@@ -141,6 +141,7 @@ async def run_background_tasks():
 
             # ── 8. Retry des corrections UNESS en échec (borné, silencieux) ───────
             await _retry_pending_uness_corrections()
+            _refresh_edn_recommendations()
 
             # ── 9. Retry des écritures Notion persistées après échec ───────────────
             await _retry_pending_notion_sync()
@@ -151,6 +152,19 @@ async def run_background_tasks():
             logger.error(f"Erreur dans la boucle de fond : {e}")
 
         await asyncio.sleep(300)
+
+def _refresh_edn_recommendations() -> None:
+    """Persist repeated error recommendations independently of the UI page."""
+    try:
+        from backend.core.edn.gap_suggestions import suggest_gap_candidates
+        from backend.core.reviews import local_store
+
+        suggestions = suggest_gap_candidates(days=30, store=local_store)
+        if suggestions:
+            logger.info(f"Recommandations EDN persistées : {len(suggestions)} nouvelle(s).")
+    except Exception as exc:
+        logger.warning(f"Persistance recommandations EDN ignorée : {exc}")
+
 
 async def _sync_vault_strict_once():
     """

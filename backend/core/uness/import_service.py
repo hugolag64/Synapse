@@ -604,7 +604,7 @@ def _classify_exam_items(exam: UnessExam, matiere: str) -> tuple[str, tuple[str,
     except Exception as exc:
         logger.warning(f"_classify_exam_items({exam.title!r}) échoué : {exc}")
         return "", ()
-    if not result.item_numbers:
+    if not result.confident or not result.item_numbers:
         return "", ()
     return result.item_numbers[0], result.item_numbers
 

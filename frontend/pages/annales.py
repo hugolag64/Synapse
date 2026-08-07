@@ -224,7 +224,9 @@ def _open_import_dialog(refresh_fn) -> None:
 
                     with cards_container:
                         for item in items:
-                            with ui.column().classes("w-full p-3 border border-slate-200 dark:border-slate-800 rounded-md gap-1 bg-slate-50 dark:bg-slate-900/40"):
+                            with ui.column().classes("w-full p-3 gap-1").style(
+                                "border:1px solid var(--border); border-radius:var(--radius-md); background:var(--bg-alt);"
+                            ):
                                 with ui.row().classes("w-full justify-between items-start gap-2"):
                                     display_title = re.sub(r"^(Image de l'annale\s*)?(Annale\s*-\s*)?", "", item["titre"], flags=re.IGNORECASE).strip()
                                     ui.label(display_title).classes("font-semibold text-sm leading-snug flex-1")
@@ -310,7 +312,9 @@ def _open_import_dialog(refresh_fn) -> None:
                     detected = str(group["matiere"] or "")
                     guess = _best_matiere_guess(college_options, detected)
                     matiere_options = [*college_options, _AUTRE]
-                    with ui.column().classes("w-full gap-1 p-3 border border-slate-200 dark:border-slate-800 rounded-md mb-2"):
+                    with ui.column().classes("w-full gap-1 p-3 mb-2").style(
+                        "border:1px solid var(--border); border-radius:var(--radius-md);"
+                    ):
                         ui.label(group["titre"] or source_url).classes("font-semibold text-sm")
                         ui.label(f"{group['faculte'] or '—'} · {group['annee'] or '—'}").classes("text-xs text-slate-500")
                         ui.select(

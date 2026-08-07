@@ -172,7 +172,9 @@ def _open_history_dialog(page_slot, sessions: list[dict], refresh_parent) -> Non
                     return
                 for s in filtered:
                     sid = int(s["id"])
-                    with ui.card().classes("w-full p-3 border border-slate-200 dark:border-slate-800 rounded-md"):
+                    with ui.card().classes("w-full p-3").style(
+                        "border:1px solid var(--border); border-radius:var(--radius-md);"
+                    ):
                         with ui.row().classes("w-full items-center justify-between gap-2"):
                             with ui.column().classes("gap-0 min-w-0 flex-1"):
                                 ui.label(s.get("course_title") or "Sous-partie").classes("font-semibold text-sm truncate")

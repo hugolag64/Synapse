@@ -28,3 +28,35 @@ def test_dashboard_gain_items_aggregates_courses_by_item():
     assert items[0]["item_number"] == "221"
     assert items[0]["mastery"] == 40
     assert items[0]["error_count"] == 2
+
+
+def test_dashboard_gain_items_uses_frequency_priority_and_question_catalog(monkeypatch):
+    from backend.core.reviews import local_store
+    from frontend.pages.dashboard._cockpit_today import build_gain_items
+
+    priorities = {"221": "indispensable", "340": "jamais_tombe"}
+    availability = {"221": [{}, {}, {}], "340": [{}]}
+    monkeypatch.setattr(
+        local_store,
+        "get_ednpro_item_frequency",
+        lambda item_number: {"priority": priorities[item_number]},
+    )
+    monkeypatch.setattr(
+        local_store,
+        "get_ednpro_practice_questions",
+        lambda item_number, limit=100: availability[item_number],
+    )
+
+    items = build_gain_items(
+        courses=[
+            type("Course", (), {"item_number": "221", "title": "A"})(),
+            type("Course", (), {"item_number": "340", "title": "B"})(),
+        ],
+        tasks=[],
+        error_signals=[],
+    )
+    by_item = {item["item_number"]: item for item in items}
+
+    assert by_item["221"]["edn_weight"] > by_item["340"]["edn_weight"]
+    assert by_item["221"]["available_questions"] == 3
+    assert by_item["340"]["available_questions"] == 1

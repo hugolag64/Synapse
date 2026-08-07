@@ -49,6 +49,22 @@ from backend.core.planning.sprint_countdown import SprintCountdownService
 _DAYS_FR = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
 _MONTHS_FR = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet",
               "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
+_EDN_PRIORITY_WEIGHTS = {
+    "indispensable": 1.0,
+    "important": 0.75,
+    "basique": 0.5,
+    "jamais_tombe": 0.25,
+}
+
+
+def _gain_data_for_item(item_number: str) -> tuple[float, int]:
+    frequency = local_store.get_ednpro_item_frequency(item_number) or {}
+    priority = str(frequency.get("priority") or "basique").strip().lower()
+    edn_weight = _EDN_PRIORITY_WEIGHTS.get(priority, 0.5)
+    available_questions = len(
+        local_store.get_ednpro_practice_questions(item_number, limit=1000) or []
+    )
+    return edn_weight, available_questions
 
 def build_gain_items(*, courses: list, tasks: list, error_signals: list[dict]) -> list[dict]:
     """Construit les priorités F3 à partir des données locales disponibles."""
@@ -78,13 +94,14 @@ def build_gain_items(*, courses: list, tasks: list, error_signals: list[dict]) -
             for task in item_tasks
             if getattr(task, "mastery_score", None) is not None
         ]
+        edn_weight, available_questions = _gain_data_for_item(item_number)
         items.append({
             "item_number": item_number,
             "title": str(getattr(course, "title", "") or ""),
-            "edn_weight": 0.7,
+            "edn_weight": edn_weight,
             "mastery": sum(scores) / len(scores) if scores else 0,
             "error_count": error_counts.get(item_number, 0),
-            "available_questions": 10,
+            "available_questions": available_questions,
             "estimated_minutes": 30,
         })
     return rank_gain_potential(items=items)

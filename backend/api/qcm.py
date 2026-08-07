@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import datetime
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -33,6 +35,32 @@ class FollowUpPayload(BaseModel):
 class UnessImportPayload(BaseModel):
     path: str
     verify: bool = True
+
+
+def _record_error_signals(attempt_id: int, question_id: int, propositions: list[dict]) -> None:
+    """Persist discordances for every item linked to a scored question."""
+    item_rows = local_store.get_ai_practice_question_items(question_id)
+    if not item_rows:
+        return
+
+    occurred_at = datetime.date.today().isoformat()
+    for item_row in item_rows:
+        item_number = str(item_row.get("item_number") or "").strip()
+        if not item_number:
+            continue
+        for proposition in propositions:
+            category = str(proposition.get("discordance") or "").strip()
+            if not category or category == "correct":
+                continue
+            proposition_id = str(proposition.get("proposition_id") or "").strip()
+            local_store.insert_error_signal_once(
+                item_number=item_number,
+                category=category,
+                occurred_at=occurred_at,
+                source="qcm",
+                evidence_id=str(attempt_id),
+                detail=f"proposition={proposition_id}",
+            )
 
 
 @router.post("/uness/import-directory")
@@ -170,6 +198,7 @@ def save_attempt(session_id: int, payload: AttemptPayload) -> dict:
     )
     if scored is not None and attempt_id is not None:
         local_store.replace_ai_practice_attempt_propositions(attempt_id, scored.propositions)
+        _record_error_signals(attempt_id, payload.question_id, scored.propositions)
     return {"ok": True, "score_mode": "" if scored is None else scored.score_mode}
 
 

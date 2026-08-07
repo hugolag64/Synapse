@@ -813,6 +813,34 @@ def insert_error_signal(
     return int(cursor.lastrowid)
 
 
+def insert_error_signal_once(
+    item_number: str,
+    category: str,
+    occurred_at: str,
+    source: str,
+    evidence_id: str,
+    detail: str = "",
+) -> bool:
+    """Insert an error signal once for a given evidence/category identity."""
+    with _conn() as con:
+        cursor = con.execute(
+            """INSERT INTO error_signals
+               (item_number, category, occurred_at, source, evidence_id, detail, created_at)
+               SELECT ?, ?, ?, ?, ?, ?, ?
+               WHERE NOT EXISTS (
+                   SELECT 1 FROM error_signals
+                   WHERE item_number = ? AND category = ?
+                     AND source = ? AND evidence_id = ?
+               )""",
+            (
+                str(item_number), str(category), str(occurred_at), str(source),
+                str(evidence_id), str(detail), _now(),
+                str(item_number), str(category), str(source), str(evidence_id),
+            ),
+        )
+    return cursor.rowcount == 1
+
+
 def get_error_signals(*, item_number: str | None = None, days: int | None = None) -> list[dict]:
     clauses = []
     params: list[object] = []

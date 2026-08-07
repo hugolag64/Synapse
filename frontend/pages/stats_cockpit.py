@@ -33,7 +33,7 @@ from frontend.pages.stats import (
 from frontend.components.mastery_indicator import _LEVEL_COLOR, _level_from_score
 
 _CSS = """
-.st-wrap { max-width:900px; width:100%; }
+.st-wrap { max-width:none; width:100%; }
 .st-topbar { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:4px 0 18px; flex-wrap:wrap; }
 .st-title { font-size:20px; font-weight:600; color:var(--text); letter-spacing:-0.01em; }
 .st-subtitle { font-size:12.5px; color:var(--text-muted); margin-top:4px; }

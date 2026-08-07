@@ -12,7 +12,7 @@ from backend.core.prep.catalog import list_prep_providers, list_prep_shortcuts, 
 from frontend.cockpit_shell import cockpit_frame
 
 _CSS = """
-.prep-wrap { max-width:980px; width:100%; }
+.prep-wrap { max-width:none; width:100%; }
 .prep-title { font-size:20px; font-weight:600; color:var(--text); letter-spacing:-.01em; }
 .prep-subtitle { color:var(--text-muted); font-size:12.5px; margin-top:4px; }
 .prep-provider { border:1px solid var(--border); border-radius:8px; padding:14px 16px; background:var(--bg-alt); }

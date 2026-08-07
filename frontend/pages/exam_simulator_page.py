@@ -19,7 +19,7 @@ from backend.core.uness.exam_simulator import (
 from frontend.components.import_dp_dialog import open_import_dp_dialog
 
 _EXAM_CSS = """
-.ex-wrap { width:100%; max-width:1100px; margin:0 auto; padding:8px 0 40px; }
+.ex-wrap { width:100%; max-width:none; margin:0 auto; padding:8px 0 40px; }
 .ex-head { margin-bottom: 20px; border-bottom:1px solid var(--border); padding-bottom: 16px; }
 .ex-title { font-size:22px; font-weight:600; color:var(--text); letter-spacing:-0.015em; margin:0; }
 .ex-subtitle { font-size:13px; color:var(--text-muted); margin-top:4px; }

@@ -15,7 +15,7 @@ from frontend.theme import frame
 _AUTRE = "Autre…"
 
 _ANNALES_CSS = """
-.ans-wrap { width:100%; max-width:1200px; align-self:stretch; margin:0 auto; min-width:0; }
+.ans-wrap { width:100%; max-width:none; align-self:stretch; margin:0 auto; min-width:0; }
 .ans-topbar { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:4px 0 18px; flex-wrap:wrap; }
 .ans-title { font-size:20px; font-weight:600; color:var(--text); letter-spacing:-0.01em; }
 .ans-subtitle { font-size:12.5px; color:var(--text-muted); margin-top:4px; }

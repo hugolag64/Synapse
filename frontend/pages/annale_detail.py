@@ -20,7 +20,7 @@ from frontend.theme import frame
 _AUTRE = "Autre…"
 
 _ANNALE_DETAIL_CSS = """
-.an-wrap { width:100%; max-width:1200px; align-self:stretch; margin:0 auto; min-width:0; }
+.an-wrap { width:100%; max-width:none; align-self:stretch; margin:0 auto; min-width:0; }
 .an-topbar { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:4px 0 18px; flex-wrap:wrap; border-bottom:1px solid var(--border); margin-bottom:20px; }
 .an-title { font-size:20px; font-weight:600; color:var(--text); letter-spacing:-0.01em; }
 .an-subtitle { font-size:12.5px; color:var(--text-muted); margin-top:4px; }

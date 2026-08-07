@@ -1,8 +1,21 @@
 """Tests pour le logger et la télémétrie des coûts IA."""
 
+import pytest
+
 from backend.core.ai.logger import calculate_cost_usd, log_ai_call
 from backend.core.ai.routing import AIModel, AITask
-from backend.core.reviews.local_store import get_ai_usage_summary
+from backend.core.reviews import local_store
+
+
+@pytest.fixture(autouse=True)
+def isolated_db(tmp_path, monkeypatch):
+    monkeypatch.setattr(local_store, "DB_PATH", tmp_path / "ai-telemetry.db")
+    monkeypatch.setattr(local_store, "_DB", None)
+    local_store.init_db()
+    yield
+    if local_store._DB is not None:
+        local_store._DB.close()
+    monkeypatch.setattr(local_store, "_DB", None)
 
 
 def test_calculate_cost_usd_flash_lite():
@@ -18,7 +31,7 @@ def test_calculate_cost_usd_flash():
 
 
 def test_log_ai_call_and_summary():
-    initial_summary = get_ai_usage_summary()
+    initial_summary = local_store.get_ai_usage_summary()
     initial_calls = initial_summary["summary"].get("total_calls", 0)
 
     cost = log_ai_call(
@@ -31,5 +44,5 @@ def test_log_ai_call_and_summary():
     )
 
     assert cost > 0
-    updated_summary = get_ai_usage_summary()
+    updated_summary = local_store.get_ai_usage_summary()
     assert updated_summary["summary"]["total_calls"] == initial_calls + 1

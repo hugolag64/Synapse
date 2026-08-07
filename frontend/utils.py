@@ -6,6 +6,7 @@ from nicegui import ui
 from loguru import logger
 from backend.state.store import data_store
 from backend.core.notion.service import notion_service
+from backend.core.reviews import local_store
 from backend.config.settings import NOTION_PROPS as P
 from backend.core.notion.payloads import checkbox, notion_date, url_prop
 
@@ -166,6 +167,7 @@ async def update_course_action(c, properties: dict, refresh_fn=None, client=None
         return True
     else:
         # Rollback
+        local_store.enqueue_notion_sync(c.id, properties, "Écriture Notion échouée")
         for target, old_vals in snapshot.items():
             for attr, old_val in old_vals.items():
                 setattr(target, attr, old_val)
@@ -173,5 +175,5 @@ async def update_course_action(c, properties: dict, refresh_fn=None, client=None
             with client:
                 if refresh_fn:
                     refresh_fn()
-                ui.notify("Erreur Notion — modifications annulées", type='negative')
+                ui.notify("Erreur Notion — demande mise en attente pour nouvelle tentative", type='warning')
         return False

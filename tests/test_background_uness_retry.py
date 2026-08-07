@@ -49,3 +49,22 @@ def test_retry_pending_uness_corrections_continues_after_one_retry_raises():
         asyncio.run(background._retry_pending_uness_corrections())
 
     assert mocked_retry.call_count == 2
+
+
+def test_retry_pending_notion_sync_replays_and_resolves_success(monkeypatch):
+    from backend.core import background
+    from backend.core.reviews import local_store
+
+    pending = [{"id": 7, "course_id": "course-1", "properties": {"done": True}}]
+    resolved = []
+    monkeypatch.setattr(local_store, "list_pending_notion_sync", lambda due_only: pending)
+    monkeypatch.setattr(local_store, "resolve_notion_sync", resolved.append)
+
+    async def succeed(*args, **kwargs):
+        return True
+
+    monkeypatch.setattr(background.notion_service, "update_course", succeed)
+
+    asyncio.run(background._retry_pending_notion_sync())
+
+    assert resolved == [7]

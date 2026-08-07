@@ -52,6 +52,29 @@ def test_notion_failure_rolls_back_optimistic_course_update(monkeypatch):
     assert course.qcm_done is False
 
 
+def test_notion_failure_is_persisted_for_background_retry(monkeypatch):
+    class HashableCourse(SimpleNamespace):
+        __hash__ = object.__hash__
+
+    course = HashableCourse(id="course-queue", qcm_done=False)
+    monkeypatch.setattr(utils.data_store, "cours", [course])
+
+    async def fail_update(*args, **kwargs):
+        raise RuntimeError("Notion indisponible")
+
+    monkeypatch.setattr(utils.notion_service, "update_course", fail_update)
+
+    result = asyncio.run(utils.update_course_action(
+        course, {P.QCM_COLLEGE: {"checkbox": True}}
+    ))
+
+    assert result is False
+    pending = local_store.list_pending_notion_sync()
+    assert len(pending) == 1
+    assert pending[0]["course_id"] == "course-queue"
+    assert pending[0]["properties"][P.QCM_COLLEGE] == {"checkbox": True}
+
+
 def test_duplicate_async_quick_action_is_coalesced(monkeypatch):
     from frontend.components import course_quick_actions as quick_actions
 

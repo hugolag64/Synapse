@@ -551,6 +551,7 @@ def init_db() -> None:
     _migrate_reliable_practice_loop()
     _migrate_uness_annales()
     _migrate_uness_correction_failures()
+    _migrate_notion_sync_queue()
     _migrate_uness_scanned_catalog()
     logger.info(f"SQLite initialisé : {DB_PATH}")
 
@@ -559,6 +560,93 @@ def init_db() -> None:
 
 def _now() -> str:
     return now_local().isoformat(timespec="seconds")
+
+
+_NOTION_SYNC_RETRY_DELAYS_SECONDS = [60, 300, 1800]
+
+
+def _migrate_notion_sync_queue() -> None:
+    with _conn() as con:
+        con.execute(
+            """CREATE TABLE IF NOT EXISTS notion_sync_queue (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                course_id       TEXT NOT NULL,
+                properties_json TEXT NOT NULL,
+                error_message   TEXT NOT NULL DEFAULT '',
+                attempts        INTEGER NOT NULL DEFAULT 0,
+                next_retry_at   TEXT NOT NULL,
+                status          TEXT NOT NULL DEFAULT 'pending',
+                created_at      TEXT NOT NULL,
+                updated_at      TEXT NOT NULL,
+                UNIQUE(course_id, properties_json, status)
+            )"""
+        )
+
+
+def enqueue_notion_sync(course_id: str, properties: dict, error_message: str) -> int:
+    now = _now()
+    properties_json = json.dumps(properties, ensure_ascii=False, sort_keys=True)
+    with _conn() as con:
+        row = con.execute(
+            "SELECT id, attempts FROM notion_sync_queue "
+            "WHERE course_id = ? AND properties_json = ? AND status = 'pending'",
+            (str(course_id), properties_json),
+        ).fetchone()
+        if row is not None:
+            attempts = int(row["attempts"]) + 1
+            delay = _NOTION_SYNC_RETRY_DELAYS_SECONDS[
+                min(attempts - 1, len(_NOTION_SYNC_RETRY_DELAYS_SECONDS) - 1)
+            ]
+            next_retry_at = (
+                datetime.datetime.fromisoformat(now) + datetime.timedelta(seconds=delay)
+            ).isoformat(timespec="seconds")
+            con.execute(
+                "UPDATE notion_sync_queue SET error_message = ?, attempts = ?, "
+                "next_retry_at = ?, updated_at = ? WHERE id = ?",
+                (str(error_message), attempts, next_retry_at, now, int(row["id"])),
+            )
+            return int(row["id"])
+
+        next_retry_at = (
+            datetime.datetime.fromisoformat(now)
+            + datetime.timedelta(seconds=_NOTION_SYNC_RETRY_DELAYS_SECONDS[0])
+        ).isoformat(timespec="seconds")
+        cursor = con.execute(
+            "INSERT INTO notion_sync_queue "
+            "(course_id, properties_json, error_message, attempts, next_retry_at, status, created_at, updated_at) "
+            "VALUES (?, ?, ?, 1, ?, 'pending', ?, ?)",
+            (str(course_id), properties_json, str(error_message), next_retry_at, now, now),
+        )
+        return int(cursor.lastrowid)
+
+
+def list_pending_notion_sync(*, due_only: bool = False, limit: int = 20) -> list[dict]:
+    query = "SELECT * FROM notion_sync_queue WHERE status = 'pending'"
+    params: list[object] = []
+    if due_only:
+        query += " AND next_retry_at <= ?"
+        params.append(_now())
+    query += " ORDER BY next_retry_at ASC, id ASC LIMIT ?"
+    params.append(int(limit))
+    with _conn() as con:
+        rows = con.execute(query, params).fetchall()
+    result = []
+    for row in rows:
+        value = dict(row)
+        try:
+            value["properties"] = json.loads(value.pop("properties_json"))
+        except (TypeError, json.JSONDecodeError):
+            value["properties"] = {}
+        result.append(value)
+    return result
+
+
+def resolve_notion_sync(queue_id: int) -> None:
+    with _conn() as con:
+        con.execute(
+            "UPDATE notion_sync_queue SET status = 'resolved', updated_at = ? WHERE id = ?",
+            (_now(), int(queue_id)),
+        )
 
 
 def replace_ednpro_item_frequencies(rows: list[dict]) -> int:

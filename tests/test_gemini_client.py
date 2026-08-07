@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+import requests
 
 from backend.core.ai.gemini_client import GeminiClient, GeminiClientError
 from backend.core.ai.routing import AIImageContent, AIModel
@@ -46,6 +47,21 @@ def test_generate_requests_json_response_format():
 
     config = post.call_args.kwargs["json"]["generationConfig"]
     assert config["responseMimeType"] == "application/json"
+
+
+def test_generate_retries_transient_network_failure_with_bounded_backoff():
+    payload = {"candidates": [{"content": {"parts": [{"text": "OK"}]}}]}
+    client = GeminiClient(api_key="secret")
+
+    with patch(
+        "requests.post",
+        side_effect=[requests.Timeout("temporary"), _response(payload)],
+    ) as post, patch("time.sleep") as sleep:
+        result = client.generate("Prompt", AIModel.FLASH)
+
+    assert result.text == "OK"
+    assert post.call_count == 2
+    sleep.assert_called_once_with(0.5)
 
 
 def test_generate_serializes_image_bytes_as_inline_content_without_local_identifiers():

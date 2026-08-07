@@ -4,7 +4,7 @@ import datetime
 import pytest
 
 import backend.config.settings as app_settings
-from backend.core.google.calendar_service import GoogleCalendarService
+from backend.core.google.calendar_service import GoogleCalendarAuthError, GoogleCalendarService
 from backend.core.planning.calendar_actions import event_duration_minutes
 
 
@@ -51,3 +51,15 @@ def test_google_calendar_uses_selected_app_timezone():
         assert fake.events_api.list_kwargs["timeMin"].endswith("+02:00")
     finally:
         app_settings.set_app_timezone("Europe/Paris")
+
+
+def test_google_calendar_surfaces_authentication_failure(monkeypatch):
+    service = GoogleCalendarService()
+
+    def fail_authentication():
+        raise RuntimeError("OAuth indisponible")
+
+    monkeypatch.setattr(service, "authenticate", fail_authentication)
+
+    with pytest.raises(GoogleCalendarAuthError, match="OAuth indisponible"):
+        asyncio.run(service.get_events_for_day(datetime.date(2026, 7, 28)))

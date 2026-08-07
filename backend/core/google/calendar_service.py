@@ -1,6 +1,7 @@
 import os.path
 import datetime
 import asyncio
+import os
 from backend.config.settings import business_today, get_app_timezone
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -10,6 +11,11 @@ from googleapiclient.errors import HttpError
 from loguru import logger
 
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
+
+
+class GoogleCalendarAuthError(RuntimeError):
+    """Authentication failure that must be visible to the caller/UI."""
+
 
 class GoogleCalendarService:
     def __init__(self):
@@ -115,7 +121,7 @@ class GoogleCalendarService:
                 await asyncio.to_thread(self.authenticate)
             except Exception as e:
                 logger.error(f"Authentication failed: {e}")
-                return []
+                raise GoogleCalendarAuthError(f"Authentification Google Calendar échouée : {e}") from e
             
         if date_obj is None:
             date_obj = business_today()

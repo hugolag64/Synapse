@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import base64
+import time
 from collections.abc import Sequence
 from typing import Any
 
@@ -13,6 +14,15 @@ from backend.core.ai.routing import AIImageContent, AIModel, AIResponse, AIServi
 
 class GeminiClientError(AIServiceError):
     """Erreur réseau, authentification ou contrat de réponse Gemini."""
+
+
+def _is_retryable_error(error: Exception) -> bool:
+    if isinstance(error, (requests.Timeout, requests.ConnectionError)):
+        return True
+    if isinstance(error, requests.HTTPError):
+        status_code = getattr(error.response, "status_code", None)
+        return status_code == 429 or (status_code is not None and status_code >= 500)
+    return False
 
 
 class GeminiClient:
@@ -68,22 +78,28 @@ class GeminiClient:
             payload["generationConfig"] = generation_config
 
         url = f"{self._base_url}/{self.models[model]}:generateContent"
-        import time
         start_time = time.perf_counter()
-        try:
-            response = requests.post(
-                url,
-                params={"key": self.api_key},
-                json=payload,
-                timeout=self.timeout_seconds,
-            )
-            response.raise_for_status()
-            data = response.json()
-        except Exception as exc:
-            duration_ms = (time.perf_counter() - start_time) * 1000.0
-            from backend.core.ai.logger import log_ai_call
-            log_ai_call(task=t_name, model=model, input_tokens=0, output_tokens=0, duration_ms=duration_ms, error=str(exc), context=context)
-            raise GeminiClientError(f"Gemini inaccessible : {exc}") from exc
+        response = None
+        data = None
+        for _attempt, delay in enumerate((0.5, 1.0, None)):
+            try:
+                response = requests.post(
+                    url,
+                    params={"key": self.api_key},
+                    json=payload,
+                    timeout=self.timeout_seconds,
+                )
+                response.raise_for_status()
+                data = response.json()
+                break
+            except Exception as exc:
+                if delay is not None and _is_retryable_error(exc):
+                    time.sleep(delay)
+                    continue
+                duration_ms = (time.perf_counter() - start_time) * 1000.0
+                from backend.core.ai.logger import log_ai_call
+                log_ai_call(task=t_name, model=model, input_tokens=0, output_tokens=0, duration_ms=duration_ms, error=str(exc), context=context)
+                raise GeminiClientError(f"Gemini inaccessible : {exc}") from exc
 
         duration_ms = (time.perf_counter() - start_time) * 1000.0
 

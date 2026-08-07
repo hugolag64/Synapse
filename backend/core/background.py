@@ -142,6 +142,9 @@ async def run_background_tasks():
             # ── 8. Retry des corrections UNESS en échec (borné, silencieux) ───────
             await _retry_pending_uness_corrections()
 
+            # ── 9. Retry des écritures Notion persistées après échec ───────────────
+            await _retry_pending_notion_sync()
+
             logger.success(f"[Cycle {_CYCLE}] Sync terminée. Prochain cycle dans 5 min.")
 
         except Exception as e:
@@ -454,6 +457,20 @@ async def _retry_pending_uness_corrections() -> None:
                 f"Retry correction UNESS : {len(result['pending_tag'])} annale(s) corrigée(s) "
                 "en attente de qualification de matière (ouvrir /annales pour les qualifier)."
             )
+
+
+async def _retry_pending_notion_sync() -> None:
+    from backend.core.reviews import local_store
+
+    for entry in local_store.list_pending_notion_sync(due_only=True):
+        try:
+            success = await notion_service.update_course(entry["course_id"], entry["properties"])
+        except Exception as exc:
+            logger.warning(f"Retry Notion #{entry['id']} échoué : {exc}")
+            continue
+        if success:
+            local_store.resolve_notion_sync(entry["id"])
+            logger.success(f"Retry Notion #{entry['id']} réussi")
 
 
 def reset_autolink_cache() -> None:

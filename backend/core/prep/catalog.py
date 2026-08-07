@@ -27,6 +27,7 @@ _PROVIDERS = (
 _DEFAULTS = (
     PrepShortcut("EDNpro", "entrainement", "Tous les items", "Entraînement EDN", "https://ednpro.app/training-v2", "quiz"),
     PrepShortcut("EDNpro", "annales", "Annales", "Sujets EDN et corrections", "https://ednpro.app/annales", "school"),
+    PrepShortcut("EDNpro", "masterclass", "Masterclass", "Cours et interventions EDNpro", "https://ednpro.app/masterclass", "auto_awesome"),
     PrepShortcut("EDNpro", "iconographie", "Iconographie", "Radio, dermato et imagerie", "https://ednpro.app/iconographie", "image"),
     PrepShortcut("EDNpro", "videos", "Vidéos ECG", "Vidéos ECG commentées", "https://ednpro.app/videos", "favorite"),
     PrepShortcut("EDNpro", "videos", "Physiologie", "Cours de physiologie", "https://ednpro.app/videos", "monitor_heart"),

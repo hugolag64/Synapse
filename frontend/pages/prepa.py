@@ -27,17 +27,41 @@ _CSS = """
 """
 
 
-def build_prepa_view(shortcuts: list[dict]) -> dict:
-    grouped: dict[str, list[dict]] = defaultdict(list)
+_CATEGORY_ORDER = ("accueil", "masterclass", "entrainement", "annales", "iconographie", "lca", "videos")
+
+
+def build_prepa_view(shortcuts: list[dict], providers: list[dict] | None = None) -> dict:
+    provider_catalog = providers or list_prep_providers()
+    grouped: dict[str, dict[str, list[dict]]] = defaultdict(lambda: defaultdict(list))
     for row in shortcuts:
-        grouped[str(row["category"])].append(row)
-    return {
-        "providers": sorted({str(row["provider"]) for row in shortcuts}),
-        "categories": [
-            {"category": category, "shortcuts": sorted(rows, key=lambda row: (str(row.get("title", "")), int(row.get("id", 0))))}
-            for category, rows in sorted(grouped.items())
-        ],
-    }
+        grouped[str(row["provider"])][str(row["category"])].append(row)
+
+    def category_key(category: str) -> tuple[int, str]:
+        try:
+            return (_CATEGORY_ORDER.index(category), category)
+        except ValueError:
+            return (len(_CATEGORY_ORDER), category)
+
+    sections = []
+    for provider in provider_catalog:
+        name = str(provider["name"])
+        categories = [
+            {
+                "category": category,
+                "shortcuts": sorted(
+                    rows,
+                    key=lambda row: (str(row.get("title", "")), int(row.get("id", 0))),
+                ),
+            }
+            for category, rows in sorted(grouped.get(name, {}).items(), key=lambda pair: category_key(pair[0]))
+        ]
+        sections.append({
+            "provider": name,
+            "root_url": provider.get("root_url", ""),
+            "enabled": bool(provider.get("enabled")),
+            "categories": categories,
+        })
+    return {"provider_sections": sections}
 
 
 async def _run_ednpro_import() -> None:
@@ -59,7 +83,7 @@ def prepa_page() -> None:
     ui.add_head_html(f"<style>{_CSS}</style>")
     shortcuts = list_prep_shortcuts()
     providers = list_prep_providers()
-    view = build_prepa_view(shortcuts)
+    view = build_prepa_view(shortcuts, providers)
 
     with cockpit_frame("Prépa"):
         with ui.column().classes("prep-wrap gap-0"):
@@ -71,32 +95,43 @@ def prepa_page() -> None:
                     "unelevated size=sm"
                 ).style("background:var(--accent);color:var(--accent-text);border-radius:6px;font-size:12px;font-weight:600")
 
-            with ui.column().classes("w-full gap-2 pt-5"):
-                ui.label("Fournisseurs").classes("prep-section-title")
-                with ui.row().classes("w-full gap-2 flex-wrap"):
-                    for provider in providers:
-                        with ui.element("div").classes("prep-provider flex-1 min-w-[210px]"):
-                            with ui.row().classes("w-full items-center justify-between"):
-                                ui.label(provider["name"]).classes("prep-provider-name")
-                                if provider["enabled"]:
-                                    ui.label("Raccourcis prêts").classes("prep-provider-meta")
+            with ui.column().classes("w-full gap-4 pt-6"):
+                ui.label("Plateformes").classes("prep-section-title")
+                for section in view["provider_sections"]:
+                    with ui.element("section").classes("prep-provider w-full"):
+                        with ui.row().classes("w-full items-center justify-between gap-3"):
+                            with ui.column().classes("gap-0"):
+                                ui.label(section["provider"]).classes("prep-provider-name")
+                                if section["enabled"] and section["root_url"]:
+                                    ui.link("Ouvrir la plateforme", section["root_url"], new_tab=True).classes(
+                                        "text-xs text-[var(--accent)] hover:underline mt-1"
+                                    )
                                 else:
-                                    ui.label("Bientôt").classes("prep-provider-meta")
-                            if provider["enabled"] and provider["root_url"]:
-                                ui.link("Ouvrir la plateforme", provider["root_url"], new_tab=True).classes(
-                                    "text-xs text-[var(--accent)] hover:underline mt-2"
-                                )
+                                    ui.label("Connexion bientôt disponible").classes("prep-provider-meta mt-1")
+                            ui.label(
+                                f"{sum(len(group['shortcuts']) for group in section['categories'])} raccourci(s)"
+                                if section["enabled"] else "Bientôt"
+                            ).classes("prep-provider-meta")
 
-            with ui.column().classes("w-full gap-3 pt-6"):
-                ui.label("Raccourcis").classes("prep-section-title")
-                for group in view["categories"]:
-                    ui.label(group["category"]).classes("prep-category pt-2")
-                    with ui.row().classes("w-full gap-2 flex-wrap"):
-                        for shortcut in group["shortcuts"]:
-                            with ui.link(target=shortcut["url"], new_tab=True).classes("prep-shortcut flex-1 min-w-[220px] no-underline") as link:
-                                with ui.row().classes("items-start gap-2"):
-                                    ui.icon(shortcut.get("icon", "open_in_new")).classes("text-[var(--accent)] text-lg")
-                                    with ui.column().classes("gap-0"):
-                                        ui.label(shortcut["title"]).classes("prep-shortcut-title")
-                                        ui.label(shortcut.get("description", "")).classes("prep-shortcut-desc")
-                            link.on("click", lambda _event=None, sid=shortcut.get("id"): record_prep_access(sid))
+                        if not section["categories"]:
+                            ui.label("Aucun raccourci configuré pour le moment.").classes("prep-provider-meta mt-4")
+                        else:
+                            with ui.column().classes("w-full gap-3 mt-4"):
+                                for group in section["categories"]:
+                                    ui.label(group["category"]).classes("prep-category")
+                                    with ui.row().classes("w-full gap-2 flex-wrap"):
+                                        for shortcut in group["shortcuts"]:
+                                            with ui.link(target=shortcut["url"], new_tab=True).classes(
+                                                "prep-shortcut flex-1 min-w-[220px] no-underline"
+                                            ) as link:
+                                                with ui.row().classes("items-start gap-2"):
+                                                    ui.icon(shortcut.get("icon", "open_in_new")).classes(
+                                                        "text-[var(--accent)] text-lg"
+                                                    )
+                                                    with ui.column().classes("gap-0"):
+                                                        ui.label(shortcut["title"]).classes("prep-shortcut-title")
+                                                        ui.label(shortcut.get("description", "")).classes("prep-shortcut-desc")
+                                            link.on(
+                                                "click",
+                                                lambda _event=None, sid=shortcut.get("id"): record_prep_access(sid),
+                                            )

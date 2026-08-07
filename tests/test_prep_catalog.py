@@ -20,6 +20,7 @@ def test_default_ednpro_shortcuts_are_grouped_by_category(prep_db):
     rows = list_prep_shortcuts("EDNpro")
 
     assert {row["category"] for row in rows} >= {"annales", "iconographie", "videos"}
+    assert any(row["title"] == "Masterclass" and row["url"] == "https://ednpro.app/masterclass" for row in rows)
     assert all(row["url"].startswith("https://") for row in rows)
 
 

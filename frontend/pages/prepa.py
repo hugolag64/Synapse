@@ -8,7 +8,11 @@ from pathlib import Path
 
 from nicegui import ui
 
-from backend.core.prep.catalog import list_prep_providers, list_prep_shortcuts, record_prep_access
+from datetime import datetime, timezone
+
+from backend.core.prep.catalog import (
+    list_prep_providers, list_prep_shortcuts, list_recent_prep_shortcuts, record_prep_access,
+)
 from frontend.cockpit_shell import cockpit_frame
 
 _CSS = """
@@ -16,15 +20,45 @@ _CSS = """
 .prep-title { font-size:20px; font-weight:600; color:var(--text); letter-spacing:-.01em; }
 .prep-subtitle { color:var(--text-muted); font-size:12.5px; margin-top:4px; }
 .prep-provider { border:1px solid var(--border); border-radius:8px; padding:14px 16px; background:var(--bg-alt); }
+@keyframes prepProviderEnter {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.prep-provider { animation: prepProviderEnter var(--duration-base) var(--ease-standard) both; }
+.prep-provider:nth-of-type(1) { animation-delay: 0ms; }
+.prep-provider:nth-of-type(2) { animation-delay: 60ms; }
+.prep-provider:nth-of-type(3) { animation-delay: 120ms; }
 .prep-provider-name { font-size:14px; font-weight:600; color:var(--text); }
 .prep-provider-meta { font-size:11.5px; color:var(--text-muted); }
 .prep-section-title { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-dim); font-weight:600; }
-.prep-shortcut { border:1px solid var(--border); border-radius:8px; padding:13px 14px; background:var(--bg-alt); transition:border-color .12s, background .12s; }
-.prep-shortcut:hover { border-color:var(--accent); background:var(--surface); }
+.prep-shortcut { border:1px solid var(--border); border-radius:8px; padding:13px 14px; background:var(--bg-alt); transition:border-color .12s, background .12s, transform .12s, box-shadow .12s; }
+.prep-shortcut:hover { border-color:var(--accent); background:var(--surface); transform:translateY(-2px); box-shadow:var(--shadow-popover); }
 .prep-shortcut-title { color:var(--text); font-size:13px; font-weight:600; }
 .prep-shortcut-desc { color:var(--text-muted); font-size:11.5px; margin-top:3px; }
 .prep-category { color:var(--text-muted); font-size:11px; text-transform:uppercase; letter-spacing:.04em; }
+.prep-recent { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+.prep-recent-item { flex:1; min-width:160px; padding:10px 12px; border:1px solid var(--border); border-radius:8px; background:var(--bg-alt); transition:border-color .12s, background .12s, transform .12s, box-shadow .12s; }
+.prep-recent-item:hover { border-color:var(--accent); background:var(--surface); transform:translateY(-2px); box-shadow:var(--shadow-popover); }
+.prep-recent-title { font-size:13px; font-weight:600; color:var(--text); }
+.prep-recent-time { font-size:11px; color:var(--text-muted); margin-top:2px; }
 """
+
+
+def relative_time_label(last_used: datetime, now: datetime) -> str:
+    """Libellé relatif compact pour un horodatage passé (« à l'instant », « il y a 5min »…)."""
+    delta_seconds = (now - last_used).total_seconds()
+    if delta_seconds < 60:
+        return "à l'instant"
+    minutes = int(delta_seconds // 60)
+    if minutes < 60:
+        return f"il y a {minutes}min"
+    hours = int(delta_seconds // 3600)
+    if hours < 24:
+        return f"il y a {hours}h"
+    days = int(delta_seconds // 86400)
+    if days == 1:
+        return "hier"
+    return f"il y a {days}j"
 
 
 _CATEGORY_ORDER = ("accueil", "masterclass", "entrainement", "annales", "iconographie", "lca", "videos")
@@ -84,6 +118,7 @@ def prepa_page() -> None:
     shortcuts = list_prep_shortcuts()
     providers = list_prep_providers()
     view = build_prepa_view(shortcuts, providers)
+    recent = list_recent_prep_shortcuts()
 
     with cockpit_frame("Prépa"):
         with ui.column().classes("prep-wrap gap-0"):
@@ -94,6 +129,24 @@ def prepa_page() -> None:
                 ui.button("Importer les EDN", icon="download", on_click=_run_ednpro_import).props(
                     "unelevated size=sm"
                 ).style("background:var(--accent);color:var(--accent-text);border-radius:6px;font-size:12px;font-weight:600")
+
+            if recent:
+                with ui.column().classes("w-full gap-2 pt-5"):
+                    ui.label("Récemment consulté").classes("prep-section-title")
+                    with ui.element("div").classes("prep-recent"):
+                        for item in recent:
+                            last_used = datetime.fromisoformat(item["last_used"])
+                            with ui.link(target=item["url"], new_tab=True).classes(
+                                "prep-recent-item no-underline"
+                            ) as link:
+                                ui.label(item["title"]).classes("prep-recent-title")
+                                ui.label(
+                                    relative_time_label(last_used, datetime.now(timezone.utc))
+                                ).classes("prep-recent-time")
+                            link.on(
+                                "click",
+                                lambda _event=None, sid=item.get("id"): record_prep_access(sid),
+                            )
 
             with ui.column().classes("w-full gap-4 pt-6"):
                 ui.label("Plateformes").classes("prep-section-title")

@@ -1,4 +1,5 @@
 import asyncio
+import sys
 
 
 def test_extract_training_records_accepts_nested_api_response():
@@ -38,3 +39,24 @@ def test_sync_from_payload_does_not_replace_snapshot_on_empty_payload(monkeypatc
 
     assert result["status"] == "empty"
     assert store.replaced is False
+
+
+def test_frequency_cli_forwards_cdp_url_for_normal_chrome(monkeypatch):
+    from scripts.ednpro import frequency_collector
+
+    captured = {}
+
+    async def fake_sync_if_due(**kwargs):
+        captured.update(kwargs)
+        return {"status": "updated", "rows": 1}
+
+    monkeypatch.setattr(frequency_collector, "sync_if_due", fake_sync_if_due)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["frequency_collector.py", "--force", "--cdp-url", "http://127.0.0.1:9222"],
+    )
+
+    frequency_collector.main()
+
+    assert captured["cdp_url"] == "http://127.0.0.1:9222"

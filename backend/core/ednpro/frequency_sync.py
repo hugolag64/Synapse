@@ -51,8 +51,9 @@ async def collect_frequency(
     profile_dir: Path = Path("data/ednpro/browser-profile"),
     source_url: str = TRAINING_URL,
     headless: bool = False,
+    cdp_url: str | None = None,
 ) -> dict:
-    """Open the authenticated profile and collect JSON responses from training-v2."""
+    """Collect JSON responses from training-v2 in a profile or normal Chrome."""
     try:
         from playwright.async_api import async_playwright
     except ImportError as exc:  # pragma: no cover
@@ -63,9 +64,19 @@ async def collect_frequency(
     tracked_pages: list[Any] = []
 
     async with async_playwright() as playwright:
-        profile_dir.mkdir(parents=True, exist_ok=True)
-        browser = await playwright.chromium.launch_persistent_context(str(profile_dir), headless=headless)
-        page = browser.pages[0] if browser.pages else await browser.new_page()
+        owns_context = cdp_url is None
+        if cdp_url:
+            browser = await playwright.chromium.connect_over_cdp(cdp_url)
+            contexts = browser.contexts
+            if not contexts:
+                return {"status": "browser_unavailable", "rows": 0, "url": cdp_url}
+            context = contexts[0]
+            page = next((candidate for candidate in context.pages if "ednpro.app" in candidate.url), None)
+            page = page or (context.pages[0] if context.pages else await context.new_page())
+        else:
+            profile_dir.mkdir(parents=True, exist_ok=True)
+            context = await playwright.chromium.launch_persistent_context(str(profile_dir), headless=headless)
+            page = context.pages[0] if context.pages else await context.new_page()
 
         async def consume(response: Any) -> None:
             try:
@@ -103,7 +114,8 @@ async def collect_frequency(
         finally:
             for tracked_page in tracked_pages:
                 tracked_page.remove_listener("response", on_response)
-            await browser.close()
+            if owns_context:
+                await context.close()
 
     if not payloads:
         return {"status": "empty", "rows": 0}
@@ -115,11 +127,12 @@ async def sync_if_due(
     profile_dir: Path = Path("data/ednpro/browser-profile"),
     force: bool = False,
     headless: bool = False,
+    cdp_url: str | None = None,
 ) -> dict:
     snapshot = local_store.get_ednpro_frequency_snapshot()
     if not force and not is_frequency_sync_due(snapshot.get("collected_at") if snapshot else None):
         return {"status": "not_due", "rows": int(snapshot.get("item_count", 0)) if snapshot else 0}
-    return await collect_frequency(profile_dir=profile_dir, headless=headless)
+    return await collect_frequency(profile_dir=profile_dir, headless=headless, cdp_url=cdp_url)
 
 
 def schedule_if_due(*, profile_dir: Path = Path("data/ednpro/browser-profile")) -> bool:

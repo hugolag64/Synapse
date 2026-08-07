@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import Literal
 
 from backend.core.ai.gemini_client import GeminiClient
 from backend.core.ai.routing import AIImageContent, AIModel, AIResponse, AITask
@@ -56,14 +57,42 @@ def generate_uness_correction(
     images: Sequence[AIImageContent] = (),
     context: str | None = None,
     service: AIService | None = None,
-) -> AIResponse:
+) -> "UnessCorrectionResult":
     # Only worth the pricier visual-reasoning model when there's actually an image
     # to analyze (DP/scanner questions) — plain text corrections stay on the cheap
     # Lite tier, which is most of a typical partiel's sub-parts.
     task = AITask.UNESS_CORRECTION_VISUAL if images else AITask.UNESS_CORRECTION
-    return (service or _default_service()).generate(
+    response = (service or _default_service()).generate(
         task, prompt, response_format="json", images=images, context=context
     )
+    return UnessCorrectionResult(
+        response=response,
+        requires_human_validation=bool(images),
+        status="pending_human_validation" if images else "final",
+    )
+
+
+@dataclass(frozen=True)
+class UnessCorrectionResult:
+    response: AIResponse
+    requires_human_validation: bool
+    status: Literal["final", "pending_human_validation"]
+
+    @property
+    def text(self) -> str:
+        return self.response.text
+
+    @property
+    def model(self) -> AIModel:
+        return self.response.model
+
+    @property
+    def input_tokens(self) -> int | None:
+        return self.response.input_tokens
+
+    @property
+    def output_tokens(self) -> int | None:
+        return self.response.output_tokens
 
 
 def classify_item(

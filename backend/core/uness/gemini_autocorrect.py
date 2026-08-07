@@ -221,6 +221,14 @@ def _correct_one_quiz(
         if response is None:
             raise AIServiceError("Aucune réponse obtenue du service IA.")
 
+        if response.requires_human_validation:
+            return (
+                None,
+                "Correction visuelle générée : validation humaine requise avant import.",
+                response.input_tokens or 0,
+                response.output_tokens or 0,
+            )
+
         payload = _parsed_response(response.text)
         quiz_objects = payload if isinstance(payload, list) else [payload]
         exams = gemini_conversion.convert_with_bridge(quiz_objects, bridge)
@@ -402,4 +410,3 @@ def retry_failed_quiz(failure_id: int, *, service: AIService | None = None) -> d
         error_message=message or "Erreur inconnue",
     )
     return {"success": False, "error": message}
-

@@ -175,6 +175,23 @@ def test_correct_directory_uses_lite_model_without_images_and_flash_with_images(
     assert AITask.UNESS_CORRECTION in tasks_used
 
 
+def test_correct_directory_does_not_publish_visual_correction_without_human_validation(
+    tmp_path, _isolated_verified_dir
+):
+    (tmp_path / "dermato1.jpg").write_bytes(b"fake-jpeg-bytes")
+    _bridge_file(
+        tmp_path,
+        images=[{"question_id": "q1", "filename": "uness-stamp/images/dermato1.jpg"}],
+    )
+    service = Mock()
+    service.generate.return_value = _quiz_response()
+
+    result = gemini_autocorrect.correct_directory(tmp_path, service=service)
+
+    assert result["corrected"] == []
+    assert any("validation humaine" in error["error"] for error in result["errors"])
+
+
 def test_correct_directory_reports_missing_image_but_still_writes_correction(tmp_path, _isolated_verified_dir):
     _bridge_file(
         tmp_path,

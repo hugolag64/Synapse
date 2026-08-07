@@ -57,7 +57,10 @@ def test_generate_uness_correction_uses_visual_flash_route_when_images_present()
     service = _service()
     images = (AIImageContent(mime_type="image/png", data=b"fixture"),)
 
-    generate_uness_correction("corrige ce quiz", images=images, service=service)
+    result = generate_uness_correction("corrige ce quiz", images=images, service=service)
+
+    assert result.requires_human_validation is True
+    assert result.status == "pending_human_validation"
 
     service.generate.assert_called_once_with(
         AITask.UNESS_CORRECTION_VISUAL,

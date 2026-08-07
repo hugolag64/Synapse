@@ -18,7 +18,7 @@ from loguru import logger
 
 from backend.core.notion.service import notion_service
 from backend.core.reviews import local_store
-from backend.core.reviews.service import review_service
+from backend.core.reviews.service import review_service, next_postpone_date
 from backend.core.reviews.models import ReviewTask
 from backend.core.reviews.validation import complete_review
 from backend.core.reviews.recommendation_service import (
@@ -350,7 +350,7 @@ async def render_today_cockpit() -> None:
         open_session_feedback_dialog(task, card, validate_fn=_on_done)
 
     async def _on_postpone(task, card=None, days: int = 1) -> None:
-        new_date = task.due_date + datetime.timedelta(days=days)
+        new_date = next_postpone_date(task.due_date, datetime.date.today(), days)
         local_store.postpone(
             task_id=task.id, course_id=task.course_id, context=task.context,
             review_type=task.review_type, theoretical_due_date=task.theoretical_due_date,

@@ -466,5 +466,23 @@ class ReviewService:
         return round(score, 1)
 
 
+# ── Report d'une révision ─────────────────────────────────────────────────────
+
+def next_postpone_date(
+    due_date: date,
+    today: date,
+    days: int = 1,
+) -> date:
+    """
+    Date effective après report.
+
+    Le calcul part de `max(due_date, today)` et non de `due_date` seule : sinon
+    reporter « d'un jour » une tâche en retard de cinq jours la place quatre
+    jours dans le passé, elle reste en retard, et il faut cliquer cinq fois
+    pour la sortir de la file.
+    """
+    return max(due_date, today) + timedelta(days=days)
+
+
 # ── Singleton ─────────────────────────────────────────────────────────────────
 review_service = ReviewService()

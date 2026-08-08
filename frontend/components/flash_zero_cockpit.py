@@ -95,6 +95,10 @@ def open_flash_zero_quiz(
                         ui.element("div").style(f"width:{((state['index'] + (state['phase'] == 'correction')) / len(questions)) * 100:.0f}%")
                     ui.label(f"{question.item_number} · {question.category}").classes("text-xs text-slate-500 mt-4")
                     ui.label(question.question_text).classes("text-base font-medium mt-1")
+                    if question.review_reason:
+                        ui.label(f"⚡ Généré par IA · {question.review_reason}").classes(
+                            "text-xs text-amber-600 mt-1"
+                        )
 
                     if state["phase"] == "question":
                         choices = ui.radio(list(question.choices), value=None).props("dense").classes("mt-3")

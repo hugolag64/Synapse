@@ -64,3 +64,10 @@ def test_sprint_card_uses_linear_layout_primitives():
     assert ".edn-sprint-progress-track" in source
     assert ".edn-sprint-metric" in source
     assert ".edn-sprint-priority-row" in source
+
+
+def test_flash_zero_wizard_shows_a_soft_badge_for_ai_flagged_questions():
+    source = Path("frontend/components/flash_zero_cockpit.py").read_text(encoding="utf-8")
+
+    assert "question.review_reason" in source
+    assert "Généré par IA" in source

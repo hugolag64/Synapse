@@ -9,7 +9,12 @@ from loguru import logger
 _PS_UNSAFE = re.compile(r'[`$;|&<>()\[\]{}\\]')
 from backend.core.notion.service import notion_service
 from backend.config.settings import business_today
-from backend.core.reviews.local_store import ensure_daily_flash_zero
+from backend.core.reviews.local_store import (
+    ensure_daily_flash_zero,
+    complete_daily_flash_zero_ai_gen,
+    is_daily_flash_zero_ai_gen_complete,
+)
+from backend.core.practice.flash_zero_service import FlashZeroService
 from backend.state.store import data_store
 
 # Set locale for French date formatting (if system supports it, otherwise fallback)
@@ -105,6 +110,19 @@ def ensure_morning_flash_zero() -> dict:
     return ensure_daily_flash_zero(business_today(), timezone_name=timezone_name)
 
 
+def ensure_daily_flash_zero_generation() -> None:
+    """Génère jusqu'à 3 nouvelles questions Flash-Zero IA, au plus une fois par jour."""
+    timezone_name = data_store.preferences.get("timezone", "Europe/Paris")
+    today = business_today()
+    if is_daily_flash_zero_ai_gen_complete(today, timezone_name=timezone_name):
+        return
+    complete_daily_flash_zero_ai_gen(today, timezone_name=timezone_name)
+    try:
+        FlashZeroService().generate_daily_questions(count=3)
+    except Exception as exc:
+        logger.debug(f"Génération Flash-Zero IA échouée (non bloquant): {exc}")
+
+
 async def run_daily_routine():
     """
     Execute the daily routine:
@@ -113,6 +131,7 @@ async def run_daily_routine():
     """
     today = business_today()
     ensure_morning_flash_zero()
+    ensure_daily_flash_zero_generation()
     if data_store.preferences.get("_routine_date") == today.isoformat():
         logger.debug("Daily Routine déjà exécutée aujourd'hui — skip.")
         await _send_morning_notification()

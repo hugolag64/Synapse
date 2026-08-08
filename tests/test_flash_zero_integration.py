@@ -193,3 +193,53 @@ def test_generate_daily_questions_drops_malformed_responses_but_keeps_valid_ones
     assert len(result) == 1
     assert result[0]["item_number"] == "ITEM 340"
     assert result[0]["review_reason"] != ""
+
+
+def test_ensure_daily_flash_zero_generation_calls_ai_at_most_once_per_day(monkeypatch):
+    from backend.features import daily_routine
+    import backend.core.practice.flash_zero_service as fz_module
+    from backend.core.reviews import local_store
+
+    monkeypatch.setattr(daily_routine, "business_today", lambda: datetime.date(2026, 8, 3))
+    monkeypatch.setattr(
+        daily_routine, "data_store",
+        type("Store", (), {"preferences": {"timezone": "Indian/Reunion"}})(),
+    )
+    calls = []
+    monkeypatch.setattr(
+        fz_module.FlashZeroService,
+        "generate_daily_questions",
+        lambda self, **kwargs: calls.append(kwargs) or [],
+    )
+
+    daily_routine.ensure_daily_flash_zero_generation()
+    daily_routine.ensure_daily_flash_zero_generation()
+
+    assert len(calls) == 1
+    assert calls[0] == {"count": 3}
+    assert local_store.is_daily_flash_zero_ai_gen_complete(
+        datetime.date(2026, 8, 3), timezone_name="Indian/Reunion",
+    ) is True
+
+
+def test_ensure_daily_flash_zero_generation_marks_done_even_on_failure(monkeypatch):
+    from backend.features import daily_routine
+    import backend.core.practice.flash_zero_service as fz_module
+    from backend.core.reviews import local_store
+
+    monkeypatch.setattr(daily_routine, "business_today", lambda: datetime.date(2026, 8, 4))
+    monkeypatch.setattr(
+        daily_routine, "data_store",
+        type("Store", (), {"preferences": {"timezone": "Indian/Reunion"}})(),
+    )
+
+    def _raise(self, **kwargs):
+        raise RuntimeError("panne réseau")
+
+    monkeypatch.setattr(fz_module.FlashZeroService, "generate_daily_questions", _raise)
+
+    daily_routine.ensure_daily_flash_zero_generation()
+
+    assert local_store.is_daily_flash_zero_ai_gen_complete(
+        datetime.date(2026, 8, 4), timezone_name="Indian/Reunion",
+    ) is True

@@ -593,6 +593,45 @@ def render_item_cockpit(course_id: str) -> None:
 
 # ── Onglets ───────────────────────────────────────────────────────────────────
 
+def _render_declared_level(course, mastery) -> None:
+    from backend.core.knowledge import store as knowledge_store
+
+    levels = (
+        ("solide", "Solide", "positive"),
+        ("correct", "Correct", "warning"),
+        ("flou", "Flou", "negative"),
+    )
+    container = ui.column().classes("w-full gap-2 ci-section")
+
+    def _render():
+        state = knowledge_store.get_item_state(course.id, "college")
+        container.clear()
+        with container:
+            with ui.row().classes("items-center gap-2"):
+                ui.label("Niveau déclaré avant Synapse").classes("ci-label")
+                if state is None:
+                    ui.badge("À situer").props("color=grey outline")
+
+            with ui.row().classes("items-center gap-1"):
+                for level, label, color in levels:
+                    selected = state is not None and state.declared_level == level
+
+                    def _set(_level=level):
+                        knowledge_store.set_item_state(
+                            course.id, _level, context="college", source="triage"
+                        )
+                        review_service.invalidate_cache()
+                        _render()
+
+                    ui.button(label, on_click=_set).props(
+                        f"unelevated rounded size=sm color={color}"
+                        if selected else
+                        "outline rounded size=sm color=grey"
+                    )
+
+    _render()
+
+
 def _tab_overview(course, task, score, level, next_due, next_cycle,
                   mastery, sessions) -> None:
     # Bloc recommandation
@@ -650,6 +689,8 @@ def _tab_overview(course, task, score, level, next_due, next_cycle,
                 str(course.display_item_number or course.item_number or "?"),
                 _neighbor_payload(neighbor_ids),
             )
+
+    _render_declared_level(course, mastery)
 
     # Raisons du score + note perso
     if mastery is not None and mastery.reasons:

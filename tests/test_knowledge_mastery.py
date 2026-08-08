@@ -73,6 +73,40 @@ def test_cours_sans_preuve_rang_a_n_est_pas_fragile_sur_le_seuil_rang_a():
     assert "Sécurité Rang A non atteinte (<75%)" not in snap.reasons
 
 
+def test_critique_par_score_general_sans_preuve_rang_a_omet_le_message():
+    """Score général bas (confiance basse), aucune donnée OIC de Rang A pour
+    l'item : le niveau critique est déclenché par la branche `score < 40`
+    seule, donc le message Rang A ne doit pas apparaître."""
+    import backend.core.reviews.local_store as ls
+
+    ls.add_study_session(course_id="course-1", activity_types=["révision"], confidence=1)
+    course = _course(first_read=datetime.date.today(), nb_lectures=1)
+    sessions = ls.get_sessions_by_course().get("course-1", [])
+    snap = get_course_mastery(course, sessions=sessions)
+
+    assert snap.score == 30  # 50 - 5 (1 lecture) - 15 (confiance basse)
+    assert snap.level == "critique"
+    assert "Socle Rang A critique (<40%)" not in snap.reasons
+
+
+def test_critique_par_rang_a_conserve_le_message():
+    """OIC de Rang A échoué (mastered=0) : score_rang_a chute bien en dessous
+    de 40 même si le score général ne l'est pas — le message Rang A doit
+    rester présent, c'est le cas où il est légitime."""
+    import backend.core.reviews.local_store as ls
+
+    ls.upsert_lisa_oic("course-1", [
+        {"oic_code": "OIC-1", "intitule": "O1", "rang": "A", "rubrique": "Déf", "ordre": 1},
+    ])
+    oic_id = ls.get_lisa_oic("course-1")[0]["id"]
+    ls.save_oic_attempt(oic_id, 20, "[]")  # < OIC_SUCCESS_SCORE (70) : reste non maîtrisé
+
+    snap = get_course_mastery(_course(first_read=datetime.date.today(), nb_lectures=2))
+
+    assert snap.level == "critique"
+    assert "Socle Rang A critique (<40%)" in snap.reasons
+
+
 def test_les_trois_crans_donnent_trois_niveaux_distincts():
     for level, expected_score, expected_label in [
         ("solide", 70, "à consolider"),

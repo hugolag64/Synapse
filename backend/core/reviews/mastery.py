@@ -277,7 +277,8 @@ def get_course_mastery(
         _has_rang_a_evidence and score_rang_a is not None and score_rang_a < 40
     ):
         level = "critique"
-        reasons.append("Socle Rang A critique (<40%)")
+        if _has_rang_a_evidence and score_rang_a is not None and score_rang_a < 40:
+            reasons.append("Socle Rang A critique (<40%)")
     elif score < 60 or (
         _has_rang_a_evidence and score_rang_a is not None and score_rang_a < 75
     ):

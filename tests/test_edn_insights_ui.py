@@ -50,3 +50,18 @@ def test_dashboard_reads_the_persisted_edn_target_date():
     source = Path("frontend/pages/dashboard/_cockpit_today.py").read_text(encoding="utf-8")
 
     assert 'preferences.get("edn_target_date", "2026-10-15")' in source
+
+
+def test_streamlit_sprint_widget_is_gone():
+    import subprocess
+
+    widget_path = Path("frontend/components/sprint_countdown_widget.py")
+    assert not widget_path.exists()
+
+    result = subprocess.run(
+        ["git", "grep", "-l", "render_sprint_countdown_widget", "--", "frontend", "backend"],
+        cwd=Path(__file__).parents[1],
+        capture_output=True,
+        text=True,
+    )
+    assert result.stdout.strip() == "", f"still referenced in: {result.stdout}"

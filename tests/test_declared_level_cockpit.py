@@ -34,3 +34,14 @@ def test_tab_overview_renders_declared_level_between_neighbors_and_reasons():
     reasons_idx = body.index("Pourquoi ce score")
 
     assert neighbors_idx < declared_idx < reasons_idx
+
+
+def test_course_detail_classic_has_no_leftover_dead_code():
+    source = (
+        Path(__file__).parents[1] / "frontend/pages/course_detail.py"
+    ).read_text(encoding="utf-8")
+
+    assert "_render_knowledge_block" not in source
+    assert "_render_course_timeline" not in source
+    assert "render_item_cockpit(course_id)" in source
+    assert len(source.splitlines()) < 30

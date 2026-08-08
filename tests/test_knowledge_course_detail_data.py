@@ -1,16 +1,13 @@
-"""Test de contrat — données affichées par le bloc « état des connaissances »
-de frontend/pages/course_detail.py (_render_knowledge_block).
+"""Test de contrat — comportement de knowledge_service.oic_coverage() pour
+un item sans OIC vs. avec au moins un OIC de rang A.
 
-La couverture OIC de Task 4 est déjà testée en détail dans
-tests/test_knowledge_oic.py et tests/test_knowledge_service.py. Ce test ne
-revérifie pas ce calcul : il vérifie seulement la logique de gating propre au
-bloc UI, à savoir la condition exacte utilisée pour décider d'afficher ou non
-la ligne de couverture OIC :
-
-    if cov["rang_a_total"] or cov["rang_b_total"]:
-
-Si ce contrat casse, la fiche cours affiche une ligne de couverture vide (ou
-en masque une qui devrait apparaître) sans aucune erreur visible.
+Historiquement, ce test reprenait la condition de gating utilisée par le bloc
+« Niveau déclaré » de la fiche cours (rang_a_total or rang_b_total) pour
+décider d'afficher une ligne de couverture OIC. Ce bloc a été retiré du
+cockpit au chantier C2 (2026-08-08) : la couverture OIC est affichée en
+détail dans l'onglet OIC dédié (render_oic_panel), pas en résumé dans
+l'onglet Vue d'ensemble. Le test reste utile comme contrat sur la forme des
+comptes retournés par oic_coverage().
 """
 import pytest
 

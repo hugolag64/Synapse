@@ -11,6 +11,7 @@ class AITask(StrEnum):
     ECOS_SIMPLE = "ecos_simple"
     DP = "dp"
     KFP = "kfp"
+    FLASH_ZERO = "flash_zero"
     ECOS_COMPLEX = "ecos_complex"
     EXTRACTION_GRILLE = "extraction_grille"
     UNESS_CORRECTION = "uness_correction"

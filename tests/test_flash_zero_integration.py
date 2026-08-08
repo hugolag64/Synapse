@@ -1,4 +1,5 @@
 import datetime
+import json
 
 import pytest
 
@@ -83,3 +84,34 @@ def test_daily_routine_uses_configured_business_timezone(monkeypatch):
 
     assert daily_routine.ensure_morning_flash_zero()["id"] == 1
     assert calls == [(datetime.date(2026, 8, 3), "Indian/Reunion")]
+
+
+def test_flash_zero_ai_questions_round_trip():
+    from backend.core.reviews import local_store
+
+    local_store.save_flash_zero_ai_questions([
+        {
+            "item_number": "ITEM 221", "item_title": "Méningite",
+            "question_text": "Q ?", "choices": ["A", "B"], "correct_idx": 0,
+            "explanation": "Exp.", "is_zero_eliminatoire": True,
+            "category": "Urgence vitale", "review_reason": "",
+        },
+    ])
+
+    rows = local_store.get_flash_zero_ai_questions()
+
+    assert len(rows) == 1
+    assert rows[0]["item_number"] == "ITEM 221"
+    assert json.loads(rows[0]["choices_json"]) == ["A", "B"]
+    assert rows[0]["correct_idx"] == 0
+    assert rows[0]["is_zero_eliminatoire"] == 1
+    assert rows[0]["review_reason"] == ""
+
+
+def test_flash_zero_ai_gen_marker_is_idempotent_per_day():
+    from backend.core.reviews import local_store
+
+    today = datetime.date(2026, 8, 3)
+    assert local_store.is_daily_flash_zero_ai_gen_complete(today, timezone_name="Indian/Reunion") is False
+    local_store.complete_daily_flash_zero_ai_gen(today, timezone_name="Indian/Reunion")
+    assert local_store.is_daily_flash_zero_ai_gen_complete(today, timezone_name="Indian/Reunion") is True

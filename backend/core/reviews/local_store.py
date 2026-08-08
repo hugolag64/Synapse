@@ -561,6 +561,7 @@ def init_db() -> None:
     _migrate_uness_correction_failures()
     _migrate_notion_sync_queue()
     _migrate_uness_scanned_catalog()
+    _migrate_flash_zero_ai_questions()
     logger.info(f"SQLite initialisé : {DB_PATH}")
 
 
@@ -3087,6 +3088,27 @@ def is_daily_flash_zero_dismissed(entry_date: datetime.date, *, timezone_name: s
     return bool(row and row["checked"])
 
 
+def complete_daily_flash_zero_ai_gen(entry_date: datetime.date, *, timezone_name: str) -> None:
+    date_iso = entry_date.isoformat() if isinstance(entry_date, datetime.date) else str(entry_date)
+    item_name = f"flash_zero_ai_gen:{timezone_name}"
+    with _conn() as con:
+        con.execute(
+            """INSERT INTO routine_checks(date, item_name, checked) VALUES (?, ?, 1)
+               ON CONFLICT(date, item_name) DO UPDATE SET checked = 1""",
+            (date_iso, item_name),
+        )
+
+
+def is_daily_flash_zero_ai_gen_complete(entry_date: datetime.date, *, timezone_name: str) -> bool:
+    date_iso = entry_date.isoformat() if isinstance(entry_date, datetime.date) else str(entry_date)
+    with _conn() as con:
+        row = con.execute(
+            "SELECT checked FROM routine_checks WHERE date = ? AND item_name = ?",
+            (date_iso, f"flash_zero_ai_gen:{timezone_name}"),
+        ).fetchone()
+    return bool(row and row["checked"])
+
+
 def delete_manual_planning_entry(entry_id: int) -> bool:
     with _conn() as con:
         cursor = con.execute("DELETE FROM manual_planning_entries WHERE id = ?", (int(entry_id),))
@@ -5386,6 +5408,56 @@ def get_item_pedagogical_history(item_number: str) -> list[dict]:
             })
 
     return sorted(history, key=lambda x: str(x.get("date") or ""), reverse=True)
+
+
+def _migrate_flash_zero_ai_questions() -> None:
+    """Crée la table flash_zero_ai_questions si absente (idempotent)."""
+    with _conn() as con:
+        con.executescript("""
+            CREATE TABLE IF NOT EXISTS flash_zero_ai_questions (
+                id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+                item_number          TEXT    NOT NULL,
+                item_title           TEXT    NOT NULL,
+                question_text        TEXT    NOT NULL,
+                choices_json         TEXT    NOT NULL,
+                correct_idx          INTEGER NOT NULL,
+                explanation          TEXT    NOT NULL,
+                is_zero_eliminatoire INTEGER NOT NULL DEFAULT 0,
+                category             TEXT    NOT NULL,
+                generated_at         TEXT    NOT NULL,
+                review_reason        TEXT    NOT NULL DEFAULT ''
+            );
+        """)
+
+
+def save_flash_zero_ai_questions(questions: list[dict]) -> None:
+    """Persiste un lot de questions Flash-Zero générées par l'IA."""
+    now = _now()
+    with _conn() as con:
+        for q in questions:
+            con.execute(
+                """INSERT INTO flash_zero_ai_questions
+                        (item_number, item_title, question_text, choices_json,
+                         correct_idx, explanation, is_zero_eliminatoire, category,
+                         generated_at, review_reason)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    q["item_number"], q["item_title"], q["question_text"],
+                    json.dumps(list(q["choices"])), int(q["correct_idx"]),
+                    q["explanation"], int(bool(q["is_zero_eliminatoire"])),
+                    q["category"], now, q.get("review_reason", ""),
+                ),
+            )
+
+
+def get_flash_zero_ai_questions(limit: int = 200) -> list[dict]:
+    """Relit le pool de questions Flash-Zero générées par l'IA, plus récentes d'abord."""
+    with _conn() as con:
+        rows = con.execute(
+            "SELECT * FROM flash_zero_ai_questions ORDER BY id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    return [dict(row) for row in rows]
 
 
 # ── Auto-init à l'import ──────────────────────────────────────────────────────

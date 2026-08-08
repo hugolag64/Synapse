@@ -15,6 +15,11 @@ def test_edn_insights_model_contains_progress_and_sprint_fields():
             average_mastery=61.5,
             overdue_reviews=4,
             remaining_reviews=28,
+            recommended_new_ratio=0.25,
+            recommended_review_ratio=0.45,
+            recommended_qcm_dp_ratio=0.30,
+            daily_target_items=6,
+            focus_message="🎯 Mode Consolidation : Entraînement QCM/DP quotidien et rattrapage des lacunes Rang A.",
         )
     )
 
@@ -22,6 +27,23 @@ def test_edn_insights_model_contains_progress_and_sprint_fields():
     assert model["coverage"] == "20/367"
     assert model["mastery"] == "61.5 %"
     assert model["overdue"] == "4"
+    assert model["focus_message"] == "🎯 Mode Consolidation : Entraînement QCM/DP quotidien et rattrapage des lacunes Rang A."
+    assert model["new_ratio"] == "25"
+    assert model["review_ratio"] == "45"
+    assert model["qcm_dp_ratio"] == "30"
+    assert model["daily_target_items"] == "6"
+
+
+def test_edn_insights_panel_renders_focus_message_and_ratio_breakdown():
+    source = Path("frontend/components/edn_insights_panel.py").read_text(encoding="utf-8")
+    start = source.index("def render_edn_insights_panel(")
+    body = source[start:]
+
+    assert 'model["focus_message"]' in body
+    assert "model['new_ratio']" in body
+    assert "model['review_ratio']" in body
+    assert "model['qcm_dp_ratio']" in body
+    assert "model['daily_target_items']" in body
 
 
 def test_dashboard_reads_the_persisted_edn_target_date():

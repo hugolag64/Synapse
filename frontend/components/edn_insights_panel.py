@@ -22,6 +22,11 @@ def edn_insights_model(status) -> dict[str, str]:
         "mastery": mastery,
         "overdue": str(status.overdue_reviews),
         "remaining": str(status.remaining_reviews),
+        "focus_message": status.focus_message,
+        "new_ratio": f"{int(status.recommended_new_ratio * 100)}",
+        "review_ratio": f"{int(status.recommended_review_ratio * 100)}",
+        "qcm_dp_ratio": f"{int(status.recommended_qcm_dp_ratio * 100)}",
+        "daily_target_items": str(status.daily_target_items),
     }
 
 
@@ -107,6 +112,7 @@ def render_edn_insights_panel(status, projections=(), gain_items=()) -> None:
                 ui.label(
                     f"Objectif {model['target']} · phase {model['phase']}"
                 ).classes("edn-sprint-subtitle")
+                ui.label(model["focus_message"]).classes("edn-sprint-subtitle")
             with ui.element("div").classes("edn-sprint-stats"):
                 for label, value in (
                     ("Items", model["coverage"]),
@@ -121,6 +127,11 @@ def render_edn_insights_panel(status, projections=(), gain_items=()) -> None:
             ui.element("div").classes("edn-sprint-progress-fill").style(
                 f"width:{model['coverage_percent']}%"
             )
+        ui.label(
+            f"Répartition recommandée : {model['new_ratio']}% nouveaux · "
+            f"{model['review_ratio']}% révisions · {model['qcm_dp_ratio']}% QCM/DP · "
+            f"{model['daily_target_items']} items/j visés"
+        ).classes("edn-sprint-subtitle mt-2")
         if projections:
             with ui.element("div").classes("edn-sprint-scenarios mt-3"):
                 for projection in projections:

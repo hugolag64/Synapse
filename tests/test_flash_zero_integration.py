@@ -115,3 +115,81 @@ def test_flash_zero_ai_gen_marker_is_idempotent_per_day():
     assert local_store.is_daily_flash_zero_ai_gen_complete(today, timezone_name="Indian/Reunion") is False
     local_store.complete_daily_flash_zero_ai_gen(today, timezone_name="Indian/Reunion")
     assert local_store.is_daily_flash_zero_ai_gen_complete(today, timezone_name="Indian/Reunion") is True
+
+
+def test_generate_daily_questions_returns_nothing_without_recent_signals():
+    from backend.core.practice.flash_zero_service import FlashZeroService
+
+    class Store:
+        def get_error_signals(self, **kwargs):
+            return []
+
+    class FakeAI:
+        def generate(self, *args, **kwargs):
+            raise AssertionError("no AI call expected when there are no recent signals")
+
+    result = FlashZeroService(store=Store(), ai_service=FakeAI()).generate_daily_questions(count=3)
+
+    assert result == []
+
+
+def test_generate_daily_questions_targets_priority_items_and_caps_at_their_count():
+    from types import SimpleNamespace
+    from backend.core.practice.flash_zero_service import FlashZeroService
+
+    class Store:
+        def get_error_signals(self, **kwargs):
+            return [
+                {"item_number": "221", "occurred_at": "2026-08-03", "category": "rang_a"},
+                {"item_number": "340", "occurred_at": "2026-08-02", "category": "rang_a"},
+            ]
+
+        def save_flash_zero_ai_questions(self, questions):
+            self.saved = questions
+
+    class FakeAI:
+        def generate(self, task, prompt, *, response_format="text", **kwargs):
+            return SimpleNamespace(text=json.dumps({
+                "item_title": "Titre", "question_text": "Q ?",
+                "choices": ["A", "B", "C", "D"], "correct_idx": 1,
+                "explanation": "Exp.", "is_zero_eliminatoire": True,
+                "category": "Urgence vitale", "uncertain": False,
+            }))
+
+    result = FlashZeroService(store=Store(), ai_service=FakeAI()).generate_daily_questions(count=5)
+
+    assert len(result) == 2
+    assert {q["item_number"] for q in result} == {"ITEM 221", "ITEM 340"}
+    assert all(q["review_reason"] == "" for q in result)
+
+
+def test_generate_daily_questions_drops_malformed_responses_but_keeps_valid_ones():
+    from types import SimpleNamespace
+    from backend.core.practice.flash_zero_service import FlashZeroService
+
+    class Store:
+        def get_error_signals(self, **kwargs):
+            return [
+                {"item_number": "221", "occurred_at": "2026-08-03", "category": "rang_a"},
+                {"item_number": "340", "occurred_at": "2026-08-02", "category": "rang_a"},
+            ]
+
+        def save_flash_zero_ai_questions(self, questions):
+            self.saved = questions
+
+    class FakeAI:
+        def generate(self, task, prompt, *, response_format="text", **kwargs):
+            if "ITEM 221" in prompt:
+                return SimpleNamespace(text="pas du json")
+            return SimpleNamespace(text=json.dumps({
+                "item_title": "Titre", "question_text": "Q ?",
+                "choices": ["A", "B", "C", "D"], "correct_idx": 0,
+                "explanation": "Exp.", "is_zero_eliminatoire": True,
+                "category": "Contre-indication", "uncertain": True,
+            }))
+
+    result = FlashZeroService(store=Store(), ai_service=FakeAI()).generate_daily_questions(count=5)
+
+    assert len(result) == 1
+    assert result[0]["item_number"] == "ITEM 340"
+    assert result[0]["review_reason"] != ""

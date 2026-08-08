@@ -43,6 +43,8 @@ class FlashZeroQuestion:
     explanation: str
     is_zero_eliminatoire: bool
     category: str  # ex: "Contre-indication", "Urgence vitale", "Erreur de rang A"
+    source: str = "canonical"  # "canonical" | "ai"
+    review_reason: str = ""  # non vide => badge "Généré par IA" dans le wizard
 
 
 def _flash_zero_prompt(item_number: str) -> str:
@@ -285,14 +287,39 @@ class FlashZeroService:
             ),
         ]
 
+        ai_bank: list[FlashZeroQuestion] = []
+        try:
+            ai_rows = self.store.get_flash_zero_ai_questions()
+        except Exception:
+            ai_rows = []
+        for row in ai_rows:
+            try:
+                ai_bank.append(FlashZeroQuestion(
+                    id=f"fz-ai-{row['id']}",
+                    item_number=row["item_number"],
+                    item_title=row["item_title"],
+                    question_text=row["question_text"],
+                    choices=tuple(json.loads(row["choices_json"])),
+                    correct_idx=row["correct_idx"],
+                    explanation=row["explanation"],
+                    is_zero_eliminatoire=bool(row["is_zero_eliminatoire"]),
+                    category=row["category"],
+                    source="ai",
+                    review_reason=row["review_reason"] or "",
+                ))
+            except Exception:
+                continue
+
+        full_bank = canonical_flash_bank + ai_bank
+
         try:
             signals = signals_since(item_number=item_number, days=30, store=self.store)
         except Exception:
             signals = []
         priority = build_flash_zero_priority(signals)
         rank = {item: index for index, item in enumerate(priority)}
-        targeted = [q for q in canonical_flash_bank if q.item_number.removeprefix("ITEM ") in rank]
-        fallback = [q for q in canonical_flash_bank if q not in targeted]
+        targeted = [q for q in full_bank if q.item_number.removeprefix("ITEM ") in rank]
+        fallback = [q for q in full_bank if q not in targeted]
         targeted.sort(key=lambda q: rank[q.item_number.removeprefix("ITEM ")])
         random.shuffle(fallback)
         return (targeted + fallback)[:count]

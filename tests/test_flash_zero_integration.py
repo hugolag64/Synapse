@@ -243,3 +243,32 @@ def test_ensure_daily_flash_zero_generation_marks_done_even_on_failure(monkeypat
     assert local_store.is_daily_flash_zero_ai_gen_complete(
         datetime.date(2026, 8, 4), timezone_name="Indian/Reunion",
     ) is True
+
+
+def test_get_morning_quiz_includes_stored_ai_questions_alongside_canonical_ones():
+    from backend.core.practice.flash_zero_service import FlashZeroService
+
+    class Store:
+        def get_item_pedagogical_history(self, *args, **kwargs):
+            return []
+
+        def get_error_signals(self, **kwargs):
+            return []
+
+        def get_flash_zero_ai_questions(self, **kwargs):
+            return [{
+                "id": 1, "item_number": "ITEM 999", "item_title": "Titre IA",
+                "question_text": "Q IA ?", "choices_json": json.dumps(["A", "B"]),
+                "correct_idx": 0, "explanation": "Exp IA.", "is_zero_eliminatoire": 1,
+                "category": "Contre-indication",
+                "review_reason": "Incertitude signalée par l'IA",
+            }]
+
+    quiz = FlashZeroService(store=Store()).get_morning_quiz(count=20)
+
+    ai_questions = [q for q in quiz if q.source == "ai"]
+    canonical_questions = [q for q in quiz if q.source == "canonical"]
+    assert len(ai_questions) == 1
+    assert ai_questions[0].item_number == "ITEM 999"
+    assert ai_questions[0].review_reason == "Incertitude signalée par l'IA"
+    assert len(canonical_questions) == 10

@@ -357,6 +357,10 @@ de stabilité.
 Ce modèle est une bonne base explicable. Il doit recevoir les preuves d’erreurs de manière fiable,
 notamment les erreurs QCM et annales, sinon la projection est optimiste par défaut.
 
+Correction appliquée dans cette tranche : une preuve exactement neutre (`0,5`) ne fait plus croître
+la stabilité. Elle peut conserver sa date comme dernière preuve, mais seules les qualités strictement
+supérieures à `0,5` renforcent la stabilité ; les qualités inférieures la contractent.
+
 ### 7. Priorisation
 
 La formule actuelle combine :
@@ -440,7 +444,8 @@ Vérification de la tranche : tests ciblés reprise précédents **66/66**, test
 **13/13**, tests ciblés Items **8/8**, tests ciblés QCM **33/33**, tests ciblés Prépa **9/9**, tests
 ciblés Annales et nettoyage **23/23**, score annales / barème **17/17**, Revue hebdo / largeurs **5/5**,
 Statistiques / largeurs **6/6**, Détail item / actions **21/21**, tests ciblés algorithme QCM **26/26**,
-tests ciblés maîtrise / rétention **30/30**, suite complète **1256/1256**,
+tests ciblés maîtrise / rétention **30/30**, rétention / projection **38/38**,
+suite complète **1257/1257**,
 compilation
 Python de `backend` et `frontend` réussie. La vérification manuelle de l’application reste à faire
 quand le serveur Synapse sera ouvert dans l’onglet local.

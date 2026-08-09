@@ -81,7 +81,7 @@ def _initial_stability(item: Evidence) -> float:
 def _update_stability(current: float, item: Evidence) -> float:
     base = _source_base_stability(item.source)
     quality = _clamp_quality(item.quality)
-    if quality >= 0.5:
+    if quality > 0.5:
         growth = 1.0 + (base / 60.0) * quality
         current *= growth
     else:

@@ -467,3 +467,24 @@ docker compose up -d --force-recreate synapse
 - Les UUID restent donc visibles dans `Pourquoi` et `Detail propositionnel EDN`.
 - Conclusion : le commit `0fdb7da` est bien pousse sur `main`, mais le homeserver
   n'a pas encore execute la commande de redeploiement correspondante.
+
+## QA post-redeploiement du bundle QCM - 2026-08-09
+
+- Apres redeploiement, le cache-busting confirme que le serveur sert bien
+  `qcm-app/assets/index-aaDsIWv3.js`.
+- La correction affiche les blocs `Ta reponse`, `Reponse correcte` et
+  `POURQUOI ?` sans UUID dans les explications.
+- Le detail propositionnel affiche maintenant les lettres `A` a `E` au lieu
+  des identifiants techniques.
+- Deux reliquats de presentation ont ete identifies : URL UNESS brute encore
+  visible comme libelle et reponse correcte affichee en JSON.
+
+## Masquage provenance et formatage des reponses - 2026-08-09
+
+- Le lien de provenance affiche maintenant `Ouvrir la source UNESS` tout en
+  conservant l'URL uniquement comme destination du lien.
+- Les tableaux JSON de reponses sont rendus sous forme de texte lisible.
+- Tests frontend QCM : `7 passed` ; build Vite reussi.
+- Suite Python complete : `1323 passed, 2 warnings`.
+- Ce dernier correctif doit etre redeploye avant la verification finale de la
+  correction.

@@ -56,7 +56,8 @@ describe('UNESS replay disclosure', () => {
 
   it('removes internal UUIDs from visible correction copy', () => {
     const uuid = 'b98be0ef-5762-4f69-92c7-87998038b82b'
-    expect((components as any).visibleCorrectionText(`${uuid}. ADENOCARCINOME BRONCHIQUE`)).toBe('. ADENOCARCINOME BRONCHIQUE')
+    expect((components as any).visibleCorrectionText(`${uuid}. ADENOCARCINOME BRONCHIQUE`)).toBe('ADENOCARCINOME BRONCHIQUE')
+    expect((components as any).visibleAnswerText('["A", "B"]')).toBe('A, B')
 
     const row: CorrectionRow = {
       position: 1,
@@ -188,7 +189,7 @@ describe('UNESS replay disclosure', () => {
     expect(markup).toContain('Le cours local contredit la correction officielle.')
     expect(markup).toContain('Correction officielle UNESS')
     expect(markup).toContain('Réponse officielle')
-    expect(markup).toContain('https://entrainement.uness.example/review/42')
+    expect(markup).toContain('Ouvrir la source UNESS')
     expect(markup).toContain('Université Paris Cité')
     expect(markup).toContain('DFASM3')
     expect(markup).toContain('2026')

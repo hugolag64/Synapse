@@ -43,7 +43,21 @@ export function visibleCorrectionText(value: string | null | undefined): string 
     .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/gi, '')
     .replace(/\s{2,}/g, ' ')
     .replace(/\s+([,.;:!?])/g, '$1')
+    .replace(/^\.\s*/, '')
+    .replace(/\.{2,}/g, '.')
     .trim()
+}
+
+export function visibleAnswerText(value: string | null | undefined): string {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  try {
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed)) return parsed.map((item) => String(item)).join(', ')
+  } catch {
+    // Keep non-JSON QROC and free-text answers unchanged.
+  }
+  return raw
 }
 
 function visiblePropositionLabel(propositionId: string | undefined, index: number): string {
@@ -64,7 +78,7 @@ function UnessProvenance({ question }: { question: Question }) {
   return <section className="uness-provenance">
     <strong>Provenance UNESS</strong>
     {identity.length > 0 && <span>{identity.join(' · ')}</span>}
-    {provenance?.source_url && <a href={provenance.source_url} target="_blank" rel="noreferrer">{provenance.source_url}</a>}
+    {provenance?.source_url && <a href={provenance.source_url} target="_blank" rel="noreferrer">Ouvrir la source UNESS</a>}
     {(provenance?.collected_at || provenance?.collection_status) && <span>Collecté le {provenance.collected_at || '—'} · Statut : {provenance.collection_status || '—'}</span>}
   </section>
 }
@@ -266,7 +280,7 @@ export function CorrectionCard({ row, sessionId }: { row: CorrectionRow; session
     {open && <div className="correction-detail">
       <QuestionVisualContext question={row.question} sessionId={sessionId} />
       {hasDisagreement && <div className="uness-warning" role="alert"><strong>Divergence avec la correction officielle UNESS</strong>{disagreementComments.map((comment) => <p key={comment}>{visibleCorrectionText(comment)}</p>)}</div>}
-      <div className="correction-body"><div className="answers"><div className="answer-label">Ta réponse</div><p className="answer-wrong">{row.response || 'Aucune réponse'}</p><div className="answer-label">Réponse correcte</div><p className="answer-right">{row.correct_answer}</p>
+      <div className="correction-body"><div className="answers"><div className="answer-label">Ta réponse</div><p className="answer-wrong">{visibleAnswerText(row.response) || 'Aucune réponse'}</p><div className="answer-label">Réponse correcte</div><p className="answer-right">{visibleAnswerText(row.correct_answer)}</p>
         {official && <details className="official-correction"><summary>Correction officielle UNESS</summary><p>{official.answer.length ? official.answer.join(', ') : 'Non disponible'}{official.available ? '' : ' (partielle)'}</p></details>}
       </div><aside><h3>POURQUOI ?</h3><p>{visibleCorrectionText(row.explanation)}</p></aside></div>
       {row.propositions && row.propositions.length > 0 && <section className="proposition-correction" aria-label="Détail des propositions">

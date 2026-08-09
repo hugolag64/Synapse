@@ -547,3 +547,11 @@ docker compose up -d --force-recreate synapse
 - Tests cibles : `18 passed, 1 warning`.
 - Commit applicatif : `b86c3b9`.
 - Redeploiement homeserver a effectuer avant QA Chromium de cette tranche.
+
+## Suite complete contrat metrics - 2026-08-10
+
+- Adaptateur, College, Semestres et navigation Statistiques implementes et
+  pousses par les commits `b91dba8`, `ce518f7`, `355b4c6` et `b86c3b9`.
+- Suite Python complete : `1333 passed, 2 warnings`.
+- QA Chromium et validation des valeurs sur le homeserver restent a effectuer
+  apres redeploiement.

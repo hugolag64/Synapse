@@ -372,3 +372,12 @@ docker exec synapse grep "host=\|port=" /app/main.py
 - Deploiement homeserver et QA Chromium restent a confirmer.
 - Nouvelle tentative SSH en mode non interactif : `Permission denied (publickey,password)`.
 - Le homeserver doit donc executer la commande de mise a jour manuellement avant la QA Chromium.
+
+## Commande de redeploiement a executer sur le homeserver
+
+```bash
+cd /srv/docker/stacks/synapse
+git pull --ff-only origin main
+docker compose build --pull synapse
+docker compose up -d --force-recreate synapse
+```

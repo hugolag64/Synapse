@@ -588,3 +588,47 @@ docker compose up -d --force-recreate synapse
 - Ecart de perimetre documente : `/stats` agrege 707 cours globaux, tandis que
   `/colleges` pilote 583 cours rattaches aux colleges.
 - QA finale de la tranche : validee.
+
+## Fin de session : reste du chantier UI - 2026-08-10
+
+La tranche Contrat Avancement / Maitrise / Retention est terminee, testee,
+deployee et validee sur Chromium. Le chantier global de refonte n'est pas
+encore termine. Les lots restant a planifier ou executer sont :
+
+1. **Ressources et vue Item**
+   - etablir puis brancher le lien direct Hypocampus apres validation de la
+     correspondance entre item et cours ;
+   - rendre les ressources video plus explicites dans leur libelle ;
+   - poursuivre l'alignement de l'en-tete Item, des colonnes et des donnees.
+
+2. **Systeme UI commun**
+   - uniformiser les grilles, colonnes, cartes, espacements et largeurs ;
+   - corriger les decalignements de la vue QCM et des tableaux ;
+   - traiter les vues qui n'occupent pas toute la largeur disponible.
+
+3. **Vues OIC, QCM, Epreuves et Annales**
+   - uniformiser la vue OIC ;
+   - finaliser la separation EDN / matieres et ameliorer le filtre visuel ;
+   - poursuivre le mode concours continu et sa mise en page plein ecran ;
+   - finaliser la correction d'epreuve sans identifiants techniques visibles.
+
+4. **Prepa, Points faibles et Revue hebdo**
+   - mieux distinguer visuellement les differentes Prepa ;
+   - rendre les signaux de Points faibles plus explicites et verifier leur
+     branchement avec les preuves sources ;
+   - faire occuper toute la largeur au bloc `FOCUS SEMAINE` et clarifier son
+     contenu.
+
+5. **Algorithmes et prediction de maitrise**
+   - documenter plus finement la provenance des preuves, la prediction et la
+     courbe d'oubli ;
+   - auditer les appels IA/API et identifier les ameliorations possibles ;
+   - ne modifier les formules qu'apres validation du contrat fonctionnel.
+
+6. **Parametres**
+   - refondre la navigation et le regroupement des domaines ;
+   - eviter l'affichage initial de sections melangees et toutes deployees ;
+   - ajouter une QA Chromium dediee apres implementation.
+
+Ces points constituent la prochaine feuille de route ; aucun d'eux n'est
+presente comme termine dans cette session.

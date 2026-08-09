@@ -354,4 +354,7 @@ docker exec synapse grep "host=\|port=" /app/main.py
   session historique.
 - Tests cibles : `30 passed`.
 - Suite complete : `1315 passed`.
-- Deploiement et QA Chromium restent a effectuer apres le commit/push.
+- Tentative SSH apres le push : aucune sortie obtenue depuis `hugo@192.168.1.5`
+  et commande interrompue apres attente ; le deploiement n'est pas confirme.
+- Commande a rejouer sur le homeserver : `cd /srv/docker/stacks/synapse && git pull --ff-only origin main && docker compose build --pull synapse && docker compose up -d --force-recreate synapse`.
+- QA Chromium reste a effectuer apres confirmation du redeploiement.

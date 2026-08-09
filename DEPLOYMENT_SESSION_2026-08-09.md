@@ -314,6 +314,14 @@ docker exec synapse grep "host=\|port=" /app/main.py
 - QA distante non concluante : l'instance visible n'est pas encore reconstruite depuis `main` et affiche encore l'ancien resume.
 - Nouvelle tentative SSH : `Permission denied (publickey,password)`.
 
+## Suite uniformisation vue OIC - 2026-08-09
+
+- Commit applicatif pousse : `a425e5f` (`fix: stabilize OIC panel row layout`).
+- Correction : lignes OIC en trois zones fixes code / contenu / actions, avec variante mobile.
+- Tests cibles OIC et ressources : `9 passed, 1 warning`.
+- Suite complete : `1312 passed, 2 warnings`.
+- QA navigateur et deploiement homeserver en attente ; SSH echoue encore avec `Permission denied (publickey,password)`.
+
 ## Mise Ã  jour QA Chromium CollÃ¨ges - 2026-08-09
 
 - La route `http://192.168.1.5:8888/colleges` rÃ©pond, mais reste sur `Chargement des donnÃ©esâ€¦` aprÃ¨s attente prolongÃ©e.

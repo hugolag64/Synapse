@@ -27,9 +27,9 @@ def test_flash_zero_prioritizes_repeated_recent_error_items(monkeypatch):
 
         def get_error_signals(self, **kwargs):
             return [
-                {"item_number": "221", "occurred_at": "2026-08-03", "category": "rang_a"},
-                {"item_number": "221", "occurred_at": "2026-08-02", "category": "rang_a"},
-                {"item_number": "340", "occurred_at": "2026-08-03", "category": "oubli"},
+                {"item_number": "221", "occurred_at": "2026-08-21", "category": "rang_a"},
+                {"item_number": "221", "occurred_at": "2026-08-20", "category": "rang_a"},
+                {"item_number": "340", "occurred_at": "2026-08-21", "category": "oubli"},
             ]
 
     monkeypatch.setattr(module.random, "shuffle", lambda values: None)
@@ -140,8 +140,8 @@ def test_generate_daily_questions_targets_priority_items_and_caps_at_their_count
     class Store:
         def get_error_signals(self, **kwargs):
             return [
-                {"item_number": "221", "occurred_at": "2026-08-03", "category": "rang_a"},
-                {"item_number": "340", "occurred_at": "2026-08-02", "category": "rang_a"},
+                {"item_number": "221", "occurred_at": "2026-08-21", "category": "rang_a"},
+                {"item_number": "340", "occurred_at": "2026-08-20", "category": "rang_a"},
             ]
 
         def save_flash_zero_ai_questions(self, questions):
@@ -170,8 +170,8 @@ def test_generate_daily_questions_drops_malformed_responses_but_keeps_valid_ones
     class Store:
         def get_error_signals(self, **kwargs):
             return [
-                {"item_number": "221", "occurred_at": "2026-08-03", "category": "rang_a"},
-                {"item_number": "340", "occurred_at": "2026-08-02", "category": "rang_a"},
+                {"item_number": "221", "occurred_at": "2026-08-21", "category": "rang_a"},
+                {"item_number": "340", "occurred_at": "2026-08-20", "category": "rang_a"},
             ]
 
         def save_flash_zero_ai_questions(self, questions):

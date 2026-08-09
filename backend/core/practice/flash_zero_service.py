@@ -14,7 +14,9 @@ from typing import Any
 
 from backend.core.ai.routing import AITask
 from backend.core.reviews import local_store
+from backend.core.reviews.reentry import filter_post_resume_signals, get_study_resume_date
 from backend.core.edn.error_profile import signals_since
+from backend.state.store import data_store
 
 
 def build_flash_zero_priority(signals, today=None) -> list[str]:
@@ -142,6 +144,10 @@ class FlashZeroService:
             signals = signals_since(item_number=item_number, days=30, store=self.store)
         except Exception:
             signals = []
+        signals = filter_post_resume_signals(
+            signals,
+            get_study_resume_date(data_store.preferences),
+        )
         priority = build_flash_zero_priority(signals)[:count]
         if not priority:
             return []
@@ -316,6 +322,10 @@ class FlashZeroService:
             signals = signals_since(item_number=item_number, days=30, store=self.store)
         except Exception:
             signals = []
+        signals = filter_post_resume_signals(
+            signals,
+            get_study_resume_date(data_store.preferences),
+        )
         priority = build_flash_zero_priority(signals)
         rank = {item: index for index, item in enumerate(priority)}
         targeted = [q for q in full_bank if q.item_number.removeprefix("ITEM ") in rank]

@@ -52,6 +52,14 @@ def test_dashboard_reads_the_persisted_edn_target_date():
     assert 'preferences.get("edn_target_date", "2026-10-15")' in source
 
 
+def test_dashboard_filters_pre_reentry_signals_before_gain_priorities():
+    source = Path("frontend/pages/dashboard/_cockpit_today.py").read_text(encoding="utf-8")
+
+    assert "filter_post_resume_signals" in source
+    assert "filter_post_resume_signals(" in source
+    assert "get_study_resume_date(data_store.preferences)" in source
+
+
 def test_sprint_visibility_is_persisted_and_hides_only_the_dashboard_card():
     dashboard = Path("frontend/pages/dashboard/_cockpit_today.py").read_text(encoding="utf-8")
     component = Path("frontend/components/edn_insights_panel.py").read_text(encoding="utf-8")

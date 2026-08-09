@@ -44,6 +44,7 @@ from frontend.components.flash_zero_cockpit import render_flash_zero_card, open_
 from frontend.components.edn_insights_panel import render_edn_insights_panel
 from backend.config.settings import business_today
 from backend.core.edn.trajectory import build_progress_snapshot, project_to_exam, rank_gain_potential
+from backend.core.reviews.reentry import filter_post_resume_signals, get_study_resume_date
 from backend.core.planning.sprint_countdown import SprintCountdownService
 
 _DAYS_FR = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
@@ -298,6 +299,10 @@ async def render_today_cockpit() -> None:
             error_signals = local_store.get_error_signals(days=30)
         except Exception:
             error_signals = []
+        error_signals = filter_post_resume_signals(
+            error_signals,
+            get_study_resume_date(data_store.preferences),
+        )
         gain_items = build_gain_items(
             courses=list(getattr(data_store, "cours", []) or []),
             tasks=all_tasks,

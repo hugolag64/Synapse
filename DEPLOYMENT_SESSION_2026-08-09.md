@@ -306,6 +306,14 @@ docker exec synapse grep "host=\|port=" /app/main.py
 - QA distante : l'instance visible repond, mais affiche encore l'ancienne grille (`%`, `FRAGILES`) ; la correction n'est pas encore deployee.
 - Deploiement homeserver : tentative realisee avec la commande habituelle, echec SSH `Permission denied (publickey,password)`.
 
+## Suite alignement resume Colleges - 2026-08-09
+
+- Correction : `.cg-head` et `.cg-row` utilisent maintenant la meme grille fixe ; les largeurs avec padding sont bornees par `box-sizing:border-box`.
+- Tests cibles : `17 passed, 1 warning`.
+- Suite complete : `1312 passed, 2 warnings`.
+- QA distante non concluante : l'instance visible n'est pas encore reconstruite depuis `main` et affiche encore l'ancien resume.
+- Nouvelle tentative SSH : `Permission denied (publickey,password)`.
+
 ## Mise Ã  jour QA Chromium CollÃ¨ges - 2026-08-09
 
 - La route `http://192.168.1.5:8888/colleges` rÃ©pond, mais reste sur `Chargement des donnÃ©esâ€¦` aprÃ¨s attente prolongÃ©e.

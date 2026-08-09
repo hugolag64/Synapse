@@ -60,6 +60,15 @@ git push origin main
 
 Run: `pytest -q`
 
+### Suite alignement du resume Colleges - 2026-08-09
+
+- Test rouge ajoute : `test_college_summary_uses_shared_grid_tracks`.
+- Test rouge confirme sur l'ancien layout flex.
+- Correction : `.cg-head` et `.cg-row` partagent maintenant une grille fixe, avec `box-sizing:border-box` et `min-width:0`.
+- Tests cibles : `17 passed, 1 warning`.
+- Suite complete : `1312 passed, 2 warnings`.
+- QA Chromium et deploiement homeserver restent en attente de l'acces SSH et du rebuild distant.
+
 - [ ] **Step 2: Vérifier Chromium**
 
 Sur `/colleges`, ouvrir un collège comportant au moins une ligne d'item et confirmer visuellement que les axes de `Lecture`, `Maîtrise`, `Statut`, `Retard`, `Prochaine`, `QCM` et `Action` sont identiques entre l'en-tête et les lignes.

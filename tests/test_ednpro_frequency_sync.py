@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import sys
 
 
@@ -60,3 +61,11 @@ def test_frequency_cli_forwards_cdp_url_for_normal_chrome(monkeypatch):
     frequency_collector.main()
 
     assert captured["cdp_url"] == "http://127.0.0.1:9222"
+
+
+def test_frequency_sync_is_headless_by_default_on_server():
+    from backend.core.ednpro import frequency_sync
+
+    assert inspect.signature(frequency_sync.collect_frequency).parameters["headless"].default is True
+    assert inspect.signature(frequency_sync.sync_if_due).parameters["headless"].default is True
+    assert inspect.signature(frequency_sync.schedule_if_due).parameters["headless"].default is True

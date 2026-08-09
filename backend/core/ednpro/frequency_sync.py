@@ -51,7 +51,7 @@ async def collect_frequency(
     *,
     profile_dir: Path = Path("data/ednpro/browser-profile"),
     source_url: str = TRAINING_URL,
-    headless: bool = False,
+    headless: bool = True,
     cdp_url: str | None = None,
 ) -> dict:
     """Collect JSON responses from training-v2 in a profile or normal Chrome."""
@@ -127,7 +127,7 @@ async def sync_if_due(
     *,
     profile_dir: Path = Path("data/ednpro/browser-profile"),
     force: bool = False,
-    headless: bool = False,
+    headless: bool = True,
     cdp_url: str | None = None,
 ) -> dict:
     snapshot = local_store.get_ednpro_frequency_snapshot()
@@ -136,7 +136,11 @@ async def sync_if_due(
     return await collect_frequency(profile_dir=profile_dir, headless=headless, cdp_url=cdp_url)
 
 
-def schedule_if_due(*, profile_dir: Path = Path("data/ednpro/browser-profile")) -> bool:
+def schedule_if_due(
+    *,
+    profile_dir: Path = Path("data/ednpro/browser-profile"),
+    headless: bool = True,
+) -> bool:
     """Schedule at most one due collection, without blocking the background loop."""
     global _last_scheduled_at, _running_task
     if _running_task is not None and not _running_task.done():
@@ -148,7 +152,9 @@ def schedule_if_due(*, profile_dir: Path = Path("data/ednpro/browser-profile")) 
     if snapshot and not is_frequency_sync_due(snapshot.get("collected_at")):
         return False
     _last_scheduled_at = now
-    _running_task = asyncio.create_task(sync_if_due(profile_dir=profile_dir))
+    _running_task = asyncio.create_task(
+        sync_if_due(profile_dir=profile_dir, headless=headless)
+    )
     _running_task.add_done_callback(_log_completed_task)
     return True
 

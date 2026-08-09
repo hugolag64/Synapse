@@ -180,7 +180,13 @@ class FlashZeroService:
             self.store.save_flash_zero_ai_questions(generated)
         return generated
 
-    def get_morning_quiz(self, count: int = 10, *, item_number: str | None = None) -> list[FlashZeroQuestion]:
+    def get_morning_quiz(
+        self,
+        count: int = 10,
+        *,
+        item_number: str | None = None,
+        quiz_date: date | None = None,
+    ) -> list[FlashZeroQuestion]:
         """
         Génère un quiz de `count` questions (par défaut 10) axé sur :
         1. Les lacunes / erreurs de Rang A récentes dans SQLite.
@@ -343,5 +349,7 @@ class FlashZeroService:
         targeted = [q for q in full_bank if q.item_number.removeprefix("ITEM ") in rank]
         fallback = [q for q in full_bank if q not in targeted]
         targeted.sort(key=lambda q: rank[q.item_number.removeprefix("ITEM ")])
-        random.shuffle(fallback)
+        effective_date = quiz_date or date.today()
+        rng = random.Random(f"flash-zero:{effective_date.isoformat()}:{item_number or 'all'}")
+        rng.shuffle(fallback)
         return (targeted + fallback)[:count]

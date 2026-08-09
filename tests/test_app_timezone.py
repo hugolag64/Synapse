@@ -31,6 +31,12 @@ def test_datastore_edn_target_date_defaults_to_october_15():
     assert DataStore().preferences["edn_target_date"] == "2026-10-15"
 
 
+def test_datastore_study_reentry_and_sprint_visibility_have_safe_defaults():
+    store = DataStore()
+    assert store.preferences["study_resume_date"] == "2026-08-20"
+    assert store.preferences["edn_sprint_visible"] is True
+
+
 def test_datastore_rejects_invalid_edn_target_date():
     store = DataStore()
     try:

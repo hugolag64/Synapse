@@ -78,20 +78,55 @@ class DataStore:
             'planning_vacation': {'enabled': False},
             'timezone': 'Europe/Paris',
             'edn_target_date': '2026-10-15',
+            'study_resume_date': '2026-08-20',
+            'edn_sprint_visible': True,
         }
 
     def _load_preferences(self, raw_preferences) -> None:
         preferences = self._get_default_preferences()
         if isinstance(raw_preferences, dict):
             preferences.update(raw_preferences)
-        try:
-            preferences['edn_target_date'] = datetime.strptime(
-                str(preferences.get('edn_target_date', '2026-10-15')), '%Y-%m-%d'
-            ).date().isoformat()
-        except (TypeError, ValueError):
-            preferences['edn_target_date'] = '2026-10-15'
+
+        for key, default in (
+            ('edn_target_date', '2026-10-15'),
+            ('study_resume_date', '2026-08-20'),
+        ):
+            try:
+                preferences[key] = datetime.strptime(
+                    str(preferences.get(key, default)), '%Y-%m-%d'
+                ).date().isoformat()
+            except (TypeError, ValueError):
+                preferences[key] = default
+
+        preferences['edn_sprint_visible'] = self._normalize_boolean(
+            preferences.get('edn_sprint_visible', True), default=True
+        )
         self.preferences = preferences
         set_app_timezone(self.preferences.get("timezone"))
+
+    @staticmethod
+    def _normalize_boolean(value, *, default: bool) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {'true', '1', 'yes', 'on'}:
+                return True
+            if normalized in {'false', '0', 'no', 'off'}:
+                return False
+            return default
+        if value is None:
+            return default
+        return bool(value)
+
+    def _normalize_preference(self, key: str, value):
+        if key in {'edn_target_date', 'study_resume_date'}:
+            return datetime.strptime(str(value), '%Y-%m-%d').date().isoformat()
+        if key == 'timezone':
+            return set_app_timezone(value).key
+        if key == 'edn_sprint_visible':
+            return self._normalize_boolean(value, default=True)
+        return value
 
     @property
     def items_map(self) -> Dict[int, str]:
@@ -261,11 +296,15 @@ class DataStore:
 
     def set_preference(self, key: str, value):
         """Update a preference and save to disk."""
-        if key == "timezone":
-            value = set_app_timezone(value).key
-        elif key == "edn_target_date":
-            value = datetime.strptime(str(value), '%Y-%m-%d').date().isoformat()
-        self.preferences[key] = value
+        self.set_preferences({key: value})
+
+    def set_preferences(self, values: dict[str, object]) -> None:
+        """Normalize, persist and atomically publish a group of preferences."""
+        normalized = {
+            key: self._normalize_preference(key, value)
+            for key, value in values.items()
+        }
+        self.preferences.update(normalized)
         self.save_to_disk()
 
     def load_from_disk(self, force: bool = False) -> bool:

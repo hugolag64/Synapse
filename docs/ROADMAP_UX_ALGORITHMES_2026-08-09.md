@@ -363,6 +363,10 @@ Points à corriger :
 
 Objectif : rendre la reprise du 20 août déterministe depuis toutes les vues.
 
+**État au 9 août 2026 :** le modèle de préférences persiste désormais la date cible EDN, la date
+de reprise `2026-08-20` et la visibilité du Sprint, avec validation des dates et écriture groupée.
+Le filtrage métier des tâches antérieures au 20 août n’est pas encore activé.
+
 Livrables :
 
 - préférence globale de reprise ;

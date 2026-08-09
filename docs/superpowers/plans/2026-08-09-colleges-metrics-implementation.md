@@ -62,7 +62,7 @@ def test_unread_course_is_not_presented_as_mastered():
     assert rows[0]["lecture_label"] == "Non lu"
     assert rows[0]["mastery_score"] is None
     assert rows[0]["status_text"] == "À lire"
-    assert rows[0]["status_key"] == "a_lire"
+assert rows[0]["status_key"] == "a_lire"
 ```
 - [ ] **Step 2: Exécuter les tests pour confirmer l’échec**
 
@@ -218,3 +218,7 @@ git add DEPLOYMENT_SESSION_2026-08-09.md docs/superpowers/plans/2026-08-09-colle
 git commit -m "docs: record colleges metrics QA"
 git push origin main
 ```
+
+### QA navigateur - mise a jour du 2026-08-09
+
+La route `/colleges` repond sans `Traceback`, `Internal Server Error` ni log navigateur `error`/`warning`, mais Chromium reste sur `Chargement des donnees...` apres attente prolongee. Les colonnes, l'alignement, les KPI et le comportement d'un college valide restent donc a valider apres deploiement effectif et fin du prechargement. Le Step 2 reste volontairement non coche.

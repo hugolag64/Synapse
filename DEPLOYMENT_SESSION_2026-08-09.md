@@ -297,3 +297,10 @@ docker exec synapse grep "host=\|port=" /app/main.py
 - **Repo**: https://github.com/hugolag64/Synapse
 - **App**: Synapse (Medical education tracking platform)
 - **Stack**: Python 3.11 + NiceGUI + SQLite + Notion API
+
+## Mise Ã  jour QA Chromium CollÃ¨ges - 2026-08-09
+
+- La route `http://192.168.1.5:8888/colleges` rÃ©pond, mais reste sur `Chargement des donnÃ©esâ€¦` aprÃ¨s attente prolongÃ©e.
+- Aucun `Traceback`, `Internal Server Error`, exception DOM ou log navigateur `error`/`warning` n'a Ã©tÃ© relevÃ©.
+- Les en-tÃªtes de la nouvelle grille et les KPI du pilotage ne sont pas rendus tant que le prÃ©chargement n'est pas terminÃ© ; ils ne sont donc pas validÃ©s visuellement.
+- La QA de cette tranche reste en attente du dÃ©ploiement effectif et/ou de la rÃ©solution du prÃ©chargement serveur.

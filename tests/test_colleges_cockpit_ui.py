@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 from types import SimpleNamespace
 
-from frontend.pages.colleges_cockpit import _college_item_rows
+from frontend.pages.colleges_cockpit import _college_item_rows, _pilotage_summary
 
 
 def _course(course_id, number, title, started=True):
@@ -42,8 +42,9 @@ def test_college_item_rows_expose_item_signals_without_extra_queries():
 def test_college_item_grid_uses_status_columns_and_readable_empty_state():
     source = open("frontend/pages/colleges_cockpit.py", encoding="utf-8").read()
 
-    for label in ("Progression", "Statut", "Retard", "Fragile", "Prochaine", "QCM"):
+    for label in ("Lecture", "Maîtrise", "Statut", "Retard", "Prochaine", "QCM"):
         assert f'"{label}"' in source
+    assert 'GridColumn("fragile"' not in source
     assert ".cg-item-status.non-commence" in source
     assert 'ui.label("—").classes("cg-item-cell cg-item-muted cg-item-action")' in source
     assert "aucune révision prévue" not in source
@@ -67,10 +68,65 @@ def test_college_item_rows_stay_inside_the_shared_grid_container():
 
     assert "for item in item_rows:" in source
     assert source.index("for item in item_rows:") > source.index('classes("cg-items-grid")')
-    assert "status_label(item[\"level\"])" in source
+    assert 'item["status_text"]' in source
 
 
 def test_college_pilotage_labels_reading_progress_separately_from_mastery():
     source = open("frontend/pages/colleges_cockpit.py", encoding="utf-8").read()
     assert "Avancement de lecture" in source
-    assert "Répartition de l’avancement de lecture" in source
+    assert "Répartition des statuts" in source
+    assert "Maîtrise moyenne" not in source
+    assert "maîtrise moyenne" in source
+    assert "rétention" in source
+
+
+def test_college_item_rows_separate_reading_from_mastery():
+    courses = [_course("c1", "12", "Lu sans preuve")]
+    rows = _college_item_rows(courses, [], mastery_by_course={})
+
+    assert rows[0]["lecture_label"] == "Lu"
+    assert rows[0]["reading_pct"] == 100
+    assert rows[0]["mastery_score"] is None
+    assert rows[0]["status_text"] == "Lu · maîtrise non évaluée"
+
+
+def test_validated_college_marks_every_item_read_without_mastery_score():
+    courses = [_course("c1", "12", "Non lu", started=False)]
+    rows = _college_item_rows(courses, [], mastery_by_course={}, college_validated=True)
+
+    assert rows[0]["lecture_label"] == "Lu"
+    assert rows[0]["reading_pct"] == 100
+    assert rows[0]["mastery_score"] is None
+    assert rows[0]["status_key"] == "lu_sans_preuve"
+
+
+def test_unread_course_is_not_presented_as_mastered():
+    courses = [_course("c1", "12", "A lire", started=False)]
+    rows = _college_item_rows(courses, [], mastery_by_course={})
+
+    assert rows[0]["lecture_label"] == "Non lu"
+    assert rows[0]["mastery_score"] is None
+    assert rows[0]["status_text"] == "À lire"
+    assert rows[0]["status_key"] == "a_lire"
+
+
+def test_pilotage_summary_separates_mastery_and_retention():
+    rows = [{
+        "total": 2,
+        "started": 2,
+        "retard": 0,
+        "fragile": 0,
+        "no_pdf": 0,
+        "mastery_by_course": {"c1": (80, "solide"), "c2": (None, None)},
+        "retention_by_course": {"c1": 65, "c2": None},
+        "status_counts": {"solide": 1, "lu_sans_preuve": 1},
+        "courses": [],
+    }]
+
+    summary = _pilotage_summary(rows)
+
+    assert summary["pct"] == 1
+    assert summary["mastery_avg"] == 80
+    assert summary["retention_avg"] == 65
+    assert summary["status_counts"]["solide"] == 1
+    assert summary["status_counts"]["lu_sans_preuve"] == 1

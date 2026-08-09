@@ -344,3 +344,14 @@ docker exec synapse grep "host=\|port=" /app/main.py
 - Aucun `Traceback`, `Internal Server Error`, exception DOM ou log navigateur `error`/`warning` n'a Ã©tÃ© relevÃ©.
 - Les en-tÃªtes de la nouvelle grille et les KPI du pilotage ne sont pas rendus tant que le prÃ©chargement n'est pas terminÃ© ; ils ne sont donc pas validÃ©s visuellement.
 - La QA de cette tranche reste en attente du dÃ©ploiement effectif et/ou de la rÃ©solution du prÃ©chargement serveur.
+
+## Historique rejouable QCM / DP - 2026-08-09
+
+- Correction locale : l'historique rejouable est maintenant separe en deux
+  sections visibles, `HISTORIQUE QCM` et `HISTORIQUE DP`.
+- Les sessions DP exposent une action explicite `Tuteur DP` qui reutilise le
+  dialogue existant et reconstruit son contexte depuis les questions de la
+  session historique.
+- Tests cibles : `30 passed`.
+- Suite complete : `1315 passed`.
+- Deploiement et QA Chromium restent a effectuer apres le commit/push.

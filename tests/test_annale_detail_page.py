@@ -82,3 +82,13 @@ def test_annale_detail_exposes_a_continuous_exam_action():
     assert "Mode concours continu" in source
     assert "_open_continuous_exam" in source
     assert "on_complete=_after_continuous_exam" in source
+
+
+def test_continuous_exam_resumes_state_and_opens_correction_only_at_the_end():
+    from pathlib import Path
+
+    source = Path("frontend/pages/annale_detail.py").read_text(encoding="utf-8")
+
+    assert "advance_exam_session" in source
+    assert "continuous.current_index" in source
+    assert "_show_continuous_result" in source

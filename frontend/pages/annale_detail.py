@@ -6,7 +6,7 @@ from nicegui import ui
 
 from backend.core.reviews import local_store
 from backend.core.uness.import_service import ANNALE_TYPE_LABELS, UNIVERSITES, format_annale_title
-from backend.core.uness.exam_session import start_exam_session
+from backend.core.uness.exam_session import advance_exam_session, start_exam_session
 from backend.state.store import data_store
 from frontend.components.practice_session_card import open_node_qcm, render_session_actions
 from frontend.components.qcm_replay import (
@@ -239,14 +239,32 @@ def annale_detail_page(annale_id: str) -> None:
 
         continuous_state = {"index": 0, "session_id": None}
 
+        def _show_continuous_result() -> None:
+            with ui.dialog() as result_dialog, ui.card().classes("w-[560px] max-w-[95vw] p-5 gap-3"):
+                ui.label("Épreuve terminée").classes("text-lg font-semibold")
+                ui.label(
+                    f"Les {len(sessions)} sous-parties ont été enregistrées sans correction intermédiaire."
+                ).classes("text-sm text-slate-500")
+
+                def _open_correction(session_id: int) -> None:
+                    result_dialog.close()
+                    open_chained_dialog(page_slot, lambda: _show_correction(session_id))
+
+                for session in sessions:
+                    ui.button(
+                        f"Voir la correction · {session.get('course_title') or 'Sous-partie'}",
+                        icon="fact_check",
+                        on_click=lambda _e=None, sid=int(session["id"]): _open_correction(sid),
+                    ).props("flat color=primary align=left")
+                with ui.row().classes("w-full justify-end pt-2"):
+                    ui.button("Fermer", on_click=result_dialog.close).props("flat")
+            result_dialog.open()
+
         def _open_next_continuous_part() -> None:
             if continuous_state["index"] >= len(sessions):
-                ui.notify("Épreuve terminée. La correction globale est maintenant disponible.", type="positive")
+                _show_continuous_result()
                 return
             sid = int(sessions[continuous_state["index"]]["id"])
-            continuous_state["index"] += 1
-            if open_node_qcm(sid):
-                return
             open_qcm_session(
                 sid,
                 on_complete=_after_continuous_exam,
@@ -254,6 +272,16 @@ def annale_detail_page(annale_id: str) -> None:
             )
 
         def _after_continuous_exam(_session_id: int) -> None:
+            if continuous_state["session_id"]:
+                try:
+                    continuous = advance_exam_session(
+                        continuous_state["session_id"],
+                        response={"completed_subpart_id": int(_session_id)},
+                    )
+                    continuous_state["index"] = continuous.current_index
+                except ValueError as exc:
+                    ui.notify(f"Impossible d'enregistrer la progression du concours : {exc}", type="negative")
+                    return
             _open_next_continuous_part()
 
         def _open_continuous_exam() -> None:
@@ -265,7 +293,9 @@ def annale_detail_page(annale_id: str) -> None:
                 continuous_state["session_id"] = continuous.session_id
             except ValueError:
                 continuous_state["session_id"] = None
-            continuous_state["index"] = 0
+                continuous_state["index"] = 0
+            else:
+                continuous_state["index"] = continuous.current_index
             _open_next_continuous_part()
 
         with ui.column().classes("an-wrap gap-0").style("flex:1 1 auto;"):

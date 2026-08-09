@@ -139,3 +139,25 @@ Le `.env` local contenait des credentials réels dans l’environnement de trava
 s’il est ignoré par Git, faire tourner les tokens Notion/OpenAI/Gemini, cookies et mots de
 passe concernés après la migration, puis ne conserver les nouvelles valeurs que dans
 `/srv/docker/stacks/synapse/.env` avec les permissions `600`.
+
+## Reprise des collÃ¨ges validÃ©s avant Synapse
+
+Cette reprise ne modifie pas Notion. Elle complÃ¨te uniquement SQLite et programme le
+dÃ©but de consolidation au 20 aoÃ»t 2026.
+
+Commencer par le rapport en lecture seule :
+
+```bash
+docker compose exec -T synapse \
+  python deploy/reprise_historique_consolidation.py --dry-run
+```
+
+AprÃ¨s vÃ©rification du rapport, appliquer :
+
+```bash
+docker compose exec -T synapse \
+  python deploy/reprise_historique_consolidation.py --apply
+```
+
+Le script sauvegarde SQLite, conserve les niveaux existants, crÃ©e les niveaux
+manquants en `correct` et n'ajoute aucune fausse ligne J3/J7/J14/J30. Il est idempotent.

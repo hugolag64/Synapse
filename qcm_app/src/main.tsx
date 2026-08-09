@@ -38,6 +38,19 @@ export function contextText(context: Record<string, unknown> | undefined): strin
     .join(' · ')
 }
 
+export function visibleCorrectionText(value: string | null | undefined): string {
+  return String(value || '')
+    .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s+([,.;:!?])/g, '$1')
+    .trim()
+}
+
+function visiblePropositionLabel(propositionId: string | undefined, index: number): string {
+  const normalized = String(propositionId || '').trim()
+  return /^[A-E]$/i.test(normalized) ? normalized.toUpperCase() : String.fromCharCode(65 + index)
+}
+
 function imageSource(sessionId: number, questionId: number, index: number, image: UnessImage): string {
   if (image.local_path) return `/api/qcm/sessions/${sessionId}/questions/${questionId}/images/${index}`
   return image.source_url
@@ -252,15 +265,15 @@ export function CorrectionCard({ row, sessionId }: { row: CorrectionRow; session
     <button className="correction-summary" onClick={() => setOpen(!open)}><span className="question-number">{row.position}</span><strong>{row.question.prompt}</strong><span className="status">● {correct ? 'Correcte' : row.status === 'unanswered' ? 'Sans réponse' : 'Incorrecte'}{hasDisagreement && <span className="divergence-badge">⚠ Divergence UNESS</span>}</span><span>{open ? '⌃' : '›'}</span></button>
     {open && <div className="correction-detail">
       <QuestionVisualContext question={row.question} sessionId={sessionId} />
-      {hasDisagreement && <div className="uness-warning" role="alert"><strong>Divergence avec la correction officielle UNESS</strong>{disagreementComments.map((comment) => <p key={comment}>{comment}</p>)}</div>}
+      {hasDisagreement && <div className="uness-warning" role="alert"><strong>Divergence avec la correction officielle UNESS</strong>{disagreementComments.map((comment) => <p key={comment}>{visibleCorrectionText(comment)}</p>)}</div>}
       <div className="correction-body"><div className="answers"><div className="answer-label">Ta réponse</div><p className="answer-wrong">{row.response || 'Aucune réponse'}</p><div className="answer-label">Réponse correcte</div><p className="answer-right">{row.correct_answer}</p>
         {official && <details className="official-correction"><summary>Correction officielle UNESS</summary><p>{official.answer.length ? official.answer.join(', ') : 'Non disponible'}{official.available ? '' : ' (partielle)'}</p></details>}
-      </div><aside><h3>POURQUOI ?</h3><p>{row.explanation}</p></aside></div>
+      </div><aside><h3>POURQUOI ?</h3><p>{visibleCorrectionText(row.explanation)}</p></aside></div>
       {row.propositions && row.propositions.length > 0 && <section className="proposition-correction" aria-label="Détail des propositions">
         <h3>Détail propositionnel EDN</h3>
         <div className="proposition-list" role="list">
-          {row.propositions.map((proposition) => <div className="proposition-line" role="listitem" key={proposition.proposition_id}>
-            <strong>{proposition.proposition_id}{proposition.text ? ` · ${proposition.text}` : ''}</strong>
+          {row.propositions.map((proposition, index) => <div className="proposition-line" role="listitem" key={proposition.proposition_id}>
+            <strong>{visiblePropositionLabel(proposition.proposition_id, index)}{proposition.text ? ` · ${proposition.text}` : ''}</strong>
             <span>{Boolean(proposition.selected) ? 'Sélectionnée' : 'Non sélectionnée'}</span>
             <span>{Boolean(proposition.expected) ? 'Attendue' : 'Non attendue'}</span>
             {proposition.rank && <span>Rang {proposition.rank}</span>}

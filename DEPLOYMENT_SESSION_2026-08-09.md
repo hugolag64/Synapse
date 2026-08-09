@@ -437,3 +437,25 @@ docker compose up -d --force-recreate synapse
 - Tests cibles : `17 passed`.
 - Suite complete : `1319 passed`.
 - Redeploiement homeserver et QA Chromium a effectuer avec la commande ci-dessus.
+
+## QA Chromium homeserver apres redeploiement - 2026-08-09
+
+- `/annales` charge correctement avec 10 epreuves EDN et le toggle `EDN / Matiere`.
+- Le filtre `Matiere` affiche 25 epreuves par matiere, sans melange avec les EDN.
+- Une epreuve EDN (`/annales/85`) expose le bouton `Mode concours continu`.
+- Le mode continu ouvre les sous-parties en chaine, sans correction intermediaire,
+  puis affiche `Epreuve terminee` avec les boutons de correction par sous-partie.
+- La correction post-epreuve est accessible et lisible, mais la QA a revele un
+  reliquat a corriger : des UUID techniques restent visibles dans `Pourquoi` et
+  dans `Detail propositionnel EDN`.
+- Aucun log navigateur `error` ou `warning` n'a ete observe sur ces parcours.
+
+## Correctif UUIDs visibles dans la correction - 2026-08-09
+
+- Le lecteur QCM nettoie maintenant les UUID internes dans les explications et
+  les commentaires de divergence.
+- Les identifiants techniques des propositions sont rendus sous forme de
+  lettres pedagogiques `A`, `B`, `C`, etc.
+- Tests frontend QCM : `7 passed` ; build Vite de `qcm_app` reussi.
+- Suite Python complete : `1323 passed, 2 warnings`.
+- Le correctif doit etre redeploye sur le homeserver avant la QA finale.

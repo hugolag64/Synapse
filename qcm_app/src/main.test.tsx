@@ -54,6 +54,26 @@ describe('UNESS replay disclosure', () => {
     })).toBe('Patient stable.')
   })
 
+  it('removes internal UUIDs from visible correction copy', () => {
+    const uuid = 'b98be0ef-5762-4f69-92c7-87998038b82b'
+    expect((components as any).visibleCorrectionText(`${uuid}. ADENOCARCINOME BRONCHIQUE`)).toBe('. ADENOCARCINOME BRONCHIQUE')
+
+    const row: CorrectionRow = {
+      position: 1,
+      status: 'incorrect',
+      response: 'A',
+      correct_answer: 'B',
+      explanation: `${uuid}. Explication lisible.`,
+      choices: ['A', 'B'],
+      question: { id: 1, prompt: 'Question', choices: ['A', 'B'], question_kind: 'closed' },
+      propositions: [{ proposition_id: uuid, text: 'Proposition', selected: 1, expected: 1, rank: '', points: 1, discordance: '' }],
+    }
+
+    const markup = renderToStaticMarkup(createElement(components.CorrectionCard as any, { row, sessionId: 12 }))
+    expect(markup).not.toContain(uuid)
+    expect(markup).toContain('A · Proposition')
+  })
+
   it('renders the unified EDN mode and proposition-level correction', () => {
     const Correction = (components as any).Correction
     expect(typeof Correction).toBe('function')

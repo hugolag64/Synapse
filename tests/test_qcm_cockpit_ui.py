@@ -136,6 +136,27 @@ def test_qcm_course_header_and_rows_share_full_width():
     assert ".qc-row > * { min-width:0; box-sizing:border-box; }" in css
 
 
+def test_replayable_history_separates_qcm_and_dp_sessions():
+    qcm, dp = qcm_cockpit._split_replayable_history([
+        {"id": 1, "practice_kind": "QCM"},
+        {"id": 2, "practice_kind": "DP"},
+        {"id": 3, "practice_kind": "dp"},
+        {"id": 4, "practice_kind": ""},
+    ])
+
+    assert [session["id"] for session in qcm] == [1, 4]
+    assert [session["id"] for session in dp] == [2, 3]
+
+
+def test_qcm_cockpit_labels_dp_history_and_tutor_action_explicitly():
+    source = inspect.getsource(qcm_cockpit.render_qcm_cockpit)
+
+    assert "HISTORIQUE QCM" in source
+    assert "HISTORIQUE DP" in source
+    assert "Tuteur DP" in source
+    assert "render_dp_tutor_action" in source
+
+
 def test_qcm_cockpit_calls_the_primary_action_training():
     source = inspect.getsource(qcm_cockpit.render_qcm_cockpit)
 

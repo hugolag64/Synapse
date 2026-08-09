@@ -488,3 +488,15 @@ docker compose up -d --force-recreate synapse
 - Suite Python complete : `1323 passed, 2 warnings`.
 - Ce dernier correctif doit etre redeploye avant la verification finale de la
   correction.
+
+## QA finale correction QCM - 2026-08-09
+
+- Le homeserver sert maintenant `qcm-app/assets/index-BQF2k1jk.js`.
+- La correction affiche `Ta reponse`, `Reponse correcte` et `POURQUOI ?` avec
+  une presentation lisible.
+- Le texte visible ne contient plus d'UUID ni d'URL UNESS brute ; le lien est
+  conserve sous le libelle `Ouvrir la source UNESS`.
+- Les reponses JSON sont rendues en texte et les propositions techniques sont
+  affichees sous forme de lettres `A` a `E`.
+- Aucun log navigateur `error` ou `warning` observe.
+- QA finale de cette tranche : validee.

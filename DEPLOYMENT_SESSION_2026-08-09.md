@@ -569,4 +569,6 @@ docker compose up -d --force-recreate synapse
   moyennes de maitrise et de retention restent calculees uniquement sur les
   snapshots disponibles.
 - Tests cibles : `23 passed, 1 warning`.
-- Commit applicatif et QA homeserver restent a effectuer.
+- Suite Python complete apres correction : `1335 passed, 2 warnings`.
+- Commit applicatif : `b550869`.
+- QA homeserver reste a effectuer.

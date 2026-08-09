@@ -71,6 +71,14 @@ def test_college_items_container_plays_an_entrance_animation_on_open():
     assert 'ui.element("div").classes("cg-items cg-items-enter")' in source
 
 
+def test_college_summary_uses_shared_grid_tracks():
+    source = open("frontend/pages/colleges_cockpit.py", encoding="utf-8").read()
+
+    assert ".cg-head, .cg-row { display:grid;" in source
+    assert "grid-template-columns:minmax(200px,2fr) minmax(120px,1fr) 42px 96px 90px 90px 52px;" in source
+    assert ".cg-head > *, .cg-row > * { min-width:0; box-sizing:border-box; }" in source
+
+
 def test_college_item_rows_stay_inside_the_shared_grid_container():
     source = open("frontend/pages/colleges_cockpit.py", encoding="utf-8").read()
 

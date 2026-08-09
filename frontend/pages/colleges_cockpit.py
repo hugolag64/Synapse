@@ -74,7 +74,9 @@ _CSS = """
               border-color var(--duration-fast) var(--ease-standard); }
 .cg-chip:hover { background:var(--surface); }
 .cg-chip.active { background:var(--accent); border-color:var(--accent); color:var(--accent-text); }
-.cg-head { display:flex; align-items:center; gap:14px; padding:0 12px 8px; font-size:10px;
+.cg-head, .cg-row { display:grid; grid-template-columns:minmax(200px,2fr) minmax(120px,1fr) 42px 96px 90px 90px 52px; align-items:center; column-gap:14px; }
+.cg-head > *, .cg-row > * { min-width:0; box-sizing:border-box; }
+.cg-head { padding:0 12px 8px; font-size:10px;
   text-transform:uppercase; letter-spacing:.04em; color:var(--text-dim); font-weight:600;
   border-bottom:1px solid var(--border); }
 .cg-h-name { flex:0 0 200px; }
@@ -84,7 +86,7 @@ _CSS = """
 .cg-h-fragile { flex:0 0 90px; }
 .cg-h-next { flex:0 0 90px; }
 .cg-h-qcm { flex:0 0 52px; text-align:right; }
-.cg-row { display:flex; align-items:center; gap:14px; min-height:44px; padding:9px 12px;
+.cg-row { min-height:44px; padding:9px 12px;
   border-bottom:1px solid var(--border); transition: background var(--duration-fast) var(--ease-standard); }
 .cg-row:hover { background:var(--surface-hover); }
 .cg-row:last-child { border-bottom:none; }

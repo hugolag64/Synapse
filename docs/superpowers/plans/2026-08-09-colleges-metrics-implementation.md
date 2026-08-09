@@ -170,13 +170,13 @@ Conserver `Avancement de lecture` pour `started / total`. Ajouter des cartes sé
 
 Vérifier la présence de `Lecture`, `Maîtrise`, `Statut`, `Retard`, `Prochaine`, `QCM`, l’absence de la colonne source `Fragile`, et l’usage du même template CSS pour header et lignes.
 
-- [ ] **Step 7: Exécuter les tests ciblés**
+- [x] **Step 7: Exécuter les tests ciblés**
 
 Run: `pytest tests/test_colleges_cockpit_ui.py tests/test_colleges_cockpit_items.py tests/test_college_validation.py tests/test_college_validation_ui.py -q`
 
 Expected: PASS.
 
-- [ ] **Step 8: Committer la tranche fonctionnelle**
+- [x] **Step 8: Committer la tranche fonctionnelle**
 
 ```bash
 git add frontend/pages/colleges_cockpit.py tests/test_colleges_cockpit_ui.py tests/test_colleges_cockpit_items.py
@@ -197,21 +197,21 @@ git push origin main
 - Consumes: la grille et le résumé livrés par Task 2.
 - Produces: preuve de tests, QA navigateur et état de déploiement.
 
-- [ ] **Step 1: Exécuter la suite complète**
+- [x] **Step 1: Exécuter la suite complète**
 
 Run: `pytest -q`
 
 Expected: PASS, sans ajout des fichiers utilisateur existants au commit.
 
-- [ ] **Step 2: QA navigateur**
+- [ ] **Step 2: QA navigateur** *(en attente du déploiement de `5426989`)*
 
 Sur `http://192.168.1.5:8888/colleges` : vérifier la présence des colonnes, l’alignement header/lignes, une ligne `Lu` avec `Maîtrise —`, le panneau `Maîtrise moyenne` et `Rétention`, puis le comportement d’un collège validé si une donnée de test est disponible.
 
-- [ ] **Step 3: Mettre à jour les MD**
+- [x] **Step 3: Mettre à jour les MD**
 
 Documenter les tests, le commit applicatif, le résultat Chromium et les limites éventuelles dans `DEPLOYMENT_SESSION_2026-08-09.md`. Cocher uniquement les étapes réellement validées.
 
-- [ ] **Step 4: Committer le rapport**
+- [x] **Step 4: Committer le rapport**
 
 ```bash
 git add DEPLOYMENT_SESSION_2026-08-09.md docs/superpowers/plans/2026-08-09-colleges-metrics-implementation.md

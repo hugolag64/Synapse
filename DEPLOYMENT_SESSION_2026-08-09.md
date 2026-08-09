@@ -64,6 +64,23 @@ docker compose up -d --force-recreate synapse
 - Le bouton `Enregistrer la planification` et le bouton `Rafraîchir tous les OIC (LiSA)` sont accessibles après ouverture.
 - Aucun `Traceback`, `Internal Server Error`, exception DOM ou log navigateur d'erreur/avertissement n'a été relevé.
 
+### Tranche métriques Collèges — état au 2026-08-09
+
+- Commits applicatifs poussés : `79a69e3` et `5426989`
+- Tests locaux : `1310 passed, 2 warnings`
+- Le code sépare désormais `Lecture`, `Maîtrise` et `Statut`, et un collège `valide` est présenté comme entièrement lu sans créer de score de maîtrise.
+- Vérification Chromium actuelle sur `/colleges` : l'instance accessible affiche encore l'ancienne grille (`Fragile`, ancien pilotage) ; le commit Collèges n'est donc pas encore visible sur le homeserver.
+- QA navigateur de cette tranche : en attente du déploiement de `5426989`.
+
+Commande de mise à jour homeserver :
+
+```bash
+cd /srv/docker/stacks/synapse
+git pull --ff-only origin main
+docker compose build --pull synapse
+docker compose up -d --force-recreate synapse
+```
+
 ## État actuel
 
 ### ✅ Complété

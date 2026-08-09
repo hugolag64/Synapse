@@ -298,6 +298,14 @@ docker exec synapse grep "host=\|port=" /app/main.py
 - **App**: Synapse (Medical education tracking platform)
 - **Stack**: Python 3.11 + NiceGUI + SQLite + Notion API
 
+## Tranche alignement grille items Collèges - 2026-08-09
+
+- Commit applicatif pousse : `a3a0e83` (`fix: align college item grid columns`)
+- Correction : colonne `Action` fixee a `88px` dans le `DataGrid` et le CSS partage ; les enfants de grille utilisent `min-width:0`.
+- Tests : `1311 passed, 2 warnings` ; tests cibles : `16 passed, 1 warning`.
+- QA distante : l'instance visible repond, mais affiche encore l'ancienne grille (`%`, `FRAGILES`) ; la correction n'est pas encore deployee.
+- Deploiement homeserver : tentative realisee avec la commande habituelle, echec SSH `Permission denied (publickey,password)`.
+
 ## Mise Ã  jour QA Chromium CollÃ¨ges - 2026-08-09
 
 - La route `http://192.168.1.5:8888/colleges` rÃ©pond, mais reste sur `Chargement des donnÃ©esâ€¦` aprÃ¨s attente prolongÃ©e.

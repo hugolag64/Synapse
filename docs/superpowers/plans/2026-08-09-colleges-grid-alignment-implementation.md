@@ -46,7 +46,7 @@ Run: `pytest tests/test_colleges_cockpit_ui.py tests/test_colleges_cockpit_items
 
 Expected: PASS.
 
-- [ ] **Step 3: Committer la correction**
+- [x] **Step 3: Committer la correction**
 
 ```bash
 git add frontend/pages/colleges_cockpit.py tests/test_colleges_cockpit_ui.py docs/superpowers/specs/2026-08-09-colleges-grid-alignment-design.md docs/superpowers/plans/2026-08-09-colleges-grid-alignment-implementation.md
@@ -56,7 +56,7 @@ git push origin main
 
 ### Task 3: Vérifier la livraison
 
-- [ ] **Step 1: Exécuter la suite complète**
+- [x] **Step 1: Exécuter la suite complète**
 
 Run: `pytest -q`
 

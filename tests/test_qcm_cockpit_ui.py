@@ -99,7 +99,7 @@ def test_qcm_cockpit_uses_compact_picker_and_single_action_menu():
     assert "Rechercher un ITEM" in source
     assert "max-h-[280px]" in source
     assert "ui.menu" in topbar_source
-    assert "Nouvelle session" in topbar_source
+    assert "Lancer un entraînement" in topbar_source
 
 
 def test_item_picker_opens_generation_settings_on_item_click():
@@ -118,6 +118,21 @@ def test_item_picker_opens_generation_settings_on_item_click():
 def test_qcm_cockpit_is_full_width_with_handoff_content_bound():
     assert "max-width:none" in qcm_cockpit.QCM_COCKPIT_CSS
     assert "align-self:stretch" in qcm_cockpit.QCM_COCKPIT_CSS
+
+
+def test_qcm_cockpit_uses_one_stable_grid_for_course_rows():
+    css = qcm_cockpit.QCM_COCKPIT_CSS
+
+    assert ".qc-section" in css
+    assert ".qc-head, .qc-row" in css
+    assert "grid-template-columns:46px minmax(220px, 1.2fr) minmax(180px, .8fr) 120px" in css
+    assert "grid-template-columns:42px minmax(0, 1fr) 36px" in css
+
+
+def test_qcm_cockpit_calls_the_primary_action_training():
+    source = inspect.getsource(qcm_cockpit.render_qcm_cockpit)
+
+    assert "Lancer un entraînement" in source
 
 
 def test_qcm_add_dialog_has_cockpit_scoped_linear_tokens():

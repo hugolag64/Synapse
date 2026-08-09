@@ -262,24 +262,26 @@ _CSS = """
 .qc-metric-sub { font-size:11.5px; color:var(--text-muted); }
 .qc-vsep { width:1px; height:34px; background:var(--border); }
 .qc-label { font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-dim); font-weight:600; margin-bottom:8px; }
-.qc-head { display:flex; align-items:center; gap:14px; padding:0 10px 8px; font-size:10px;
+.qc-section { width:100%; min-width:0; border:1px solid var(--border); border-radius:8px; background:var(--bg); overflow:hidden; }
+.qc-section > .qc-label { padding:14px 14px 0; margin-bottom:10px; }
+.qc-head, .qc-row { display:grid; grid-template-columns:46px minmax(220px, 1.2fr) minmax(180px, .8fr) 120px; column-gap:14px; align-items:center; }
+.qc-head { padding:0 14px 8px; font-size:10px;
   text-transform:uppercase; letter-spacing:.04em; color:var(--text-dim); font-weight:600;
   border-bottom:1px solid var(--border); }
 .qc-h-id { flex:0 0 46px; }
 .qc-h-main { flex:1 1 auto; }
 .qc-h-bar { flex:1 1 200px; }
 .qc-h-score { flex:0 0 100px; text-align:right; }
-.qc-row { display:flex; align-items:center; gap:14px; min-height:44px; padding:9px 10px;
-  border-bottom:1px solid var(--border); }
+.qc-row { min-height:50px; padding:9px 14px; border-bottom:1px solid var(--border); }
 .qc-row:last-child { border-bottom:none; }
-.qc-id { font-family:var(--font-mono); font-size:11.5px; color:var(--text-muted); flex:0 0 46px; }
+.qc-id { font-family:var(--font-mono); font-size:11.5px; color:var(--text-muted); min-width:0; }
 .qc-main { flex:1 1 auto; min-width:0; }
 .qc-course-title { font-size:13.5px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .qc-course-sub { font-size:11.5px; color:var(--text-dim); margin-top:2px; }
-.qc-bar-cell { flex:1 1 200px; }
+.qc-bar-cell { min-width:0; }
 .qc-bar-track { height:5px; border-radius:3px; background:var(--surface-hover); overflow:hidden; }
 .qc-bar-fill { height:100%; border-radius:3px; transition: width var(--duration-base) var(--ease-standard); }
-.qc-score-cell { flex:0 0 100px; display:flex; align-items:center; justify-content:flex-end; gap:8px; }
+.qc-score-cell { min-width:0; display:flex; align-items:center; justify-content:flex-end; gap:8px; }
 .qc-score { font-family:var(--font-mono); font-size:13px; font-weight:600; }
 .qc-badge { font-size:10.5px; font-weight:500; padding:2px 7px; border-radius:4px;
   background:rgba(229,72,77,0.1); color:var(--danger); white-space:nowrap; }
@@ -310,6 +312,9 @@ _CSS = """
 @media (max-width:760px) {
   .qc-workspace { grid-template-columns:1fr; }
   .qc-history { max-height:360px; }
+  .qc-head, .qc-row { grid-template-columns:42px minmax(0, 1fr) 36px; column-gap:10px; }
+  .qc-head .qc-h-bar, .qc-row .qc-bar-cell { display:none; }
+  .qc-head .qc-h-score, .qc-row .qc-score-cell { grid-column:3; }
   .qc-pending .qc-row { grid-template-columns:42px minmax(0, 1fr) 36px; }
   .qc-pending-state, .qc-pending-action { grid-column:2; width:auto; }
 }
@@ -327,9 +332,10 @@ def render_qcm_cockpit() -> None:
     with ui.column().classes("qc-wrap gap-0").style("flex:1 1 auto;"):
         topbar = ui.element("div").classes("qc-topbar")
         summary = ui.element("div").classes("qc-summary")
-        ui.label("PAR COURS").classes("qc-label")
-        head = ui.element("div").classes("qc-head")
-        list_col = ui.column().classes("w-full gap-0")
+        with ui.element("section").classes("qc-section"):
+            ui.label("PAR COURS").classes("qc-label")
+            head = ui.element("div").classes("qc-head")
+            list_col = ui.column().classes("w-full gap-0")
         pending_col = ui.column().classes("w-full gap-0 qc-pending")
         with ui.element("div").classes("qc-workspace"):
             with ui.element("section").classes("qc-history"):
@@ -350,7 +356,7 @@ def render_qcm_cockpit() -> None:
             with ui.column().classes("gap-0"):
                 ui.label("QCM").classes("qc-title")
                 ui.label("Analytique · cours à retravailler · EDNpro & Hypocampus").classes("qc-subtitle")
-            with ui.button("Nouvelle session", icon="add").props(
+            with ui.button("Lancer un entraînement", icon="add").props(
                 "unelevated color=primary"
             ).classes("qc-action-primary"), ui.menu().classes("qc-session-menu text-sm"):
                 ui.menu_item("Générer avec IA", on_click=lambda: _open_ai_generation_picker(_render))

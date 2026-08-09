@@ -117,7 +117,7 @@ def test_cockpit_keeps_pending_start_and_new_qcm_entry_actions():
 
     assert "SESSIONS \u00c0 FAIRE" in source
     assert "Commencer" in source
-    assert "Nouvelle session" in source
+    assert "Lancer un entraînement" in source
     assert "QCM_ENTRY_LABEL" in source
 
 

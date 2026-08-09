@@ -15,6 +15,16 @@ Synapse doit répondre rapidement à trois questions :
 2. Pourquoi cette action est-elle prioritaire ?
 3. Quelle ressource ou quel entraînement dois-je ouvrir ?
 
+## État d’exécution
+
+**Étape actuelle : plan d’exécution du socle Sprint/reprise préparé — implémentation non commencée.**
+
+Le premier plan détaillé est disponible dans
+`docs/superpowers/plans/2026-08-09-sprint-reprise-preferences.md`. Il couvre uniquement la
+persistance de la date cible EDN, la date de reprise, l’enregistrement explicite et le masquage du
+Sprint. La neutralisation métier des tâches antérieures au 20 août viendra dans la tranche suivante,
+après validation de ce socle.
+
 ## Décisions validées
 
 ### Périmètre visuel

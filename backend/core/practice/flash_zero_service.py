@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import random
 import re
+from datetime import date
 from dataclasses import dataclass
 from typing import Any
 
@@ -21,15 +22,26 @@ from backend.state.store import data_store
 
 def build_flash_zero_priority(signals, today=None) -> list[str]:
     """Classe les items par répétition puis par récence, sans dépendre de l'IA."""
-    grouped: dict[str, list[str]] = {}
+    reference_date = today
+    if not isinstance(reference_date, date):
+        try:
+            reference_date = date.fromisoformat(str(reference_date)[:10]) if reference_date else date.today()
+        except ValueError:
+            reference_date = date.today()
+
+    grouped: dict[str, list[date]] = {}
     for signal in signals or []:
         item = str(signal.get("item_number") or "").strip().removeprefix("ITEM ")
         if item:
-            grouped.setdefault(item, []).append(str(signal.get("occurred_at") or ""))
+            try:
+                occurred_at = date.fromisoformat(str(signal.get("occurred_at") or "")[:10])
+            except ValueError:
+                occurred_at = date.min
+            grouped.setdefault(item, []).append(min(occurred_at, reference_date))
     return [
         item
         for item, dates in sorted(
-            grouped.items(), key=lambda pair: (len(pair[1]), max(pair[1])), reverse=True
+            grouped.items(), key=lambda pair: (len(pair[1]), max(pair[1], default=date.min)), reverse=True
         )
     ]
 

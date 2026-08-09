@@ -407,6 +407,10 @@ d’erreur doit être vérifiée : si `error_signals` reste vide, le caractère 
 questions canoniques restent disponibles ; les questions IA doivent conserver leur source et leur
 statut de vérification.
 
+Correction appliquée dans cette tranche : le tri Flash-Zero parse les dates de signal et traite une
+date invalide comme la plus ancienne. Les dates futures sont plafonnées à la date de référence ; la
+répétition reste prioritaire, puis la récence réelle.
+
 ### 10. Projection vers l’EDN
 
 La projection utilise une fenêtre récente d’environ quatre semaines, une cadence d’items, une charge
@@ -458,7 +462,7 @@ ciblés Annales et nettoyage **23/23**, score annales / barème **17/17**, Revue
 Statistiques / largeurs **6/6**, Détail item / actions **21/21**, tests ciblés algorithme QCM **26/26**,
 tests ciblés maîtrise / rétention **30/30**, rétention / projection **38/38**,
 priorisation / recommandations **47/47**, Sprint / projection **13/13**, statistiques hebdo **2/2**,
-suite complète **1261/1261**,
+Flash-Zero / signaux **16/16**, suite complète **1262/1262**,
 compilation
 Python de `backend` et `frontend` réussie. La vérification manuelle de l’application reste à faire
 quand le serveur Synapse sera ouvert dans l’onglet local.

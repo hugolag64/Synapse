@@ -94,4 +94,3 @@ QA navigateur :
 - un collège validé affiche 100 % de lecture ;
 - une ligne lue sans preuve de maîtrise affiche `Lu`, `—` et un statut distinct ;
 - aucun score de maîtrise n'est inventé par la validation du collège.
-

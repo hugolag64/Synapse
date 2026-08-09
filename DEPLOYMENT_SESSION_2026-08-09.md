@@ -393,6 +393,17 @@ docker compose up -d --force-recreate synapse
 - Suite complete : `1318 passed`.
 - Redeploiement homeserver et QA Chromium a effectuer avec la commande ci-dessus.
 
+## Correction QCM / epreuve - 2026-08-09
+
+- La correction affiche maintenant des blocs distincts `Votre réponse`,
+  `Réponse correcte` et `Pourquoi` pour chaque question.
+- Les informations techniques et la provenance restent accessibles dans un
+  panneau replié, sans polluer la lecture pédagogique.
+- Commit applicatif pousse : `aea2ce1` (`fix: structure QCM correction answer and why blocks`).
+- Tests QCM replay : `18 passed`.
+- Suite complete : `1320 passed`.
+- Redeploiement homeserver et QA Chromium a effectuer avec la commande ci-dessus.
+
 ## Mode concours continu - 2026-08-09
 
 - La session de concours reprend maintenant `current_index` depuis

@@ -74,7 +74,6 @@ def test_settings_remains_full_width_and_responsive():
     assert "width:100%" in SOURCE
     assert "max-width: 820px" in SOURCE
 ```
-
 - [ ] **Step 2: Exécuter les tests et confirmer l'échec initial**
 
 Run: `pytest tests/test_settings_domains.py -q`
@@ -267,4 +266,3 @@ git add DEPLOYMENT_SESSION_2026-08-09.md docs/superpowers/plans/2026-08-09-param
 git commit -m "docs: record settings domain QA"
 git push origin main
 ```
-

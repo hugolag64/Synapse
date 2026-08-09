@@ -44,6 +44,7 @@ from backend.core.uness import import_service
 from backend.core.lisa import item_service
 from frontend.components.uness_diagnostic_panel import render as render_uness_diagnostics
 from frontend.components.dp_coverage_panel import render as render_dp_coverage
+from frontend.components.calendar_sources_panel import render as render_calendar_sources
 
 def toggle_dark_mode(value: bool | None = None) -> bool:
     dark = ui.dark_mode()
@@ -132,6 +133,8 @@ def render_settings_cockpit() -> None:
                     ui.element("span").classes("se-dot").style(f"background:{color}")
                     ui.label(name).classes("se-name")
                     ui.label(status_label).classes("se-status")
+
+        render_calendar_sources(ui.column().classes("w-full"))
 
         ui.label("APPARENCE").classes("se-label")
         with ui.element("div").classes("se-appearance-row"):

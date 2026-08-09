@@ -50,6 +50,14 @@ def test_college_item_grid_uses_status_columns_and_readable_empty_state():
     assert "aucune révision prévue" not in source
 
 
+def test_college_item_grid_uses_fixed_action_track():
+    source = open("frontend/pages/colleges_cockpit.py", encoding="utf-8").read()
+
+    assert 'GridColumn("action", "", "88px")' in source
+    assert "grid-template-columns:minmax(180px,2fr) 76px 76px 120px 86px 100px 56px 88px;" in source
+    assert ".cg-item-head > *, .cg-item > * { min-width:0; box-sizing:border-box; }" in source
+
+
 def test_college_items_container_plays_an_entrance_animation_on_open():
     """La fermeture d'un collège est instantanée par construction (le nœud est
     détruit, pas transitionné) ; seule l'ouverture peut être animée puisque le

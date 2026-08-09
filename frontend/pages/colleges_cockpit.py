@@ -120,7 +120,8 @@ _CSS = """
   .cg-context-open { display:inline-flex; }
 }
 .cg-items-grid { min-width:760px; }
-.cg-item-head, .cg-item { display:grid; grid-template-columns:minmax(180px,2fr) 76px 76px 120px 86px 100px 56px auto; align-items:center; column-gap:10px; }
+.cg-item-head, .cg-item { display:grid; grid-template-columns:minmax(180px,2fr) 76px 76px 120px 86px 100px 56px 88px; align-items:center; column-gap:10px; }
+.cg-item-head > *, .cg-item > * { min-width:0; box-sizing:border-box; }
 .cg-item-head { min-height:24px; padding:0 0 5px; color:var(--text-dim); font-size:9px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; }
 .cg-item { min-height:36px; padding:5px 0; border-top:1px solid var(--border); }
 .cg-item-title { min-width:0; font-size:12px; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer; }
@@ -157,7 +158,7 @@ _COLLEGE_ITEM_GRID = DataGrid(
         GridColumn("late", "Retard", "86px"),
         GridColumn("next", "Prochaine", "100px"),
         GridColumn("qcm", "QCM", "56px"),
-        GridColumn("action", "", "auto"),
+        GridColumn("action", "", "88px"),
     )
 )
 

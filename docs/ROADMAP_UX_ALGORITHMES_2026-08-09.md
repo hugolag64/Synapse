@@ -17,17 +17,15 @@ Synapse doit répondre rapidement à trois questions :
 
 ## État d’exécution
 
-**Étape actuelle : socle de préférences Sprint/reprise implémenté — neutralisation métier à venir.**
+**Étape actuelle : neutralisation métier de la dette de reprise implémentée — planning futur et
+validation hybride des collèges à venir.**
 
 Le premier plan détaillé est disponible dans
-`docs/superpowers/plans/2026-08-09-sprint-reprise-preferences.md`. Il couvre uniquement la
-persistance de la date cible EDN, la date de reprise, l’enregistrement explicite et le masquage du
-Sprint. La neutralisation métier des tâches antérieures au 20 août viendra dans la tranche suivante,
-après validation de ce socle. La préférence est maintenant persistante et les paramètres proposent
-une sauvegarde explicite de la planification ainsi qu’un contrôle de masquage/réaffichage du Sprint.
-La carte Aujourd’hui respecte maintenant cette préférence : ses calculs restent exécutés, mais son
-rendu est masqué lorsqu’elle est désactivée. Un bouton « Masquer » est également disponible dans la
-carte et la réactivation se fait depuis les paramètres.
+`docs/superpowers/plans/2026-08-09-sprint-reprise-preferences.md` pour le socle, puis
+`docs/superpowers/plans/2026-08-09-neutralisation-dette-reprise.md` pour la règle métier. La
+préférence est persistante, les paramètres proposent une sauvegarde explicite et un contrôle de
+masquage/réaffichage du Sprint, et les flux actifs filtrent désormais les échéances antérieures au
+20 août sans réécrire l’historique. Le détail item conserve le mode complet pour une action manuelle.
 
 ## Décisions validées
 
@@ -367,16 +365,16 @@ Points à corriger :
 
 Objectif : rendre la reprise du 20 août déterministe depuis toutes les vues.
 
-**État au 9 août 2026 :** le modèle de préférences persiste désormais la date cible EDN, la date
-de reprise `2026-08-20` et la visibilité du Sprint, avec validation des dates et écriture groupée.
-Les paramètres enregistrent ces valeurs sur action explicite et permettent de masquer/réafficher le
-Sprint. La carte Aujourd’hui applique cette visibilité sans supprimer les calculs Sprint. Le
-filtrage métier des tâches antérieures au 20 août n’est pas encore activé.
+**État au 9 août 2026 :** le modèle de préférences persiste la date cible EDN, la date de reprise
+`2026-08-20` et la visibilité du Sprint, avec validation des dates et écriture groupée. Les flux
+Aujourd’hui, Planning, notification du matin, lundi, Collèges, Items et le shell utilisent le mode
+actif centralisé. Les consolidations non gated antérieures à la reprise et les signaux Flash-Zero
+antérieurs sont neutralisés sans suppression d’historique ; les consolidations explicitement gated
+conservent leur date de démarrage.
 
-Vérification de l’incrément : tests ciblés **13/13**, suite complète **1221/1221**, et compilation
-Python des trois modules modifiés réussie. Le contrôle manuel de la vue n’a pas pu être effectué
-dans cette session : l’onglet local disponible affichait le compagnon Codex, pas l’application
-Synapse.
+Vérification de la tranche : tests ciblés **66/66**, suite complète **1232/1232**, compilation
+Python de `backend` et `frontend` réussie. La vérification manuelle de l’application reste à faire
+quand le serveur Synapse sera ouvert dans l’onglet local.
 
 Livrables :
 

@@ -8,6 +8,18 @@
 
 **Tech Stack:** Python 3.11, SQLite existant, Pydantic `ReviewTask`, pytest, NiceGUI.
 
+## Execution status — 9 août 2026
+
+- [x] Task 1 — module pur de reprise et tests de frontière.
+- [x] Task 2 — mode `active_only` du `ReviewService` avec mode complet rétrocompatible.
+- [x] Task 3 — branchement des flux actifs et filtrage des consolidations non gated.
+- [x] Task 4 — filtrage des signaux Flash-Zero et des priorités de gain.
+- [x] Task 5 — tests ciblés **66/66**, suite complète **1232/1232**, compilation Python réussie.
+
+La vérification visuelle manuelle de l’application reste à effectuer lorsque le serveur Synapse
+sera ouvert dans l’onglet local. Les prochaines tranches sont l’agrégation de toutes les échéances
+futures dans Planning et la validation hybride des collèges.
+
 ## Global Constraints
 
 - La date de reprise est exactement `2026-08-20` par défaut.

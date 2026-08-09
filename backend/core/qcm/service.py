@@ -43,7 +43,7 @@ def parse_score(raw: str) -> tuple[float | None, str | None]:
             try:
                 num = float(m.group(1).replace(",", "."))
                 den = float(m.group(2).replace(",", "."))
-                if den > 0:
+                if den > 0 and 0 <= num <= den:
                     pct = round(num / den * 100, 1)
                     return pct, raw
             except ValueError:

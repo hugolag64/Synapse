@@ -279,6 +279,10 @@ Le score est normalisé depuis `14/20`, `70 %`, `70` ou `0,7`.
 Le score actuel est un résultat d’évaluation, pas encore une mesure complète de maîtrise. Une
 moyenne de scores ne suffit pas à distinguer une amélioration récente d’une ancienne réussite.
 
+Correction appliquée dans cette tranche : une fraction est acceptée uniquement si son numérateur
+est compris entre 0 et son dénominateur (`21/20` est donc rejeté au lieu de produire 105 %). Le
+score brut reste conservé pour l’affichage et les seuils métier restent inchangés.
+
 Évolution prévue : conserver le score brut, ajouter la taille de l’échantillon, la récence, les
 erreurs par proposition, les erreurs Rang A et une moyenne pondérée par récence. Les seuils ne seront
 pas modifiés sans comparaison sur les données historiques.
@@ -426,8 +430,8 @@ conservent leur date de démarrage.
 Vérification de la tranche : tests ciblés reprise précédents **66/66**, tests ciblés collèges
 **13/13**, tests ciblés Items **8/8**, tests ciblés QCM **33/33**, tests ciblés Prépa **9/9**, tests
 ciblés Annales et nettoyage **23/23**, Revue hebdo / largeurs **5/5**, Statistiques / largeurs **6/6**,
-Détail item / actions **21/21**, suite complète **à relancer
-après cette correction**, compilation
+Détail item / actions **21/21**, tests ciblés algorithme QCM **26/26**, suite complète **1252/1252**,
+compilation
 Python de `backend` et `frontend` réussie. La vérification manuelle de l’application reste à faire
 quand le serveur Synapse sera ouvert dans l’onglet local.
 

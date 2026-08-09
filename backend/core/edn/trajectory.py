@@ -32,6 +32,16 @@ def _row_value(row, key: str, default=None):
     return getattr(row, key, default)
 
 
+def _completed_date(row) -> datetime.date | None:
+    raw = str(_row_value(row, "completed_at", "") or "").strip()
+    if not raw:
+        return None
+    try:
+        return datetime.date.fromisoformat(raw[:10])
+    except ValueError:
+        return None
+
+
 def build_progress_snapshot(*, courses: list, tasks: list, history: dict, as_of: datetime.date) -> ProgressSnapshot:
     total_items = len(courses)
     covered_items = sum(1 for course in courses if _row_value(course, "date_1ere_lecture"))
@@ -39,19 +49,16 @@ def build_progress_snapshot(*, courses: list, tasks: list, history: dict, as_of:
     average_mastery = round(sum(scores) / len(scores), 1) if scores else None
     overdue = sum(1 for task in tasks if (_row_value(task, "days_overdue", 0) or 0) > 0)
     cutoff = as_of - datetime.timedelta(days=27)
-    recent_items = {
-        str(_row_value(row, "course_id", ""))
-        for row in history.values()
+    recent_rows = [
+        row for row in history.values()
         if _row_value(row, "status") == "done"
-        and str(_row_value(row, "completed_at", ""))[:10]
-        and datetime.date.fromisoformat(str(_row_value(row, "completed_at"))[:10]) >= cutoff
-    }
+        and (_completed_date(row) is not None)
+        and _completed_date(row) >= cutoff
+    ]
+    recent_items = {str(_row_value(row, "course_id", "")) for row in recent_rows}
     recent_minutes = sum(
         float(_row_value(row, "duration_minutes", 0) or 0)
-        for row in history.values()
-        if _row_value(row, "status") == "done"
-        and str(_row_value(row, "completed_at", ""))[:10]
-        and datetime.date.fromisoformat(str(_row_value(row, "completed_at"))[:10]) >= cutoff
+        for row in recent_rows
     )
     return ProgressSnapshot(
         covered_items=covered_items,

@@ -417,6 +417,10 @@ Cette projection doit être présentée comme une estimation, jamais comme une p
 doit intégrer la date de reprise pour ne pas interpréter la neutralisation de dette comme une baisse
 de rythme.
 
+Correction appliquée dans cette tranche : une date de complétion mal formée dans l’historique est
+ignorée pour le débit récent au lieu de faire planter le snapshot Sprint. Les autres lignes valides
+continuent d’alimenter la projection.
+
 ### 11. Revue hebdomadaire et statistiques
 
 Le rapport compare des snapshots hebdomadaires de maîtrise et agrège séances, durée, lacunes,
@@ -449,7 +453,8 @@ Vérification de la tranche : tests ciblés reprise précédents **66/66**, test
 ciblés Annales et nettoyage **23/23**, score annales / barème **17/17**, Revue hebdo / largeurs **5/5**,
 Statistiques / largeurs **6/6**, Détail item / actions **21/21**, tests ciblés algorithme QCM **26/26**,
 tests ciblés maîtrise / rétention **30/30**, rétention / projection **38/38**,
-priorisation / recommandations **47/47**, suite complète **1258/1258**,
+priorisation / recommandations **47/47**, Sprint / projection **13/13**,
+suite complète **1259/1259**,
 compilation
 Python de `backend` et `frontend` réussie. La vérification manuelle de l’application reste à faire
 quand le serveur Synapse sera ouvert dans l’onglet local.

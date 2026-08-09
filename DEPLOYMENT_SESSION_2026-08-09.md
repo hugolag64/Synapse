@@ -534,3 +534,16 @@ docker compose up -d --force-recreate synapse
 - Tests cibles : `7 passed, 1 warning`.
 - Commit applicatif : `355b4c6`.
 - Redeploiement homeserver a effectuer avant QA Chromium de cette tranche.
+
+## Clarification navigation Statistiques - 2026-08-09
+
+- La page n'utilise plus `Ma Progression` comme titre de frame : elle utilise
+  `Statistiques`.
+- Le bouton du bilan hebdomadaire devient `Voir mes statistiques`.
+- Les alias historiques `Ma Progression` et `Stats` restent acceptes par le
+  shell de navigation.
+- Les barres `Progression des objectifs` restent volontairement intactes car
+  elles mesurent les objectifs hebdomadaires, pas l'avancement des cours.
+- Tests cibles : `18 passed, 1 warning`.
+- Commit applicatif : `b86c3b9`.
+- Redeploiement homeserver a effectuer avant QA Chromium de cette tranche.

@@ -26,8 +26,15 @@ def test_externat_new_stage_button_drops_the_plus_prefix():
     assert '"Nouveau stage"' in source
 
 
-def test_mnemo_button_is_untouched_pending_b2_rework():
-    """Ce bouton garde son emoji et son préfixe pour l'instant : sa refonte
-    complète (thème réactif, zéro emoji) est prévue au chantier B2."""
+def test_course_detail_uses_one_obsidian_action_and_linear_memo_label():
     source = Path("frontend/pages/course_detail_cockpit.py").read_text(encoding="utf-8")
-    assert "💡 + Mnémo / Image" in source
+    assert "💡 + Mnémo / Image" not in source
+    assert 'ui.button("Ajouter un mémo", icon="add")' in source
+    assert 'ui.button("Ouvrir dans Obsidian"' not in source
+    assert "_btn_open =" not in source
+
+
+def test_course_detail_prioritizes_training_tab_visually():
+    source = Path("frontend/pages/course_detail_cockpit.py").read_text(encoding="utf-8")
+    assert ".ci-tab-training" in source
+    assert 'ui.tab("Entraînement").classes("ci-tab-training")' in source

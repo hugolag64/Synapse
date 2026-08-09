@@ -196,6 +196,11 @@ maintenant la largeur disponible, sans modifier les périodes, les agrégats ni 
 - regrouper Réviser, Entraînement, Note et Obsidian dans une hiérarchie courte ;
 - ne pas empiler plusieurs boutons équivalents dans des bentos séparés.
 
+**État au 9 août 2026 :** le bouton de la zone Note est maintenant « Ajouter un mémo », sans
+emoji ni préfixe redondant. L’ouverture Obsidian reste disponible une seule fois dans l’en-tête,
+et l’onglet « Entraînement » est accentué comme action secondaire prioritaire. Le dialogue et les
+actions métier restent inchangés.
+
 ## Cartographie de l’existant
 
 ### Interfaces
@@ -421,7 +426,7 @@ conservent leur date de démarrage.
 Vérification de la tranche : tests ciblés reprise précédents **66/66**, tests ciblés collèges
 **13/13**, tests ciblés Items **8/8**, tests ciblés QCM **33/33**, tests ciblés Prépa **9/9**, tests
 ciblés Annales et nettoyage **23/23**, Revue hebdo / largeurs **5/5**, Statistiques / largeurs **6/6**,
-suite complète **à relancer
+Détail item / actions **21/21**, suite complète **à relancer
 après cette correction**, compilation
 Python de `backend` et `frontend` réussie. La vérification manuelle de l’application reste à faire
 quand le serveur Synapse sera ouvert dans l’onglet local.

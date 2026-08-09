@@ -125,6 +125,7 @@ _CSS = """
 .ci-tabs .q-tab { min-height:38px; padding:0 14px; text-transform:none; font-size:12.5px;
   font-weight:500; color:var(--text-muted); }
 .ci-tabs .q-tab--active { color:var(--text); }
+.ci-tabs .ci-tab-training { color:var(--accent); font-weight:600; }
 .ci-tabs .q-tab__indicator { height:2px; background:var(--accent); }
 .ci-tabs .q-focus-helper, .ci-tabs .q-ripple { display:none !important; }
 .ci-panels { background:transparent !important; }
@@ -522,7 +523,7 @@ def render_item_cockpit(course_id: str) -> None:
             t_over = ui.tab("Vue d'ensemble")
             t_note = ui.tab("Note")
             t_rev = ui.tab("Révisions")
-            t_qcm = ui.tab("Entraînement")
+            t_qcm = ui.tab("Entraînement").classes("ci-tab-training")
             t_lac = ui.tab("Lacunes")
             t_oic = ui.tab("OIC")
             t_pod = ui.tab("🎙️ Podcast")
@@ -764,15 +765,10 @@ def _tab_note(course, obs_path, obs_configured: bool, item_label: str) -> None:
             ui.label(str(obs_path)).classes("ci-path truncate m-0 p-0 text-xs text-slate-500")
 
         with ui.row().classes("items-center gap-2 shrink-0"):
-            _btn_mnemo = ui.button("💡 + Mnémo / Image", icon="add").props(
-                "unelevated size=sm color=indigo"
+            _btn_mnemo = ui.button("Ajouter un mémo", icon="add").props(
+                "unelevated size=sm color=primary"
             ).classes("text-xs font-semibold no-caps rounded-lg")
             _btn_mnemo.on("click", lambda c=course: open_obsidian_quick_edit_dialog(c, lambda: ui.navigate.reload()))
-
-            _btn_open = ui.button("Ouvrir dans Obsidian", icon="open_in_new").props(
-                "outline size=sm color=grey-8"
-            ).classes("text-xs font-medium no-caps rounded-lg")
-            _btn_open.on("click", lambda c=course: _open_obsidian_note_action(c))
 
     try:
         raw = obs_path.read_text(encoding="utf-8")

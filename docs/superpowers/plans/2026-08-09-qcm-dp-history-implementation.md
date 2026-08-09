@@ -27,7 +27,7 @@
 - Consumes: une liste de sessions avec `practice_kind`.
 - Produces: `_filter_replayable_history(sessions, practice_kind)` retournant les sessions du type demandé, avec les types vides traités comme QCM.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 def test_replayable_history_filter_returns_only_selected_kind():
@@ -41,13 +41,13 @@ def test_replayable_history_filter_returns_only_selected_kind():
     assert [row["id"] for row in qcm_cockpit._filter_replayable_history(sessions, "DP")] == [2]
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `.venv\Scripts\python.exe -m pytest tests/test_qcm_cockpit_ui.py::test_replayable_history_filter_returns_only_selected_kind -q`
 
 Expected: FAIL because `_filter_replayable_history` does not yet exist.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 def _filter_replayable_history(sessions: list[dict], practice_kind: str) -> list[dict]:
@@ -58,13 +58,13 @@ def _filter_replayable_history(sessions: list[dict], practice_kind: str) -> list
     ]
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `.venv\Scripts\python.exe -m pytest tests/test_qcm_cockpit_ui.py::test_replayable_history_filter_returns_only_selected_kind -q`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add tests/test_qcm_cockpit_ui.py frontend/pages/qcm_cockpit.py
@@ -81,7 +81,7 @@ git commit -m "refactor: filter replay history by practice kind"
 - Consumes: `_filter_replayable_history` et les callbacks de session existants.
 - Produces: un toggle NiceGUI `QCM / DP`, une liste unique filtrée, et une action Tuteur DP quand le type actif est DP.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 def test_qcm_cockpit_uses_qcm_dp_toggle_instead_of_status_filter():
@@ -93,13 +93,13 @@ def test_qcm_cockpit_uses_qcm_dp_toggle_instead_of_status_filter():
     assert "HISTORY_STATUS_OPTIONS" not in source
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `.venv\Scripts\python.exe -m pytest tests/test_qcm_cockpit_ui.py::test_qcm_cockpit_uses_qcm_dp_toggle_instead_of_status_filter -q`
 
 Expected: FAIL because the cockpit still creates and reads the status toggle.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Replace the status state with:
 
@@ -112,13 +112,13 @@ history_kind = ui.toggle({"QCM": "QCM", "DP": "DP"}, value="QCM").props(
 Read the selected kind in `_replayable_history`, filter the loaded sessions,
 and render one list. Keep the DP button and selected-session Tuteur DP action.
 
-- [ ] **Step 4: Run focused and full tests**
+- [x] **Step 4: Run focused and full tests**
 
 Run: `.venv\Scripts\python.exe -m pytest tests/test_qcm_cockpit_ui.py tests/test_qcm_cockpit_replay.py tests/test_qcm_cockpit_persistence.py -q`
 
 Expected: all focused tests pass. Then run `.venv\Scripts\python.exe -m pytest -q` and verify no regression.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add tests/test_qcm_cockpit_ui.py frontend/pages/qcm_cockpit.py
@@ -131,6 +131,6 @@ git commit -m "feat: switch replay history between QCM and DP"
 - Modify: `docs/superpowers/specs/2026-08-09-qcm-dp-history-design.md`
 - Modify: `DEPLOYMENT_SESSION_2026-08-09.md`
 
-- [ ] **Step 1: Record the final toggle behavior and test counts.**
-- [ ] **Step 2: Commit and push the documentation.**
+- [x] **Step 1: Record the final toggle behavior and test counts.**
+- [x] **Step 2: Commit and push the documentation.**
 - [ ] **Step 3: Deploy with the documented homeserver command and perform Chromium QA on `/qcm`.**

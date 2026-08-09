@@ -358,3 +358,15 @@ docker exec synapse grep "host=\|port=" /app/main.py
   et commande interrompue apres attente ; le deploiement n'est pas confirme.
 - Commande a rejouer sur le homeserver : `cd /srv/docker/stacks/synapse && git pull --ff-only origin main && docker compose build --pull synapse && docker compose up -d --force-recreate synapse`.
 - QA Chromium reste a effectuer apres confirmation du redeploiement.
+
+## Toggle historique QCM / DP - 2026-08-09
+
+- Le filtre `Toutes / A faire / Terminees` a ete remplace par deux boutons de
+  vue : `QCM` et `DP`.
+- La vue QCM est active par defaut ; la recherche s'applique a la vue active.
+- Le statut de session reste affiche dans les metadonnees mais ne filtre plus
+  la liste.
+- Commit applicatif pousse : `2a497b3` (`feat: switch replay history between QCM and DP`).
+- Tests cibles : `31 passed`.
+- Suite complete : `1316 passed`.
+- Deploiement homeserver et QA Chromium restent a confirmer.

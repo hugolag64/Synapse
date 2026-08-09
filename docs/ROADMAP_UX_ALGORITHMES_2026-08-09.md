@@ -373,6 +373,11 @@ Les paramètres enregistrent ces valeurs sur action explicite et permettent de m
 Sprint. La carte Aujourd’hui applique cette visibilité sans supprimer les calculs Sprint. Le
 filtrage métier des tâches antérieures au 20 août n’est pas encore activé.
 
+Vérification de l’incrément : tests ciblés **13/13**, suite complète **1221/1221**, et compilation
+Python des trois modules modifiés réussie. Le contrôle manuel de la vue n’a pas pu être effectué
+dans cette session : l’onglet local disponible affichait le compagnon Codex, pas l’application
+Synapse.
+
 Livrables :
 
 - préférence globale de reprise ;

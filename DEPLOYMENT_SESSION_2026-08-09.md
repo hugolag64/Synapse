@@ -500,3 +500,37 @@ docker compose up -d --force-recreate synapse
   affichees sous forme de lettres `A` a `E`.
 - Aucun log navigateur `error` ou `warning` observe.
 - QA finale de cette tranche : validee.
+
+## Contrat Avancement / Maitrise / Retention - 2026-08-09
+
+- Design valide et pousse : `2b9e071`.
+- Plan d'implementation valide et pousse : `f06f2ef`.
+- Adaptateur pur ajoute dans `frontend/components/learning_metrics.py`.
+- Il separe `advancement`, `mastery` et `retention`, conserve les `None` et
+  applique la regle du college valide.
+- Tests du contrat : `4 passed`.
+- Commit applicatif : `b91dba8`.
+
+## Clarification Avancement du cockpit Colleges - 2026-08-09
+
+- Le sous-titre ambigu `progression par matiere` devient `Avancement par
+  matiere`.
+- Le calcul du pilotage et des lignes de college passe par l'adaptateur
+  commun, sans modifier les scores de maitrise ou de retention.
+- Les colonnes `Lecture`, `Maitrise`, `Statut`, `Retard`, `Prochaine` et `QCM`
+  restent separees.
+- Tests cibles : `17 passed, 1 warning`.
+- Commit applicatif : `ce518f7`.
+- Redeploiement homeserver a effectuer avant QA Chromium de cette tranche.
+
+## Avancement par UE / semestre - 2026-08-09
+
+- Le libelle `Progression par UE / semestre` devient `Avancement par UE /
+  semestre`.
+- Le calcul des cartes passe par l'adaptateur commun et affiche `—` si aucun
+  total calculable n'est disponible, sans transformer l'inconnu en `0 %`.
+- Les barres de progression des objectifs hebdomadaires restent hors contrat
+  et ne sont pas renommees.
+- Tests cibles : `7 passed, 1 warning`.
+- Commit applicatif : `355b4c6`.
+- Redeploiement homeserver a effectuer avant QA Chromium de cette tranche.

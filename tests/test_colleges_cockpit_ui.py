@@ -96,6 +96,13 @@ def test_college_pilotage_labels_reading_progress_separately_from_mastery():
     assert "rétention" in source
 
 
+def test_college_header_names_learning_avancement_explicitly():
+    source = open("frontend/pages/colleges_cockpit.py", encoding="utf-8").read()
+
+    assert "Avancement par matière" in source
+    assert "progression par matière" not in source
+
+
 def test_college_item_rows_separate_reading_from_mastery():
     courses = [_course("c1", "12", "Lu sans preuve")]
     rows = _college_item_rows(courses, [], mastery_by_course={})

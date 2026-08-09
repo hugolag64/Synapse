@@ -29,6 +29,7 @@ from backend.core.reviews.validation import complete_review
 from backend.core.reviews.service import review_service
 from frontend.components.study_task_row import due_info
 from frontend.components.mastery_indicator import _LEVEL_COLOR, _level_from_score
+from frontend.components.learning_metrics import build_advancement
 from frontend.components.data_grid import DataGrid, GridColumn
 from frontend.components.status_badge import status_class, status_label
 from frontend.components.responsive_drawer import (
@@ -214,10 +215,15 @@ def _course_semantics(
     level: str | None,
     college_validated: bool = False,
 ) -> dict[str, object]:
-    read = college_validated or bool(getattr(course, "date_1ere_lecture", None))
+    advancement = build_advancement(
+        1 if getattr(course, "date_1ere_lecture", None) else 0,
+        1,
+        college_validated=college_validated,
+    )
+    read = advancement["percent"] == 100
     if not read:
         return {
-            "reading_pct": 0,
+            "reading_pct": advancement["percent"] or 0,
             "lecture_label": "Non lu",
             "mastery_score": score,
             "level": "non_commence",
@@ -226,7 +232,7 @@ def _course_semantics(
         }
     if score is None:
         return {
-            "reading_pct": 100,
+            "reading_pct": advancement["percent"] or 0,
             "lecture_label": "Lu",
             "mastery_score": None,
             "level": None,
@@ -235,7 +241,7 @@ def _course_semantics(
         }
     status_key = level or "en construction"
     return {
-        "reading_pct": 100,
+        "reading_pct": advancement["percent"] or 0,
         "lecture_label": "Lu",
         "mastery_score": score,
         "level": level,
@@ -276,10 +282,11 @@ def _pilotage_summary(rows: list[dict]) -> dict:
             seen_retention_courses.add(course_id)
             if value is not None:
                 retention_values.append(float(value))
+    advancement = build_advancement(started, total_courses)
     return {
         "total_courses": total_courses,
         "started": started,
-        "pct": (started / total_courses) if total_courses else 0.0,
+        "pct": (advancement["percent"] / 100) if advancement["percent"] is not None else 0.0,
         "mastery_avg": round(sum(mastery_values) / len(mastery_values)) if mastery_values else None,
         "retention_avg": round(sum(retention_values) / len(retention_values)) if retention_values else None,
         "overdue": sum(r["retard"] for r in rows),
@@ -346,7 +353,12 @@ def render_colleges_cockpit() -> None:
             started = total if college_validated else sum(
                 1 for c in courses if getattr(c, "date_1ere_lecture", None)
             )
-            pct = (started / total) if total else 0.0
+            advancement = build_advancement(
+                started,
+                total,
+                college_validated=college_validated,
+            )
+            pct = (advancement["percent"] / 100) if advancement["percent"] is not None else 0.0
 
             retard_count = sum(1 for cid in ids if cid in urgent_ids)
             fragile_count = sum(
@@ -413,7 +425,7 @@ def render_colleges_cockpit() -> None:
         with topbar:
             with ui.column().classes("gap-0"):
                 ui.label("Collèges").classes("cg-title")
-                ui.label(f"{n_total} collèges · progression par matière").classes("cg-subtitle")
+                ui.label(f"{n_total} collèges · Avancement par matière").classes("cg-subtitle")
             with ui.element("div").classes("cg-chips"):
                 def _chip(label: str, key: str) -> None:
                     el = ui.element("div").classes("cg-chip active" if filt[key] else "cg-chip")

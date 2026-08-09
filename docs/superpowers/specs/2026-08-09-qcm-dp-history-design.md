@@ -10,13 +10,18 @@ liste homogène, car leurs usages et leurs actions principales diffèrent.
 
 ## Décision
 
-La colonne « Historique rejouable » conserve sa recherche et son filtre d’état,
-mais affiche deux sections fixes :
+La colonne « Historique rejouable » conserve sa recherche, mais remplace le
+filtre d’état `Toutes / À faire / Terminées` par un sélecteur de vue à deux
+boutons :
 
-- **Historique QCM** : sessions QCM avec les actions existantes de sélection,
-  reprise/correction, rejeu et suppression.
-- **Historique DP** : sessions DP avec les mêmes actions génériques, plus une
-  action explicite **Tuteur DP**.
+- **QCM** : affiche uniquement l’historique QCM.
+- **DP** : affiche uniquement l’historique DP, avec une action explicite
+  **Tuteur DP**.
+
+La vue QCM est sélectionnée par défaut. Le statut `À faire / Terminée` reste
+visible dans les métadonnées de chaque session, mais ne sert plus de filtre de
+navigation. Il n’y a donc qu’une liste active à la fois, sans répétition des
+titres de sections.
 
 L’action Tuteur DP réutilise le dialogue existant. Elle reconstruit son contexte
 à partir des cinq premiers énoncés de la session DP et conserve l’ITEM, le cours
@@ -26,7 +31,9 @@ sont pas disponibles dans le contexte de l’ITEM.
 
 ## Contrats conservés
 
-- La recherche et le filtre de statut s’appliquent aux deux sections.
+- La recherche s’applique à la vue active QCM ou DP.
+- Le choix QCM/DP ne modifie pas la persistance et revient sur QCM au
+  chargement de la page.
 - La sélection, la correction, le rejeu et la suppression utilisent les mêmes
   callbacks qu’avant.
 - Une session sans `practice_kind` reste classée QCM par compatibilité avec les

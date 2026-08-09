@@ -40,7 +40,7 @@ from backend.core.planning.policy import (
 )
 from backend.core.planning.focus import build_focus_rows, focus_row_label
 from backend.core.planning.calendar_actions import event_duration_minutes
-from backend.core.planning.cockpit_schedule import tasks_for_day
+from backend.core.planning.cockpit_schedule import future_horizon_days, tasks_for_day
 from backend.core.reviews.service import review_service
 from backend.core.reviews import consolidation
 from backend.core.reviews.local_store import (
@@ -679,7 +679,9 @@ async def render_planning_cockpit() -> None:
         # colonnes, y compris quand "aujourd'hui" n'est pas la 1re colonne).
         today = datetime.date.today()
         consolidation_tasks = consolidation.get_due_consolidation_tasks(
-            context="college", today=today, horizon_days=max(0, len(week) - 1)
+            context="college",
+            today=today,
+            horizon_days=future_horizon_days(week[-1], today),
         )
         _manual_entries_by_day = {}
         manual_entries = get_manual_planning_entries(week[0], week[-1])

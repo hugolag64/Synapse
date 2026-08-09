@@ -1,7 +1,7 @@
 import datetime
 from types import SimpleNamespace
 
-from backend.core.planning.cockpit_schedule import tasks_for_day
+from backend.core.planning.cockpit_schedule import future_horizon_days, tasks_for_day
 
 
 def _task(due_date, days_overdue=0):
@@ -37,3 +37,11 @@ def test_future_day_keeps_only_tasks_due_that_day():
 
     assert urgent == []
     assert due == [task]
+
+
+def test_future_horizon_covers_the_displayed_week_end():
+    today = datetime.date(2026, 8, 9)
+    displayed_week_end = datetime.date(2026, 8, 22)
+
+    assert future_horizon_days(displayed_week_end, today) == 13
+    assert future_horizon_days(today - datetime.timedelta(days=1), today) == 0

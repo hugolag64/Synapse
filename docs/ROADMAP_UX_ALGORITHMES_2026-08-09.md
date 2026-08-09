@@ -17,7 +17,7 @@ Synapse doit répondre rapidement à trois questions :
 
 ## État d’exécution
 
-**Étape actuelle : neutralisation métier de la dette de reprise implémentée — planning futur et
+**Étape actuelle : neutralisation métier et visibilité des échéances futures implémentées —
 validation hybride des collèges à venir.**
 
 Le premier plan détaillé est disponible dans
@@ -26,6 +26,8 @@ Le premier plan détaillé est disponible dans
 préférence est persistante, les paramètres proposent une sauvegarde explicite et un contrôle de
 masquage/réaffichage du Sprint, et les flux actifs filtrent désormais les échéances antérieures au
 20 août sans réécrire l’historique. Le détail item conserve le mode complet pour une action manuelle.
+Planning couvre maintenant l’extrémité de la semaine affichée pour les consolidations futures, y
+compris lors de la navigation vers la semaine suivante.
 
 ## Décisions validées
 
@@ -95,6 +97,9 @@ La vue semaine doit réunir :
 - les consolidations ;
 - les tâches manuelles ;
 - les événements Google Calendar.
+
+**État au 9 août 2026 :** les révisions futures et les consolidations sont maintenant recherchées
+jusqu’à la fin de la semaine affichée, y compris après navigation.
 
 Les mêmes objets métiers doivent être ouvrables et validables depuis Aujourd’hui, Planning,
 Collèges et le détail d’un item.
@@ -372,7 +377,7 @@ actif centralisé. Les consolidations non gated antérieures à la reprise et le
 antérieurs sont neutralisés sans suppression d’historique ; les consolidations explicitement gated
 conservent leur date de démarrage.
 
-Vérification de la tranche : tests ciblés **66/66**, suite complète **1232/1232**, compilation
+Vérification de la tranche : tests ciblés **66/66**, suite complète **1233/1233**, compilation
 Python de `backend` et `frontend` réussie. La vérification manuelle de l’application reste à faire
 quand le serveur Synapse sera ouvert dans l’onglet local.
 

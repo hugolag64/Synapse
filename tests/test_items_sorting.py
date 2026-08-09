@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from frontend.pages.items import _sort_item_rows, visible_item_rows
+from frontend.pages.items import _sort_item_rows, group_item_rows, visible_item_rows
 
 
 def _row(item, title, colleges):
@@ -97,3 +97,20 @@ def test_items_list_is_not_capped_at_a_fixed_width():
 
     assert ".it-wrap { max-width:none;" in source
     assert "max-width:1200px" not in source
+
+
+def test_college_sort_exposes_visible_groups_without_duplicate_items():
+    rows = [
+        _full_row("2", "Deux", ["Pneumologie"]),
+        _full_row("1", "Un", ["Cardiologie"]),
+        _full_row("3", "Trois", ["Cardiologie", "Pneumologie"]),
+    ]
+
+    groups = group_item_rows(rows)
+
+    assert [name for name, _ in groups] == ["Cardiologie", "Pneumologie"]
+    assert [[r["course"].title for r in group] for _, group in groups] == [
+        ["Un", "Trois"],
+        ["Deux"],
+    ]
+    assert sum(len(group) for _, group in groups) == len(rows)

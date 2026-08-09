@@ -82,6 +82,8 @@ _CSS = """
 .it-next { display:flex; align-items:center; gap:5px; flex:0 0 84px; font-size:11.5px; color:var(--text-muted); }
 .it-next-dot { width:6px; height:6px; border-radius:50%; flex:0 0 6px; }
 .it-empty { padding:32px 10px; text-align:center; color:var(--text-dim); font-size:13px; }
+.it-group-label { padding:12px 10px 6px; color:var(--text-dim); font-size:10px; font-weight:600;
+  letter-spacing:.05em; text-transform:uppercase; border-bottom:1px solid var(--border); }
 @media (max-width: 900px) {
   .it-college, .it-h-college { flex-basis:120px; }
   .it-mastery, .it-h-mastery { flex-basis:110px; }
@@ -99,13 +101,25 @@ def _safe_item_number(n: str | None) -> float:
         return 999999.0
 
 
+def _college_names(course) -> tuple[str, ...]:
+    return tuple(sorted(
+        (str(name) for name in (course.college or []) if name),
+        key=str.casefold,
+    ))
+
+
+def _primary_college(row: dict) -> str:
+    names = _college_names(row["course"])
+    return names[0] if names else "Sans collège"
+
+
 def _sort_item_rows(rows: list[dict], mode: str = "item") -> list[dict]:
     """Trie sans dupliquer les items multi-collèges."""
     if mode == "college":
         return sorted(
             rows,
             key=lambda r: (
-                (r["course"].college or [""])[0].casefold(),
+                _primary_college(r).casefold(),
                 _safe_item_number(r["course"].item_number),
                 r["course"].title.casefold(),
             ),
@@ -114,6 +128,14 @@ def _sort_item_rows(rows: list[dict], mode: str = "item") -> list[dict]:
         rows,
         key=lambda r: (_safe_item_number(r["course"].item_number), r["course"].title.casefold()),
     )
+
+
+def group_item_rows(rows: list[dict]) -> list[tuple[str, list[dict]]]:
+    """Regroupe les lignes par collège principal sans dupliquer un item."""
+    groups: dict[str, list[dict]] = {}
+    for row in _sort_item_rows(rows, "college"):
+        groups.setdefault(_primary_college(row), []).append(row)
+    return list(groups.items())
 
 
 def visible_item_rows(rows: list[dict], filt: dict) -> list[dict]:
@@ -355,8 +377,14 @@ def items_page(request: Request) -> None:
                 with ui.element("div").classes("it-empty"):
                     ui.label("Aucun item pour ce filtrage.")
                 return
-            for r in visible:
-                _draw_row(r)
+            if filt.get("sort") == "college":
+                for college, group in group_item_rows(visible):
+                    ui.label(college).classes("it-group-label")
+                    for r in group:
+                        _draw_row(r)
+            else:
+                for r in visible:
+                    _draw_row(r)
 
     _all_rows = {"value": []}
 

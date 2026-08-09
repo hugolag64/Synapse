@@ -17,8 +17,9 @@ Synapse doit répondre rapidement à trois questions :
 
 ## État d’exécution
 
-**Étape actuelle : neutralisation métier, visibilité des échéances futures et validation hybride des
-collèges implémentées — prochaines tranches : refontes UI Linear et audit des scores.**
+**Étape actuelle : neutralisation métier, visibilité des échéances futures, validation hybride des
+collèges et tri visuel des Items implémentés — prochaines tranches : refontes UI Linear et audit des
+scores.**
 
 Le premier plan détaillé est disponible dans
 `docs/superpowers/plans/2026-08-09-sprint-reprise-preferences.md` pour le socle, puis
@@ -95,6 +96,12 @@ Cette confirmation est une décision déclarative tracée ; elle ne modifie pas 
 **État au 9 août 2026 :** l’algorithme pur et la vue Collèges sont branchés. Chaque ligne expose
 « À compléter », « Validation automatique proposée », « En cours » ou « Confirmé manuellement ».
 La confirmation écrit uniquement le statut déclaratif existant et conserve l’historique des preuves.
+
+### Items
+
+**État au 9 août 2026 :** le tri par collège crée maintenant des séparateurs visuels et conserve un
+seul affichage par item, y compris lorsqu’un item appartient à plusieurs collèges. Le tri par item
+reste numérique et les filtres existants sont appliqués avant le rendu.
 
 ### Planning
 
@@ -385,7 +392,7 @@ antérieurs sont neutralisés sans suppression d’historique ; les consolidatio
 conservent leur date de démarrage.
 
 Vérification de la tranche : tests ciblés reprise précédents **66/66**, tests ciblés collèges
-**13/13**, suite complète **1238/1238**, compilation
+**13/13**, tests ciblés Items **8/8**, suite complète **1239/1239**, compilation
 Python de `backend` et `frontend` réussie. La vérification manuelle de l’application reste à faire
 quand le serveur Synapse sera ouvert dans l’onglet local.
 

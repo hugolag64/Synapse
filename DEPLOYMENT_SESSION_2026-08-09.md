@@ -28,6 +28,17 @@ docker compose up -d --force-recreate synapse
 
 QA navigateur sur `http://192.168.1.5:8888` : vues Collèges, Item/Ressources, Annales, mode concours, Correction, Revue et Paramètres.
 
+### QA navigateur effectuée — 2026-08-09
+
+- URL : `http://192.168.1.5:8888`
+- Outil : Chromium via Playwright
+- Routes testées : `/colleges`, `/prepa`, `/annales`, `/revue`, `/settings`
+- Résultat technique : les cinq routes répondent sans `Traceback`, `Internal Server Error` ni exception visible dans le DOM.
+- Contrôles confirmés : `Pilotage global` et `Avancement de lecture` dans Collèges ; EDNpro et Hypocampus dans Prépa ; `Épreuves EDN` et `Épreuves par matière` dans Annales ; `FOCUS SEMAINE PROCHAINE` dans Revue ; en-têtes `CONNEXIONS`, `PLANIFICATION EDN` et `LISA / OIC` dans Paramètres.
+- Limites : la vue Collèges emploie `Avancement de lecture` plutôt que `Progression/Statut` ; EDN-i n'est pas présent dans les données rendues de cet environnement ; le repliage complet par domaine des Paramètres reste à finaliser.
+
+La QA confirme la stabilité de navigation, mais ne vaut pas validation visuelle finale de ces trois points.
+
 ## État actuel
 
 ### ✅ Complété

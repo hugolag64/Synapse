@@ -888,13 +888,15 @@ Expected: PASS, or a complete list of unrelated pre-existing failures with no cl
 
 Vérifier que les tests ont écrit uniquement dans une base temporaire, que la base de production n’a pas reçu de ligne `ai_usage_logs` artificielle et que les tables d’erreurs de l’environnement de test restent isolées.
 
-- [ ] **Step 4: QA navigateur** *(étape en cours)*
+- [x] **Step 4: QA navigateur** *(QA technique effectuée le 2026-08-09)*
 
 Utiliser Playwright/Chromium uniquement après les tests Python pour vérifier : alignement header/lignes, pleine largeur, mode concours, absence d’UUID, lien Hypocampus vérifié, sections Paramètres repliées et focus hebdomadaire pleine largeur.
 
-- [ ] **Step 5: Produire le rapport de livraison**
+- [x] **Step 5: Produire le rapport de livraison**
 
 Le rapport doit inclure les tests exécutés, les migrations appliquées, les métriques avant/après, les intégrations IA testées, les URLs Hypocampus vérifiées et les limites restantes.
+
+Rapport mis à jour dans `DEPLOYMENT_SESSION_2026-08-09.md`. Les limites de QA sont documentées dans le rapport de déploiement.
 
 ## Dépendances et ordre d’exécution
 

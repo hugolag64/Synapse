@@ -40,7 +40,7 @@ _ANNALES_CSS = """
   0% { opacity: 0; transform: translateY(12px); }
   100% { opacity: 1; transform: translateY(0); }
 }
-.ans-view-animated { animation: ansFadeIn 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards !important; }
+.ans-view-animated { width:100%; align-self:stretch; animation: ansFadeIn 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards !important; }
 .ans-tab-btn { color: var(--text-muted); transition: all 150ms ease; }
 .ans-tab-btn:hover { color: var(--text); background: var(--surface-hover); }
 .ans-tab-btn.active { color: var(--text); background: var(--bg); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
@@ -65,6 +65,11 @@ def _filtered_annales(
 
 def _distinct_values(rows: list[dict], key: str) -> list[str]:
     return sorted({str(row[key]) for row in rows if row.get(key)})
+
+
+def _displayable_annales(rows: list[dict]) -> list[dict]:
+    """Keep only annale groups with at least one imported sub-part."""
+    return [row for row in rows if int(row.get("total_parts") or 0) > 0]
 
 
 # Tarif Google officiel pour gemini-3-flash-preview au 2026-07-31 (ai.google.dev/gemini-api/docs/pricing) :
@@ -589,7 +594,7 @@ def annales_page() -> None:
                             _render_annales_catalog()
 
             def _render_annales_catalog():
-                all_rows = _filtered_annales()
+                all_rows = _displayable_annales(_filtered_annales())
                 if not all_rows:
                     ui.label("Aucune annale importée pour le moment.").classes("ans-empty")
                     return
@@ -617,13 +622,13 @@ def annales_page() -> None:
 
                 def _render_list() -> None:
                     rows_column.clear()
-                    rows = _filtered_annales(
+                    rows = _displayable_annales(_filtered_annales(
                         query=str(search.value or ""),
                         matiere=str(matiere_filter.value or ""),
                         faculte=str(faculte_filter.value or ""),
                         annee=int(annee_filter.value) if annee_filter.value else None,
                         type_annale=str(type_filter.value or ""),
-                    )
+                    ))
                     rows = [r for r in rows if r["type_annale"] != "vrai_concours"]
                     with rows_column:
                         if not rows:

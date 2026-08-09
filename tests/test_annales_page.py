@@ -153,3 +153,14 @@ def test_annales_catalog_uses_stable_exam_columns_instead_of_cards() -> None:
     assert "grid-template-columns:minmax(240px, 1.4fr) 170px 150px 104px" in source
     assert "PROGRESSION" in source
     assert "SCORE OFFICIEL" in source
+
+
+def test_displayable_annales_excludes_empty_group_rows():
+    from frontend.pages.annales import _displayable_annales
+
+    rows = [
+        {"id": 1, "titre": "Test vide", "total_parts": 0},
+        {"id": 2, "titre": "Épreuve importée", "total_parts": 8},
+    ]
+
+    assert [row["id"] for row in _displayable_annales(rows)] == [2]

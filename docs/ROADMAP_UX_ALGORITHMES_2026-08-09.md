@@ -128,7 +128,9 @@ de score et les flux d’historique restent inchangés.
 
 **Annales :** la liste des épreuves et le détail des sous-parties utilisent maintenant des lignes à
 colonnes stables pour distinguer épreuve, progression, score officiel, statut et action. Le barème
-et les données de maîtrise ne sont pas modifiés.
+et les données de maîtrise ne sont pas modifiés. Les groupes sans sous-partie importée (`0/0`) ne
+sont plus affichés ; un nettoyage ciblé et réversible des artefacts de tests est disponible dans
+`deploy/cleanup_test_annales.py`.
 
 QCM et annales partagent un cadre de lecture commun :
 
@@ -404,8 +406,8 @@ antérieurs sont neutralisés sans suppression d’historique ; les consolidatio
 conservent leur date de démarrage.
 
 Vérification de la tranche : tests ciblés reprise précédents **66/66**, tests ciblés collèges
-**13/13**, tests ciblés Items **8/8**, tests ciblés QCM **33/33**, tests ciblés Prépa **9/9**, suite
-tests ciblés Annales **19/19**, suite complète **1244/1244**, compilation
+**13/13**, tests ciblés Items **8/8**, tests ciblés QCM **33/33**, tests ciblés Prépa **9/9**, tests
+ciblés Annales et nettoyage **22/22**, suite complète **1246/1246**, compilation
 Python de `backend` et `frontend` réussie. La vérification manuelle de l’application reste à faire
 quand le serveur Synapse sera ouvert dans l’onglet local.
 

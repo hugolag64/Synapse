@@ -1,6 +1,19 @@
 from uuid import uuid4
 
+import pytest
+
 from backend.core.reviews import local_store
+
+
+@pytest.fixture(autouse=True)
+def _isolated_db(tmp_path, monkeypatch):
+    monkeypatch.setattr(local_store, "DB_PATH", tmp_path / "test.db")
+    monkeypatch.setattr(local_store, "_DB", None)
+    local_store.init_db()
+    yield
+    if local_store._DB is not None:
+        local_store._DB.close()
+    monkeypatch.setattr(local_store, "_DB", None)
 
 
 def test_annale_provenance_accepts_ednpro_source():

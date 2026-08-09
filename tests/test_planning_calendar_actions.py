@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+from unittest.mock import patch
 
 import pytest
 
@@ -75,3 +76,77 @@ def test_google_calendar_create_event_surfaces_authentication_failure(monkeypatc
 
     with pytest.raises(GoogleCalendarAuthError, match="OAuth indisponible"):
         asyncio.run(service.create_event("Révision", "2026-08-07T09:00:00"))
+
+
+class _FakeEventsMultiCalendar:
+    def __init__(self, items_by_cal: dict):
+        self.items_by_cal = items_by_cal
+        self.calls: list[str] = []
+        self._current = None
+
+    def list(self, **kwargs):
+        self._current = kwargs["calendarId"]
+        self.calls.append(self._current)
+        return self
+
+    def execute(self):
+        return {"items": self.items_by_cal.get(self._current, [])}
+
+
+class _FakeServiceMultiCalendar:
+    def __init__(self, events_api):
+        self.events_api = events_api
+
+    def events(self):
+        return self.events_api
+
+
+def _event(summary: str) -> dict:
+    return {
+        "summary": summary,
+        "start": {"dateTime": "2026-08-10T09:00:00+02:00"},
+        "end": {"dateTime": "2026-08-10T10:00:00+02:00"},
+    }
+
+
+@patch("backend.state.store.data_store")
+def test_get_events_for_day_queries_preference_calendar_ids(mock_data_store):
+    mock_data_store.preferences = {
+        "planning_calendar_sources": [{"id": "fac@x.com", "label": "Fac"}]
+    }
+    events_api = _FakeEventsMultiCalendar({"fac@x.com": [_event("Sémio")], "primary": []})
+    service = GoogleCalendarService()
+    service.service = _FakeServiceMultiCalendar(events_api)
+
+    events = asyncio.run(service.get_events_for_day(datetime.date(2026, 8, 10)))
+
+    assert "fac@x.com" in events_api.calls
+    assert events[0]["_synapse_source_label"] == "Fac"
+
+
+@patch("backend.state.store.data_store")
+def test_get_events_for_day_deduplicates_id_present_in_env_and_preferences(mock_data_store, monkeypatch):
+    mock_data_store.preferences = {
+        "planning_calendar_sources": [{"id": "fac@x.com", "label": "Fac"}]
+    }
+    monkeypatch.setattr(app_settings.settings, "google_calendar_ids", "fac@x.com")
+    events_api = _FakeEventsMultiCalendar({"fac@x.com": [], "primary": []})
+    service = GoogleCalendarService()
+    service.service = _FakeServiceMultiCalendar(events_api)
+
+    asyncio.run(service.get_events_for_day(datetime.date(2026, 8, 10)))
+
+    assert events_api.calls.count("fac@x.com") == 1
+    monkeypatch.setattr(app_settings.settings, "google_calendar_ids", "")
+
+
+@patch("backend.state.store.data_store")
+def test_get_events_for_day_leaves_unlabeled_events_with_empty_source_label(mock_data_store):
+    mock_data_store.preferences = {}
+    events_api = _FakeEventsMultiCalendar({"primary": [_event("Perso")]})
+    service = GoogleCalendarService()
+    service.service = _FakeServiceMultiCalendar(events_api)
+
+    events = asyncio.run(service.get_events_for_day(datetime.date(2026, 8, 10)))
+
+    assert events[0]["_synapse_source_label"] == ""

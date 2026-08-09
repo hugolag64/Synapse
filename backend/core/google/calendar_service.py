@@ -140,12 +140,18 @@ class GoogleCalendarService:
         time_min = start_dt.isoformat()
         time_max = end_dt.isoformat()
         
-        # Calendriers à interroger : primary + IDs configurés dans les paramètres
+        # Calendriers à interroger : primary + IDs configurés (.env) + IDs configurés (Paramètres)
         from backend.config.settings import settings as _cfg
+        from backend.state.store import data_store as _store
+        from backend.core.planning.calendar_sources import list_calendar_sources as _list_calendar_sources
+
         configured_ids = _cfg.get_calendar_ids()
+        preference_sources = _list_calendar_sources(_store.preferences)
+        source_labels: dict[str, str] = {s["id"]: s["label"] for s in preference_sources if s["label"]}
+
         seen_ids: set[str] = set()
         calendar_ids: list[str] = []
-        for cid in ["primary"] + configured_ids:
+        for cid in ["primary"] + configured_ids + [s["id"] for s in preference_sources]:
             if cid not in seen_ids:
                 seen_ids.add(cid)
                 calendar_ids.append(cid)
@@ -164,7 +170,11 @@ class GoogleCalendarService:
                     ).execute()
                 )
                 items = events_result.get('items', [])
-                
+
+                label = source_labels.get(cal_id, "")
+                for event in items:
+                    event["_synapse_source_label"] = label
+
                 # FIX: Apply +4h offset for "Agenda FAC" (User reported 4h early events)
                 # ID: dm1rlvvim8vemcspm4momjq8f7qfqc3g@import.calendar.google.com
                 if cal_id == 'dm1rlvvim8vemcspm4momjq8f7qfqc3g@import.calendar.google.com':

@@ -79,11 +79,27 @@ def filter_weak_points_view(rows: list, view: str) -> list:
 
 def edn_suggestion_model(row: dict) -> dict[str, object]:
     """Résumé stable d'une suggestion F6 pour l'affichage et les tests UI."""
+    category = str(row.get("category") or "").strip().casefold()
+    category_labels = {
+        "non_classe": "Non classée",
+        "non_classé": "Non classée",
+        "rang_a": "Rang A",
+        "piege": "Piège EDN",
+        "diag_diff": "Diagnostic différentiel",
+        "temps": "Temps",
+        "oubli": "Oubli",
+    }
+    category_label = category_labels.get(category, str(row.get("category") or "Non classée").strip().capitalize())
+    title_label = "Erreur non classée" if category in {"non_classe", "non_classé"} else (
+        f"Erreur d’{category_label.casefold()}" if category == "oubli" else f"Erreur {category_label}"
+    )
     evidence_count = len(row.get("evidence_ids") or [])
+    signal_word = "signal" if evidence_count == 1 else "signaux"
+    source_word = "source" if evidence_count == 1 else "sources"
     return {
-        "title": f"Item {row.get('item_number', '—')} · {row.get('category', 'non_classé')}",
-        "detail": str(row.get("detail", "")),
-        "evidence": f"{evidence_count} évidence(s)",
+        "title": f"Item {row.get('item_number', '—')} · {title_label}",
+        "detail": f"Erreur répétée · {category_label} · {evidence_count} {signal_word}",
+        "evidence": f"{evidence_count} {signal_word} {source_word}",
         "id": int(row["id"]),
     }
 

@@ -86,6 +86,12 @@ def _group_annales_by_family(rows: list[dict]) -> dict[str, list[dict]]:
     return groups
 
 
+def _filter_annales_by_family(rows: list[dict], family: str) -> list[dict]:
+    """Keep only the EDN or subject family selected in the catalogue."""
+    selected = str(family or "EDN").strip().casefold()
+    return [row for row in rows if _annale_family(row).casefold() == selected]
+
+
 # Tarif Google officiel pour gemini-3-flash-preview au 2026-07-31 (ai.google.dev/gemini-api/docs/pricing) :
 # 0,50 $ / M tokens entrée, 3,00 $ / M tokens sortie — à revérifier périodiquement.
 _GEMINI_FLASH_PRICE_PER_M_INPUT = 0.50
@@ -631,6 +637,9 @@ def annales_page() -> None:
                     type_filter = ui.select(
                         {"": "Tous types", **ANNALE_TYPE_LABELS}, value=""
                     ).props("outlined dense").classes("w-44")
+                    family_filter = ui.toggle(
+                        {"EDN": "EDN", "Matière": "Matière"}, value="EDN"
+                    ).props("spread no-caps unelevated dense").classes("w-64")
 
                 rows_column = ui.column().classes("ans-list")
 
@@ -644,24 +653,21 @@ def annales_page() -> None:
                         type_annale=str(type_filter.value or ""),
                     ))
                     rows = [r for r in rows if r["type_annale"] != "vrai_concours"]
-                    rows = sorted(rows, key=lambda row: (0 if _annale_family(row) == "EDN" else 1, str(row.get("titre") or "")))
+                    rows = _filter_annales_by_family(rows, str(family_filter.value or "EDN"))
+                    rows = sorted(rows, key=lambda row: str(row.get("titre") or ""))
                     with rows_column:
                         if not rows:
-                            ui.label("Aucune annale ne correspond à ces filtres.").classes("ans-empty")
+                            empty_title = "épreuve EDN" if str(family_filter.value or "EDN") == "EDN" else "épreuve par matière"
+                            ui.label(f"Aucune {empty_title} ne correspond à ces filtres.").classes("ans-empty")
                             return
+                        family_title = "Épreuves EDN" if str(family_filter.value or "EDN") == "EDN" else "Épreuves par matière"
+                        ui.label(f"{family_title} · {len(rows)}").classes("ans-family-title")
                         with ui.element("div").classes("ans-exam-head"):
                             ui.label("ÉPREUVE")
                             ui.label("PROGRESSION")
                             ui.label("SCORE OFFICIEL")
                             ui.label("ACTION")
-                        current_family = None
                         for row in rows:
-                            family = _annale_family(row)
-                            if family != current_family:
-                                ui.label(
-                                    "Épreuves EDN" if family == "EDN" else "Épreuves par matière"
-                                ).classes("ans-family-title")
-                                current_family = family
                             annale_id = int(row["id"])
                             total = int(row["total_parts"] or 0)
                             completed = int(row["completed_parts"] or 0)
@@ -698,7 +704,7 @@ def annales_page() -> None:
                                         on_click=lambda _e=None, aid=annale_id: ui.navigate.to(f"/annales/{aid}"),
                                     ).props("flat color=primary size=sm")
 
-                for control in (search, matiere_filter, faculte_filter, annee_filter, type_filter):
+                for control in (search, matiere_filter, faculte_filter, annee_filter, type_filter, family_filter):
                     control.on_value_change(lambda _e=None: _render_list())
                 _render_list()
 

@@ -185,3 +185,26 @@ def test_annales_are_grouped_into_edn_and_subject_families():
 
     assert [row["id"] for row in groups["EDN"]] == [1, 3]
     assert [row["id"] for row in groups["Matière"]] == [2]
+
+
+def test_annales_family_filter_returns_only_the_selected_exam_family():
+    from frontend.pages.annales import _filter_annales_by_family
+
+    rows = [
+        {"id": 1, "type_annale": "concours_blanc"},
+        {"id": 2, "type_annale": "matiere"},
+        {"id": 3, "type_annale": "edn"},
+    ]
+
+    assert [row["id"] for row in _filter_annales_by_family(rows, "EDN")] == [1, 3]
+    assert [row["id"] for row in _filter_annales_by_family(rows, "Matière")] == [2]
+
+
+def test_annales_catalog_uses_a_family_toggle():
+    from pathlib import Path
+
+    source = Path("frontend/pages/annales.py").read_text(encoding="utf-8")
+
+    assert 'family_filter = ui.toggle' in source
+    assert '"Épreuves EDN"' in source
+    assert '"Épreuves par matière"' in source

@@ -50,6 +50,7 @@ from frontend.components.oic_panel import (
 )
 from frontend.components.course_quick_actions import (
     _open_quick_qcm_dialog,
+    _open_obsidian_note_action,
     open_pdf_wizard,
     open_start_tracking_dialog,
 )
@@ -510,7 +511,7 @@ def render_item_cockpit(course_id: str) -> None:
                 _obs = ui.element("div").classes("ci-btn")
                 with _obs:
                     ui.label("↗ Obsidian")
-                _obs.on("click", lambda: obsidian_service.open_course_note(course))
+                _obs.on("click", lambda c=course: _open_obsidian_note_action(c))
 
 
             _context_open = ui.label("Contexte").classes("ci-context-open")
@@ -771,7 +772,7 @@ def _tab_note(course, obs_path, obs_configured: bool, item_label: str) -> None:
             _btn_open = ui.button("Ouvrir dans Obsidian", icon="open_in_new").props(
                 "outline size=sm color=grey-8"
             ).classes("text-xs font-medium no-caps rounded-lg")
-            _btn_open.on("click", lambda: obsidian_service.open_course_note(course))
+            _btn_open.on("click", lambda c=course: _open_obsidian_note_action(c))
 
     try:
         raw = obs_path.read_text(encoding="utf-8")
@@ -1306,7 +1307,7 @@ def _render_panel(course, lacunes, has_pdf: bool, obs_path) -> None:
             _o = ui.element("div").classes("ci-p-link")
             with _o:
                 ui.label("↗ Note Obsidian")
-            _o.on("click", lambda: obsidian_service.open_course_note(course))
+            _o.on("click", lambda c=course: _open_obsidian_note_action(c))
             any_res = True
         fiche = getattr(course, "agregation_fiche_edn", None)
         if fiche:

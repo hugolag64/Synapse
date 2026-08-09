@@ -28,7 +28,11 @@ def render_monday_diagnostic(state: DashboardState) -> None:
 
     try:
         _history = local_store.get_all_history()
-        _all = review_service.generate_reviews(context=state.review_context, history=_history)
+        _all = review_service.generate_reviews(
+            context=state.review_context,
+            history=_history,
+            active_only=True,
+        )
         _urgent = review_service.get_urgent_tasks(_all)
         _today = review_service.get_today_tasks(_all)
         _n_lac = local_store.get_open_lacunes_count()

@@ -21,6 +21,7 @@ from backend.core.reviews.models import ReviewTask
 from backend.core.reviews.mastery import get_course_mastery
 from backend.core.evaluation.models import EvaluationInput
 from backend.core.evaluation.service import record_evaluation
+from backend.core.reviews.reentry import filter_active_review_tasks, get_study_resume_date
 
 # Intervalle initial (jours) selon le niveau de maîtrise au moment de l'amorçage.
 INITIAL_INTERVAL_BY_LEVEL: dict[str, int] = {
@@ -168,7 +169,11 @@ def get_due_consolidation_tasks(
             semestre=c.semestre,
         ))
 
-    return tasks
+    active_tasks = filter_active_review_tasks(
+        tasks,
+        get_study_resume_date(data_store.preferences),
+    )
+    return active_tasks
 
 
 def _semestre_num(semestre: Optional[str]) -> Optional[int]:

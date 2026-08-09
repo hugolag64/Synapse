@@ -71,7 +71,9 @@ async def _send_morning_notification() -> None:
         from backend.core.reviews.recommendation_service import compute_daily_load
 
         history     = local_store.get_all_history()
-        all_tasks   = review_service.generate_reviews("college", history)
+        all_tasks   = review_service.generate_reviews(
+            "college", history, active_only=True
+        )
         urgent      = review_service.get_urgent_tasks(all_tasks)
         today_tasks = review_service.get_today_tasks(all_tasks)
         load        = compute_daily_load(urgent, today_tasks)

@@ -22,7 +22,7 @@ def _revision_badge() -> tuple[str, str]:
         from backend.core.reviews.service import review_service
 
         tasks = review_service.generate_reviews(
-            context="college", history=get_all_history()
+            context="college", history=get_all_history(), active_only=True
         )
         overdue = len(review_service.get_urgent_tasks(tasks))
     except Exception:

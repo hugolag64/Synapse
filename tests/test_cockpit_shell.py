@@ -6,8 +6,9 @@ from frontend import cockpit_shell
 
 def test_revision_badge_uses_overdue_task_count(monkeypatch):
     class ReviewService:
-        def generate_reviews(self, context, history):
+        def generate_reviews(self, context, history, active_only=False):
             assert context == "college"
+            assert active_only is True
             return [SimpleNamespace(id="a"), SimpleNamespace(id="b"), SimpleNamespace(id="c")]
 
         def get_urgent_tasks(self, tasks):

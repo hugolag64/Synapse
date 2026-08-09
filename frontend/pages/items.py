@@ -204,6 +204,7 @@ def items_page(request: Request) -> None:
         all_tasks = review_service.generate_reviews(
             context="college", history=history,
             sessions_map=sessions_map, postpone_map=postpone_map,
+            active_only=True,
         )
         urgent_ids = {t.course_id for t in review_service.get_urgent_tasks(all_tasks)}
         next_by_course: dict[str, object] = {}

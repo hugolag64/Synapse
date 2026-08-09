@@ -241,7 +241,11 @@ async def render_today_cockpit() -> None:
     # ── Pipeline données (réplique de rebuild_all, partie data) ────────────────
     def _fetch() -> None:
         history = local_store.get_all_history()
-        all_tasks = review_service.generate_reviews(context=state.review_context, history=history)
+        all_tasks = review_service.generate_reviews(
+            context=state.review_context,
+            history=history,
+            active_only=True,
+        )
         all_tasks = externat_service.apply_stage_boost(all_tasks)
         try:
             from backend.core.planning.service import planning_service

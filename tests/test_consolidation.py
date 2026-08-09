@@ -317,6 +317,9 @@ def test_pool_item_declare_il_y_a_longtemps_est_immediatement_du(mock_data_store
     import backend.core.knowledge.store as ks
     from backend.core.reviews import consolidation
 
+    mock_data_store.preferences = {
+        "study_resume_date": (date.today() - datetime.timedelta(days=365)).isoformat(),
+    }
     ks.set_item_state("course-old", "flou", context="college", source="triage")
     # set_item_state always stamps declared_at = today(); backdate it directly
     # to simulate a college validated 60 days before this pool-builder ever runs.
@@ -491,7 +494,10 @@ def test_select_daily_respecte_max_items():
 def test_select_daily_priorise_semestre_ancien(mock_data_store):
     from backend.core.reviews import consolidation
 
-    mock_data_store.preferences = {"semestre_actuel": "Semestre 7"}
+    mock_data_store.preferences = {
+        "semestre_actuel": "Semestre 7",
+        "study_resume_date": (date.today() - datetime.timedelta(days=365)).isoformat(),
+    }
     old = _task("old", "A", days_overdue=5, mastery_level="à consolider", semestre="Semestre 3")
     recent = _task("recent", "B", days_overdue=5, mastery_level="à consolider", semestre="Semestre 7")
 
@@ -503,7 +509,10 @@ def test_select_daily_priorise_semestre_ancien(mock_data_store):
 def test_select_daily_priorise_niveau_critique(mock_data_store):
     from backend.core.reviews import consolidation
 
-    mock_data_store.preferences = {"semestre_actuel": "Semestre 7"}
+    mock_data_store.preferences = {
+        "semestre_actuel": "Semestre 7",
+        "study_resume_date": (date.today() - datetime.timedelta(days=365)).isoformat(),
+    }
     critique = _task("crit", "A", days_overdue=5, mastery_level="critique", semestre="Semestre 7")
     maitrise = _task("mait", "B", days_overdue=5, mastery_level="maîtrisé", semestre="Semestre 7")
 
@@ -570,7 +579,10 @@ def test_plan_consolidation_retourne_selection_et_surplus(mock_data_store):
     import backend.core.knowledge.store as ks
     from backend.core.planning.service import planning_service
 
-    mock_data_store.preferences = {"semestre_actuel": "Semestre 7"}
+    mock_data_store.preferences = {
+        "semestre_actuel": "Semestre 7",
+        "study_resume_date": (date.today() - datetime.timedelta(days=365)).isoformat(),
+    }
     ks.set_item_state("course-9", "flou", context="college", source="triage")
     # Backdate declared_at to make the item immediately due for consolidation
     with ls._conn() as con:

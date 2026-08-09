@@ -231,7 +231,11 @@ def render_colleges_cockpit() -> None:
 
     def _compute() -> list[dict]:
         history = get_all_history()
-        all_tasks = review_service.generate_reviews(context="college", history=history)
+        all_tasks = review_service.generate_reviews(
+            context="college",
+            history=history,
+            active_only=True,
+        )
         urgent_ids = {t.course_id for t in review_service.get_urgent_tasks(all_tasks)}
         qcm_map = get_qcm_last_scores_by_course()
 

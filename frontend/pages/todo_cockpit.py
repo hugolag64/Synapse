@@ -329,7 +329,11 @@ async def render_revisions_cockpit() -> None:
 
     def _load_and_render() -> None:
         history = local_store.get_all_history()
-        base = review_service.generate_reviews(context="college", history=history)
+        base = review_service.generate_reviews(
+            context="college",
+            history=history,
+            active_only=True,
+        )
         urgent = review_service.get_urgent_tasks(base)
         today_tasks = review_service.get_today_tasks(base)
         upcoming = review_service.get_upcoming_tasks(base, days=7)

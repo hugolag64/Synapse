@@ -660,7 +660,11 @@ async def render_planning_cockpit() -> None:
         _draw_skeleton(week)
 
         history = get_all_history()
-        all_tasks = review_service.generate_reviews(context="college", history=history)
+        all_tasks = review_service.generate_reviews(
+            context="college",
+            history=history,
+            active_only=True,
+        )
         active_lacunes_raw = get_all_weak_points_table(status_filter=None)
         active_lacunes = [
             lc for lc in active_lacunes_raw

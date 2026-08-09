@@ -80,6 +80,8 @@ _CSS = """
 .se-appearance-sub { font-size:11.5px; color:var(--text-muted); margin-top:2px; }
 .se-timezone-row { display:flex; align-items:center; justify-content:space-between; gap:12px;
   border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin-top:8px; }
+.se-planning-actions { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:8px; }
+.se-planning-status { color:var(--text-muted); font-size:11.5px; }
 .se-switch { width:36px; height:20px; border-radius:10px; background:var(--surface-hover); position:relative;
   cursor:pointer; flex:0 0 auto; transition: background var(--duration-base) var(--ease-standard); }
 .se-switch.on { background:var(--accent); }
@@ -184,17 +186,53 @@ def render_settings_cockpit() -> None:
                 value=data_store.preferences.get("edn_target_date", "2026-10-15"),
             ).props("outlined dense type=date")
 
-            def _set_target_date(event) -> None:
-                value = str(event.value or "").strip()
-                try:
-                    date.fromisoformat(value)
-                    data_store.set_preference("edn_target_date", value)
-                    ui.notify("Date cible EDN mise à jour", type="positive")
-                except ValueError:
-                    ui.notify("Date EDN invalide", type="negative")
-                    target_date.value = data_store.preferences.get("edn_target_date", "2026-10-15")
+        with ui.element("div").classes("se-timezone-row"):
+            with ui.column().classes("gap-0"):
+                ui.label("Date de reprise").classes("se-appearance-label")
+                ui.label("Les nouvelles actions commencent à partir de cette date").classes("se-appearance-sub")
+            resume_date = ui.input(
+                label="Date",
+                value=data_store.preferences.get("study_resume_date", "2026-08-20"),
+            ).props("outlined dense type=date")
 
-            target_date.on("update:model-value", _set_target_date)
+        planning_status = ui.label().classes("se-planning-status")
+        with ui.element("div").classes("se-planning-actions"):
+            ui.button(
+                "Enregistrer la planification",
+                on_click=lambda: _save_planning_preferences(target_date, resume_date, planning_status),
+            ).props("unelevated color=primary")
+            sprint_visible = bool(data_store.preferences.get("edn_sprint_visible", True))
+            visibility_button = ui.button(
+                "Masquer le Sprint" if sprint_visible else "Réafficher le Sprint",
+                on_click=lambda: _toggle_sprint_visibility(visibility_button),
+            ).props("flat dense")
+
+        def _save_planning_preferences(target_input, resume_input, status_label) -> None:
+            try:
+                target_value = str(target_input.value or "").strip()
+                resume_value = str(resume_input.value or "").strip()
+                date.fromisoformat(target_value)
+                date.fromisoformat(resume_value)
+            except ValueError:
+                status_label.set_text("Date invalide — aucune modification enregistrée")
+                ui.notify("Date de planification invalide", type="negative")
+                return
+
+            data_store.set_preferences(
+                {
+                    "edn_target_date": target_value,
+                    "study_resume_date": resume_value,
+                    "edn_sprint_visible": bool(data_store.preferences.get("edn_sprint_visible", True)),
+                }
+            )
+            status_label.set_text("Planification enregistrée")
+            ui.notify("Planification enregistrée", type="positive")
+
+        def _toggle_sprint_visibility(button) -> None:
+            visible = not bool(data_store.preferences.get("edn_sprint_visible", True))
+            data_store.set_preference("edn_sprint_visible", visible)
+            button.text = "Masquer le Sprint" if visible else "Réafficher le Sprint"
+            ui.notify("Sprint affiché" if visible else "Sprint masqué", type="positive")
 
         ui.label("UNESS").classes("se-label")
         with ui.element("div").classes("se-uness-card"):

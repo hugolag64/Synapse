@@ -17,13 +17,14 @@ Synapse doit répondre rapidement à trois questions :
 
 ## État d’exécution
 
-**Étape actuelle : plan d’exécution du socle Sprint/reprise préparé — implémentation non commencée.**
+**Étape actuelle : socle de préférences Sprint/reprise implémenté — neutralisation métier à venir.**
 
 Le premier plan détaillé est disponible dans
 `docs/superpowers/plans/2026-08-09-sprint-reprise-preferences.md`. Il couvre uniquement la
 persistance de la date cible EDN, la date de reprise, l’enregistrement explicite et le masquage du
 Sprint. La neutralisation métier des tâches antérieures au 20 août viendra dans la tranche suivante,
-après validation de ce socle.
+après validation de ce socle. La préférence est maintenant persistante et les paramètres proposent
+une sauvegarde explicite de la planification ainsi qu’un contrôle de masquage/réaffichage du Sprint.
 
 ## Décisions validées
 
@@ -365,7 +366,8 @@ Objectif : rendre la reprise du 20 août déterministe depuis toutes les vues.
 
 **État au 9 août 2026 :** le modèle de préférences persiste désormais la date cible EDN, la date
 de reprise `2026-08-20` et la visibilité du Sprint, avec validation des dates et écriture groupée.
-Le filtrage métier des tâches antérieures au 20 août n’est pas encore activé.
+Les paramètres enregistrent ces valeurs sur action explicite et permettent de masquer/réafficher le
+Sprint. Le filtrage métier des tâches antérieures au 20 août n’est pas encore activé.
 
 Livrables :
 

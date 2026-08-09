@@ -26,6 +26,7 @@ from nicegui import ui
 
 from backend.core.reviews import local_store
 from backend.state.store import data_store
+from frontend.components.learning_metrics import build_learning_metrics
 from frontend.pages.stats import (
     _get, _fmt_minutes, _fmt_activities, _day_label,
     _get_all_mastery_snapshots, _compute_kpis,
@@ -68,6 +69,39 @@ _CSS = """
 """
 
 
+def _compute_learning_summary(
+    courses: list,
+    snapshots: list[tuple],
+    validated_colleges: set[str] | None = None,
+) -> dict[str, dict[str, object]]:
+    """Return independent global advancement, mastery and retention metrics."""
+    validated = validated_colleges or set()
+    done = sum(
+        1
+        for course in courses
+        if getattr(course, "date_1ere_lecture", None)
+        or validated.intersection(getattr(course, "college", None) or ())
+    )
+
+    mastery_scores = [snap.score for snap, _ in snapshots if snap.score is not None]
+    retention_scores = [
+        snap.retention_score
+        for snap, _ in snapshots
+        if snap.retention_score is not None
+    ]
+    mastery_avg = round(sum(mastery_scores) / len(mastery_scores)) if mastery_scores else None
+    retention_avg = (
+        round(sum(retention_scores) / len(retention_scores))
+        if retention_scores else None
+    )
+    return build_learning_metrics(
+        done=done,
+        total=len(courses),
+        mastery_score=mastery_avg,
+        retention_score=retention_avg,
+    )
+
+
 def _course_college_map() -> dict[str, str]:
     return {c.id: c.college[0] for c in data_store.cours if c.college}
 
@@ -101,11 +135,20 @@ def render_stats_cockpit() -> None:
                         ui.label(label)
                     seg.on("click", lambda v=value: _select_days(v))
 
-    def _draw_summary(kpis: dict) -> None:
+    def _draw_summary(kpis: dict, learning: dict[str, dict[str, object]]) -> None:
         summary.clear()
         period_lbl = f"{state['days']} j" if state["days"] else "tout"
         avg = kpis["avg_score"]
         avg_color = _LEVEL_COLOR.get(_level_from_score(avg), "var(--text-muted)") if avg is not None else "var(--text-dim)"
+        advancement = learning["advancement"]
+        advancement_pct = advancement["percent"]
+        advancement_txt = f"{advancement_pct}%" if advancement_pct is not None else "—"
+        advancement_sub = (
+            f"avancement · {advancement['done']}/{advancement['total']} cours"
+            if advancement["total"]
+            else "avancement · données indisponibles"
+        )
+        retention = learning["retention"]["score"]
 
         with summary:
             with ui.element("div").classes("st-metric"):
@@ -121,8 +164,20 @@ def render_stats_cockpit() -> None:
             ui.element("div").classes("st-vsep")
 
             with ui.element("div").classes("st-metric"):
+                ui.label(advancement_txt).classes("st-metric-val")
+                ui.label(advancement_sub).classes("st-metric-sub")
+
+            ui.element("div").classes("st-vsep")
+
+            with ui.element("div").classes("st-metric"):
                 ui.label(f"{avg}%" if avg is not None else "—").classes("st-metric-val").style(f"color:{avg_color}")
                 ui.label(f"maîtrise moyenne · {kpis['tracked_count']} cours").classes("st-metric-sub")
+
+            ui.element("div").classes("st-vsep")
+
+            with ui.element("div").classes("st-metric"):
+                ui.label(f"{retention}%" if retention is not None else "—").classes("st-metric-val")
+                ui.label("rétention moyenne").classes("st-metric-sub")
 
     def _draw_college_time(sessions: list) -> None:
         college_section.clear()
@@ -207,6 +262,14 @@ def render_stats_cockpit() -> None:
         days = state["days"]
         snapshots = _get_all_mastery_snapshots()
         kpis = _compute_kpis(days, snapshots)
+        from backend.core.knowledge import store as knowledge_store
+
+        statuses = knowledge_store.get_all_college_statuses()
+        learning = _compute_learning_summary(
+            list(data_store.cours),
+            snapshots,
+            validated_colleges={name for name, status in statuses.items() if status == "valide"},
+        )
 
         sessions = list(local_store.get_recent_study_sessions(limit=300))
         if days > 0:
@@ -214,7 +277,7 @@ def render_stats_cockpit() -> None:
             sessions = [s for s in sessions if (_get(s, "session_date") or "") >= cutoff]
 
         _draw_topbar()
-        _draw_summary(kpis)
+        _draw_summary(kpis, learning)
         _draw_college_time(sessions)
         _draw_activity(sessions)
 

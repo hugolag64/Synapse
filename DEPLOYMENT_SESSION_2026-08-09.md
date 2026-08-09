@@ -555,3 +555,18 @@ docker compose up -d --force-recreate synapse
 - Suite Python complete : `1333 passed, 2 warnings`.
 - QA Chromium et validation des valeurs sur le homeserver restent a effectuer
   apres redeploiement.
+
+## Ajustement Statistiques : cartes Avancement / Retention - 2026-08-10
+
+- La QA Chromium a confirme que `/colleges`, `/items` et la vue Item ne
+  produisent aucune erreur navigateur et distinguent correctement leurs
+  indicateurs.
+- La premiere QA de `/stats` ne montrait que la maitrise dans le bandeau ;
+  l'avancement et la retention etaient calcules ailleurs mais pas exposes.
+- Le bandeau Statistiques affiche maintenant separement `Avancement`,
+  `Maitrise` et `Retention`, avec leurs etats vides explicites.
+- L'avancement global respecte les colleges manuellement valides ; les
+  moyennes de maitrise et de retention restent calculees uniquement sur les
+  snapshots disponibles.
+- Tests cibles : `23 passed, 1 warning`.
+- Commit applicatif et QA homeserver restent a effectuer.

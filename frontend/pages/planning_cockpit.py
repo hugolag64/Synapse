@@ -64,6 +64,12 @@ _MONTHS_FR = ["jan", "fév", "mar", "avr", "mai", "juin",
 _LACUNE_SLOT_TYPES = {"lacune", "lacune_crit"}
 
 
+def _parse_focus_categories(value: str | None) -> tuple[str, ...]:
+    """Normalize categories passed by the weekly review focus link."""
+    categories = [str(part).strip() for part in str(value or "").split(",")]
+    return tuple(dict.fromkeys(category for category in categories if category))
+
+
 def block_target(slot_type: str, course_id: str | None) -> str | None:
     """
     Route à ouvrir quand on clique le corps d'un bloc de la grille.
@@ -120,6 +126,9 @@ _CSS = """
 .pl-block-clickable { cursor:pointer; }
 .pl-block-clickable:hover { border-color:var(--border-strong); background:var(--surface); }
 .pl-focus { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:18px; }
+.pl-focus-context { grid-column:1 / -1; padding:12px 14px; border:1px solid var(--accent); border-radius:8px; background:var(--accent-wash); }
+.pl-focus-context-title { font-size:10px; font-weight:700; letter-spacing:.05em; color:var(--accent); }
+.pl-focus-context-body { margin-top:4px; font-size:12px; color:var(--text); }
 .pl-focus-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:11px 12px;
   border:1px solid var(--border); border-radius:8px; background:var(--surface); cursor:pointer;
   transition:background .14s ease, border-color .14s ease, transform .14s ease; }
@@ -199,10 +208,11 @@ def _vacation_label(vacation: dict) -> str:
     return "diagnostic au retour" if vacation.get("strategy") == "diagnostic_only" else f"charge réduite jusqu’au {end}"
 
 
-async def render_planning_cockpit() -> None:
+async def render_planning_cockpit(focus: str | None = None) -> None:
     ui.add_head_html(f"<style>{_CSS}</style>", shared=True)
 
     state = {"anchor": datetime.date.today(), "days": 7}
+    focus_categories = _parse_focus_categories(focus)
     day_refs: list[dict] = []
     _manual_entries_by_day: dict[str, list[dict]] = {}
 
@@ -397,6 +407,12 @@ async def render_planning_cockpit() -> None:
         focus_block.clear()
         rows = build_focus_rows(plans, all_tasks)
         with focus_block:
+            if focus_categories:
+                with ui.element("div").classes("pl-focus-context"):
+                    ui.label("FOCUS IMPORTÉ DE LA REVUE HEBDO").classes("pl-focus-context-title")
+                    ui.label(
+                        " · ".join(focus_categories)
+                    ).classes("pl-focus-context-body")
             for row in rows:
                 element = ui.element("div").classes("pl-focus-row")
                 element.on("click", lambda kind=row["kind"]: _focus_action(kind))

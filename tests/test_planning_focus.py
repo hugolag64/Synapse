@@ -18,3 +18,22 @@ def test_focus_labels_are_actionable_and_stable():
     assert focus_row_label({"kind": "overdue", "value": 3}) == "3 révisions en retard"
     assert focus_row_label({"kind": "next_session", "value": 30}) == "Prochaine session recommandée · 30 min"
     assert focus_row_label({"kind": "free_slots", "value": 2}) == "2 créneaux libres à utiliser"
+
+
+def test_review_focus_query_is_normalized_for_planning_context():
+    from frontend.pages.planning_cockpit import _parse_focus_categories
+
+    assert _parse_focus_categories("Cardiologie,  Infectieux,Cardiologie") == (
+        "Cardiologie",
+        "Infectieux",
+    )
+
+
+def test_planning_route_passes_review_focus_to_the_cockpit():
+    from pathlib import Path
+
+    main_source = Path("main.py").read_text(encoding="utf-8")
+    page_source = Path("frontend/pages/planning.py").read_text(encoding="utf-8")
+
+    assert "request.query_params.get(\"focus\")" in main_source
+    assert "focus=focus" in page_source

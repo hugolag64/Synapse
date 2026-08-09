@@ -269,9 +269,9 @@ async def todo():
     await todo_page()
 
 @ui.page('/planning')
-async def planning():
+async def planning(request: Request):
     with frame('Planning'):
-        await planning_page()
+        await planning_page(focus=request.query_params.get("focus"))
 
 # Détail d'un item. La route n'avait jamais été déclarée alors que la command
 # palette, dashboard_card et search_bar y naviguent déjà.

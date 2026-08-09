@@ -381,3 +381,14 @@ git pull --ff-only origin main
 docker compose build --pull synapse
 docker compose up -d --force-recreate synapse
 ```
+
+## Annales EDN / Matieres - 2026-08-09
+
+- Le catalogue ne melange plus les familles dans une seule liste.
+- Un toggle `EDN / Matiere` affiche une vue active unique avec son compteur et
+  son message vide ; les filtres recherche, matiere, faculte, annee et type
+  restent conserves.
+- Commit applicatif pousse : `d00bfd1` (`feat: separate EDN and subject annales`).
+- Tests Annales et detail : `19 passed`.
+- Suite complete : `1318 passed`.
+- Redeploiement homeserver et QA Chromium a effectuer avec la commande ci-dessus.

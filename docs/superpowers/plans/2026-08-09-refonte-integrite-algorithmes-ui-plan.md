@@ -612,15 +612,15 @@ refactor: unify OIC and preparation resource layouts
 - Test: `tests/test_annales_page.py`
 - Test: `tests/test_annale_detail_page.py`
 
-- [ ] **Step 1: Définir le filtre métier**
+- [x] **Step 1: Définir le filtre métier**
 
 Le type d’annale est normalisé dans une valeur `EDN` ou `Matière`, avec un état `Tous` explicite. Le filtre ne dépend pas du texte de présentation.
 
-- [ ] **Step 2: Remplacer l’onglet visuellement faible**
+- [x] **Step 2: Remplacer l’onglet visuellement faible**
 
 Utiliser deux segments ou deux panneaux clairement titrés `Épreuves EDN` et `Épreuves par matière`, avec compteurs et état vide propre à chaque groupe.
 
-- [ ] **Step 3: Tester les filtres et la sélection**
+- [x] **Step 3: Tester les filtres et la sélection**
 
 ```python
 def test_annales_are_grouped_by_exam_family():
@@ -629,7 +629,7 @@ def test_annales_are_grouped_by_exam_family():
     assert view.group("Épreuves par matière").count == 1
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```text
 feat: separate EDN and subject annales

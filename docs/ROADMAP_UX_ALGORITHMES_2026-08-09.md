@@ -341,6 +341,10 @@ si une couverture Rang A existe réellement.
 Un score élevé avec trop peu de preuves doit être affiché comme insuffisamment confirmé, et non comme
 une maîtrise certaine.
 
+Correction appliquée dans cette tranche : la qualité QCM utilisée par la rétention réutilise désormais
+le parseur central. Un pourcentage hors intervalle ou une fraction impossible (`21/20`) produit un
+signal neutre (`0,5`) au lieu d’une qualité parfaite ; aucune donnée historique n’est supprimée.
+
 ### 6. Rétention
 
 Chaque preuve possède une date, une source et une qualité. Les sources ont une stabilité de base :
@@ -436,7 +440,7 @@ Vérification de la tranche : tests ciblés reprise précédents **66/66**, test
 **13/13**, tests ciblés Items **8/8**, tests ciblés QCM **33/33**, tests ciblés Prépa **9/9**, tests
 ciblés Annales et nettoyage **23/23**, score annales / barème **17/17**, Revue hebdo / largeurs **5/5**,
 Statistiques / largeurs **6/6**, Détail item / actions **21/21**, tests ciblés algorithme QCM **26/26**,
-suite complète **1254/1254**,
+tests ciblés maîtrise / rétention **30/30**, suite complète **1256/1256**,
 compilation
 Python de `backend` et `frontend` réussie. La vérification manuelle de l’application reste à faire
 quand le serveur Synapse sera ouvert dans l’onglet local.

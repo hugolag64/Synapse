@@ -528,21 +528,18 @@ def _qcm_source(session_type) -> str | None:
 
 def _qcm_score_quality(score_percent, score_raw) -> float:
     try:
-        return max(0.0, min(1.0, float(score_percent) / 100.0))
+        percent = float(score_percent)
+        if 0.0 <= percent <= 100.0:
+            return percent / 100.0
     except (TypeError, ValueError):
         pass
 
-    raw = str(score_raw or "").strip().replace("%", "")
-    if "/" in raw:
-        numerator, denominator = raw.split("/", 1)
-        try:
-            return max(0.0, min(1.0, float(numerator) / float(denominator)))
-        except (TypeError, ValueError, ZeroDivisionError):
-            return 0.5
-    try:
-        return max(0.0, min(1.0, float(raw) / 100.0))
-    except (TypeError, ValueError):
+    from backend.core.qcm.service import parse_score
+
+    parsed, _ = parse_score(str(score_raw or ""))
+    if parsed is None:
         return 0.5
+    return parsed / 100.0
 
 
 def _oic_quality(score) -> float:

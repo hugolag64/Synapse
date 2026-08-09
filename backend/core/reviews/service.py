@@ -26,6 +26,7 @@ from backend.core.reviews.local_store import (
 )
 from backend.core.reviews.mastery import get_course_mastery, CourseProgressSnapshot
 from backend.core.knowledge.service import get_historically_completed_course_ids
+from backend.core.reviews.reentry import filter_active_review_tasks, get_study_resume_date
 
 
 # ── Constantes ────────────────────────────────────────────────────────────────
@@ -81,6 +82,7 @@ class ReviewService:
         history: Optional[dict] = None,
         sessions_map: Optional[dict] = None,
         postpone_map: Optional[dict] = None,
+        active_only: bool = False,
     ) -> List[ReviewTask]:
         """
         Génère toutes les tâches J3/J7/J14/J30 pour un contexte donné.
@@ -90,6 +92,8 @@ class ReviewService:
             history      : {task_id: Row} depuis get_all_history()
             sessions_map : {course_id: [rows]} depuis get_sessions_by_course()
             postpone_map : {course_id: int}   depuis get_postpone_counts()
+            active_only : filtre les échéances antérieures à study_resume_date
+                          pour les flux actifs, sans modifier le cache complet.
         """
         from backend.state.store import data_store
 
@@ -100,7 +104,15 @@ class ReviewService:
         explicit_data = history is not None or sessions_map is not None or postpone_map is not None
         if not explicit_data and cache_key in self._cache:
             logger.debug(f"ReviewService [{context}]: cache hit.")
-            return list(self._cache[cache_key])
+            cached = list(self._cache[cache_key])
+            return (
+                filter_active_review_tasks(
+                    cached,
+                    get_study_resume_date(data_store.preferences),
+                )
+                if active_only
+                else cached
+            )
 
         history      = history      or {}
         sessions_map = sessions_map or get_sessions_by_course()
@@ -221,7 +233,14 @@ class ReviewService:
         if not explicit_data:
             self._cache[cache_key] = list(tasks)
 
-        return tasks
+        return (
+            filter_active_review_tasks(
+                tasks,
+                get_study_resume_date(data_store.preferences),
+            )
+            if active_only
+            else tasks
+        )
 
     def get_unstarted_courses(self, context: ReviewContext = "college") -> List[CourseProgressSnapshot]:
         """
@@ -244,7 +263,11 @@ class ReviewService:
                 
         return unstarted
 
-    def generate_all_reviews(self, history: Optional[dict] = None) -> List[ReviewTask]:
+    def generate_all_reviews(
+        self,
+        history: Optional[dict] = None,
+        active_only: bool = False,
+    ) -> List[ReviewTask]:
         """
         Génère les tâches pour les DEUX contextes (college + ue).
         Dé-duplique par task_id (un cours peut avoir les deux).
@@ -254,8 +277,12 @@ class ReviewService:
         else:
             sessions_map = get_sessions_by_course()
             postpone_map = get_postpone_counts()
-        college = self.generate_reviews("college", history, sessions_map, postpone_map)
-        ue      = self.generate_reviews("ue",      history, sessions_map, postpone_map)
+        college = self.generate_reviews(
+            "college", history, sessions_map, postpone_map, active_only=active_only
+        )
+        ue = self.generate_reviews(
+            "ue", history, sessions_map, postpone_map, active_only=active_only
+        )
 
         # Fusion sans doublon
         seen = set()

@@ -22,6 +22,8 @@ from __future__ import annotations
 from nicegui import ui
 
 from backend.state.store import data_store
+from backend.core.knowledge import store as knowledge_store
+from backend.core.knowledge.college_validation import assess_college_validation
 from backend.core.reviews.local_store import get_all_history, get_qcm_last_scores_by_course
 from backend.core.reviews.validation import complete_review
 from backend.core.reviews.service import review_service
@@ -231,6 +233,8 @@ def render_colleges_cockpit() -> None:
 
     def _compute() -> list[dict]:
         history = get_all_history()
+        college_statuses = knowledge_store.get_all_college_statuses()
+        item_states = knowledge_store.get_all_item_states("college")
         all_tasks = review_service.generate_reviews(
             context="college",
             history=history,
@@ -267,6 +271,13 @@ def render_colleges_cockpit() -> None:
             qcm_avg = round(sum(qcm_scores) / len(qcm_scores)) if qcm_scores else None
 
             no_pdf = any(not getattr(c, "url_pdf", None) for c in courses)
+            validation = assess_college_validation(
+                name,
+                courses,
+                item_states,
+                history,
+                manual_status=college_statuses.get(name, "non_etudie"),
+            )
 
             rows.append({
                 "name": name, "total": total, "started": started, "pct": pct,
@@ -277,6 +288,7 @@ def render_colleges_cockpit() -> None:
                 "mastery_by_course": mastery_by_course,
                 "urgent_ids": urgent_ids,
                 "qcm_map": qcm_map,
+                "validation": validation,
             })
         return rows
 
@@ -293,6 +305,11 @@ def render_colleges_cockpit() -> None:
     def _open_items(college: str) -> None:
         from urllib.parse import quote
         ui.navigate.to(f"/items?college={quote(college)}")
+
+    def _confirm_college(college: str) -> None:
+        knowledge_store.set_college_status(college, "valide")
+        ui.notify(f"Collège confirmé : {college}", type="positive")
+        _render()
 
     def _draw_topbar(n_total: int) -> None:
         topbar.clear()
@@ -408,6 +425,21 @@ def render_colleges_cockpit() -> None:
             with ui.element("div").classes("cg-name-cell"):
                 ui.label(r["name"]).classes("cg-name")
                 ui.label(f"{r['started']}/{r['total']} lus · {restants} restants").classes("cg-name-sub")
+                validation = r["validation"]
+                ui.label(validation.state_label).classes("cg-name-sub")
+                evidence_count = validation.total_items - len(validation.missing_evidence_ids)
+                cycle_count = len(validation.completed_j_cycle_ids)
+                ui.label(
+                    f"Preuves {evidence_count}/{validation.total_items} · "
+                    f"cycle J {cycle_count}/{validation.total_items}"
+                ).classes("cg-name-sub")
+                if validation.manual_status != "valide":
+                    action_label = "Confirmer" if validation.automatic_ready else "Valider manuellement"
+                    ui.button(
+                        action_label,
+                        icon="check",
+                        on_click=lambda name=r["name"]: _confirm_college(name),
+                    ).props("flat dense no-caps size=sm color=primary")
 
             with ui.element("div").classes("cg-bar-cell"):
                 with ui.element("div").classes("cg-bar-track"):

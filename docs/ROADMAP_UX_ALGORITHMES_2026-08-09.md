@@ -17,8 +17,8 @@ Synapse doit répondre rapidement à trois questions :
 
 ## État d’exécution
 
-**Étape actuelle : neutralisation métier et visibilité des échéances futures implémentées —
-validation hybride des collèges à venir.**
+**Étape actuelle : neutralisation métier, visibilité des échéances futures et validation hybride des
+collèges implémentées — prochaines tranches : refontes UI Linear et audit des scores.**
 
 Le premier plan détaillé est disponible dans
 `docs/superpowers/plans/2026-08-09-sprint-reprise-preferences.md` pour le socle, puis
@@ -27,7 +27,10 @@ préférence est persistante, les paramètres proposent une sauvegarde explicite
 masquage/réaffichage du Sprint, et les flux actifs filtrent désormais les échéances antérieures au
 20 août sans réécrire l’historique. Le détail item conserve le mode complet pour une action manuelle.
 Planning couvre maintenant l’extrémité de la semaine affichée pour les consolidations futures, y
-compris lors de la navigation vers la semaine suivante.
+compris lors de la navigation vers la semaine suivante. La vue Collèges calcule maintenant un
+rapport de preuve par collège : items couverts, cycle J3/J7/J14/J30 complet et état manuel. Elle
+propose une confirmation automatique lorsque les preuves sont complètes et conserve une action de
+validation manuelle lorsque ce n’est pas le cas.
 
 ## Décisions validées
 
@@ -83,11 +86,15 @@ Synapse propose automatiquement un collège comme validé lorsque :
 - le cycle J30 est terminé pour les items concernés ;
 - les preuves nécessaires sont disponibles et cohérentes.
 
-La proposition affiche ses preuves : items couverts, lectures manquantes, J30 manquants et
-éventuelles ambiguïtés.
+La proposition affiche ses preuves : items couverts, lectures manquantes, étapes J3/J7/J14/J30
+manquantes et éventuelles ambiguïtés.
 
 Hugo peut confirmer manuellement un collège même si la proposition automatique n’est pas complète.
 Cette confirmation est une décision déclarative tracée ; elle ne modifie pas les preuves calculées.
+
+**État au 9 août 2026 :** l’algorithme pur et la vue Collèges sont branchés. Chaque ligne expose
+« À compléter », « Validation automatique proposée », « En cours » ou « Confirmé manuellement ».
+La confirmation écrit uniquement le statut déclaratif existant et conserve l’historique des preuves.
 
 ### Planning
 
@@ -377,7 +384,8 @@ actif centralisé. Les consolidations non gated antérieures à la reprise et le
 antérieurs sont neutralisés sans suppression d’historique ; les consolidations explicitement gated
 conservent leur date de démarrage.
 
-Vérification de la tranche : tests ciblés **66/66**, suite complète **1233/1233**, compilation
+Vérification de la tranche : tests ciblés reprise précédents **66/66**, tests ciblés collèges
+**13/13**, suite complète **1238/1238**, compilation
 Python de `backend` et `frontend` réussie. La vérification manuelle de l’application reste à faire
 quand le serveur Synapse sera ouvert dans l’onglet local.
 

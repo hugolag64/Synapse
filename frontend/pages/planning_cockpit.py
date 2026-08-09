@@ -78,6 +78,13 @@ def block_target(slot_type: str, course_id: str | None) -> str | None:
         return None
     return f"/cours/{course_id}"
 
+
+def event_display_title(ev: dict) -> str:
+    """Titre affiché pour un événement Calendar, préfixé par sa source si étiquetée."""
+    summary = ev.get("summary") or "Événement"
+    label = (ev.get("_synapse_source_label") or "").strip()
+    return f"{label} · {summary}" if label else summary
+
 _CSS = """
 .pl-wrap { max-width:none; width:100%; }
 .pl-topbar { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:4px 0 18px; flex-wrap:wrap; }
@@ -456,10 +463,10 @@ async def render_planning_cockpit() -> None:
                     ui.label(title).classes("pl-block-title")
                     ui.label(f"Planifié manuellement · {entry['duration_minutes']} min").classes("pl-block-sub")
             for ev in events:
-                summary = ev.get("summary") or "Événement"
+                title = event_display_title(ev)
                 dur = _event_duration_min(ev)
-                with ui.element("div").classes("pl-block pl-block-event").tooltip(summary):
-                    ui.label(summary).classes("pl-block-title")
+                with ui.element("div").classes("pl-block pl-block-event").tooltip(title):
+                    ui.label(title).classes("pl-block-title")
                     if dur:
                         h, m = divmod(dur, 60)
                         ui.label(f"{h}h{m:02d}" if h else f"{dur} min").classes("pl-block-sub")

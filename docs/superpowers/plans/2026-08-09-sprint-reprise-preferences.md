@@ -8,6 +8,18 @@
 
 **Tech Stack:** Python 3, NiceGUI/Quasar, JSON cache local, pytest, Git.
 
+## Execution status — 9 août 2026
+
+- [x] Task 1 — préférences persistantes Sprint/reprise et normalisation des dates.
+- [x] Task 2 — sauvegarde explicite de la planification et masquage/réaffichage dans Paramètres.
+- [x] Task 3 — visibilité de la carte Sprint dans Aujourd’hui, sans désactiver ses calculs.
+- [x] Task 4 — tests ciblés **13/13**, suite complète **1221/1221**, compilation Python réussie.
+- [ ] Vérification manuelle dans l’application Synapse : l’onglet local disponible affichait le
+  compagnon Codex, donc cette vérification reste à faire lorsque le serveur Synapse sera ouvert.
+
+Prochaine tranche active : neutraliser de façon non destructive la dette antérieure au 20 août,
+en conservant tout l’historique.
+
 ## Global Constraints
 
 - Ne pas supprimer ni réécrire l’historique SQLite ou Notion.

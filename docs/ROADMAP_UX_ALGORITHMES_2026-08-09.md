@@ -435,6 +435,10 @@ Points à corriger :
 - une semaine sans snapshot de comparaison doit être affichée comme « comparaison indisponible »,
   pas comme une absence de progression.
 
+Correction appliquée dans cette tranche : `qcm_pass_rate` est maintenant le pourcentage de sessions
+valides ayant atteint `70 %` ou plus, et non la moyenne des notes. Les scores hors `0–100` sont
+ignorés ; s’il n’existe aucune session valide, la valeur reste indisponible.
+
 ## Feuille de route en quatre chantiers
 
 ### Chantier 1 — Socle de reprise et fiabilité
@@ -453,8 +457,8 @@ Vérification de la tranche : tests ciblés reprise précédents **66/66**, test
 ciblés Annales et nettoyage **23/23**, score annales / barème **17/17**, Revue hebdo / largeurs **5/5**,
 Statistiques / largeurs **6/6**, Détail item / actions **21/21**, tests ciblés algorithme QCM **26/26**,
 tests ciblés maîtrise / rétention **30/30**, rétention / projection **38/38**,
-priorisation / recommandations **47/47**, Sprint / projection **13/13**,
-suite complète **1259/1259**,
+priorisation / recommandations **47/47**, Sprint / projection **13/13**, statistiques hebdo **2/2**,
+suite complète **1261/1261**,
 compilation
 Python de `backend` et `frontend` réussie. La vérification manuelle de l’application reste à faire
 quand le serveur Synapse sera ouvert dans l’onglet local.

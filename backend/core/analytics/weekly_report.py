@@ -11,11 +11,13 @@ Flux :
 from __future__ import annotations
 
 import datetime
+import math
 from dataclasses import dataclass, field
 from typing import Optional
 
 from loguru import logger
 
+from backend.core.qcm.service import QCM_PASS_THRESHOLD
 from backend.core.reviews.local_store import _conn, _now
 
 
@@ -124,6 +126,22 @@ def _week_iso(d: datetime.date) -> str:
     return f"{iso.year}-W{iso.week:02d}"
 
 
+def _qcm_pass_rate(scores: list[object]) -> float | None:
+    """Calcule le taux de sessions QCM atteignant le seuil de réussite."""
+    valid_scores: list[float] = []
+    for raw in scores:
+        try:
+            score = float(raw)
+        except (TypeError, ValueError):
+            continue
+        if math.isfinite(score) and 0.0 <= score <= 100.0:
+            valid_scores.append(score)
+    if not valid_scores:
+        return None
+    passed = sum(score >= QCM_PASS_THRESHOLD for score in valid_scores)
+    return round(passed / len(valid_scores) * 100.0, 1)
+
+
 # ── Génération du rapport ─────────────────────────────────────────────────────
 
 def generate_weekly_report(week_start: Optional[datetime.date] = None) -> WeeklyReport:
@@ -202,7 +220,7 @@ def generate_weekly_report(week_start: Optional[datetime.date] = None) -> Weekly
     avg_confidence = round(sum(confidences) / len(confidences), 2) if confidences else None
 
     qcm_scores = [r["score_percent"] for r in qcm_rows]
-    qcm_pass_rate = round(sum(qcm_scores) / len(qcm_scores), 1) if qcm_scores else None
+    qcm_pass_rate = _qcm_pass_rate(qcm_scores)
 
     courses_improved: list[str] = []
     courses_regressed: list[str] = []

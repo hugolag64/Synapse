@@ -330,6 +330,14 @@ docker exec synapse grep "host=\|port=" /app/main.py
 - Mesure OIC : tracks identiques `110px / contenu / 132px` sur les deux premieres lignes controlees.
 - Aucun `Traceback`, `Internal Server Error`, log navigateur `error` ou `warning`.
 
+## Suite alignement QCM - 2026-08-09
+
+- Commit applicatif pousse : `94b5170` (`fix: stretch QCM course rows to full width`).
+- Cause corrigee : les lignes QCM occupaient `378px` contre `547px` pour l'en-tete ; `.qc-head` et `.qc-row` sont maintenant forces a `width:100%` avec `box-sizing:border-box`.
+- Tests cibles : `28 passed, 1 warning`.
+- Suite complete : `1313 passed, 2 warnings`.
+- Deploiement et mesure Chromium en attente ; tentative SSH locale : `Permission denied (publickey,password)`.
+
 ## Mise Ã  jour QA Chromium CollÃ¨ges - 2026-08-09
 
 - La route `http://192.168.1.5:8888/colleges` rÃ©pond, mais reste sur `Chargement des donnÃ©esâ€¦` aprÃ¨s attente prolongÃ©e.

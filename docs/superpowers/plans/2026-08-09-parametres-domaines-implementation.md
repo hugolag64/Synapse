@@ -30,7 +30,7 @@
 - Produces: six identifiants stables de domaine et un contrat source testable pour la composition Paramètres.
 - Consumes: les fonctions existantes `render_calendar_sources`, `render_uness_diagnostics`, `render_dp_coverage` et `render_settings_cockpit`.
 
-- [ ] **Step 1: Écrire les tests qui doivent échouer**
+- [x] **Step 1: Écrire les tests qui doivent échouer**
 
 Créer des tests source sans démarrer NiceGUI :
 
@@ -74,13 +74,13 @@ def test_settings_remains_full_width_and_responsive():
     assert "width:100%" in SOURCE
     assert "max-width: 820px" in SOURCE
 ```
-- [ ] **Step 2: Exécuter les tests et confirmer l'échec initial**
+- [x] **Step 2: Exécuter les tests et confirmer l'échec initial**
 
 Run: `pytest tests/test_settings_domains.py -q`
 
 Expected: FAIL because the current page uses plain `.se-domain` labels and does not yet expose six `ui.expansion` containers.
 
-- [ ] **Step 3: Ajouter les constantes de domaine et le helper de composition**
+- [x] **Step 3: Ajouter les constantes de domaine et le helper de composition**
 
 Dans `settings_cockpit.py`, définir une structure locale stable :
 
@@ -99,13 +99,13 @@ def _settings_domain(title: str, description: str, icon: str):
 
 Le helper doit conserver l'objet `ui.expansion` comme contexte `with`, afin que le contenu existant soit rendu à l'intérieur de l'expansion. Le groupe NiceGUI/Quasar doit être identique pour les six domaines.
 
-- [ ] **Step 4: Relancer les tests de structure**
+- [x] **Step 4: Relancer les tests de structure**
 
 Run: `pytest tests/test_settings_domains.py -q`
 
 Expected: PASS for the helper, six titles, the group and the existing integration symbols.
 
-- [ ] **Step 5: Committer le contrat de structure**
+- [x] **Step 5: Committer le contrat de structure**
 
 ```bash
 git add tests/test_settings_domains.py frontend/pages/settings_cockpit.py
@@ -125,7 +125,7 @@ git push origin main
 - Consumes: `_settings_domain(title, description, icon)` et `_SETTINGS_DOMAIN_GROUP` de Task 1.
 - Produces: `render_settings_cockpit()` avec six expansions dans l'ordre de la spécification.
 
-- [ ] **Step 1: Ajouter les assertions d'ordre et de contenu**
+- [x] **Step 1: Ajouter les assertions d'ordre et de contenu**
 
 Compléter le test source :
 
@@ -155,13 +155,13 @@ def test_settings_domain_descriptions_are_present():
         assert description in SOURCE
 ```
 
-- [ ] **Step 2: Exécuter les tests pour confirmer le nouveau manque**
+- [x] **Step 2: Exécuter les tests pour confirmer le nouveau manque**
 
 Run: `pytest tests/test_settings_domains.py -q`
 
 Expected: FAIL until the six descriptions and the exact composition order are present.
 
-- [ ] **Step 3: Encapsuler les connexions et l'apparence**
+- [x] **Step 3: Encapsuler les connexions et l'apparence**
 
 Dans `render_settings_cockpit()` :
 
@@ -175,7 +175,7 @@ with _settings_domain("APPARENCE ET ACCESSIBILITÉ", "Thème et préférences d'
 
 Conserver les classes `.se-row`, `.se-status`, `.se-appearance-row` et les callbacks existants. Le statut de chaque fournisseur doit rester visible dans le contenu ouvert.
 
-- [ ] **Step 4: Encapsuler la planification et les données UNESS**
+- [x] **Step 4: Encapsuler la planification et les données UNESS**
 
 Déplacer uniquement les blocs de rendu existants sous :
 
@@ -189,7 +189,7 @@ with _settings_domain("DONNÉES UNESS", "Import et normalisation", "school"):
 
 Les closures `_save_planning_preferences`, `_toggle_sprint_visibility`, `_prepare_import`, `_launch_collector`, `_scan_verified` et `_open_tag_dialog` doivent continuer à référencer les mêmes contrôles NiceGUI.
 
-- [ ] **Step 5: Encapsuler LiSA/OIC et les diagnostics**
+- [x] **Step 5: Encapsuler LiSA/OIC et les diagnostics**
 
 Déplacer le bloc LiSA/OIC sous :
 
@@ -200,17 +200,17 @@ with _settings_domain("LISA / OIC", "Objectifs de connaissance", "school"):
 
 Regrouper sous une sixième expansion `DIAGNOSTICS ET TÉLÉMÉTRIE` les expansions existantes `COUVERTURE DP PAR ITEM` et `CONSOMMATION, TÉLÉMÉTRIE & PARTIELS IMPORTÉS`, sans supprimer leur contenu ni leurs boutons.
 
-- [ ] **Step 6: Adapter le CSS des expansions**
+- [x] **Step 6: Adapter le CSS des expansions**
 
 Ajouter uniquement les styles nécessaires : bordure, fond, espacement, icône et résumé. Utiliser les tokens existants et conserver `.se-wrap { max-width:none; width:100%; }`. Ajouter un media query sous 820 px pour réduire le padding sans créer de largeur fixe.
 
-- [ ] **Step 7: Relancer les tests source**
+- [x] **Step 7: Relancer les tests source**
 
 Run: `pytest tests/test_settings_domains.py tests/test_calendar_sources_panel.py -q`
 
 Expected: PASS.
 
-- [ ] **Step 8: Committer la refonte de composition**
+- [x] **Step 8: Committer la refonte de composition**
 
 ```bash
 git add frontend/pages/settings_cockpit.py tests/test_settings_domains.py
@@ -231,19 +231,19 @@ git push origin main
 - Consumes: le rendu de `render_settings_cockpit()` livré par Task 2.
 - Produces: preuve de QA, limites documentées et commit de livraison.
 
-- [ ] **Step 1: Exécuter les tests ciblés**
+- [x] **Step 1: Exécuter les tests ciblés**
 
 Run: `pytest tests/test_settings_domains.py tests/test_calendar_sources_panel.py -q`
 
 Expected: PASS.
 
-- [ ] **Step 2: Exécuter la suite complète**
+- [x] **Step 2: Exécuter la suite complète**
 
 Run: `pytest -q`
 
 Expected: PASS, sans modification des fichiers utilisateur non suivis.
 
-- [ ] **Step 3: Tester `/settings` au navigateur**
+- [ ] **Step 3: Tester `/settings` au navigateur** *(en attente du déploiement de `ef6a59c` sur le homeserver)*
 
 Avec Chromium via Playwright :
 
@@ -255,11 +255,11 @@ Avec Chromium via Playwright :
 6. Vérifier que les boutons d'import, de sauvegarde et de rafraîchissement restent accessibles après ouverture.
 7. Vérifier que le conteneur principal occupe toute la largeur disponible.
 
-- [ ] **Step 4: Mettre à jour le rapport et le plan**
+- [x] **Step 4: Mettre à jour le rapport et le plan**
 
 Ajouter dans `DEPLOYMENT_SESSION_2026-08-09.md` la date, l'URL, les routes testées, le résultat et les limites restantes. Cocher dans ce plan les étapes réellement exécutées ; ne pas déclarer la tranche terminée si une vérification navigateur échoue.
 
-- [ ] **Step 5: Committer le rapport**
+- [x] **Step 5: Committer le rapport**
 
 ```bash
 git add DEPLOYMENT_SESSION_2026-08-09.md docs/superpowers/plans/2026-08-09-parametres-domaines-implementation.md

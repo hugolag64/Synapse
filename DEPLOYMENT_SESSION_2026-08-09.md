@@ -39,6 +39,22 @@ QA navigateur sur `http://192.168.1.5:8888` : vues Collèges, Item/Ressources, A
 
 La QA confirme la stabilité de navigation, mais ne vaut pas validation visuelle finale de ces trois points.
 
+### Tranche Paramètres — état au 2026-08-09
+
+- Commit local poussé : `ef6a59c` (`feat: organize settings by collapsible domains`)
+- Tests locaux : `1306 passed, 2 warnings`
+- Vérification Chromium sur `http://192.168.1.5:8888/settings` : serveur accessible sans erreur, mais ancienne version encore active (`APPARENCE`, `UNESS`, anciens panneaux).
+- Conclusion : la QA navigateur de la nouvelle refonte est en attente du déploiement de `ef6a59c` sur le homeserver.
+
+Commande à exécuter sur le homeserver :
+
+```bash
+cd /srv/docker/stacks/synapse
+git pull --ff-only origin main
+docker compose build --pull synapse
+docker compose up -d --force-recreate synapse
+```
+
 ## État actuel
 
 ### ✅ Complété

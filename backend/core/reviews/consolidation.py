@@ -80,6 +80,7 @@ def get_due_consolidation_tasks(
     from backend.core.reviews.local_store import (
         get_sessions_by_course, get_postpone_counts, get_qcm_done_course_ids,
     )
+    from backend.core.knowledge.service import get_historically_completed_course_ids
 
     today = today or datetime.date.today()
     tasks: list[ReviewTask] = []
@@ -90,6 +91,8 @@ def get_due_consolidation_tasks(
     sessions_map = get_sessions_by_course()
     postpone_map = get_postpone_counts()
     qcm_done_set = get_qcm_done_course_ids()
+    historical_ids = get_historically_completed_course_ids(data_store.cours, context)
+    gate_map = local_store.get_consolidation_not_before_map(context)
 
     for c in data_store.cours:
         date_ref = c.date_1ere_lecture if context == "college" else c.date_1ere_lecture_ue
@@ -101,7 +104,11 @@ def get_due_consolidation_tasks(
         if mastery.score is None:
             continue
 
-        if date_ref is not None and not local_store.is_j_cycle_complete(c.id, context):
+        if (
+            date_ref is not None
+            and c.id not in historical_ids
+            and not local_store.is_j_cycle_complete(c.id, context)
+        ):
             continue  # encore en cours de cycle J3-J30 normal
 
         due = local_store.get_consolidation_due_date(c.id, context)
@@ -115,7 +122,12 @@ def get_due_consolidation_tasks(
             if due is None:
                 continue
 
-        task_id = local_store.make_task_id(c.id, context, "consolidation", due)
+        not_before = gate_map.get(c.id)
+        if not_before and today < not_before:
+            continue
+        effective_due = max(due, not_before) if not_before else due
+
+        task_id = local_store.make_task_id(c.id, context, "consolidation", effective_due)
         row = local_store.get_history(task_id)
         status = row["status"] if row else "todo"
         if status in _HIDDEN_STATUSES:
@@ -124,7 +136,7 @@ def get_due_consolidation_tasks(
         if status == "postponed" and row["postponed_to"]:
             effective = datetime.date.fromisoformat(row["postponed_to"])
         else:
-            effective = due
+            effective = effective_due
 
         if effective > today + datetime.timedelta(days=max(0, horizon_days)):
             continue
@@ -141,7 +153,7 @@ def get_due_consolidation_tasks(
             url_pdf=c.url_pdf,
             url_pdf_ue=c.url_pdf_ue,
             agregation_fiche_edn=c.agregation_fiche_edn,
-            theoretical_due_date=due,
+            theoretical_due_date=effective_due,
             due_date=effective,
             review_type="consolidation",
             status=status,

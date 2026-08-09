@@ -1,6 +1,7 @@
 """Tests unitaires — knowledge.service (graine, preuves, couverture OIC)."""
 import datetime
 import pytest
+from types import SimpleNamespace
 
 from backend.core.knowledge.models import SEED_FLOOR, RANG_A_BADGE_THRESHOLD
 
@@ -168,3 +169,17 @@ def test_avancement_du_triage():
         "Cardiovasculaire ❤️", ["course-1", "course-2", "course-3"]
     )
     assert (situes, total) == (2, 3)
+
+
+def test_historically_completed_requires_validated_college_and_item_state():
+    ks.set_college_status("Cardiovasculaire ❤️", "valide")
+    ks.set_college_status("Dermatologie 🧴", "en_cours")
+    ks.set_item_state("course-1", "correct")
+
+    courses = [
+        SimpleNamespace(id="course-1", college=["Cardiovasculaire ❤️"]),
+        SimpleNamespace(id="course-2", college=["Cardiovasculaire ❤️"]),
+        SimpleNamespace(id="course-3", college=["Dermatologie 🧴"]),
+    ]
+
+    assert ksv.get_historically_completed_course_ids(courses) == {"course-1"}

@@ -75,6 +75,24 @@ def test_get_last_completed_date_present():
     assert d == business_today()
 
 
+# ── consolidation_gates ─────────────────────────────────────────────────────
+
+def test_not_before_gate_absent():
+    assert ls.get_consolidation_not_before("course-1", "college") is None
+
+
+def test_not_before_gate_is_upserted_and_read_by_context():
+    start = datetime.date(2026, 8, 20)
+    ls.set_consolidation_not_before("course-1", "college", start)
+    ls.set_consolidation_not_before("course-1", "college", start + datetime.timedelta(days=1))
+    ls.set_consolidation_not_before("course-1", "ue", start)
+
+    assert ls.get_consolidation_not_before("course-1", "college") == start + datetime.timedelta(days=1)
+    assert ls.get_consolidation_not_before_map("college") == {
+        "course-1": start + datetime.timedelta(days=1)
+    }
+
+
 # ── bootstrap_consolidation ──────────────────────────────────────────────────
 
 def test_bootstrap_consolidation_cree_une_ligne():
@@ -355,6 +373,37 @@ def test_pool_inclut_item_ayant_fini_j30(mock_data_store):
     )
     assert len(tasks) == 1
     assert tasks[0].course_id == "course-3"
+
+
+@patch('backend.state.store.data_store')
+def test_pool_historique_valide_respecte_la_date_de_reprise(mock_data_store):
+    import backend.core.knowledge.store as ks
+    from backend.core.reviews import consolidation
+
+    ks.set_college_status("Legacy", "valide")
+    ks.set_item_state("course-legacy", "correct", context="college", source="reprise_historique")
+    ls.set_consolidation_not_before("course-legacy", "college", date(2026, 8, 20))
+    ls.bootstrap_consolidation(
+        "course-legacy", "college", "Cours historique", "1",
+        initial_interval_days=18, at_date=date(2026, 8, 2),
+    )
+    c = _mock_cours(
+        "course-legacy", "Cours historique", ["Legacy"],
+        date_1ere_lecture=date(2025, 1, 1), nb_lectures=1,
+    )
+    mock_data_store.cours = [c]
+
+    assert consolidation.get_due_consolidation_tasks(
+        context="college", today=date(2026, 8, 9),
+    ) == []
+
+    tasks = consolidation.get_due_consolidation_tasks(
+        context="college", today=date(2026, 8, 20),
+    )
+    assert len(tasks) == 1
+    assert tasks[0].review_type == "consolidation"
+    assert tasks[0].theoretical_due_date == date(2026, 8, 20)
+    assert tasks[0].due_date == date(2026, 8, 20)
 
 
 @patch('backend.state.store.data_store')

@@ -71,6 +71,15 @@ class TestReviewGeneration:
         tasks = self._generate([c])
         assert tasks == []
 
+    def test_historical_course_skips_normal_j_cycle(self):
+        c = _make_cours(days_since_lecture=32)
+        with patch(
+            "backend.core.reviews.service.get_historically_completed_course_ids",
+            return_value={c.id},
+        ):
+            tasks = self._generate([c])
+        assert tasks == []
+
     def test_j3_task_generated_after_3_days(self):
         tasks = self._generate([_make_cours(days_since_lecture=3)])
         types = [t.review_type for t in tasks]

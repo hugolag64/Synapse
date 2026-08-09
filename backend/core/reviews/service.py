@@ -25,6 +25,7 @@ from backend.core.reviews.local_store import (
     get_all_sm2_effective_dates,
 )
 from backend.core.reviews.mastery import get_course_mastery, CourseProgressSnapshot
+from backend.core.knowledge.service import get_historically_completed_course_ids
 
 
 # ── Constantes ────────────────────────────────────────────────────────────────
@@ -116,8 +117,12 @@ class ReviewService:
 
         tasks: List[ReviewTask] = []
         cours_snapshot = list(data_store.cours)  # snapshot pour éviter les mutations concurrentes
+        historical_ids = get_historically_completed_course_ids(cours_snapshot, context)
 
         for c in cours_snapshot:
+            if c.id in historical_ids:
+                continue
+
             date_ref = (
                 c.date_1ere_lecture if context == "college" else c.date_1ere_lecture_ue
             )

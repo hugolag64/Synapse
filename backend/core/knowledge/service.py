@@ -173,3 +173,24 @@ def college_triage_progress(
     states = ks.get_all_item_states(context)
     situes = sum(1 for cid in course_ids if cid in states)
     return situes, len(course_ids)
+
+
+def get_historically_completed_course_ids(
+    courses: list,
+    context: str = "college",
+) -> set[str]:
+    """Return courses that may bypass the initial J-cycle after a legacy reprise."""
+    if context != "college":
+        return set()
+
+    statuses = ks.get_all_college_statuses()
+    validated_colleges = {
+        college for college, status in statuses.items() if status == "valide"
+    }
+    states = ks.get_all_item_states(context)
+    return {
+        course.id
+        for course in courses
+        if course.id in states
+        and validated_colleges.intersection(getattr(course, "college", None) or [])
+    }

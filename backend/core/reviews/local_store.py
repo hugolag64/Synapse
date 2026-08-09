@@ -544,6 +544,16 @@ def init_db() -> None:
             fetched_at TEXT    NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_lisa_oic_course ON lisa_oic(course_id);
+
+        CREATE TABLE IF NOT EXISTS consolidation_gates (
+            course_id   TEXT NOT NULL,
+            context     TEXT NOT NULL,
+            not_before  TEXT NOT NULL,
+            source      TEXT NOT NULL DEFAULT 'reprise_historique',
+            created_at  TEXT NOT NULL,
+            updated_at  TEXT NOT NULL,
+            PRIMARY KEY (course_id, context)
+        );
         """)
     migrate_study_sessions_v2()
     _migrate_qcm_sessions_v2()
@@ -1490,6 +1500,51 @@ def ignore(
 
 
 # ── API publique — consolidation (SM-2 auto-chaîné) ──────────────────────────
+
+def set_consolidation_not_before(
+    course_id: str,
+    context: str,
+    not_before: datetime.date,
+    source: str = "reprise_historique",
+) -> None:
+    """Gate a consolidation task until a local date without changing history."""
+    now = _now()
+    with _conn() as con:
+        con.execute(
+            """
+            INSERT INTO consolidation_gates
+                (course_id, context, not_before, source, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(course_id, context) DO UPDATE SET
+                not_before = excluded.not_before,
+                source = excluded.source,
+                updated_at = excluded.updated_at
+            """,
+            (course_id, context, not_before.isoformat(), source, now, now),
+        )
+
+
+def get_consolidation_not_before(
+    course_id: str, context: str
+) -> datetime.date | None:
+    with _conn() as con:
+        row = con.execute(
+            "SELECT not_before FROM consolidation_gates WHERE course_id = ? AND context = ?",
+            (course_id, context),
+        ).fetchone()
+    return datetime.date.fromisoformat(row["not_before"]) if row else None
+
+
+def get_consolidation_not_before_map(
+    context: str = "college",
+) -> dict[str, datetime.date]:
+    with _conn() as con:
+        rows = con.execute(
+            "SELECT course_id, not_before FROM consolidation_gates WHERE context = ?",
+            (context,),
+        ).fetchall()
+    return {row["course_id"]: datetime.date.fromisoformat(row["not_before"]) for row in rows}
+
 
 def is_j_cycle_complete(course_id: str, context: str) -> bool:
     """True si les 4 révisions J3/J7/J14/J30 sont toutes marquées done."""

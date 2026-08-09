@@ -370,3 +370,5 @@ docker exec synapse grep "host=\|port=" /app/main.py
 - Tests cibles : `31 passed`.
 - Suite complete : `1316 passed`.
 - Deploiement homeserver et QA Chromium restent a confirmer.
+- Nouvelle tentative SSH en mode non interactif : `Permission denied (publickey,password)`.
+- Le homeserver doit donc executer la commande de mise a jour manuellement avant la QA Chromium.

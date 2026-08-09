@@ -393,6 +393,17 @@ docker compose up -d --force-recreate synapse
 - Suite complete : `1318 passed`.
 - Redeploiement homeserver et QA Chromium a effectuer avec la commande ci-dessus.
 
+## Focus Revue hebdo vers Planning - 2026-08-09
+
+- Le bouton `Planifier ce focus` transmet maintenant les categories de points
+  faibles a `/planning?focus=...`.
+- Planning affiche un bandeau pleine largeur `FOCUS IMPORTÉ DE LA REVUE HEBDO`
+  avec les categories recues ; le contexte n'est plus perdu a la navigation.
+- Commit applicatif pousse : `2338db1` (`feat: carry weekly focus into planning`).
+- Tests lies : `11 passed`.
+- Suite complete : `1322 passed`.
+- Redeploiement homeserver et QA Chromium a effectuer avec la commande ci-dessus.
+
 ## Correction QCM / epreuve - 2026-08-09
 
 - La correction affiche maintenant des blocs distincts `Votre réponse`,

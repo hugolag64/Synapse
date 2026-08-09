@@ -54,7 +54,11 @@ def toggle_dark_mode(value: bool | None = None) -> bool:
         dark.enable()
     else:
         dark.disable()
-    return dark.value
+    resolved = bool(dark.value)
+    # La coquille relit cette préférence à chaque rendu de page : sans
+    # persistance, le thème est réinitialisé à la navigation suivante.
+    data_store.set_preference("dark_mode", resolved)
+    return resolved
 
 def _validate_uness_annale_url(url: str) -> str:
     from scripts.uness.collector import validate_annale_url

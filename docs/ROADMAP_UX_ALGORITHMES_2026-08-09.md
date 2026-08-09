@@ -302,6 +302,11 @@ Problème identifié : lors de la conversion de certains cas SQLite, les proposi
 Rang A par défaut. Cela peut annuler artificiellement une question. La priorité est de préserver le
 rang réel, de distinguer omission/faux positif et de stocker le détail de l’erreur.
 
+Correction appliquée dans cette tranche : un import sans rang conserve désormais un rang vide, les
+rangs fournis par une proposition structurée sont préservés, et la détection de Rang A est insensible
+à la casse. Le barème reste inchangé ; on retire uniquement le faux signal qui pouvait provoquer une
+annulation artificielle.
+
 Le score officiel de l’annale doit rester séparé de la maîtrise Synapse. Une annale réussie est une
 preuve forte, mais elle ne doit pas écraser à elle seule l’historique de rétention.
 
@@ -429,8 +434,9 @@ conservent leur date de démarrage.
 
 Vérification de la tranche : tests ciblés reprise précédents **66/66**, tests ciblés collèges
 **13/13**, tests ciblés Items **8/8**, tests ciblés QCM **33/33**, tests ciblés Prépa **9/9**, tests
-ciblés Annales et nettoyage **23/23**, Revue hebdo / largeurs **5/5**, Statistiques / largeurs **6/6**,
-Détail item / actions **21/21**, tests ciblés algorithme QCM **26/26**, suite complète **1252/1252**,
+ciblés Annales et nettoyage **23/23**, score annales / barème **17/17**, Revue hebdo / largeurs **5/5**,
+Statistiques / largeurs **6/6**, Détail item / actions **21/21**, tests ciblés algorithme QCM **26/26**,
+suite complète **1254/1254**,
 compilation
 Python de `backend` et `frontend` réussie. La vérification manuelle de l’application reste à faire
 quand le serveur Synapse sera ouvert dans l’onglet local.

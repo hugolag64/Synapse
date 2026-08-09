@@ -81,7 +81,7 @@ def compute_edn_score(user_choices: Dict[str, bool], propositions: List[Dict[str
     has_rang_a_fatal = False
     for p in propositions:
         pid = p.get("id", "").lower()
-        is_rang_a = p.get("rank") == "A" or p.get("rang") == "A"
+        is_rang_a = str(p.get("rank") or p.get("rang") or "").strip().upper() == "A"
         u_val = user_map.get(pid, False)
         c_val = correct_choices.get(pid, False)
         # Oubli d'un vrai Rang A indispensable
@@ -149,15 +149,17 @@ def load_dps_by_subject(subject: Optional[str] = None, max_dps: int = 3) -> List
                 choices = q.get("choices", [])
                 ans_str = str(q.get("answer", "")).upper()
                 for c_idx, choice_txt in enumerate(choices):
-                    cid = chr(97 + c_idx)  # 'a', 'b', 'c'...
+                    choice_data = choice_txt if isinstance(choice_txt, dict) else {}
+                    cid = str(choice_data.get("id") or chr(97 + c_idx)).strip().lower()
+                    raw_choice_text = choice_data.get("texte") or choice_data.get("text") or choice_data.get("label") or choice_txt
                     # Nettoyage des résidus d'identifiants techniques UNESS (ex: Q16816178:2_ANSWER0.)
-                    clean_txt = re.sub(r"^\s*Q\d+:\d+_(?:ANSWER|CHOICE)\d+\.\s*", "", str(choice_txt), flags=re.IGNORECASE).strip()
+                    clean_txt = re.sub(r"^\s*Q\d+:\d+_(?:ANSWER|CHOICE)\d+\.\s*", "", str(raw_choice_text), flags=re.IGNORECASE).strip()
                     is_correct = cid.upper() in ans_str or clean_txt.startswith(cid.upper())
                     props.append({
                         "id": cid,
                         "texte": clean_txt,
                         "reponse_uness": is_correct,
-                        "rank": "A",
+                        "rank": str(choice_data.get("rank") or choice_data.get("rang") or "").strip().upper(),
                         "explication_ia": q.get("explanation", "")
                     })
                 questions.append({

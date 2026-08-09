@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import json
 import base64
+import json
+import os
 import urllib.error
 import urllib.request
 from typing import Any
@@ -14,9 +15,17 @@ class AnkiConnectError(RuntimeError):
 
 
 class AnkiClient:
-    def __init__(self, base_url: str = "http://127.0.0.1:8765", timeout_seconds: float = 2.5) -> None:
-        self.base_url = base_url.rstrip("/")
-        self.timeout_seconds = timeout_seconds
+    def __init__(self, base_url: str | None = None, timeout_seconds: float | None = None) -> None:
+        from backend.config.settings import settings
+
+        configured_url = os.getenv("ANKI_CONNECT_URL") or settings.anki_connect_url
+        configured_timeout = os.getenv("ANKI_CONNECT_TIMEOUT_SECONDS")
+        self.base_url = (base_url or configured_url).rstrip("/")
+        self.timeout_seconds = (
+            timeout_seconds
+            if timeout_seconds is not None
+            else float(configured_timeout or settings.anki_connect_timeout_seconds)
+        )
 
     def _invoke(self, action: str, params: dict[str, Any] | None = None) -> Any:
         payload = {"action": action, "version": 6}

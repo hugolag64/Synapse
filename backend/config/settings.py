@@ -119,6 +119,8 @@ class Settings(BaseSettings):
     lisa_password: str = Field("", alias='LISA_PASSWORD')
     anythingllm_url: str = Field("http://localhost:3001", alias='ANYTHINGLLM_URL')
     anythingllm_api_key: str = Field("", alias='ANYTHINGLLM_API_KEY')
+    anki_connect_url: str = Field("http://127.0.0.1:8765", alias='ANKI_CONNECT_URL')
+    anki_connect_timeout_seconds: float = Field(2.5, alias='ANKI_CONNECT_TIMEOUT_SECONDS')
     gemini_api_key: str = Field("", alias='GEMINI_API_KEY')
     gemini_lite_model: str = Field("gemini-3.1-flash-lite", alias='GEMINI_LITE_MODEL')
     gemini_flash_model: str = Field("gemini-3-flash-preview", alias='GEMINI_FLASH_MODEL')

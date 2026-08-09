@@ -1,0 +1,30 @@
+services:
+  synapse:
+    build:
+      context: .
+    container_name: synapse
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Paris}
+      SYNAPSE_ENV: prod
+      SYNAPSE_HOST: 0.0.0.0
+      SYNAPSE_PORT: 8000
+      MEDICINE_DIR: /data/medicine
+      FAC_DIR: /data/fac
+      OBSIDIAN_VAULT_PATH: /data/obsidian
+    ports:
+      - "${SYNAPSE_BIND_IP:-0.0.0.0}:${SYNAPSE_HOST_PORT:-8888}:8000"
+    volumes:
+      - synapse-data:/app/data
+      - synapse-logs:/app/logs
+      - ${OBSIDIAN_HOST_PATH:-./data/obsidian}:/data/obsidian:rw
+      - ${MEDICINE_HOST_PATH:-./data/medicine}:/data/medicine:ro
+      - ${FAC_HOST_PATH:-./data/fac}:/data/fac:ro
+
+volumes:
+  synapse-data:
+    name: synapse-data
+  synapse-logs:
+    name: synapse-logs

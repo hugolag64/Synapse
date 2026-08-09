@@ -467,9 +467,18 @@ async def _delete_course_action(course, refresh_fn, client) -> None:
 
 
 def _open_obsidian_note_action(course) -> None:
-    ok = obsidian_service.open_course_note(course)
-    if not ok:
+    """Open an Obsidian URI in the user's browser, not on the app server."""
+    uri = getattr(course, "obsidian_uri", None)
+    if not uri:
+        path = obsidian_service.find_course_note(course)
+        if path:
+            uri = obsidian_service.build_obsidian_uri(path)
+
+    if not uri:
         ui.notify("Note Obsidian introuvable", type="warning", icon="warning")
+        return
+
+    ui.navigate.to(uri, new_tab=True)
 
 
 def _open_link_note_dialog(course, refresh_fn) -> None:

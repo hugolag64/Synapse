@@ -16,7 +16,9 @@ class DataStore:
     # Resolve absolute path to project root (3 levels up from backend/state/store.py)
     # backend/state/store.py -> backend/state -> backend -> root
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    CACHE_FILE = os.path.join(BASE_DIR, "data_cache.json")
+    DATA_DIR = os.path.join(BASE_DIR, "data")
+    CACHE_FILE = os.path.join(DATA_DIR, "data_cache.json")
+    LEGACY_CACHE_FILE = os.path.join(BASE_DIR, "data_cache.json")
 
     def __init__(self):
         self.cours: List[Cours] = []
@@ -205,6 +207,7 @@ class DataStore:
                 "cours_last_synced": self.cours_last_synced.isoformat() if self.cours_last_synced else None,
                 "last_updated": datetime.now().isoformat()
             }
+            os.makedirs(os.path.dirname(self.CACHE_FILE), exist_ok=True)
             tmp = self.CACHE_FILE + ".tmp"
             with open(tmp, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, default=str)
@@ -270,12 +273,17 @@ class DataStore:
 
         force=True : ignore la limite de 12h (fallback hors-ligne).
         """
-        if not os.path.exists(self.CACHE_FILE):
+        cache_path = self.CACHE_FILE
+        if not os.path.exists(cache_path) and os.path.exists(self.LEGACY_CACHE_FILE):
+            cache_path = self.LEGACY_CACHE_FILE
+            logger.info("Cache legacy détecté, migration vers le répertoire data au prochain enregistrement.")
+
+        if not os.path.exists(cache_path):
             logger.info("No cache file found.")
             return False
 
         try:
-            with open(self.CACHE_FILE, "r", encoding="utf-8") as f:
+            with open(cache_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
             # Les préférences vivent dans le même fichier que le cache cours,

@@ -41,8 +41,15 @@ from frontend.pages.course_detail import course_detail_page
 from frontend.theme import frame
 from backend.state.store import data_store
 from backend.api.qcm import router as qcm_api_router
+from backend.config.runtime import get_runtime_config
 
 app.include_router(qcm_api_router)
+
+
+@app.get('/api/healthz')
+async def healthz():
+    """Liveness probe that does not wait for Notion or the preload task."""
+    return {"status": "ok"}
 
 # Load environment variables
 load_dotenv()
@@ -302,18 +309,17 @@ def externat():
 
 app.on_startup(startup_handler)
 
-_PROD = os.getenv("SYNAPSE_ENV", "dev") == "prod"
-
 if __name__ in {"__main__", "__mp_main__"}:
     try:
+        runtime = get_runtime_config()
         ui.run(
             title='Synapse',
             favicon='🧠',
             dark=False,
-            reload=not _PROD,
-            show=not _PROD,
-            host='127.0.0.1',
-            port=8082
+            reload=not runtime.prod,
+            show=not runtime.prod,
+            host=runtime.host,
+            port=runtime.port,
         )
     except (KeyboardInterrupt, SystemExit, asyncio.CancelledError):
         pass

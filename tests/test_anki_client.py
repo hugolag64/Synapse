@@ -50,6 +50,14 @@ def test_ping_and_find_cards_send_anki_connect_payload(monkeypatch):
     assert requests[0][1] == pytest.approx(1.25)
 
 
+def test_anki_client_uses_configured_endpoint(monkeypatch):
+    monkeypatch.setenv("ANKI_CONNECT_URL", "http://anki-server:8765")
+
+    client = AnkiClient()
+
+    assert client.base_url == "http://anki-server:8765"
+
+
 def test_cards_info_normalizes_card_fields_and_missing_tags(monkeypatch):
     _install_response(
         monkeypatch,

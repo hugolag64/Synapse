@@ -20,8 +20,8 @@ _ANNALES_CSS = """
 .ans-title { font-size:20px; font-weight:600; color:var(--text); letter-spacing:-0.01em; }
 .ans-subtitle { font-size:12.5px; color:var(--text-muted); margin-top:4px; }
 .ans-filters { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--border); }
-.ans-list { display:flex; flex-direction:column; gap:0; width:100%; }
-.ans-exam-head, .ans-exam-row { display:grid; grid-template-columns:minmax(240px, 1.4fr) 170px 150px 104px; column-gap:16px; align-items:center; }
+.ans-list { display:flex; flex-direction:column; gap:0; width:100%; align-items:stretch; }
+.ans-exam-head, .ans-exam-row { display:grid; width:100%; box-sizing:border-box; grid-template-columns:minmax(240px, 1.4fr) 170px 150px 104px; column-gap:16px; align-items:center; }
 .ans-exam-head { padding:0 12px 8px; color:var(--text-dim); font-size:9px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; }
 .ans-exam-row { min-height:62px; padding:10px 12px; border-top:1px solid var(--border); transition:background var(--duration-fast) ease; }
 .ans-exam-row:hover { background:var(--surface-hover); }

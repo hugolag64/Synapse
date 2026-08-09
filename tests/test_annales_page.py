@@ -155,6 +155,14 @@ def test_annales_catalog_uses_stable_exam_columns_instead_of_cards() -> None:
     assert "SCORE OFFICIEL" in source
 
 
+def test_annales_rows_stretch_to_the_catalog_width() -> None:
+    from pathlib import Path
+
+    source = Path("frontend/pages/annales.py").read_text(encoding="utf-8")
+
+    assert ".ans-list { display:flex; flex-direction:column; gap:0; width:100%; align-items:stretch; }" in source
+
+
 def test_displayable_annales_excludes_empty_group_rows():
     from frontend.pages.annales import _displayable_annales
 

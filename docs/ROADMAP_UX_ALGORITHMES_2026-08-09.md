@@ -132,6 +132,10 @@ et les données de maîtrise ne sont pas modifiés. Les groupes sans sous-partie
 sont plus affichés ; un nettoyage ciblé et réversible des artefacts de tests est disponible dans
 `deploy/cleanup_test_annales.py`.
 
+La largeur est maintenant réellement étendue à toute la zone disponible : les lignes de catalogue
+sont étirées explicitement dans leur colonne flex, ce qui évite le retrait à une largeur intrinsèque
+observé sur l’écran déployé.
+
 QCM et annales partagent un cadre de lecture commun :
 
 - bandeau de synthèse pleine largeur ;
@@ -407,7 +411,7 @@ conservent leur date de démarrage.
 
 Vérification de la tranche : tests ciblés reprise précédents **66/66**, tests ciblés collèges
 **13/13**, tests ciblés Items **8/8**, tests ciblés QCM **33/33**, tests ciblés Prépa **9/9**, tests
-ciblés Annales et nettoyage **22/22**, suite complète **1246/1246**, compilation
+ciblés Annales et nettoyage **23/23**, suite complète **à relancer après cette correction**, compilation
 Python de `backend` et `frontend` réussie. La vérification manuelle de l’application reste à faire
 quand le serveur Synapse sera ouvert dans l’onglet local.
 

@@ -18,7 +18,7 @@ Synapse doit répondre rapidement à trois questions :
 ## État d’exécution
 
 **Étape actuelle : neutralisation métier, visibilité des échéances futures, validation hybride des
-collèges, tri visuel des Items et première harmonisation QCM implémentés — prochaines tranches :
+collèges, tri visuel des Items, harmonisations QCM et Prépa implémentés — prochaines tranches :
 refontes UI Linear restantes et audit des scores.**
 
 Le premier plan détaillé est disponible dans
@@ -138,6 +138,10 @@ QCM et annales partagent un cadre de lecture commun :
 Une annale conserve son barème officiel et ne doit pas être présentée comme un simple QCM.
 
 ### Prépa
+
+**État au 9 août 2026 :** Prépa est maintenant présentée comme une liste de sources pleine largeur :
+source, objectif, dernière utilisation et action d’ouverture sont alignés sur chaque ligne. Les
+catégories restent visibles sans empiler de cartes hétérogènes.
 
 Prépa devient une liste de sources :
 
@@ -396,7 +400,8 @@ antérieurs sont neutralisés sans suppression d’historique ; les consolidatio
 conservent leur date de démarrage.
 
 Vérification de la tranche : tests ciblés reprise précédents **66/66**, tests ciblés collèges
-**13/13**, tests ciblés Items **8/8**, tests ciblés QCM **33/33**, suite complète **1241/1241**, compilation
+**13/13**, tests ciblés Items **8/8**, tests ciblés QCM **33/33**, tests ciblés Prépa **9/9**, suite
+complète **1242/1242**, compilation
 Python de `backend` et `frontend` réussie. La vérification manuelle de l’application reste à faire
 quand le serveur Synapse sera ouvert dans l’onglet local.
 

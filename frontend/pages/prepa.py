@@ -19,7 +19,7 @@ _CSS = """
 .prep-wrap { max-width:none; width:100%; }
 .prep-title { font-size:20px; font-weight:600; color:var(--text); letter-spacing:-.01em; }
 .prep-subtitle { color:var(--text-muted); font-size:12.5px; margin-top:4px; }
-.prep-provider { border:1px solid var(--border); border-radius:8px; padding:14px 16px; background:var(--bg-alt); }
+.prep-provider { width:100%; padding:16px 0 8px; border-top:1px solid var(--border); }
 @keyframes prepProviderEnter {
   0% { opacity: 0; transform: translateY(8px); }
   100% { opacity: 1; transform: translateY(0); }
@@ -31,16 +31,22 @@ _CSS = """
 .prep-provider-name { font-size:14px; font-weight:600; color:var(--text); }
 .prep-provider-meta { font-size:11.5px; color:var(--text-muted); }
 .prep-section-title { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-dim); font-weight:600; }
-.prep-shortcut { border:1px solid var(--border); border-radius:8px; padding:13px 14px; background:var(--bg-alt); transition:border-color .12s, background .12s, transform .12s, box-shadow .12s; }
-.prep-shortcut:hover { border-color:var(--accent); background:var(--surface); transform:translateY(-2px); box-shadow:var(--shadow-popover); }
+.prep-source-head, .prep-source-row { display:grid; grid-template-columns:minmax(180px, .8fr) minmax(240px, 1.5fr) 130px 72px; column-gap:16px; align-items:center; }
+.prep-source-head { padding:0 12px 7px; color:var(--text-dim); font-size:9px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; }
+.prep-source-row { min-height:48px; padding:8px 12px; border-top:1px solid var(--border); color:var(--text); transition:background .12s, transform .12s, box-shadow .12s; }
+.prep-source-row:hover { background:var(--surface); transform:translateY(-2px); box-shadow:var(--shadow-popover); }
 .prep-shortcut-title { color:var(--text); font-size:13px; font-weight:600; }
-.prep-shortcut-desc { color:var(--text-muted); font-size:11.5px; margin-top:3px; }
+.prep-shortcut-desc { color:var(--text-muted); font-size:11.5px; }
 .prep-category { color:var(--text-muted); font-size:11px; text-transform:uppercase; letter-spacing:.04em; }
-.prep-recent { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
-.prep-recent-item { flex:1; min-width:160px; padding:10px 12px; border:1px solid var(--border); border-radius:8px; background:var(--bg-alt); transition:border-color .12s, background .12s, transform .12s, box-shadow .12s; }
-.prep-recent-item:hover { border-color:var(--accent); background:var(--surface); transform:translateY(-2px); box-shadow:var(--shadow-popover); }
+.prep-recent { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); margin-bottom:8px; }
+.prep-recent-item { min-width:0; padding:8px 12px; border-bottom:1px solid var(--border); }
+.prep-recent-item:hover { background:var(--surface); }
 .prep-recent-title { font-size:13px; font-weight:600; color:var(--text); }
 .prep-recent-time { font-size:11px; color:var(--text-muted); margin-top:2px; }
+@media (max-width:800px) {
+  .prep-source-head, .prep-source-row { grid-template-columns:minmax(150px, .8fr) minmax(0, 1.2fr) 100px 64px; column-gap:10px; }
+  .prep-recent { grid-template-columns:1fr; }
+}
 """
 
 
@@ -151,7 +157,7 @@ def prepa_page() -> None:
             with ui.column().classes("w-full gap-4 pt-6"):
                 ui.label("Plateformes").classes("prep-section-title")
                 for section in view["provider_sections"]:
-                    with ui.element("section").classes("prep-provider w-full"):
+                    with ui.element("section").classes("prep-provider"):
                         with ui.row().classes("w-full items-center justify-between gap-3"):
                             with ui.column().classes("gap-0"):
                                 ui.label(section["provider"]).classes("prep-provider-name")
@@ -169,22 +175,38 @@ def prepa_page() -> None:
                         if not section["categories"]:
                             ui.label("Aucun raccourci configuré pour le moment.").classes("prep-provider-meta mt-4")
                         else:
-                            with ui.column().classes("w-full gap-3 mt-4"):
+                            with ui.column().classes("w-full gap-0 mt-4"):
+                                with ui.element("div").classes("prep-source-head"):
+                                    ui.label("SOURCE")
+                                    ui.label("OBJECTIF")
+                                    ui.label("DERNIÈRE UTILISATION")
+                                    ui.label("OUVRIR")
                                 for group in section["categories"]:
                                     ui.label(group["category"]).classes("prep-category")
-                                    with ui.row().classes("w-full gap-2 flex-wrap"):
-                                        for shortcut in group["shortcuts"]:
-                                            with ui.link(target=shortcut["url"], new_tab=True).classes(
-                                                "prep-shortcut flex-1 min-w-[220px] no-underline"
-                                            ) as link:
-                                                with ui.row().classes("items-start gap-2"):
-                                                    ui.icon(shortcut.get("icon", "open_in_new")).classes(
-                                                        "text-[var(--accent)] text-lg"
-                                                    )
-                                                    with ui.column().classes("gap-0"):
-                                                        ui.label(shortcut["title"]).classes("prep-shortcut-title")
-                                                        ui.label(shortcut.get("description", "")).classes("prep-shortcut-desc")
-                                            link.on(
-                                                "click",
-                                                lambda _event=None, sid=shortcut.get("id"): record_prep_access(sid),
-                                            )
+                                    for shortcut in group["shortcuts"]:
+                                        last_used_raw = shortcut.get("last_used")
+                                        if last_used_raw:
+                                            try:
+                                                last_used_label = relative_time_label(
+                                                    datetime.fromisoformat(last_used_raw),
+                                                    datetime.now(timezone.utc),
+                                                )
+                                            except (TypeError, ValueError):
+                                                last_used_label = "Date indisponible"
+                                        else:
+                                            last_used_label = "Jamais"
+                                        with ui.link(target=shortcut["url"], new_tab=True).classes(
+                                            "prep-source-row no-underline"
+                                        ) as link:
+                                            with ui.row().classes("items-center gap-2 min-w-0"):
+                                                ui.icon(shortcut.get("icon", "open_in_new")).classes(
+                                                    "text-[var(--accent)] text-lg shrink-0"
+                                                )
+                                                ui.label(shortcut["title"]).classes("prep-shortcut-title truncate")
+                                            ui.label(shortcut.get("description", "")).classes("prep-shortcut-desc truncate")
+                                            ui.label(last_used_label).classes("prep-provider-meta")
+                                            ui.label("Ouvrir →").classes("text-xs text-[var(--accent)]")
+                                        link.on(
+                                            "click",
+                                            lambda _event=None, sid=shortcut.get("id"): record_prep_access(sid),
+                                        )

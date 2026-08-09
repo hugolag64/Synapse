@@ -53,3 +53,14 @@ def test_prepa_page_hides_recent_section_when_nothing_was_used(monkeypatch):
 
     source = Path("frontend/pages/prepa.py").read_text(encoding="utf-8")
     assert "if recent:" in source
+
+
+def test_prepa_uses_linear_source_rows_instead_of_nested_shortcut_cards():
+    from pathlib import Path
+
+    source = Path("frontend/pages/prepa.py").read_text(encoding="utf-8")
+
+    assert ".prep-source-row" in source
+    assert "grid-template-columns:minmax(180px, .8fr) minmax(240px, 1.5fr) 130px 72px" in source
+    assert "DERNIÈRE UTILISATION" in source
+    assert "OUVRIR" in source

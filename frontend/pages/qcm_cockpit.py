@@ -265,6 +265,8 @@ _CSS = """
 .qc-section { width:100%; min-width:0; border:1px solid var(--border); border-radius:8px; background:var(--bg); overflow:hidden; }
 .qc-section > .qc-label { padding:14px 14px 0; margin-bottom:10px; }
 .qc-head, .qc-row { display:grid; grid-template-columns:46px minmax(220px, 1.2fr) minmax(180px, .8fr) 120px; column-gap:14px; align-items:center; }
+.qc-head, .qc-row { width:100%; box-sizing:border-box; }
+.qc-row > * { min-width:0; box-sizing:border-box; }
 .qc-head { padding:0 14px 8px; font-size:10px;
   text-transform:uppercase; letter-spacing:.04em; color:var(--text-dim); font-weight:600;
   border-bottom:1px solid var(--border); }

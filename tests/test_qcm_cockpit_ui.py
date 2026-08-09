@@ -129,6 +129,13 @@ def test_qcm_cockpit_uses_one_stable_grid_for_course_rows():
     assert "grid-template-columns:42px minmax(0, 1fr) 36px" in css
 
 
+def test_qcm_course_header_and_rows_share_full_width():
+    css = qcm_cockpit.QCM_COCKPIT_CSS
+
+    assert ".qc-head, .qc-row { width:100%; box-sizing:border-box; }" in css
+    assert ".qc-row > * { min-width:0; box-sizing:border-box; }" in css
+
+
 def test_qcm_cockpit_calls_the_primary_action_training():
     source = inspect.getsource(qcm_cockpit.render_qcm_cockpit)
 

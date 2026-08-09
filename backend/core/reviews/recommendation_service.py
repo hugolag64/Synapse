@@ -17,6 +17,7 @@ Usage :
 from __future__ import annotations
 
 import datetime
+import math
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -42,6 +43,19 @@ _CRITICAL_LEVELS = {"critique", "fragile"}
 _WARN_LEVELS     = {"à consolider", "en construction"}
 
 
+def _normalize_qcm_score(value: float | None) -> float | None:
+    """Retourne un pourcentage exploitable, ou None pour une donnée invalide."""
+    if value is None:
+        return None
+    try:
+        score = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(score) or not 0.0 <= score <= 100.0:
+        return None
+    return score
+
+
 def get_next_action(
     task: "ReviewTask",
     *,
@@ -65,6 +79,7 @@ def get_next_action(
     """
     overdue = task.days_overdue
     level   = task.mastery_level or ""
+    last_qcm_score = _normalize_qcm_score(last_qcm_score)
 
     qcm_failed  = last_qcm_score is not None and last_qcm_score < 70
     qcm_poor    = last_qcm_score is not None and last_qcm_score < 60

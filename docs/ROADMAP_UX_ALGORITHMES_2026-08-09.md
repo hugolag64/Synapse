@@ -382,6 +382,10 @@ valeurs sont encore codées en dur dans le dashboard et les tables `error_signal
 Évolution prévue : afficher la contribution de chaque facteur, alimenter réellement les signaux,
 mesurer les décisions produites et seulement ensuite calibrer les poids.
 
+Correction appliquée dans cette tranche : le score QCM fourni au recommandeur est maintenant validé
+dans l’intervalle `0–100` et doit être fini. Une valeur invalide est ignorée au lieu de déclencher
+une priorité QCM artificielle.
+
 ### 8. Sprint EDN
 
 Le moteur actuel choisit une phase selon le nombre de jours avant la date cible :
@@ -445,7 +449,7 @@ Vérification de la tranche : tests ciblés reprise précédents **66/66**, test
 ciblés Annales et nettoyage **23/23**, score annales / barème **17/17**, Revue hebdo / largeurs **5/5**,
 Statistiques / largeurs **6/6**, Détail item / actions **21/21**, tests ciblés algorithme QCM **26/26**,
 tests ciblés maîtrise / rétention **30/30**, rétention / projection **38/38**,
-suite complète **1257/1257**,
+priorisation / recommandations **47/47**, suite complète **1258/1258**,
 compilation
 Python de `backend` et `frontend` réussie. La vérification manuelle de l’application reste à faire
 quand le serveur Synapse sera ouvert dans l’onglet local.

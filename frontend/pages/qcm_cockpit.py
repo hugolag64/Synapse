@@ -171,14 +171,14 @@ def _get_replayable_history(
     ]
 
 
-def _split_replayable_history(sessions: list[dict]) -> tuple[list[dict], list[dict]]:
-    """Separate the replayable history by practice type for the cockpit UI."""
-    qcm_sessions = []
-    dp_sessions = []
-    for session in sessions:
-        practice_kind = str(session.get("practice_kind") or "QCM").strip().casefold()
-        (dp_sessions if practice_kind == "dp" else qcm_sessions).append(session)
-    return qcm_sessions, dp_sessions
+def _filter_replayable_history(sessions: list[dict], practice_kind: str) -> list[dict]:
+    """Return only replayable sessions for the selected QCM or DP view."""
+    selected = str(practice_kind or "QCM").strip().casefold()
+    return [
+        session
+        for session in sessions
+        if str(session.get("practice_kind") or "QCM").strip().casefold() == selected
+    ]
 
 
 def _open_ai_generation_picker(refresh) -> None:
@@ -308,8 +308,6 @@ _CSS = """
 .qc-history-list { margin-top:10px; }
 .qc-history-entry { width:100%; min-width:0; flex-wrap:nowrap; align-items:center; gap:4px; border-radius:6px; }
 .qc-history-entry.qc-history-row-active { background:var(--surface-hover); }
-.qc-history-group + .qc-history-group { margin-top:18px; padding-top:16px; border-top:1px solid var(--border); }
-.qc-history-group-title { font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-dim); font-weight:600; margin-bottom:8px; }
 .qc-history-row { flex:1 1 auto; width:auto; min-width:0; min-height:64px; flex-direction:column; align-items:flex-start; justify-content:center; text-align:left; padding:12px 14px; border-radius:6px; gap:4px; background:transparent; }
 .qc-history-row .q-btn__content { min-width:0; width:100%; flex-direction:column; align-items:flex-start; justify-content:center; gap:4px; }
 .qc-history-row .qc-course-title { display:block; max-width:100%; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -356,7 +354,7 @@ def render_qcm_cockpit() -> None:
             with ui.element("section").classes("qc-history"):
                 ui.label("HISTORIQUE REJOUABLE").classes("qc-label")
                 history_search = ui.input(placeholder="Rechercher une session").props("outlined dense clearable")
-                history_filter = ui.toggle(HISTORY_STATUS_OPTIONS, value="all").props(
+                history_kind = ui.toggle({"QCM": "QCM", "DP": "DP"}, value="QCM").props(
                     "spread no-caps unelevated dense"
                 ).classes("w-full mt-2")
                 history_col = ui.column().classes("w-full gap-1 qc-history-list")
@@ -544,37 +542,30 @@ def render_qcm_cockpit() -> None:
 
     def _render_history(sessions: list[dict]) -> None:
         history_col.clear()
-        qcm_sessions, dp_sessions = _split_replayable_history(sessions)
-
-        def _render_section(title: str, section_sessions: list[dict], *, is_dp: bool = False) -> None:
-            with ui.column().classes("w-full gap-1 qc-history-group"):
-                ui.label(title).classes("qc-history-group-title")
-                if not section_sessions:
-                    ui.label("Aucune session dans cette catégorie.").classes("qc-empty")
-                    return
-                for session in section_sessions:
-                    session_id = int(session["id"])
-                    active_class = " qc-history-row-active" if session_id == selected_session["id"] else ""
-                    with ui.row().classes(f"qc-history-entry{active_class}"):
-                        with ui.button(
-                            on_click=lambda _e=None, sid=session_id: _select_history_session(sid)
-                        ).props("flat no-caps align=left").classes("qc-history-row"):
-                            ui.label(session["course_title"] or "Session IA").classes("qc-course-title")
-                            ui.label(_history_metadata(session)).classes("qc-history-meta")
-                        if is_dp:
-                            ui.button(
-                                "Tuteur DP",
-                                icon="psychology",
-                                on_click=lambda _e=None, current=session: _open_dp_tutor(current),
-                            ).props("flat dense color=primary").classes("qc-history-dp-action")
-                        ui.button(
-                            icon="delete_outline",
-                            on_click=lambda _e=None, sid=session_id, title=session["course_title"]: _confirm_delete_history(sid, title),
-                        ).props("flat dense round color=negative").tooltip("Supprimer cette session")
-
         with history_col:
-            _render_section("HISTORIQUE QCM", qcm_sessions)
-            _render_section("HISTORIQUE DP", dp_sessions, is_dp=True)
+            if not sessions:
+                ui.label("Aucune session dans cette vue.").classes("qc-empty")
+                return
+            for session in sessions:
+                session_id = int(session["id"])
+                active_class = " qc-history-row-active" if session_id == selected_session["id"] else ""
+                is_dp = str(session.get("practice_kind") or "QCM").strip().casefold() == "dp"
+                with ui.row().classes(f"qc-history-entry{active_class}"):
+                    with ui.button(
+                        on_click=lambda _e=None, sid=session_id: _select_history_session(sid)
+                    ).props("flat no-caps align=left").classes("qc-history-row"):
+                        ui.label(session["course_title"] or "Session IA").classes("qc-course-title")
+                        ui.label(_history_metadata(session)).classes("qc-history-meta")
+                    if is_dp:
+                        ui.button(
+                            "Tuteur DP",
+                            icon="psychology",
+                            on_click=lambda _e=None, current=session: _open_dp_tutor(current),
+                        ).props("flat dense color=primary").classes("qc-history-dp-action")
+                    ui.button(
+                        icon="delete_outline",
+                        on_click=lambda _e=None, sid=session_id, title=session["course_title"]: _confirm_delete_history(sid, title),
+                    ).props("flat dense round color=negative").tooltip("Supprimer cette session")
 
     def _render_selected_session(sessions: list[dict]) -> None:
         selected_col.clear()
@@ -608,11 +599,12 @@ def render_qcm_cockpit() -> None:
             )
 
     def _replayable_history() -> list[dict]:
-        return _get_replayable_history(
+        sessions = _get_replayable_history(
             limit=100,
             query=str(history_search.value or ""),
-            status=str(history_filter.value or "all"),
+            status="all",
         )
+        return _filter_replayable_history(sessions, str(history_kind.value or "QCM"))
 
     def _confirm_delete_pending(session_id: int, course_title: str) -> None:
         with ui.dialog() as dialog, ui.card().classes("p-5").style(
@@ -685,5 +677,5 @@ def render_qcm_cockpit() -> None:
         _render_workspace()
 
     history_search.on_value_change(lambda _event: _render_workspace())
-    history_filter.on_value_change(lambda _event: _render_workspace())
+    history_kind.on_value_change(lambda _event: _render_workspace())
     _render()

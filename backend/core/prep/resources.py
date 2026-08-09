@@ -2,10 +2,24 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from backend.core.ednpro.collector import normalize_stable_resource_url
 from backend.core.reviews import local_store
+
+
+@dataclass(frozen=True)
+class PrepResource:
+    """Verified external resource resolved for one exact item."""
+
+    provider: str
+    resource_type: str
+    title: str
+    url: str
+    item_number: str
+    confidence: float
+    source_url: str
 
 
 def _ensure_table() -> None:
@@ -73,3 +87,27 @@ def list_prep_resources_for_item(item_number: str) -> list[dict]:
             (str(item_number or "").strip(),),
         ).fetchall()
     return [dict(row) for row in rows]
+
+
+def list_verified_item_resources(
+    item_number: str,
+    provider: str | None = None,
+) -> list[PrepResource]:
+    """Return only high-confidence resources matched to this exact item."""
+    normalized_item = str(item_number or "").replace("ITEM", "").strip()
+    rows = list_prep_resources_for_item(normalized_item)
+    if provider:
+        rows = [row for row in rows if str(row.get("provider", "")).strip() == provider]
+    return [
+        PrepResource(
+            provider=str(row.get("provider") or "Externe"),
+            resource_type=str(row.get("resource_type") or "resource"),
+            title=str(row.get("title") or "Ressource externe"),
+            url=str(row.get("url") or ""),
+            item_number=normalized_item,
+            confidence=float(row.get("confidence") or 0),
+            source_url=str(row.get("source_url") or ""),
+        )
+        for row in rows
+        if float(row.get("confidence") or 0) >= 0.8
+    ]

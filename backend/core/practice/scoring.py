@@ -58,14 +58,27 @@ def _selected_ids(response: str, choices: list[dict[str, Any]]) -> set[str]:
     return selected
 
 
-def score_closed_attempt(response: str, choices: Sequence[object], answer: str = "") -> ScoredAttempt:
+def score_closed_attempt(
+    response: str,
+    choices: Sequence[object],
+    answer: str = "",
+    question_kind: str = "QRM",
+    indispensable_choices: Sequence[str] | set[str] | None = None,
+    inacceptable_choices: Sequence[str] | set[str] | None = None,
+) -> ScoredAttempt:
     """Score côté serveur et expose une correction propositionnelle stable."""
     normalized_choices = _choice_data(choices)
     selected = _selected_ids(response, normalized_choices)
     expected = {choice["id"] for choice in normalized_choices if choice["expected"]}
     if not expected and answer:
         expected = _selected_ids(answer, normalized_choices)
-    score = compute_question_score_edn(selected, expected)
+    score = compute_question_score_edn(
+        selected,
+        expected,
+        question_kind=question_kind,
+        indispensable_choices=indispensable_choices,
+        inacceptable_choices=inacceptable_choices,
+    )
     propositions = []
     for choice in normalized_choices:
         is_selected = choice["id"] in selected
@@ -75,13 +88,13 @@ def score_closed_attempt(response: str, choices: Sequence[object], answer: str =
             "selected": is_selected,
             "expected": is_expected,
             "rank": choice["rank"],
-            "points": float(score["score"]) if is_selected == is_expected else 0.0,
+            "points": 1.0 if is_selected == is_expected else 0.0,
             "discordance": "correct" if is_selected == is_expected else ("omission" if is_expected else "exces"),
         })
     return ScoredAttempt(
         score_percent=float(score["score"]) * 100.0,
         score_mode="edn",
-        score_reason="",
+        score_reason=str(score.get("zero_reason") or ""),
         propositions=propositions,
     )
 

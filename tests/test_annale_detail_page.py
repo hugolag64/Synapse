@@ -72,3 +72,13 @@ def test_annale_detail_uses_a_linear_subpart_list() -> None:
     assert "grid-template-columns:minmax(240px, 1.4fr) 160px 130px" in source
     assert "STATUT" in source
     assert "ACTION" in source
+
+
+def test_annale_detail_exposes_a_continuous_exam_action():
+    from pathlib import Path
+
+    source = Path("frontend/pages/annale_detail.py").read_text(encoding="utf-8")
+
+    assert "Mode concours continu" in source
+    assert "_open_continuous_exam" in source
+    assert "on_complete=_after_continuous_exam" in source

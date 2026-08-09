@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import base64
+import re
 import time
 from collections.abc import Sequence
 from typing import Any
@@ -23,6 +24,11 @@ def _is_retryable_error(error: Exception) -> bool:
         status_code = getattr(error.response, "status_code", None)
         return status_code == 429 or (status_code is not None and status_code >= 500)
     return False
+
+
+def _redact_provider_secrets(message: str) -> str:
+    """Remove provider API keys from URLs before errors reach logs or UI."""
+    return re.sub(r"([?&]key=)[^&\s]+", r"\1***", str(message))
 
 
 class GeminiClient:
@@ -50,6 +56,7 @@ class GeminiClient:
         model: AIModel,
         response_format: str = "text",
         *,
+        response_schema: dict[str, Any] | None = None,
         images: Sequence[AIImageContent] = (),
         task_name: str | None = None,
         context: str | None = None,
@@ -63,6 +70,8 @@ class GeminiClient:
         generation_config: dict[str, Any] = {}
         if response_format == "json":
             generation_config["responseMimeType"] = "application/json"
+            if response_schema:
+                generation_config["responseSchema"] = response_schema
         parts: list[dict[str, Any]] = [{"text": prompt}]
         parts.extend(
             {
@@ -85,7 +94,7 @@ class GeminiClient:
             try:
                 response = requests.post(
                     url,
-                    params={"key": self.api_key},
+                    headers={"x-goog-api-key": self.api_key},
                     json=payload,
                     timeout=self.timeout_seconds,
                 )
@@ -98,10 +107,27 @@ class GeminiClient:
                     continue
                 duration_ms = (time.perf_counter() - start_time) * 1000.0
                 from backend.core.ai.logger import log_ai_call
-                log_ai_call(task=t_name, model=model, input_tokens=0, output_tokens=0, duration_ms=duration_ms, error=str(exc), context=context)
-                raise GeminiClientError(f"Gemini inaccessible : {exc}") from exc
+                safe_error = _redact_provider_secrets(str(exc))
+                log_ai_call(task=t_name, model=model, input_tokens=0, output_tokens=0, duration_ms=duration_ms, error=safe_error, context=context)
+                raise GeminiClientError(f"Gemini inaccessible : {safe_error}") from exc
 
         duration_ms = (time.perf_counter() - start_time) * 1000.0
+
+        candidate = (data.get("candidates") or [{}])[0] if isinstance(data, dict) else {}
+        finish_reason = str(candidate.get("finishReason") or "").upper()
+        if finish_reason in {"MAX_TOKENS", "SAFETY"}:
+            message = f"Réponse Gemini {finish_reason.lower()}"
+            from backend.core.ai.logger import log_ai_call
+            log_ai_call(
+                task=t_name,
+                model=model,
+                input_tokens=0,
+                output_tokens=0,
+                duration_ms=duration_ms,
+                error=message,
+                context=context,
+            )
+            raise GeminiClientError(message)
 
         try:
             parts = data["candidates"][0]["content"]["parts"]
@@ -119,6 +145,7 @@ class GeminiClient:
         usage = data.get("usageMetadata") or {}
         in_tok = usage.get("promptTokenCount")
         out_tok = usage.get("candidatesTokenCount")
+        thoughts_tok = usage.get("thoughtsTokenCount")
 
         from backend.core.ai.logger import log_ai_call
         log_ai_call(task=t_name, model=model, input_tokens=in_tok, output_tokens=out_tok, duration_ms=duration_ms, context=context)
@@ -128,4 +155,7 @@ class GeminiClient:
             model=model,
             input_tokens=in_tok,
             output_tokens=out_tok,
+            provider="gemini",
+            finish_reason=finish_reason or None,
+            thoughts_tokens=thoughts_tok,
         )

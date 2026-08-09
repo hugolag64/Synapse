@@ -113,7 +113,14 @@ def oic_coverage(course_id: str) -> dict:
     """
     with _conn() as con:
         rows = con.execute(
-            "SELECT rang, mastered FROM lisa_oic WHERE course_id = ? AND active = 1", (course_id,)
+            """
+            SELECT o.rang, o.mastered, COUNT(a.id) AS attempt_count
+            FROM lisa_oic o
+            LEFT JOIN oic_attempts a ON a.oic_id = o.id
+            WHERE o.course_id = ? AND o.active = 1
+            GROUP BY o.id, o.rang, o.mastered
+            """,
+            (course_id,),
         ).fetchall()
 
     def _tally(rang: str) -> tuple[int, int]:
@@ -122,11 +129,18 @@ def oic_coverage(course_id: str) -> dict:
 
     a_total, a_ok = _tally("A")
     b_total, b_ok = _tally("B")
+    a_attempted = sum(
+        1
+        for row in rows
+        if (row["rang"] or "").strip().upper() == "A"
+        and int(row["attempt_count"] or 0) > 0
+    )
 
     return {
         "rang_a_total": a_total,
         "rang_a_ok":    a_ok,
         "rang_a_pct":   (a_ok / a_total) if a_total else 0.0,
+        "rang_a_attempted": a_attempted,
         "rang_b_total": b_total,
         "rang_b_ok":    b_ok,
         "rang_b_pct":   (b_ok / b_total) if b_total else 0.0,

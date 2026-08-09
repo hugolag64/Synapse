@@ -115,22 +115,22 @@ def rank_gain_potential(*, items, available_minutes: int | None = None) -> list[
         error_recurrence = max(0.0, min(1.0, float(item.get("error_count", 0) or 0) / 5))
         availability = max(0.0, min(1.0, float(item.get("available_questions", 0) or 0) / 20))
         frequency_sessions = item.get("frequency_sessions")
-        frequency_recurrence = None
-        if frequency_sessions is not None:
-            frequency_recurrence = max(0.0, min(1.0, float(frequency_sessions or 0) / 10))
+        frequency_recurrence = (
+            0.5
+            if frequency_sessions is None
+            else max(0.0, min(1.0, float(frequency_sessions or 0) / 10))
+        )
         effort = max(1.0, float(item.get("estimated_minutes", 30) or 30) / 30)
         if available_minutes is not None and effort * 30 > available_minutes:
             effort *= 1.15
         gap = (100.0 - mastery) / 100.0
-        if frequency_recurrence is None:
-            score = 100 * (
-                0.35 * weight + 0.35 * gap + 0.20 * error_recurrence + 0.10 * availability
-            )
-        else:
-            # Quand l'historique EDNpro est disponible, la fréquence récurrente
-            # amplifie le déficit de maîtrise au lieu de laisser ce signal hors
-            # de la formule. Les items sans historique gardent le fallback ci-dessus.
-            score = 100 * frequency_recurrence * gap * max(availability, 0.1) * max(weight, 0.1)
+        score = 100 * (
+            0.25 * weight
+            + 0.30 * gap
+            + 0.15 * error_recurrence
+            + 0.15 * availability
+            + 0.15 * frequency_recurrence
+        )
         score = round(score / effort, 2)
         ranked.append({
             **item,
@@ -140,7 +140,7 @@ def rank_gain_potential(*, items, available_minutes: int | None = None) -> list[
                 "mastery_gap": round(gap, 2),
                 "error_recurrence": round(error_recurrence, 2),
                 "question_availability": round(availability, 2),
-                **({"frequency_recurrence": round(frequency_recurrence, 2)} if frequency_recurrence is not None else {}),
+                "frequency_recurrence": round(frequency_recurrence, 2),
                 "estimated_minutes": round(effort * 30, 1),
             },
         })

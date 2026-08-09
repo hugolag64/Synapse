@@ -38,7 +38,7 @@ _CSS = """
 .oic-rank-count { font:11px var(--font-mono, ui-monospace); color:var(--text-dim); }
 .oic-rank-rule { flex:1; height:1px; background:var(--border); }
 .oic-list { border:1px solid var(--border); border-radius:8px; overflow:hidden; }
-.oic-row { display:flex; align-items:center; gap:12px; min-height:58px; padding:9px 10px 9px 12px;
+.oic-row { display:grid; grid-template-columns:102px minmax(0,1fr) auto; align-items:center; gap:12px; min-height:58px; padding:9px 10px 9px 12px;
   background:var(--bg); border-bottom:1px solid var(--border); transition:background 140ms ease-out; }
 .oic-row:last-child { border-bottom:0; }
 .oic-row:hover { background:var(--surface-hover); }

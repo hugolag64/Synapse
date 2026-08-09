@@ -51,6 +51,7 @@ def test_attempt_endpoint_scores_closed_question_on_the_server(monkeypatch):
 
     assert recorded["is_correct"] is True
     assert recorded["score_percent"] == 100.0
+    assert recorded["score_mode"] == "edn"
 
 
 def test_follow_up_is_proposed_after_two_failed_sessions(monkeypatch):

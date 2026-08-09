@@ -21,6 +21,7 @@ _ANNALES_CSS = """
 .ans-subtitle { font-size:12.5px; color:var(--text-muted); margin-top:4px; }
 .ans-filters { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--border); }
 .ans-list { display:flex; flex-direction:column; gap:0; width:100%; align-items:stretch; }
+.ans-family-title { margin-top:18px; padding:10px 12px; border:1px solid var(--border); border-bottom:0; border-radius:var(--radius-md) var(--radius-md) 0 0; background:var(--surface); color:var(--text); font-size:12px; font-weight:700; letter-spacing:.02em; }
 .ans-exam-head, .ans-exam-row { display:grid; width:100%; box-sizing:border-box; grid-template-columns:minmax(240px, 1.4fr) 170px 150px 104px; column-gap:16px; align-items:center; }
 .ans-exam-head { padding:0 12px 8px; color:var(--text-dim); font-size:9px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; }
 .ans-exam-row { min-height:62px; padding:10px 12px; border-top:1px solid var(--border); transition:background var(--duration-fast) ease; }
@@ -70,6 +71,19 @@ def _distinct_values(rows: list[dict], key: str) -> list[str]:
 def _displayable_annales(rows: list[dict]) -> list[dict]:
     """Keep only annale groups with at least one imported sub-part."""
     return [row for row in rows if int(row.get("total_parts") or 0) > 0]
+
+
+def _annale_family(row: dict) -> str:
+    """Normalize annale presentation into the two user-facing families."""
+    raw = str(row.get("type_annale") or "").strip().lower()
+    return "Matière" if raw in {"matiere", "matière", "subject"} else "EDN"
+
+
+def _group_annales_by_family(rows: list[dict]) -> dict[str, list[dict]]:
+    groups = {"EDN": [], "Matière": []}
+    for row in rows:
+        groups[_annale_family(row)].append(row)
+    return groups
 
 
 # Tarif Google officiel pour gemini-3-flash-preview au 2026-07-31 (ai.google.dev/gemini-api/docs/pricing) :
@@ -630,6 +644,7 @@ def annales_page() -> None:
                         type_annale=str(type_filter.value or ""),
                     ))
                     rows = [r for r in rows if r["type_annale"] != "vrai_concours"]
+                    rows = sorted(rows, key=lambda row: (0 if _annale_family(row) == "EDN" else 1, str(row.get("titre") or "")))
                     with rows_column:
                         if not rows:
                             ui.label("Aucune annale ne correspond à ces filtres.").classes("ans-empty")
@@ -639,7 +654,14 @@ def annales_page() -> None:
                             ui.label("PROGRESSION")
                             ui.label("SCORE OFFICIEL")
                             ui.label("ACTION")
+                        current_family = None
                         for row in rows:
+                            family = _annale_family(row)
+                            if family != current_family:
+                                ui.label(
+                                    "Épreuves EDN" if family == "EDN" else "Épreuves par matière"
+                                ).classes("ans-family-title")
+                                current_family = family
                             annale_id = int(row["id"])
                             total = int(row["total_parts"] or 0)
                             completed = int(row["completed_parts"] or 0)

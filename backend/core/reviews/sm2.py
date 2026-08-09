@@ -30,7 +30,7 @@ def compute_next_interval(
     if recurrent_trap:
         easiness_factor = max(SM2_MIN_EF, easiness_factor - 0.15)
 
-    if grade < 3:   # confidence 1 ou 2 — raté
+    if grade < 2:   # confidence 1 ou 2 — raté; 3 est une réussite faible
         new_ef = max(SM2_MIN_EF, easiness_factor - 0.2)
         next_interval = 1 if critical_trap else 3
         return next_interval, round(new_ef, 4)

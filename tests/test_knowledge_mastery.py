@@ -239,7 +239,7 @@ def test_manual_revision_date_changes_current_mastery():
     old = [{"session_date": "2026-04-29", "confidence": 4, "difficulty": "facile", "qcm_result": "réussi"}]
     current = [{"session_date": "2026-07-28", "confidence": 4, "difficulty": "facile", "qcm_result": "réussi"}]
 
-    assert get_course_mastery(course, sessions=current).score > get_course_mastery(course, sessions=old).score
+    assert get_course_mastery(course, sessions=current).retention_score > get_course_mastery(course, sessions=old).retention_score
 
 
 def test_good_qcm_and_anki_evidence_stabilize_more_than_a_single_reading():
@@ -263,7 +263,35 @@ def test_first_read_without_study_session_is_dated_retention_evidence():
 
     assert snapshot.retention_stability_days > 0.0
     assert snapshot.retention_last_evidence == course.date_1ere_lecture
-    assert snapshot.score < 45
+    assert snapshot.mastery_score == 45
+    assert snapshot.retention_score < 45
+
+
+def test_mastery_and_retention_scores_are_exposed_separately():
+    today = datetime.date.today()
+    course = _course(first_read=today - datetime.timedelta(days=90), nb_lectures=1)
+
+    snapshot = get_course_mastery(course)
+
+    assert snapshot.mastery_score == 45
+    assert snapshot.retention_score < snapshot.mastery_score
+    assert snapshot.score == snapshot.mastery_score
+
+
+def test_loaded_rang_a_reference_without_attempt_does_not_penalize_mastery():
+    import backend.core.reviews.local_store as ls
+
+    ls.upsert_lisa_oic("course-1", [
+        {"oic_code": "OIC-1", "intitule": "O1", "rang": "A", "rubrique": "Déf", "ordre": 1},
+    ])
+
+    snapshot = get_course_mastery(
+        _course(first_read=datetime.date.today(), nb_lectures=2),
+    )
+
+    assert snapshot.rang_a_referential is True
+    assert snapshot.rang_a_evaluated is False
+    assert snapshot.level != "critique"
 
 
 def test_canonical_qcm_evidence_improves_retention_stability_and_score():
@@ -284,7 +312,7 @@ def test_canonical_qcm_evidence_improves_retention_stability_and_score():
     refreshed = get_course_mastery(course)
 
     assert refreshed.retention_stability_days > baseline.retention_stability_days
-    assert refreshed.score > baseline.score
+    assert refreshed.retention_score > baseline.retention_score
     assert refreshed.retention_last_evidence == today
 
 
@@ -308,7 +336,7 @@ def test_canonical_oic_attempt_improves_retention_stability_and_score():
     refreshed = get_course_mastery(course)
 
     assert refreshed.retention_stability_days > baseline.retention_stability_days
-    assert refreshed.score > baseline.score
+    assert refreshed.retention_score > baseline.retention_score
     assert refreshed.retention_last_evidence == today
 
 
@@ -441,6 +469,20 @@ def test_same_day_qcm_results_contribute_one_retention_evidence():
     evidence = _build_retention_evidence(_course(), "college", [], [])
 
     assert [row for row in evidence if row.source == "qcm"] == [Evidence(datetime.date.today(), "qcm", 0.2)]
+
+
+def test_same_day_confidence_results_contribute_one_retention_evidence():
+    today = datetime.date.today()
+    sessions = [
+        {"session_date": today.isoformat(), "confidence": 2, "difficulty": "moyen", "qcm_result": None},
+        {"session_date": today.isoformat(), "confidence": 5, "difficulty": "facile", "qcm_result": None},
+    ]
+
+    evidence = _build_retention_evidence(_course(), "college", sessions, [])
+
+    assert [row for row in evidence if row.source == "confidence"] == [
+        Evidence(today, "confidence", 1 / 3)
+    ]
 
 
 def test_recent_low_qcm_prioritizes_error_correction():

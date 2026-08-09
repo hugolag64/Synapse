@@ -80,3 +80,23 @@ def test_gain_priority_uses_frequency_history_when_available():
 
     assert ranked[0]["item_number"] == "221"
     assert ranked[0]["factors"]["frequency_recurrence"] > ranked[1]["factors"]["frequency_recurrence"]
+
+
+def test_gain_priority_keeps_all_factors_when_frequency_is_zero():
+    from backend.core.edn.trajectory import rank_gain_potential
+
+    ranked = rank_gain_potential(items=[{
+        "item_number": "93",
+        "edn_weight": 1.0,
+        "mastery": 20,
+        "error_count": 5,
+        "available_questions": 20,
+        "frequency_sessions": 0,
+        "estimated_minutes": 30,
+    }])
+
+    assert ranked[0]["potential_score"] > 0
+    assert set(ranked[0]["factors"]) >= {
+        "edn_weight", "mastery_gap", "error_recurrence",
+        "question_availability", "frequency_recurrence", "estimated_minutes",
+    }

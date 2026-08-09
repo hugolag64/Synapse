@@ -20,7 +20,7 @@ def _response(payload, status_code=200):
 def test_generate_sends_selected_model_and_returns_usage():
     payload = {
         "candidates": [{"content": {"parts": [{"text": "OK"}]}}],
-        "usageMetadata": {"promptTokenCount": 11, "candidatesTokenCount": 4},
+        "usageMetadata": {"promptTokenCount": 11, "candidatesTokenCount": 4, "thoughtsTokenCount": 2},
     }
     client = GeminiClient(api_key="secret", timeout_seconds=9)
 
@@ -31,9 +31,12 @@ def test_generate_sends_selected_model_and_returns_usage():
     assert result.model is AIModel.FLASH_LITE
     assert result.input_tokens == 11
     assert result.output_tokens == 4
+    assert result.provider == "gemini"
+    assert result.thoughts_tokens == 2
     url = post.call_args.args[0]
     assert "/models/gemini-3.1-flash-lite:generateContent" in url
-    assert post.call_args.kwargs["params"] == {"key": "secret"}
+    assert post.call_args.kwargs["headers"] == {"x-goog-api-key": "secret"}
+    assert "params" not in post.call_args.kwargs
     assert post.call_args.kwargs["json"] == {
         "contents": [{"parts": [{"text": "Prompt"}]}]
     }
@@ -47,6 +50,15 @@ def test_generate_requests_json_response_format():
 
     config = post.call_args.kwargs["json"]["generationConfig"]
     assert config["responseMimeType"] == "application/json"
+
+
+def test_generate_accepts_a_json_response_schema_for_structured_tasks():
+    client = GeminiClient(api_key="secret")
+    schema = {"type": "OBJECT", "properties": {"score": {"type": "NUMBER"}}}
+    with patch("requests.post", return_value=_response({"candidates": [{"content": {"parts": [{"text": "{}"}]}}]})) as post:
+        client.generate("Prompt", AIModel.FLASH, response_format="json", response_schema=schema)
+
+    assert post.call_args.kwargs["json"]["generationConfig"]["responseSchema"] == schema
 
 
 def test_generate_retries_transient_network_failure_with_bounded_backoff():
@@ -112,3 +124,20 @@ def test_generate_rejects_empty_provider_response():
         GeminiClientError, match="Réponse Gemini vide"
     ):
         client.generate("Prompt", AIModel.FLASH)
+
+
+@pytest.mark.parametrize("finish_reason", ["MAX_TOKENS", "SAFETY"])
+def test_generate_distinguishes_truncated_or_filtered_provider_response(finish_reason):
+    client = GeminiClient(api_key="secret")
+    payload = {
+        "candidates": [
+            {"finishReason": finish_reason, "content": {"parts": [{"text": "partial"}]}}
+        ]
+    }
+
+    with patch("requests.post", return_value=_response(payload)), pytest.raises(
+        GeminiClientError, match="Réponse Gemini"
+    ) as error:
+        client.generate("Prompt", AIModel.FLASH)
+
+    assert finish_reason.lower() in str(error.value).lower()

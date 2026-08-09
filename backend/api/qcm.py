@@ -9,6 +9,10 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from backend.core.practice.mastery import record_ai_practice_mastery
+from backend.core.practice.attempt_service import (
+    record_error_signals_for_attempt,
+    score_and_record_closed_attempt,
+)
 from backend.core.practice.scoring import score_closed_attempt
 from backend.core.reviews import local_store
 from backend.core.uness import import_service
@@ -38,29 +42,13 @@ class UnessImportPayload(BaseModel):
 
 
 def _record_error_signals(attempt_id: int, question_id: int, propositions: list[dict]) -> None:
-    """Persist discordances for every item linked to a scored question."""
-    item_rows = local_store.get_ai_practice_question_items(question_id)
-    if not item_rows:
-        return
-
-    occurred_at = datetime.date.today().isoformat()
-    for item_row in item_rows:
-        item_number = str(item_row.get("item_number") or "").strip()
-        if not item_number:
-            continue
-        for proposition in propositions:
-            category = str(proposition.get("discordance") or "").strip()
-            if not category or category == "correct":
-                continue
-            proposition_id = str(proposition.get("proposition_id") or "").strip()
-            local_store.insert_error_signal_once(
-                item_number=item_number,
-                category=category,
-                occurred_at=occurred_at,
-                source="qcm",
-                evidence_id=str(attempt_id),
-                detail=f"proposition={proposition_id}",
-            )
+    """Compatibility wrapper for older callers; the service is canonical."""
+    record_error_signals_for_attempt(
+        attempt_id=attempt_id,
+        question_id=question_id,
+        question=None,
+        propositions=propositions,
+    )
 
 
 @router.post("/uness/import-directory")
@@ -180,26 +168,26 @@ def save_attempt(session_id: int, payload: AttemptPayload) -> dict:
     is_open = str(question.get("question_kind", "")).lower() == "open"
     scored = None
     if not is_open:
-        proposition_choices = (
-            (question.get("uness") or {}).get("propositions")
-            or question.get("choices")
-            or []
+        _, scored = score_and_record_closed_attempt(
+            session_id=session_id,
+            question_id=payload.question_id,
+            question=question,
+            response=payload.response,
+            finalize_session=False,
         )
-        scored = score_closed_attempt(payload.response, proposition_choices, str(question.get("answer") or ""))
-    attempt_id = local_store.record_ai_practice_attempt(
+        return {"ok": True, "score_mode": scored.score_mode}
+
+    local_store.record_ai_practice_attempt(
         session_id=session_id,
         question_id=payload.question_id,
         response=payload.response,
-        is_correct=None if scored is None else scored.score_percent == 100.0,
-        score_percent=None if scored is None else scored.score_percent,
-        score_mode="" if scored is None else scored.score_mode,
-        score_reason="" if scored is None else scored.score_reason,
+        is_correct=None,
+        score_percent=None,
+        score_mode="",
+        score_reason="",
         finalize_session=False,
     )
-    if scored is not None and attempt_id is not None:
-        local_store.replace_ai_practice_attempt_propositions(attempt_id, scored.propositions)
-        _record_error_signals(attempt_id, payload.question_id, scored.propositions)
-    return {"ok": True, "score_mode": "" if scored is None else scored.score_mode}
+    return {"ok": True, "score_mode": ""}
 
 
 @router.post("/sessions/{session_id}/complete")

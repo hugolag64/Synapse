@@ -172,3 +172,16 @@ def test_displayable_annales_excludes_empty_group_rows():
     ]
 
     assert [row["id"] for row in _displayable_annales(rows)] == [2]
+
+
+def test_annales_are_grouped_into_edn_and_subject_families():
+    from frontend.pages.annales import _group_annales_by_family
+
+    groups = _group_annales_by_family([
+        {"id": 1, "type_annale": "concours_blanc"},
+        {"id": 2, "type_annale": "matiere"},
+        {"id": 3, "type_annale": "edn"},
+    ])
+
+    assert [row["id"] for row in groups["EDN"]] == [1, 3]
+    assert [row["id"] for row in groups["Matière"]] == [2]

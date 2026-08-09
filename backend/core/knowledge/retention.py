@@ -59,9 +59,12 @@ def evaluate_retention(
     ordered = sorted(evidence, key=lambda item: item.date)
     stability_days = _initial_stability(ordered[0])
     last_evidence = ordered[-1].date
+    previous_date = ordered[0].date
 
     for item in ordered[1:]:
-        stability_days = _update_stability(stability_days, item)
+        elapsed_days = max(0, (item.date - previous_date).days)
+        stability_days = _update_stability(stability_days, item, elapsed_days)
+        previous_date = item.date
 
     age_days = max(0.0, float((as_of - last_evidence).days))
     projected = project_retention(score, stability_days, age_days)
@@ -78,14 +81,15 @@ def _initial_stability(item: Evidence) -> float:
     return _bounded_stability(base * (2.0 + quality))
 
 
-def _update_stability(current: float, item: Evidence) -> float:
+def _update_stability(current: float, item: Evidence, elapsed_days: int = 0) -> float:
     base = _source_base_stability(item.source)
     quality = _clamp_quality(item.quality)
+    spacing_factor = min(1.0, max(0.0, elapsed_days / max(current, 1.0)))
     if quality > 0.5:
-        growth = 1.0 + (base / 60.0) * quality
+        growth = 1.0 + (base / 60.0) * quality * spacing_factor
         current *= growth
     else:
-        contraction = 1.0 - (base / 40.0) * (0.5 - quality)
+        contraction = 1.0 - (base / 40.0) * (0.5 - quality) * spacing_factor
         current *= max(0.1, contraction)
     return _bounded_stability(current)
 

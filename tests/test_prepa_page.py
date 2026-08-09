@@ -64,3 +64,19 @@ def test_prepa_uses_linear_source_rows_instead_of_nested_shortcut_cards():
     assert "grid-template-columns:minmax(180px, .8fr) minmax(240px, 1.5fr) 130px 72px" in source
     assert "DERNIÈRE UTILISATION" in source
     assert "OUVRIR" in source
+
+
+def test_prepa_provider_sections_have_stable_visual_tones():
+    from frontend.pages.prepa import build_prepa_view
+
+    view = build_prepa_view([], providers=[
+        {"name": "EDNpro", "root_url": "https://ednpro.app", "enabled": True},
+        {"name": "Hypocampus", "root_url": "https://hypocampus.fr", "enabled": True},
+    ])
+
+    assert [row["tone"] for row in view["provider_sections"]] == ["ednpro", "hypocampus"]
+
+    from pathlib import Path
+    source = Path("frontend/pages/prepa.py").read_text(encoding="utf-8")
+    assert ".prep-provider.ednpro" in source
+    assert ".prep-provider.hypocampus" in source

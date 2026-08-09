@@ -29,6 +29,8 @@ from backend.core.reviews.validation import complete_review
 from backend.core.reviews.service import review_service
 from frontend.components.study_task_row import due_info
 from frontend.components.mastery_indicator import _LEVEL_COLOR, _level_from_score
+from frontend.components.data_grid import DataGrid, GridColumn
+from frontend.components.status_badge import status_class, status_label
 from frontend.components.responsive_drawer import (
     responsive_drawer, close_drawer, open_drawer, ensure_styles as _drawer_styles,
 )
@@ -142,6 +144,19 @@ _CSS = """
 .cg-item-empty { padding:20px 0; color:var(--text-muted); font-size:12px; }
 @media (max-width: 820px) { .cg-items { padding-left:12px; } }
 """
+
+_COLLEGE_ITEM_GRID = DataGrid(
+    columns=(
+        GridColumn("item", "Item", "minmax(180px,2fr)"),
+        GridColumn("progress", "Progression", "76px"),
+        GridColumn("status", "Statut", "88px"),
+        GridColumn("late", "Retard", "86px"),
+        GridColumn("fragile", "Fragile", "78px"),
+        GridColumn("next", "Prochaine", "100px"),
+        GridColumn("qcm", "QCM", "56px"),
+        GridColumn("action", "", "auto"),
+    )
+)
 
 
 def _college_item_rows(
@@ -338,7 +353,7 @@ def render_colleges_cockpit() -> None:
             ui.label("Les prochaines actions utiles").classes("cg-panel-subtitle")
 
             with ui.element("div").classes("cg-panel-section"):
-                ui.label("Progression").classes("cg-panel-section-title")
+                ui.label("Avancement de lecture").classes("cg-panel-section-title")
                 with ui.row().classes("w-full items-end justify-between gap-2"):
                     ui.label(f"{int(summary['pct'] * 100)}%").classes("cg-kpi-value")
                     ui.label(f"{summary['started']} / {summary['total_courses']} cours lus").classes("cg-panel-subtitle")
@@ -359,7 +374,7 @@ def render_colleges_cockpit() -> None:
                         ui.label(label).classes("cg-kpi-label")
 
             with ui.element("div").classes("cg-panel-section"):
-                ui.label("Répartition des collèges").classes("cg-panel-section-title")
+                ui.label("Répartition de l’avancement de lecture").classes("cg-panel-section-title")
                 for key, label, color in [
                     ("solide", "Solides", "var(--success)"),
                     ("correct", "Corrects", "var(--info)"),
@@ -480,72 +495,65 @@ def render_colleges_cockpit() -> None:
             with ui.element("div").classes("cg-items cg-items-enter"):
                 with ui.element("div").classes("cg-items-grid"):
                     with ui.element("div").classes("cg-item-head"):
-                        for label in ("Item", "Progression", "Statut", "Retard", "Fragile", "Prochaine", "QCM", ""):
+                        for label in _COLLEGE_ITEM_GRID.labels:
                             ui.label(label)
                     item_rows = _college_item_rows(
                         r["courses"], r["tasks"], r["mastery_by_course"],
                         r["urgent_ids"], r["qcm_map"],
                     )
-                if not item_rows:
-                    ui.label("Aucun item dans ce collège.").classes("cg-item-empty")
-                for item in item_rows:
-                    course = item["course"]
-                    task = item["task"]
-                    with ui.element("div").classes("cg-item") as item_el:
-                        number = getattr(course, "item_number", None) or "—"
-                        title_el = ui.label(f"Item {number} · {course.title}").classes("cg-item-title")
-                        title_el.on("click", lambda cid=course.id: ui.navigate.to(f"/cours/{cid}"))
-                        with ui.element("div").classes("cg-item-progress"):
-                            with ui.element("div").classes("cg-item-progress-track"):
-                                ui.element("div").classes("cg-item-progress-fill").style(
-                                    f"width:{max(0, min(100, item['pct']))}%;"
-                                    f"background:{_LEVEL_COLOR.get(item['level'], 'var(--text-muted)')}"
-                                )
-                            ui.label(f"{item['pct']}%").classes("cg-item-cell mono")
+                    if not item_rows:
+                        ui.label("Aucun item dans ce collège.").classes("cg-item-empty")
+                    for item in item_rows:
+                        course = item["course"]
+                        task = item["task"]
+                        with ui.element("div").classes("cg-item") as item_el:
+                            number = getattr(course, "item_number", None) or "—"
+                            title_el = ui.label(f"Item {number} · {course.title}").classes("cg-item-title")
+                            title_el.on("click", lambda cid=course.id: ui.navigate.to(f"/cours/{cid}"))
+                            with ui.element("div").classes("cg-item-progress"):
+                                with ui.element("div").classes("cg-item-progress-track"):
+                                    ui.element("div").classes("cg-item-progress-fill").style(
+                                        f"width:{max(0, min(100, item['pct']))}%;"
+                                        f"background:{_LEVEL_COLOR.get(item['level'], 'var(--text-muted)')}"
+                                    )
+                                ui.label(f"{item['pct']}%").classes("cg-item-cell mono")
 
-                        status_label = {
-                            "non_commence": "Non commencé",
-                            "solide": "Solide",
-                            "correct": "Correct",
-                            "fragile": "Fragile",
-                            "critique": "Critique",
-                        }.get(item["level"], "—")
-                        ui.label(status_label).classes(
-                            f"cg-item-cell cg-item-status {item['level'].replace('_', '-')}")
+                            ui.label(status_label(item["level"])).classes(
+                                f"cg-item-cell cg-item-status {status_class(item['level'])}")
 
-                        if item["urgent"]:
-                            late = ui.label("En retard").classes("cg-item-cell cg-item-late")
-                            late.on("click", lambda name=r["name"]: _open_items(name))
-                        else:
-                            ui.label("À jour").classes("cg-item-cell cg-item-muted")
+                            if item["urgent"]:
+                                late = ui.label("En retard").classes("cg-item-cell cg-item-late")
+                                late.on("click", lambda name=r["name"]: _open_items(name))
+                            else:
+                                ui.label("À jour").classes("cg-item-cell cg-item-muted")
 
-                        fragile = item["level"] in ("fragile", "critique")
-                        ui.label("Oui" if fragile else "—").classes(
-                            "cg-item-cell cg-item-fragile" if fragile else "cg-item-cell cg-item-muted")
+                            fragile = item["level"] in ("fragile", "critique")
+                            ui.label("Oui" if fragile else "—").classes(
+                                "cg-item-cell cg-item-fragile" if fragile else "cg-item-cell cg-item-muted")
 
-                        next_task = item["next_task"]
-                        if next_task is None:
-                            ui.label("—").classes("cg-item-cell cg-item-muted")
-                        else:
-                            due_color, due_label = due_info(next_task)
-                            with ui.row().classes("items-center gap-1 cg-item-cell"):
-                                ui.element("span").classes("cg-next-dot").style(f"background:{due_color}")
-                                ui.label(due_label)
+                            next_task = item["next_task"]
+                            if next_task is None:
+                                ui.label("—").classes("cg-item-cell cg-item-muted")
+                            else:
+                                due_color, due_label = due_info(next_task)
+                                with ui.row().classes("items-center gap-1 cg-item-cell"):
+                                    ui.element("span").classes("cg-next-dot").style(f"background:{due_color}")
+                                    ui.label(due_label)
 
-                        qcm_score = item["qcm_score"]
-                        if qcm_score is None:
-                            ui.label("—").classes("cg-item-cell cg-item-muted")
-                        else:
-                            qcm_color = _LEVEL_COLOR.get(_level_from_score(qcm_score), "var(--text-muted)")
-                            ui.label(f"{qcm_score}%").classes("cg-item-cell mono").style(f"color:{qcm_color}")
+                            qcm_score = item["qcm_score"]
+                            if qcm_score is None:
+                                ui.label("—").classes("cg-item-cell cg-item-muted")
+                            else:
+                                qcm_color = _LEVEL_COLOR.get(_level_from_score(qcm_score), "var(--text-muted)")
+                                ui.label(f"{qcm_score}%").classes("cg-item-cell mono").style(f"color:{qcm_color}")
 
-                        if task is not None:
-                            ui.button(
-                                "Valider", icon="check",
-                                on_click=lambda t=task, el=item_el: _open_feedback(t, el),
-                            ).props("unelevated dense size=sm color=positive").classes("cg-item-action")
-                        else:
-                            ui.label("—").classes("cg-item-cell cg-item-muted cg-item-action")
+                            if task is not None:
+                                ui.button(
+                                    "Valider", icon="check",
+                                    on_click=lambda t=task, el=item_el: _open_feedback(t, el),
+                                ).props("unelevated dense size=sm color=positive").classes("cg-item-action")
+                            else:
+                                ui.label("—").classes("cg-item-cell cg-item-muted cg-item-action")
 
     async def _validate(task, _card=None, activity_types=None, duration_minutes=None,
                         confidence=None, difficulty=None, qcm_result=None,

@@ -20,6 +20,9 @@ _CSS = """
 .prep-title { font-size:20px; font-weight:600; color:var(--text); letter-spacing:-.01em; }
 .prep-subtitle { color:var(--text-muted); font-size:12.5px; margin-top:4px; }
 .prep-provider { width:100%; padding:16px 0 8px; border-top:1px solid var(--border); }
+.prep-provider.ednpro { border-top:2px solid #5e6ad2; background:linear-gradient(90deg, rgba(94,106,210,.06), transparent 48%); }
+.prep-provider.hypocampus { border-top:2px solid #0d9488; background:linear-gradient(90deg, rgba(13,148,136,.06), transparent 48%); }
+.prep-provider.edni { border-top:2px solid #d97706; background:linear-gradient(90deg, rgba(217,119,6,.06), transparent 48%); }
 @keyframes prepProviderEnter {
   0% { opacity: 0; transform: translateY(8px); }
   100% { opacity: 1; transform: translateY(0); }
@@ -97,6 +100,7 @@ def build_prepa_view(shortcuts: list[dict], providers: list[dict] | None = None)
         ]
         sections.append({
             "provider": name,
+            "tone": "".join(ch for ch in name.lower() if ch.isalnum()),
             "root_url": provider.get("root_url", ""),
             "enabled": bool(provider.get("enabled")),
             "categories": categories,
@@ -157,7 +161,7 @@ def prepa_page() -> None:
             with ui.column().classes("w-full gap-4 pt-6"):
                 ui.label("Plateformes").classes("prep-section-title")
                 for section in view["provider_sections"]:
-                    with ui.element("section").classes("prep-provider"):
+                    with ui.element("section").classes(f"prep-provider {section['tone']}"):
                         with ui.row().classes("w-full items-center justify-between gap-3"):
                             with ui.column().classes("gap-0"):
                                 ui.label(section["provider"]).classes("prep-provider-name")

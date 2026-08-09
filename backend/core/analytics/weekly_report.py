@@ -36,6 +36,8 @@ class WeeklyReport:
     avg_confidence: Optional[float]
     qcm_pass_rate: Optional[float]
     narrative: str
+    retention_improved: list[str] = field(default_factory=list)
+    retention_declined: list[str] = field(default_factory=list)
 
 
 # ── Table mastery_snapshots ────────────────────────────────────────────────────
@@ -48,19 +50,28 @@ def _ensure_snapshots_table() -> None:
                 course_id     TEXT    NOT NULL,
                 week          TEXT    NOT NULL,
                 mastery_score INTEGER,
+                retention_score INTEGER,
                 mastery_level TEXT,
+                calculation_version TEXT NOT NULL DEFAULT 'legacy',
                 created_at    TEXT    NOT NULL,
                 UNIQUE(course_id, week)
             );
             CREATE INDEX IF NOT EXISTS idx_ms_week ON mastery_snapshots(week);
         """)
+        columns = {row["name"] for row in con.execute("PRAGMA table_info(mastery_snapshots)").fetchall()}
+        if "retention_score" not in columns:
+            con.execute("ALTER TABLE mastery_snapshots ADD COLUMN retention_score INTEGER")
+        if "calculation_version" not in columns:
+            con.execute(
+                "ALTER TABLE mastery_snapshots ADD COLUMN calculation_version TEXT NOT NULL DEFAULT 'legacy'"
+            )
 
 
 def save_mastery_snapshots(snapshots: list[dict]) -> int:
     """
     Persist les snapshots mastery de la semaine courante.
 
-    snapshots : [{"course_id": str, "mastery_score": int|None, "mastery_level": str}]
+    snapshots : [{"course_id": str, "mastery_score": int|None, "retention_score": int|None, "mastery_level": str}]
     Idempotent grâce au UNIQUE(course_id, week).
     Retourne le nombre de lignes écrites.
     """
@@ -71,12 +82,23 @@ def save_mastery_snapshots(snapshots: list[dict]) -> int:
     with _conn() as con:
         for s in snapshots:
             con.execute("""
-                INSERT INTO mastery_snapshots (course_id, week, mastery_score, mastery_level, created_at)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO mastery_snapshots
+                    (course_id, week, mastery_score, retention_score, mastery_level, calculation_version, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(course_id, week) DO UPDATE SET
                     mastery_score = excluded.mastery_score,
-                    mastery_level = excluded.mastery_level
-            """, (s["course_id"], week, s.get("mastery_score"), s.get("mastery_level"), now))
+                    retention_score = excluded.retention_score,
+                    mastery_level = excluded.mastery_level,
+                    calculation_version = excluded.calculation_version
+            """, (
+                s["course_id"],
+                week,
+                s.get("mastery_score"),
+                s.get("retention_score"),
+                s.get("mastery_level"),
+                s.get("calculation_version", "v2"),
+                now,
+            ))
             count += 1
     logger.debug(f"weekly_report: {count} snapshots mastery enregistrés (semaine {week})")
     return count
@@ -107,8 +129,10 @@ def snapshot_courses(courses: list) -> int:
         )
         snapshots.append({
             "course_id":    c.id,
-            "mastery_score": mastery.score,
+            "mastery_score": mastery.mastery_score,
+            "retention_score": mastery.retention_score,
             "mastery_level": mastery.level,
+            "calculation_version": "v2",
         })
 
     return save_mastery_snapshots(snapshots)
@@ -210,6 +234,20 @@ def generate_weekly_report(week_start: Optional[datetime.date] = None) -> Weekly
                 (prev_week_str,)
             ).fetchall()
         }
+        retention_cur = {
+            r["course_id"]: r["retention_score"]
+            for r in con.execute(
+                "SELECT course_id, retention_score FROM mastery_snapshots WHERE week = ?",
+                (week_str,)
+            ).fetchall()
+        }
+        retention_prev = {
+            r["course_id"]: r["retention_score"]
+            for r in con.execute(
+                "SELECT course_id, retention_score FROM mastery_snapshots WHERE week = ?",
+                (prev_week_str,)
+            ).fetchall()
+        }
 
     # Calculs
     total_minutes = sum(s["duration_minutes"] or 0 for s in sessions)
@@ -224,6 +262,8 @@ def generate_weekly_report(week_start: Optional[datetime.date] = None) -> Weekly
 
     courses_improved: list[str] = []
     courses_regressed: list[str] = []
+    retention_improved: list[str] = []
+    retention_declined: list[str] = []
     for cid, cur_score in snap_cur.items():
         prev_score = snap_prev.get(cid)
         if prev_score is None or cur_score is None:
@@ -232,6 +272,15 @@ def generate_weekly_report(week_start: Optional[datetime.date] = None) -> Weekly
             courses_improved.append(cid)
         elif cur_score < prev_score:
             courses_regressed.append(cid)
+
+    for cid, cur_score in retention_cur.items():
+        prev_score = retention_prev.get(cid)
+        if prev_score is None or cur_score is None:
+            continue
+        if cur_score > prev_score:
+            retention_improved.append(cid)
+        elif cur_score < prev_score:
+            retention_declined.append(cid)
 
     top_weak_categories = [(r["category"], r["cnt"]) for r in cat_rows]
 
@@ -253,6 +302,8 @@ def generate_weekly_report(week_start: Optional[datetime.date] = None) -> Weekly
         avg_confidence=avg_confidence,
         qcm_pass_rate=qcm_pass_rate,
         narrative=narrative,
+        retention_improved=retention_improved,
+        retention_declined=retention_declined,
     )
 
 

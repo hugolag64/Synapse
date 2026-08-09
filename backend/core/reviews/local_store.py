@@ -28,8 +28,9 @@ from backend.config.settings import now_local
 # ── Emplacement de la base ────────────────────────────────────────────────────
 # backend/core/reviews/local_store.py → 4 niveaux vers la racine du projet
 _ROOT = Path(__file__).parent.parent.parent.parent
-DB_PATH = _ROOT / "data" / "synapse_local.db"
-DB_BACKUP_DIR = _ROOT / "data" / "backups"
+_configured_db_path = os.getenv("SYNAPSE_TEST_DB_PATH")
+DB_PATH = Path(_configured_db_path).expanduser() if _configured_db_path else _ROOT / "data" / "synapse_local.db"
+DB_BACKUP_DIR = DB_PATH.parent / "backups" if _configured_db_path else _ROOT / "data" / "backups"
 
 
 # ── Connexion ─────────────────────────────────────────────────────────────────

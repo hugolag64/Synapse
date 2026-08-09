@@ -60,3 +60,17 @@ def test_college_items_container_plays_an_entrance_animation_on_open():
     assert "@keyframes cgItemsEnter" in source
     assert ".cg-items-enter { animation: cgItemsEnter var(--duration-base) var(--ease-standard) both; }" in source
     assert 'ui.element("div").classes("cg-items cg-items-enter")' in source
+
+
+def test_college_item_rows_stay_inside_the_shared_grid_container():
+    source = open("frontend/pages/colleges_cockpit.py", encoding="utf-8").read()
+
+    assert "for item in item_rows:" in source
+    assert source.index("for item in item_rows:") > source.index('classes("cg-items-grid")')
+    assert "status_label(item[\"level\"])" in source
+
+
+def test_college_pilotage_labels_reading_progress_separately_from_mastery():
+    source = open("frontend/pages/colleges_cockpit.py", encoding="utf-8").read()
+    assert "Avancement de lecture" in source
+    assert "Répartition de l’avancement de lecture" in source

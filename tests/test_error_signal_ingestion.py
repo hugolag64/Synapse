@@ -31,8 +31,8 @@ def _closed_session() -> tuple[int, dict]:
             "prompt": "Q1",
             "kind": QuestionKind.CLOSED,
             "choices": [
-                {"id": "A", "label": "A", "is_correct": True},
-                {"id": "B", "label": "B", "is_correct": False},
+                {"id": "A", "label": "A", "is_correct": True, "rank": "A"},
+                {"id": "B", "label": "B", "is_correct": False, "rank": "B"},
             ],
             "answer": "A",
             "explanation": "E1",
@@ -48,7 +48,7 @@ def test_incorrect_linked_attempt_writes_error_signals(practice_db):
     qcm.save_attempt(session_id, qcm.AttemptPayload(question_id=question["id"], response="B"))
 
     signals = local_store.get_error_signals(item_number="221")
-    assert {row["category"] for row in signals} == {"omission", "exces"}
+    assert {row["category"] for row in signals} == {"rang_a", "non_classe"}
     assert {row["source"] for row in signals} == {"qcm"}
     assert all(row["evidence_id"].isdigit() for row in signals)
 

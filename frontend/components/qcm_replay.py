@@ -9,6 +9,7 @@ from collections.abc import Callable
 from nicegui import ui
 
 from backend.core.practice.mastery import record_ai_practice_mastery
+from backend.core.practice.attempt_service import score_and_record_closed_attempt
 from backend.core.reviews import local_store
 
 
@@ -240,6 +241,34 @@ def open_chained_dialog(
         open_next()
 
 
+def _render_technical_details(uness: dict) -> None:
+    """Keep provenance and identifiers available without polluting correction."""
+    exam_metadata = uness.get("exam") or {}
+    provenance = uness.get("provenance") or {}
+    source_url = str(provenance.get("source_url") or "").strip()
+    if source_url:
+        ui.label(f"Source : {source_url}").classes(
+            "text-xs text-slate-500 dark:text-slate-400 whitespace-pre-wrap mt-2"
+        )
+    identity = [
+        str(value).strip()
+        for value in (
+            exam_metadata.get("faculty"),
+            exam_metadata.get("level"),
+            exam_metadata.get("year"),
+        )
+        if value is not None and str(value).strip()
+    ]
+    if identity:
+        ui.label(" · ".join(identity)).classes("text-xs text-slate-500 dark:text-slate-400")
+    collected_at = str(provenance.get("collected_at") or "").strip()
+    collection_status = str(provenance.get("collection_status") or "").strip()
+    if collected_at or collection_status:
+        ui.label(
+            f"Collecté le {collected_at or '—'} · Statut : {collection_status or '—'}"
+        ).classes("text-xs text-slate-500 dark:text-slate-400")
+
+
 def open_qcm_correction(
     session_id: int,
     on_back: Callable[[], None],
@@ -289,35 +318,8 @@ def open_qcm_correction(
                     with ui.expansion(title, icon=icon).classes("w-full border rounded"):
                         ui.label(row["question"]["prompt"]).classes("font-medium whitespace-pre-wrap")
                         ui.label(label).classes(f"text-xs font-semibold mt-2 {colour}")
-                        exam_metadata = uness.get("exam") or {}
-                        provenance = uness.get("provenance") or {}
-                        source_url = str(provenance.get("source_url") or "").strip()
-                        if source_url:
-                            ui.label(f"Source : {source_url}").classes(
-                                "text-xs text-slate-500 dark:text-slate-400 whitespace-pre-wrap mt-2"
-                            )
-                        identity = [
-                            str(value).strip()
-                            for value in (
-                                exam_metadata.get("faculty"),
-                                exam_metadata.get("level"),
-                                exam_metadata.get("year"),
-                            )
-                            if value is not None and str(value).strip()
-                        ]
-                        if identity:
-                            ui.label(" · ".join(identity)).classes(
-                                "text-xs text-slate-500 dark:text-slate-400"
-                            )
-                        collected_at = str(provenance.get("collected_at") or "").strip()
-                        collection_status = str(
-                            provenance.get("collection_status") or ""
-                        ).strip()
-                        if collected_at or collection_status:
-                            ui.label(
-                                f"Collecté le {collected_at or '—'} · "
-                                f"Statut : {collection_status or '—'}"
-                            ).classes("text-xs text-slate-500 dark:text-slate-400")
+                        with ui.expansion("Détails techniques", icon="info").classes("w-full mt-2"):
+                            _render_technical_details(uness)
                         ui.label(f"Votre réponse : {row['response'] or '—'}").classes(
                             "text-sm whitespace-pre-wrap mt-2"
                         )
@@ -336,12 +338,14 @@ def open_qcm_correction(
                                 selected = "Sélectionnée" if proposition.get("selected") else "Non sélectionnée"
                                 expected = "Attendue" if proposition.get("expected") else "Non attendue"
                                 rank = f"Rang {proposition['rank']}" if proposition.get("rank") else "Rang non renseigné"
-                                ui.label(
-                                    f"{proposition.get('proposition_id', '—')} · "
-                                    f"{proposition.get('text') or 'Texte indisponible'} · "
-                                    f"{selected} · {expected} · {rank} · "
-                                    f"{proposition.get('points', 0)} pt · {proposition.get('discordance') or '—'}"
-                                ).classes("text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap")
+                                with ui.column().classes("correction-proposition gap-0 p-2 border-b"):
+                                    ui.label(
+                                        proposition.get("text") or "Texte indisponible"
+                                    ).classes("text-sm font-medium whitespace-pre-wrap")
+                                    ui.label(
+                                        f"{selected} · {expected} · {rank} · "
+                                        f"{proposition.get('points', 0)} pt · {proposition.get('discordance') or '—'}"
+                                    ).classes("text-xs text-slate-600 dark:text-slate-300 whitespace-pre-wrap")
                         if disagreements:
                             ui.label("Divergence avec la correction officielle UNESS").classes(
                                 "text-sm font-semibold text-amber-800 dark:text-amber-300 mt-2"
@@ -452,7 +456,21 @@ def open_qcm_session(
 
         def _save(question: dict, response: str) -> None:
             is_open = _is_open(question)
-            correct = None if is_open else _same_closed_answer(response, question.get("answer", ""), question.get("choices") or [])
+            if not is_open:
+                save_response_once(
+                    persisted_answers,
+                    question["id"],
+                    response,
+                    lambda: score_and_record_closed_attempt(
+                        session_id=session_id,
+                        question_id=question["id"],
+                        question=question,
+                        response=response,
+                        finalize_session=False,
+                    ),
+                )
+                return
+
             save_response_once(
                 persisted_answers,
                 question["id"],
@@ -461,8 +479,8 @@ def open_qcm_session(
                     session_id=session_id,
                     question_id=question["id"],
                     response=response,
-                    is_correct=correct,
-                    score_percent=None if is_open else (100.0 if correct else 0.0),
+                    is_correct=None,
+                    score_percent=None,
                     finalize_session=False,
                 ),
             )

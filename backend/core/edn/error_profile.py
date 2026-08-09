@@ -13,6 +13,43 @@ FALLBACK_ERROR_WINDOW_DAYS = 90
 MIN_SIGNALS_FOR_RECENT_WINDOW = 2
 
 
+def map_discordance_to_error_category(
+    proposition: dict,
+    question: dict | None = None,
+    item_context: dict | None = None,
+) -> str:
+    """Translate proposition-level evidence into the product taxonomy."""
+    question = question or {}
+    item_context = item_context or {}
+    explicit = (
+        proposition.get("error_category")
+        or proposition.get("weak_category")
+        or question.get("error_category")
+        or question.get("weak_category")
+    )
+    if explicit in ERROR_CATEGORIES:
+        return str(explicit)
+
+    discordance = str(proposition.get("discordance") or "").strip().lower()
+    rank = str(
+        proposition.get("rank")
+        or question.get("rank")
+        or item_context.get("rank")
+        or ""
+    ).strip().upper()
+    if discordance == "omission" and rank == "A":
+        return "rang_a"
+    if discordance == "omission" and rank == "B":
+        return "rang_b"
+    if discordance == "exces" and (
+        proposition.get("is_trap")
+        or question.get("is_trap")
+        or question.get("trap")
+    ):
+        return "piege_edn"
+    return "non_classe"
+
+
 def get_adaptive_error_signals(
     *,
     item_number: str | None = None,

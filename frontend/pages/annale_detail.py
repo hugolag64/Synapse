@@ -6,6 +6,7 @@ from nicegui import ui
 
 from backend.core.reviews import local_store
 from backend.core.uness.import_service import ANNALE_TYPE_LABELS, UNIVERSITES, format_annale_title
+from backend.core.uness.exam_session import start_exam_session
 from backend.state.store import data_store
 from frontend.components.practice_session_card import open_node_qcm, render_session_actions
 from frontend.components.qcm_replay import (
@@ -236,6 +237,37 @@ def annale_detail_page(annale_id: str) -> None:
             ui.button("Retour", icon="arrow_back", on_click=lambda: ui.navigate.to("/annales")).props("flat")
             return
 
+        continuous_state = {"index": 0, "session_id": None}
+
+        def _open_next_continuous_part() -> None:
+            if continuous_state["index"] >= len(sessions):
+                ui.notify("Épreuve terminée. La correction globale est maintenant disponible.", type="positive")
+                return
+            sid = int(sessions[continuous_state["index"]]["id"])
+            continuous_state["index"] += 1
+            if open_node_qcm(sid):
+                return
+            open_qcm_session(
+                sid,
+                on_complete=_after_continuous_exam,
+                on_back=lambda: open_chained_dialog(page_slot, _render),
+            )
+
+        def _after_continuous_exam(_session_id: int) -> None:
+            _open_next_continuous_part()
+
+        def _open_continuous_exam() -> None:
+            if not sessions:
+                ui.notify("Aucune sous-partie importée pour cette annale.", type="warning")
+                return
+            try:
+                continuous = start_exam_session(parsed_id)
+                continuous_state["session_id"] = continuous.session_id
+            except ValueError:
+                continuous_state["session_id"] = None
+            continuous_state["index"] = 0
+            _open_next_continuous_part()
+
         with ui.column().classes("an-wrap gap-0").style("flex:1 1 auto;"):
             with ui.element("div").classes("an-topbar"):
                 with ui.column().classes("gap-0"):
@@ -245,6 +277,11 @@ def annale_detail_page(annale_id: str) -> None:
                         f"{ANNALE_TYPE_LABELS.get(annale['type_annale'], annale['type_annale'])}"
                     ).classes("an-subtitle")
                 with ui.row().classes("gap-2 items-center"):
+                    ui.button(
+                        "Mode concours continu",
+                        icon="play_arrow",
+                        on_click=_open_continuous_exam,
+                    ).props("unelevated color=primary size=sm")
                     ui.button(
                         "Historique",
                         icon="history",

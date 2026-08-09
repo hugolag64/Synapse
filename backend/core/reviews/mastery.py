@@ -21,7 +21,8 @@ class CourseProgressSnapshot:
     course_id: str
     context: Literal["college", "ue"]
     level: str
-    score: int | None
+    mastery_score: int | None
+    retention_score: int | None
     has_pdf: bool
     has_first_read: bool
     nb_lectures: int
@@ -35,10 +36,17 @@ class CourseProgressSnapshot:
     has_rang_a_badge: bool = False
     score_rang_a: int | None = None        # Score de maîtrise Rang A (0-100)
     score_rang_b: int | None = None        # Score de maîtrise Rang B (0-100)
+    rang_a_referential: bool = False
+    rang_a_evaluated: bool = False
     anki_review_count: int = 0
     anki_knowledge_score: int | None = None
     retention_stability_days: float = 0.0
     retention_last_evidence: datetime.date | None = None
+
+    @property
+    def score(self) -> int | None:
+        """Backward-compatible alias for the competency/mastery score."""
+        return self.mastery_score
 
 
 # ── Couleurs UI par niveau ─────────────────────────────────────────────────────
@@ -89,12 +97,15 @@ def get_course_mastery(
     # Rang A ci-dessous appliquait une pénalité à l'aveugle.
     _cov = oic_coverage(course.id)      # une seule lecture, réutilisée pour le badge
     _oic_coverage_a      = _cov["rang_a_pct"]
-    _has_rang_a_evidence = _cov["rang_a_total"] > 0
+    _has_rang_a_referential = _cov["rang_a_total"] > 0
+    _has_rang_a_evaluated = _cov.get("rang_a_attempted", 0) > 0
     _has_rang_a_badge    = badge_from_coverage(_cov)
     _extra = {
         "declared_level":   seed.declared_level,
         "oic_coverage_a":   _oic_coverage_a,
         "has_rang_a_badge": _has_rang_a_badge,
+        "rang_a_referential": _has_rang_a_referential,
+        "rang_a_evaluated": _has_rang_a_evaluated,
     }
     _retention_defaults = {
         "retention_stability_days": 0.0,
@@ -121,7 +132,7 @@ def get_course_mastery(
     # Note: un cours sans PDF peut quand même avoir une première lecture et être révisable
     if not has_pdf and not has_first_read:
         return CourseProgressSnapshot(
-            course_id=course.id, context=context, level="à préparer", score=None,
+            course_id=course.id, context=context, level="à préparer", mastery_score=None, retention_score=None,
             has_pdf=has_pdf, has_first_read=has_first_read, nb_lectures=nb_lectures,
             qcm_done=qcm_done, anki_done=anki_done, reasons=["Pas de PDF lié"],
             next_action="Lier PDF", **_extra, **_retention_defaults,
@@ -133,7 +144,7 @@ def get_course_mastery(
         if seed.seed_score is not None and seed.n_evidence == 0:
             return CourseProgressSnapshot(
                 course_id=course.id, context=context,
-                level=level_from_seed(seed.seed_score), score=seed.seed_score,
+                level=level_from_seed(seed.seed_score), mastery_score=seed.seed_score, retention_score=seed.seed_score,
                 has_pdf=has_pdf, has_first_read=has_first_read, nb_lectures=nb_lectures,
                 qcm_done=qcm_done, anki_done=anki_done,
                 reasons=[f"Niveau déclaré : {seed.declared_level}"],
@@ -141,7 +152,7 @@ def get_course_mastery(
             )
         if seed.seed_score is None:
             return CourseProgressSnapshot(
-                course_id=course.id, context=context, level="à lire", score=None,
+                course_id=course.id, context=context, level="à lire", mastery_score=None, retention_score=None,
                 has_pdf=has_pdf, has_first_read=has_first_read, nb_lectures=nb_lectures,
                 qcm_done=qcm_done, anki_done=anki_done,
                 reasons=["Première lecture manquante"], next_action="1ère lecture",
@@ -150,27 +161,27 @@ def get_course_mastery(
         # Item déclaré ET porteur de preuves : on poursuit vers le calcul normal.
 
     # 3. Calcul du score (cours commencés)
-    score = 50
+    mastery_score = 50
     reasons: list[str] = []
     recent_low_qcm = False
 
     is_consolidation = nb_lectures >= 3 or qcm_done
 
     if nb_lectures == 1:
-        score -= 5
+        mastery_score -= 5
     elif nb_lectures == 2:
-        score += 5
+        mastery_score += 5
     elif nb_lectures >= 3:
-        score += 10
+        mastery_score += 10
 
     # L'absence d'Anki ne pénalise jamais : le paquet peut être déconnecté et
     # son existence ne constitue pas une preuve de maîtrise.
     if nb_lectures >= 2 and not qcm_done:
-        score -= 4
+        mastery_score -= 4
         reasons.append("QCM non fait")
 
     if total_postpone > 0:
-        score -= min(total_postpone * 5, 20)
+        mastery_score -= min(total_postpone * 5, 20)
         reasons.append(f"{total_postpone} report(s)")
 
     if sessions:
@@ -182,21 +193,21 @@ def get_course_mastery(
         if confidences:
             avg_conf = sum(confidences) / len(confidences)
             if avg_conf <= 2:
-                score -= 15
+                mastery_score -= 15
                 reasons.append("confiance basse")
             elif avg_conf >= 4:
-                score += 10
+                mastery_score += 10
 
         if "difficile" in difficulties:
-            score -= 10
+            mastery_score -= 10
             reasons.append("cours difficile")
 
         if qcm_results:
             if "raté" in qcm_results:
-                score -= 15
+                mastery_score -= 15
                 reasons.append("QCM raté")
             elif all(r == "réussi" for r in qcm_results):
-                score += 10
+                mastery_score += 10
 
     # Une performance fraîche est un signal diagnostique, pas une simple
     # exposition : un échec robuste doit immédiatement remonter dans le plan.
@@ -212,7 +223,7 @@ def get_course_mastery(
             except (TypeError, ValueError):
                 continue
             if 0 <= (today - when).days <= 14 and total >= 10 and percent < 50:
-                score -= 15
+                mastery_score -= 15
                 reasons.append(f"QCM récent faible ({int(percent)}% sur {total} questions)")
                 recent_low_qcm = True
                 break
@@ -228,37 +239,37 @@ def get_course_mastery(
             if scores_annales:
                 avg_annale = sum(scores_annales) / len(scores_annales)
                 if avg_annale >= 80:
-                    score += 15
+                    mastery_score += 15
                     reasons.append(f"Annales : {int(avg_annale)}% (Solide)")
                 elif avg_annale < 50:
-                    score -= 15
+                    mastery_score -= 15
                     reasons.append(f"Annales : {int(avg_annale)}% (Fragile)")
         except Exception:
             pass
 
-    score = max(0, min(100, score))
+    mastery_score = max(0, min(100, mastery_score))
 
     # Fusion graine / évidence : le poids de la graine décroît avec les preuves.
     if seed.seed_score is not None:
-        score = blend(seed.seed_score, score, seed.n_evidence)
+        mastery_score = blend(seed.seed_score, mastery_score, seed.n_evidence)
         reasons.append(f"Niveau déclaré : {seed.declared_level}")
 
     if anki_knowledge_score is not None:
-        score = round(score * 0.75 + anki_knowledge_score * 0.25)
+        mastery_score = round(mastery_score * 0.75 + anki_knowledge_score * 0.25)
         reasons.append(f"Anki : {anki_review_count} révision(s)")
 
     retention_evidence = _build_retention_evidence(course, context, sessions, anki_rows)
-    retention_snapshot = evaluate_retention(score, retention_evidence, datetime.date.today())
-    score = retention_snapshot.score
+    retention_snapshot = evaluate_retention(mastery_score, retention_evidence, datetime.date.today())
+    retention_score = retention_snapshot.score
 
     # 3b. Calcul dédoublé Rang A / Rang B
     # Le verrou Rang A (utilisé plus bas pour fragile/critique) ne doit s'appliquer
     # que si le cours a réellement été évalué sur ses OIC de Rang A — sinon
     # l'absence de mesure serait traitée comme un échec (score_rang_a < 75).
-    if _has_rang_a_evidence:
-        score_rang_a = max(0, min(100, round(score * 0.5 + (_oic_coverage_a * 100) * 0.5)))
+    if _has_rang_a_evaluated:
+        score_rang_a = max(0, min(100, round(mastery_score * 0.5 + (_oic_coverage_a * 100) * 0.5)))
     else:
-        score_rang_a = score
+        score_rang_a = mastery_score
     
     # Pénalité Rang A en cas d'échec QCM/Session
     if sessions:
@@ -270,29 +281,29 @@ def get_course_mastery(
     if score_rang_a < 70:
         score_rang_b = max(0, score_rang_a - 20)
     else:
-        score_rang_b = max(0, min(100, round(score * 0.9)))
+        score_rang_b = max(0, min(100, round(mastery_score * 0.9)))
 
     # 4. Détermination du niveau (avec Sécurité Rang A stricte)
-    if score < 40 or (
-        _has_rang_a_evidence and score_rang_a is not None and score_rang_a < 40
+    if mastery_score < 40 or (
+        _has_rang_a_evaluated and score_rang_a is not None and score_rang_a < 40
     ):
         level = "critique"
-        if _has_rang_a_evidence and score_rang_a is not None and score_rang_a < 40:
+        if _has_rang_a_evaluated and score_rang_a is not None and score_rang_a < 40:
             reasons.append("Socle Rang A critique (<40%)")
-    elif score < 60 or (
-        _has_rang_a_evidence and score_rang_a is not None and score_rang_a < 75
+    elif mastery_score < 60 or (
+        _has_rang_a_evaluated and score_rang_a is not None and score_rang_a < 75
     ):
         level = "fragile"
-        if _has_rang_a_evidence and score_rang_a is not None and score_rang_a < 75:
+        if _has_rang_a_evaluated and score_rang_a is not None and score_rang_a < 75:
             reasons.append("Sécurité Rang A non atteinte (<75%)")
-    elif score >= 80 and qcm_done:
+    elif mastery_score >= 80 and qcm_done:
         level = "maîtrisé"
     else:
         # Score entre 60 et 80, ou >= 80 sans QCM
         if not qcm_done:
             level = "en construction" if nb_lectures < 2 else "à consolider"
         else:
-            level = "à consolider" if score < 70 else "maîtrisé"
+            level = "à consolider" if mastery_score < 70 else "maîtrisé"
 
     # Action suggérée
     next_action = "Réviser"
@@ -306,7 +317,8 @@ def get_course_mastery(
         course_id=course.id,
         context=context,
         level=level,
-        score=score,
+        mastery_score=mastery_score,
+        retention_score=retention_score,
         score_rang_a=score_rang_a,
         score_rang_b=score_rang_b,
         has_pdf=has_pdf,
@@ -348,6 +360,7 @@ def _build_retention_evidence(
     fallback_date = _fallback_evidence_date(course, context)
     evidence: list[Evidence] = []
     study_evidence_keys: set[tuple[str, datetime.date]] = set()
+    confidence_by_day: dict[datetime.date, float] = {}
 
     for session in sessions:
         session_date = _coerce_evidence_date(_safe_get(session, "session_date"), fallback_date)
@@ -361,7 +374,15 @@ def _build_retention_evidence(
             _safe_get(session, "difficulty"),
         )
         if confidence_quality is not None:
-            evidence.append(Evidence(session_date, "confidence", confidence_quality))
+            confidence_by_day[session_date] = min(
+                confidence_by_day.get(session_date, confidence_quality),
+                confidence_quality,
+            )
+
+    evidence.extend(
+        Evidence(day, "confidence", quality)
+        for day, quality in sorted(confidence_by_day.items())
+    )
 
     for row in anki_rows:
         quality = _anki_retention_quality(_safe_get(row, "rating"))

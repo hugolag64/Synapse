@@ -50,6 +50,12 @@ _TOKENS_CSS = """
   --radius-md: 6px;
   --radius-lg: 8px;
 
+  /* Mise en page partagée */
+  --content-readable: 1100px;
+  --content-full: 100%;
+  --panel-padding: 20px;
+  --grid-gap: 12px;
+
   /* Profondeur — une seule ombre (popover) */
   --shadow-popover: 0 2px 8px rgba(0, 0, 0, 0.04);
 

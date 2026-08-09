@@ -35,6 +35,9 @@ class AIResponse:
     model: AIModel
     input_tokens: int | None = None
     output_tokens: int | None = None
+    provider: str = "unknown"
+    finish_reason: str | None = None
+    thoughts_tokens: int | None = None
 
 
 @dataclass(frozen=True)

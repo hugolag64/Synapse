@@ -4,6 +4,7 @@ import pytest
 
 from backend.core.ai.routing import AIImageContent, AIModel, AIResponse, AITask
 from backend.core.ai.service import MAX_CONTEXT_CHARS, AIService
+from backend.core.practice.models import PracticeDifficulty
 
 
 def test_service_routes_task_and_returns_client_response():
@@ -59,3 +60,17 @@ def test_service_does_not_route_score_tasks():
 
     with pytest.raises(ValueError, match="ne passe pas par le service IA"):
         service.generate(AITask.SCORE, "Calcule 2 + 2")
+
+
+def test_service_forwards_difficulty_to_model_routing():
+    client = Mock()
+    client.generate.return_value = AIResponse("OK", AIModel.FLASH)
+    service = AIService(client)
+
+    service.generate(
+        AITask.QCM,
+        "Question de concours",
+        difficulty=PracticeDifficulty.CONCOURS,
+    )
+
+    assert client.generate.call_args.args[1] is AIModel.FLASH

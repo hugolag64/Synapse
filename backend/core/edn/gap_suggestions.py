@@ -49,7 +49,7 @@ def accept_gap_suggestion(suggestion_id: int, *, store) -> int:
     if recommendation is None:
         raise ValueError("Suggestion de lacune introuvable")
     weak_point_id = store.add_weak_point_full(
-        course_id=recommendation["item_number"],
+        course_id=f"item:{recommendation['item_number']}",
         item_number=recommendation["item_number"],
         category=recommendation["category"],
         detail=recommendation["detail"],

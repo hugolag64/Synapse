@@ -353,6 +353,14 @@ def test_correction_summary_counts_answered_open_questions_without_marking_them_
     )
 
 
+def test_correction_view_has_a_separate_technical_details_section():
+    from pathlib import Path
+
+    source = Path("frontend/components/qcm_replay.py").read_text(encoding="utf-8")
+    assert "Détails techniques" in source
+    assert "correction-proposition" in source
+
+
 def test_filter_question_results_errors_only_keeps_non_correct_results():
     results = [{"status": "correct"}, {"status": "incorrect"}, {"status": "unanswered"}, {"status": None}]
 

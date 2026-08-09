@@ -24,3 +24,9 @@ def test_oic_panel_keeps_explicit_evaluate_and_mastery_actions():
     source = (ROOT / "frontend/components/oic_panel.py").read_text(encoding="utf-8")
     assert "Évaluer cet OIC" in source
     assert "Basculer la maîtrise" in source
+
+
+def test_oic_rows_use_a_stable_three_column_layout():
+    source = (ROOT / "frontend/components/oic_panel.py").read_text(encoding="utf-8")
+    assert "grid-template-columns:102px minmax(0,1fr) auto" in source
+    assert "oic-row-status" in source

@@ -1254,11 +1254,21 @@ def build_item_resources(item_number: str, rows=None) -> list[dict]:
         url = str(row.get("url", "")).strip()
         if confidence < 0.8 or not url.startswith(("http://", "https://")):
             continue
+        provider = str(row.get("provider") or "Externe")
+        resource_type = str(row.get("resource_type") or "resource")
+        title = str(row.get("title") or "Ressource externe")
+        if provider.lower() == "hypocampus" and resource_type.lower() in {"course", "cours"}:
+            display_label = "Cours Hypocampus"
+        elif resource_type.lower() in {"video", "vidéo", "video_item"}:
+            display_label = f"Vidéo · {title}"
+        else:
+            display_label = title
         resources.append(
             {
-                "label": str(row.get("title") or "Ressource externe"),
-                "provider": str(row.get("provider") or "Externe"),
-                "type": str(row.get("resource_type") or "resource"),
+                "label": title,
+                "display_label": display_label,
+                "provider": provider,
+                "type": resource_type,
                 "url": url,
                 "confidence": confidence,
             }
@@ -1318,7 +1328,7 @@ def _render_panel(course, lacunes, has_pdf: bool, obs_path) -> None:
         for resource in build_item_resources(item_num):
             link = ui.link(target=resource["url"], new_tab=True).classes("ci-p-link")
             with link:
-                ui.label(f"↗ {resource['label']}")
+                ui.label(f"↗ {resource['display_label']}")
                 ui.label(f" · {resource['provider']}").classes("text-[10px] opacity-60")
             any_res = True
 

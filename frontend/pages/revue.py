@@ -29,6 +29,7 @@ classic, lui aussi jamais routé) répond à une question différente
 from __future__ import annotations
 
 import datetime
+from urllib.parse import quote
 
 from nicegui import ui
 
@@ -70,7 +71,7 @@ _CSS = """
 .rh-item-title { flex:1 1 auto; min-width:0; font-size:12.5px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .rh-item-trans { font-family:var(--font-mono); font-size:11.5px; font-weight:600; flex:0 0 auto; white-space:nowrap; }
 .rh-card-empty { font-size:12px; color:var(--text-dim); font-style:italic; padding:6px 0; }
-.rh-focus { background:var(--accent-wash); border-radius:8px; padding:14px 16px; }
+.rh-focus { width:100%; box-sizing:border-box; background:var(--accent-wash); border-radius:8px; padding:18px 20px; }
 .rh-focus-label { font-family:var(--font-mono); font-size:10.5px; letter-spacing:.04em; color:var(--text-muted); margin-bottom:10px; }
 .rh-focus-item { display:flex; align-items:center; gap:8px; height:26px; font-size:12.5px; color:var(--text); }
 .rh-focus-dot { width:6px; height:6px; border-radius:50%; background:var(--warning); flex:0 0 6px; }
@@ -235,6 +236,9 @@ def revue_page() -> None:
         with focus_box:
             with ui.element("div").classes("rh-focus"):
                 ui.label("FOCUS SEMAINE PROCHAINE").classes("rh-focus-label")
+                ui.label(
+                    "Top des catégories de points faibles actifs sur les 30 derniers jours"
+                ).classes("rh-focus-empty")
                 top = report.top_weak_categories[:3]
                 if not top:
                     ui.label("Aucune lacune active à prioriser — continue comme ça.").classes("rh-focus-empty")
@@ -246,7 +250,8 @@ def revue_page() -> None:
                 btn = ui.element("div").classes("rh-btn primary rh-focus-btn")
                 with btn:
                     ui.label("Planifier ce focus")
-                btn.on("click", lambda: ui.navigate.to("/planning"))
+                focus_query = quote(",".join(category for category, _count in top))
+                btn.on("click", lambda: ui.navigate.to(f"/planning?focus={focus_query}"))
 
     def _render() -> None:
         week_start = _current_week_start()

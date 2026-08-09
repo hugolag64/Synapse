@@ -63,11 +63,12 @@ def _validate_uness_annale_url(url: str) -> str:
 
 
 _CSS = """
-.se-wrap { max-width:700px; width:100%; }
+.se-wrap { max-width:none; width:100%; align-items:stretch; }
 .se-topbar { padding:4px 0 18px; }
 .se-title { font-size:20px; font-weight:600; color:var(--text); letter-spacing:-0.01em; }
 .se-subtitle { font-size:12.5px; color:var(--text-muted); margin-top:4px; }
 .se-label { font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-dim); font-weight:600; margin:20px 0 8px; }
+.se-domain { padding:10px 12px 8px; border-left:3px solid var(--accent); background:var(--surface); border-radius:var(--radius-sm); }
 .se-list { border:1px solid var(--border); border-radius:8px; overflow:hidden; }
 .se-row { display:flex; align-items:center; gap:10px; height:44px; padding:0 14px; border-bottom:1px solid var(--border); }
 .se-row:last-child { border-bottom:none; }
@@ -125,7 +126,7 @@ def render_settings_cockpit() -> None:
             ui.label("Paramètres").classes("se-title")
             ui.label("Connexions · apparence").classes("se-subtitle")
 
-        ui.label("CONNEXIONS").classes("se-label")
+        ui.label("CONNEXIONS").classes("se-label se-domain")
         with ui.element("div").classes("se-list"):
             for name, ok, status_label in _connection_rows():
                 color = (
@@ -140,7 +141,7 @@ def render_settings_cockpit() -> None:
 
         render_calendar_sources(ui.column().classes("w-full"))
 
-        ui.label("APPARENCE").classes("se-label")
+        ui.label("APPARENCE").classes("se-label se-domain")
         with ui.element("div").classes("se-appearance-row"):
             with ui.column().classes("gap-0"):
                 ui.label("Mode sombre").classes("se-appearance-label")
@@ -176,7 +177,7 @@ def render_settings_cockpit() -> None:
 
             timezone_select.on("update:model-value", _set_timezone)
 
-        ui.label("PLANIFICATION EDN").classes("se-label")
+        ui.label("PLANIFICATION EDN").classes("se-label se-domain")
         with ui.element("div").classes("se-timezone-row"):
             with ui.column().classes("gap-0"):
                 ui.label("Date cible EDN").classes("se-appearance-label")
@@ -234,7 +235,7 @@ def render_settings_cockpit() -> None:
             button.text = "Masquer le Sprint" if visible else "Réafficher le Sprint"
             ui.notify("Sprint affiché" if visible else "Sprint masqué", type="positive")
 
-        ui.label("UNESS").classes("se-label")
+        ui.label("UNESS").classes("se-label se-domain")
         with ui.element("div").classes("se-uness-card"):
             ui.label("Importer une annale UNESS").classes("se-appearance-label")
             ui.label(
@@ -371,7 +372,7 @@ def render_settings_cockpit() -> None:
             ).props("unelevated color=purple size=sm rounded").classes("mt-3")
             ui.label("Échange local : UNESS/à_vérifier → UNESS/vérifiés → UNESS/archives").classes("se-uness-status")
 
-        ui.label("LISA / OIC").classes("se-label")
+        ui.label("LISA / OIC").classes("se-label se-domain")
         with ui.element("div").classes("se-uness-card"):
             ui.label("Objectifs de connaissance (OIC)").classes("se-appearance-label")
             ui.label(

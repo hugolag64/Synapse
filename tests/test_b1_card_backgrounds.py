@@ -5,14 +5,14 @@ survolables : pas de nouveau :hover, sinon deux états de survol se superposent)
 from pathlib import Path
 
 
-def test_clickable_cards_rest_on_bg_and_keep_their_existing_hover():
+def test_annale_lists_use_structural_rows_with_hover_state():
     annales = Path("frontend/pages/annales.py").read_text(encoding="utf-8")
-    assert ".ans-card { width:100%; padding:14px 16px; border:1px solid var(--border); border-radius:8px; background:var(--bg);" in annales
-    assert ".ans-card:hover { background:var(--surface-hover); }" in annales
+    assert ".ans-exam-row {" in annales
+    assert ".ans-exam-row:hover { background:var(--surface-hover); }" in annales
 
     annale_detail = Path("frontend/pages/annale_detail.py").read_text(encoding="utf-8")
-    assert ".an-part-card { width:100%; padding:16px 18px; border:1px solid var(--border); border-radius:8px; background:var(--bg);" in annale_detail
-    assert ".an-part-card:hover { background:var(--surface-hover); }" in annale_detail
+    assert ".an-part-row {" in annale_detail
+    assert ".an-part-row:hover { background:var(--surface-hover); }" in annale_detail
 
 
 def test_structural_panels_rest_on_bg_without_a_new_hover_rule():

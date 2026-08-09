@@ -25,16 +25,24 @@ _ANNALE_DETAIL_CSS = """
 .an-title { font-size:20px; font-weight:600; color:var(--text); letter-spacing:-0.01em; }
 .an-subtitle { font-size:12.5px; color:var(--text-muted); margin-top:4px; }
 .an-section-title { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-dim); font-weight:600; margin-bottom:12px; }
-.an-parts-list { display:flex; flex-direction:column; gap:10px; width:100%; margin-top:8px; }
-.an-part-card { width:100%; padding:16px 18px; border:1px solid var(--border); border-radius:8px; background:var(--bg); transition:background var(--duration-fast) ease; }
-.an-part-card:hover { background:var(--surface-hover); }
-.an-part-title { font-size:15px; font-weight:600; color:var(--text); }
-.an-part-meta { font-size:12px; color:var(--text-muted); margin-top:3px; }
+.an-parts-list { display:flex; flex-direction:column; gap:0; width:100%; margin-top:8px; }
+.an-part-head, .an-part-row { display:grid; grid-template-columns:minmax(240px, 1.4fr) 160px 130px; column-gap:16px; align-items:center; }
+.an-part-head { padding:0 12px 8px; color:var(--text-dim); font-size:9px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; }
+.an-part-row { min-height:62px; padding:10px 12px; border-top:1px solid var(--border); transition:background var(--duration-fast) ease; }
+.an-part-row:hover { background:var(--surface-hover); }
+.an-part-main { min-width:0; }
+.an-part-title { font-size:14px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.an-part-meta { font-size:11.5px; color:var(--text-muted); margin-top:3px; }
+.an-part-status { min-width:0; }
+.an-part-action { justify-content:flex-end; }
 .an-badge { font-size:11px; font-weight:500; padding:2px 8px; border-radius:4px; white-space:nowrap; }
 .an-badge-done { background:rgba(34,197,94,0.12); color:#16a34a; }
 .an-badge-todo { background:rgba(100,116,139,0.12); color:#64748b; }
 .an-empty { padding:36px 10px; text-align:center; color:var(--text-dim); font-size:13px; }
 .an-history-dialog { width:540px; max-width:95vw; padding:20px; border-radius:8px; }
+@media (max-width:760px) {
+  .an-part-head, .an-part-row { grid-template-columns:minmax(180px, 1fr) 110px 108px; column-gap:10px; }
+}
 """
 
 
@@ -306,6 +314,11 @@ def annale_detail_page(annale_id: str) -> None:
                     ui.label("Aucune sous-partie importée pour cette annale.").classes("an-empty")
                     return
 
+                with ui.element("div").classes("an-part-head"):
+                    ui.label("SOUS-PARTIE")
+                    ui.label("STATUT")
+                    ui.label("ACTION")
+
                 for s in sessions:
                     sid = int(s["id"])
                     score = s.get("score_percent")
@@ -315,29 +328,28 @@ def annale_detail_page(annale_id: str) -> None:
                     badge_class = "an-badge-todo" if is_exam_mode else ("an-badge-done" if is_completed else "an-badge-todo")
                     badge_text = "Épreuve Neutre" if is_exam_mode else (f"Terminée ({score_label})" if is_completed else "À faire")
 
-                    with ui.element("div").classes("an-part-card"):
-                        with ui.row().classes("w-full items-center justify-between gap-4"):
-                            with ui.column().classes("gap-0 min-w-0 flex-1"):
-                                with ui.row().classes("items-center gap-2"):
-                                    ui.label(s.get("course_title") or "Sous-partie").classes("an-part-title truncate")
-                                    ui.label(badge_text).classes(f"an-badge {badge_class}")
-                                ui.label(
-                                    f"ITEM {s.get('item_number') or '—'} · {s.get('total_questions', 0)} questions"
-                                ).classes("an-part-meta")
-                            with ui.row().classes("gap-2 items-center shrink-0"):
-                                if is_exam_mode:
-                                    ui.button(
-                                        "LANCER ÉPREUVE",
-                                        icon="play_arrow",
-                                        on_click=lambda _sid=sid, _comp=is_completed: (_replay_session(_sid) if _comp else open_chained_dialog(page_slot, lambda: _show_session(_sid))),
-                                    ).props("unelevated color=primary")
-                                else:
-                                    render_session_actions(
-                                        s,
-                                        on_resume=lambda _sid=sid: open_chained_dialog(page_slot, lambda: _show_session(_sid)),
-                                        on_correction=lambda _sid=sid: open_chained_dialog(page_slot, lambda: _show_correction(_sid)),
-                                        on_replay=lambda _sid=sid: _replay_session(_sid),
-                                    )
+                    with ui.element("div").classes("an-part-row"):
+                        with ui.element("div").classes("an-part-main"):
+                            ui.label(s.get("course_title") or "Sous-partie").classes("an-part-title")
+                            ui.label(
+                                f"ITEM {s.get('item_number') or '—'} · {s.get('total_questions', 0)} questions"
+                            ).classes("an-part-meta")
+                        with ui.element("div").classes("an-part-status"):
+                            ui.label(badge_text).classes(f"an-badge {badge_class}")
+                        with ui.row().classes("an-part-action gap-1"):
+                            if is_exam_mode:
+                                ui.button(
+                                    "LANCER",
+                                    icon="play_arrow",
+                                    on_click=lambda _sid=sid, _comp=is_completed: (_replay_session(_sid) if _comp else open_chained_dialog(page_slot, lambda: _show_session(_sid))),
+                                ).props("unelevated color=primary size=sm")
+                            else:
+                                render_session_actions(
+                                    s,
+                                    on_resume=lambda _sid=sid: open_chained_dialog(page_slot, lambda: _show_session(_sid)),
+                                    on_correction=lambda _sid=sid: open_chained_dialog(page_slot, lambda: _show_correction(_sid)),
+                                    on_replay=lambda _sid=sid: _replay_session(_sid),
+                                )
 
         def _render() -> None:
             nonlocal annale, sessions
@@ -347,5 +359,3 @@ def annale_detail_page(annale_id: str) -> None:
             _render_parts()
 
         _render()
-
-

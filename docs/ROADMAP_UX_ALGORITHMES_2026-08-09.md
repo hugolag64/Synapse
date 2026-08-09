@@ -18,8 +18,8 @@ Synapse doit répondre rapidement à trois questions :
 ## État d’exécution
 
 **Étape actuelle : neutralisation métier, visibilité des échéances futures, validation hybride des
-collèges, tri visuel des Items, harmonisations QCM et Prépa implémentés — prochaines tranches :
-refontes UI Linear restantes et audit des scores.**
+collèges, tri visuel des Items, harmonisations QCM/Prépa et annales implémentés — prochaines
+tranches : refontes UI Linear restantes et audit des scores.**
 
 Le premier plan détaillé est disponible dans
 `docs/superpowers/plans/2026-08-09-sprint-reprise-preferences.md` pour le socle, puis
@@ -125,6 +125,10 @@ Collèges et le détail d’un item.
 **État au 9 août 2026 :** la vue QCM utilise maintenant une section principale pleine largeur,
 une grille stable cours/barre/score et l’action primaire « Lancer un entraînement ». Les calculs
 de score et les flux d’historique restent inchangés.
+
+**Annales :** la liste des épreuves et le détail des sous-parties utilisent maintenant des lignes à
+colonnes stables pour distinguer épreuve, progression, score officiel, statut et action. Le barème
+et les données de maîtrise ne sont pas modifiés.
 
 QCM et annales partagent un cadre de lecture commun :
 
@@ -401,7 +405,7 @@ conservent leur date de démarrage.
 
 Vérification de la tranche : tests ciblés reprise précédents **66/66**, tests ciblés collèges
 **13/13**, tests ciblés Items **8/8**, tests ciblés QCM **33/33**, tests ciblés Prépa **9/9**, suite
-complète **1242/1242**, compilation
+tests ciblés Annales **19/19**, suite complète **1244/1244**, compilation
 Python de `backend` et `frontend` réussie. La vérification manuelle de l’application reste à faire
 quand le serveur Synapse sera ouvert dans l’onglet local.
 

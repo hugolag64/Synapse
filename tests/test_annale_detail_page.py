@@ -61,3 +61,14 @@ def test_load_annale_detail_returns_none_for_unknown_id() -> None:
 
     assert annale is None
     assert sessions == []
+
+
+def test_annale_detail_uses_a_linear_subpart_list() -> None:
+    from pathlib import Path
+
+    source = Path("frontend/pages/annale_detail.py").read_text(encoding="utf-8")
+
+    assert ".an-part-row" in source
+    assert "grid-template-columns:minmax(240px, 1.4fr) 160px 130px" in source
+    assert "STATUT" in source
+    assert "ACTION" in source

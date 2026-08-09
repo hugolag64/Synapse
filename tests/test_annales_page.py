@@ -142,3 +142,14 @@ def test_gemini_partial_failure_message_surfaces_failed_quiz_even_when_others_su
     assert message is not None
     assert "sqi1.json" in message
     assert "Extra data" in message
+
+
+def test_annales_catalog_uses_stable_exam_columns_instead_of_cards() -> None:
+    from pathlib import Path
+
+    source = Path("frontend/pages/annales.py").read_text(encoding="utf-8")
+
+    assert ".ans-exam-row" in source
+    assert "grid-template-columns:minmax(240px, 1.4fr) 170px 150px 104px" in source
+    assert "PROGRESSION" in source
+    assert "SCORE OFFICIEL" in source

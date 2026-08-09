@@ -20,12 +20,20 @@ _ANNALES_CSS = """
 .ans-title { font-size:20px; font-weight:600; color:var(--text); letter-spacing:-0.01em; }
 .ans-subtitle { font-size:12.5px; color:var(--text-muted); margin-top:4px; }
 .ans-filters { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--border); }
-.ans-list { display:flex; flex-direction:column; gap:8px; width:100%; }
-.ans-card { width:100%; padding:14px 16px; border:1px solid var(--border); border-radius:8px; background:var(--bg); transition:background var(--duration-fast) ease; }
-.ans-card:hover { background:var(--surface-hover); }
-.ans-card-title { font-size:14.5px; font-weight:600; color:var(--text); }
-.ans-card-sub { font-size:12px; color:var(--text-muted); margin-top:2px; }
-.ans-card-meta { font-size:11.5px; color:var(--text-dim); margin-top:4px; }
+.ans-list { display:flex; flex-direction:column; gap:0; width:100%; }
+.ans-exam-head, .ans-exam-row { display:grid; grid-template-columns:minmax(240px, 1.4fr) 170px 150px 104px; column-gap:16px; align-items:center; }
+.ans-exam-head { padding:0 12px 8px; color:var(--text-dim); font-size:9px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; }
+.ans-exam-row { min-height:62px; padding:10px 12px; border-top:1px solid var(--border); transition:background var(--duration-fast) ease; }
+.ans-exam-row:hover { background:var(--surface-hover); }
+.ans-exam-main { min-width:0; }
+.ans-exam-title { font-size:14px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ans-exam-sub { font-size:11.5px; color:var(--text-muted); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ans-exam-progress { min-width:0; }
+.ans-exam-progress-label, .ans-exam-score { font-size:11.5px; color:var(--text-muted); }
+.ans-exam-track { height:5px; border-radius:3px; background:var(--surface-hover); overflow:hidden; margin-top:5px; }
+.ans-exam-fill { height:100%; border-radius:3px; background:var(--accent); }
+.ans-exam-score { font-family:var(--font-mono); font-weight:600; color:var(--text); }
+.ans-exam-action { justify-content:flex-end; }
 .ans-empty { padding:36px 10px; text-align:center; color:var(--text-dim); font-size:13px; }
 
 @keyframes ansFadeIn {
@@ -36,6 +44,9 @@ _ANNALES_CSS = """
 .ans-tab-btn { color: var(--text-muted); transition: all 150ms ease; }
 .ans-tab-btn:hover { color: var(--text); background: var(--surface-hover); }
 .ans-tab-btn.active { color: var(--text); background: var(--bg); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+@media (max-width:800px) {
+  .ans-exam-head, .ans-exam-row { grid-template-columns:minmax(180px, 1fr) 120px 92px 84px; column-gap:10px; }
+}
 """
 
 
@@ -618,43 +629,50 @@ def annales_page() -> None:
                         if not rows:
                             ui.label("Aucune annale ne correspond à ces filtres.").classes("ans-empty")
                             return
+                        with ui.element("div").classes("ans-exam-head"):
+                            ui.label("ÉPREUVE")
+                            ui.label("PROGRESSION")
+                            ui.label("SCORE OFFICIEL")
+                            ui.label("ACTION")
                         for row in rows:
                             annale_id = int(row["id"])
                             total = int(row["total_parts"] or 0)
                             completed = int(row["completed_parts"] or 0)
                             avg_score = row.get("avg_score")
                             score_label = "—" if avg_score is None else f"{float(avg_score):.0f} %"
-                            with ui.element("div").classes("ans-card"):
-                                with ui.row().classes("w-full items-center justify-between gap-4"):
-                                    with ui.column().classes("gap-0 min-w-0 flex-1"):
-                                        ui.label(str(row["titre"] or row["matiere"] or "Annale")).classes("ans-card-title truncate")
-                                        ui.label(
-                                            f"{row['matiere'] or '—'} · {row['faculte'] or '—'} · {row['annee'] or '—'} · "
-                                            f"{ANNALE_TYPE_LABELS.get(row['type_annale'], row['type_annale'])}"
-                                        ).classes("ans-card-sub")
-                                        is_exam_mode = bool(data_store.preferences.get("exam_mode", False))
-                                        meta_text = (
-                                            "Mode Concours Blanc (Scores et progression masqués)"
-                                            if is_exam_mode
-                                            else f"{completed}/{total} sous-parties terminées · Score moyen : {score_label}"
-                                        )
-                                        ui.label(meta_text).classes("ans-card-meta")
-                                    with ui.row().classes("gap-2 items-center shrink-0"):
-                                        ui.button(
-                                            icon="delete_outline",
-                                            on_click=lambda _e=None, aid=annale_id, t=row["titre"]: _confirm_delete(
-                                                aid, str(t), on_deleted=_render_list
-                                            ),
-                                        ).props("flat dense round color=negative").tooltip("Supprimer l'annale")
-                                        ui.button(
-                                            "Ouvrir",
-                                            icon="chevron_right",
-                                            on_click=lambda _e=None, aid=annale_id: ui.navigate.to(f"/annales/{aid}"),
-                                        ).props("flat color=primary size=sm")
+                            with ui.element("div").classes("ans-exam-row"):
+                                with ui.element("div").classes("ans-exam-main"):
+                                    ui.label(str(row["titre"] or row["matiere"] or "Annale")).classes("ans-exam-title")
+                                    ui.label(
+                                        f"{row['matiere'] or '—'} · {row['faculte'] or '—'} · {row['annee'] or '—'} · "
+                                        f"{ANNALE_TYPE_LABELS.get(row['type_annale'], row['type_annale'])}"
+                                    ).classes("ans-exam-sub")
+                                is_exam_mode = bool(data_store.preferences.get("exam_mode", False))
+                                with ui.element("div").classes("ans-exam-progress"):
+                                    if is_exam_mode:
+                                        ui.label("Masquée en mode examen").classes("ans-exam-progress-label")
+                                    else:
+                                        ui.label(f"{completed}/{total} sous-parties").classes("ans-exam-progress-label")
+                                        with ui.element("div").classes("ans-exam-track"):
+                                            ui.element("div").classes("ans-exam-fill").style(
+                                                f"width:{int(completed / total * 100) if total else 0}%"
+                                            )
+                                ui.label("Masqué" if is_exam_mode else score_label).classes("ans-exam-score")
+                                with ui.row().classes("ans-exam-action gap-1"):
+                                    ui.button(
+                                        icon="delete_outline",
+                                        on_click=lambda _e=None, aid=annale_id, t=row["titre"]: _confirm_delete(
+                                            aid, str(t), on_deleted=_render_list
+                                        ),
+                                    ).props("flat dense round color=negative").tooltip("Supprimer l'annale")
+                                    ui.button(
+                                        "Ouvrir",
+                                        icon="chevron_right",
+                                        on_click=lambda _e=None, aid=annale_id: ui.navigate.to(f"/annales/{aid}"),
+                                    ).props("flat color=primary size=sm")
 
                 for control in (search, matiere_filter, faculte_filter, annee_filter, type_filter):
                     control.on_value_change(lambda _e=None: _render_list())
                 _render_list()
 
             _render_active_view()
-

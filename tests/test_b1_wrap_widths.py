@@ -40,6 +40,11 @@ def test_weak_points_wrap_is_not_capped():
     assert ".wp-wrap { width:100%; max-width:none;" in source
 
 
+def test_weekly_review_stretches_children_to_the_available_width():
+    source = Path("frontend/pages/revue.py").read_text(encoding="utf-8")
+    assert ".rh-wrap { max-width:none; width:100%; align-items:stretch; }" in source
+
+
 def test_item_detail_center_column_reading_width_is_raised_not_removed():
     """Contrairement aux pages-liste (Task 1), la colonne centrale du détail
     d'item garde un plafond : elle contient du texte long (note Obsidian,

@@ -41,7 +41,7 @@ _MONTHS_FR = ["jan", "fév", "mar", "avr", "mai", "juin",
               "juil", "août", "sep", "oct", "nov", "déc"]
 
 _CSS = """
-.rh-wrap { max-width:none; width:100%; }
+.rh-wrap { max-width:none; width:100%; align-items:stretch; }
 .rh-topbar { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:4px 0 18px; flex-wrap:wrap; }
 .rh-title { font-size:20px; font-weight:600; color:var(--text); letter-spacing:-0.01em; }
 .rh-subtitle { font-size:12.5px; color:var(--text-muted); margin-top:4px; }

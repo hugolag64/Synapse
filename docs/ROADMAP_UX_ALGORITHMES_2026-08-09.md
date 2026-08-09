@@ -178,6 +178,11 @@ Ces écrans partagent un cadre d’analyse large et centré :
 Le libellé « taux de réussite » ne doit être utilisé que pour une proportion de sessions réussies,
 pas pour une simple moyenne de pourcentages.
 
+**État au 9 août 2026 — Revue hebdo :** le conteneur de la page étire maintenant ses enfants
+directs sur toute la largeur disponible. Le bandeau, les métriques, les deux colonnes de transitions
+et le focus hebdomadaire ne se rétractent plus chacun à leur largeur intrinsèque ; les données et les
+comparaisons avant/après restent inchangées.
+
 ### Détail item
 
 - supprimer le bouton Obsidian doublonné près de Mnemo/Image ;
@@ -411,7 +416,8 @@ conservent leur date de démarrage.
 
 Vérification de la tranche : tests ciblés reprise précédents **66/66**, tests ciblés collèges
 **13/13**, tests ciblés Items **8/8**, tests ciblés QCM **33/33**, tests ciblés Prépa **9/9**, tests
-ciblés Annales et nettoyage **23/23**, suite complète **à relancer après cette correction**, compilation
+ciblés Annales et nettoyage **23/23**, Revue hebdo / largeurs **5/5**, suite complète **à relancer
+après cette correction**, compilation
 Python de `backend` et `frontend` réussie. La vérification manuelle de l’application reste à faire
 quand le serveur Synapse sera ouvert dans l’onglet local.
 

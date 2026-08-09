@@ -22,6 +22,7 @@ from __future__ import annotations
 from nicegui import ui
 
 from backend.state.store import data_store
+from frontend.components.learning_metrics import build_advancement
 from frontend.components.mastery_indicator import _LEVEL_COLOR, _level_from_score
 
 _CSS = """
@@ -57,6 +58,12 @@ def _build_hierarchy() -> dict[str, dict[str, list]]:
     return hierarchy
 
 
+def _semester_advancement(courses: list) -> dict[str, int | None]:
+    """Return the read-over-total metric for one semester card."""
+    done = sum(1 for course in courses if course.date_1ere_lecture)
+    return build_advancement(done, len(courses))
+
+
 def render_semestres_cockpit() -> None:
     ui.add_head_html(f"<style>{_CSS}</style>", shared=True)
 
@@ -65,7 +72,7 @@ def render_semestres_cockpit() -> None:
     with ui.column().classes("sm-wrap gap-0"):
         with ui.element("div").classes("sm-topbar"):
             ui.label("Semestres").classes("sm-title")
-            ui.label("Progression par UE / semestre").classes("sm-subtitle")
+            ui.label("Avancement par UE / semestre").classes("sm-subtitle")
 
         if not hierarchy:
             with ui.element("div").classes("sm-empty"):
@@ -81,14 +88,20 @@ def render_semestres_cockpit() -> None:
 
                 courses = [c for courses in ue_map.values() for c in courses]
                 total = len(courses)
-                started = sum(1 for c in courses if c.date_1ere_lecture)
-                pct_int = int(round((started / total) * 100)) if total else 0
-                color = _LEVEL_COLOR.get(_level_from_score(pct_int), "var(--text-muted)")
+                advancement = _semester_advancement(courses)
+                pct_value = advancement["percent"]
+                pct_int = pct_value or 0
+                pct_label = f"{pct_value}%" if pct_value is not None else "—"
+                color = (
+                    _LEVEL_COLOR.get(_level_from_score(pct_int), "var(--text-muted)")
+                    if pct_value is not None
+                    else "var(--text-muted)"
+                )
 
                 with ui.element("div").classes("sm-card"):
                     with ui.element("div").classes("sm-card-head"):
                         ui.label(f"{semestre} — {' · '.join(ue_names)}").classes("sm-card-title")
-                        ui.label(f"{pct_int}%").classes("sm-card-pct").style(f"color:{color}")
+                        ui.label(pct_label).classes("sm-card-pct").style(f"color:{color}")
                     with ui.element("div").classes("sm-bar-track"):
                         ui.element("div").classes("sm-bar-fill").style(
                             f"width:{pct_int}%; background:{color}")

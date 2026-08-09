@@ -459,3 +459,11 @@ docker compose up -d --force-recreate synapse
 - Tests frontend QCM : `7 passed` ; build Vite de `qcm_app` reussi.
 - Suite Python complete : `1323 passed, 2 warnings`.
 - Le correctif doit etre redeploye sur le homeserver avant la QA finale.
+
+## Verification redeploiement correctif - 2026-08-09
+
+- La QA Chromium relancee sur `http://192.168.1.5:8888/annales/85` sert encore
+  `qcm-app/assets/index-BylCjKgo.js`, l'ancien bundle.
+- Les UUID restent donc visibles dans `Pourquoi` et `Detail propositionnel EDN`.
+- Conclusion : le commit `0fdb7da` est bien pousse sur `main`, mais le homeserver
+  n'a pas encore execute la commande de redeploiement correspondante.

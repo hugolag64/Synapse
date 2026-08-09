@@ -227,6 +227,9 @@ def test_qcm_correction_discloses_official_uness_correction(monkeypatch):
             return None
 
     class FakeUI:
+        def add_head_html(self, *_args, **_kwargs):
+            return None
+
         def dialog(self):
             return Element()
 
@@ -245,6 +248,9 @@ def test_qcm_correction_discloses_official_uness_correction(monkeypatch):
             return Element()
 
         def column(self):
+            return Element()
+
+        def element(self, *_args, **_kwargs):
             return Element()
 
         def expansion(self, *_args, **_kwargs):
@@ -359,6 +365,17 @@ def test_correction_view_has_a_separate_technical_details_section():
     source = Path("frontend/components/qcm_replay.py").read_text(encoding="utf-8")
     assert "Détails techniques" in source
     assert "correction-proposition" in source
+
+
+def test_correction_view_uses_structured_answer_and_why_blocks():
+    from pathlib import Path
+
+    source = Path("frontend/components/qcm_replay.py").read_text(encoding="utf-8")
+
+    assert "correction-answer-block" in source
+    assert "correction-why-block" in source
+    assert 'ui.label("Réponse correcte")' in source
+    assert 'ui.label("Pourquoi")' in source
 
 
 def test_filter_question_results_errors_only_keeps_non_correct_results():

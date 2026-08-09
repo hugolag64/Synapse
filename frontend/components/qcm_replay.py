@@ -293,6 +293,22 @@ def open_qcm_correction(
         None: ("À évaluer", "pending", "text-slate-600 dark:text-slate-300"),
     }
 
+    ui.add_head_html(
+        """
+        <style>
+        .correction-answer-block, .correction-why-block, .correction-response-block {
+            padding:12px 14px; border-radius:8px; margin-top:10px;
+        }
+        .correction-response-block { background:var(--surface-hover); }
+        .correction-answer-block { background:rgba(34,197,94,.08); border:1px solid rgba(34,197,94,.18); }
+        .correction-why-block { background:var(--surface); border:1px solid var(--border); }
+        .correction-block-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+        .correction-block-body { margin-top:4px; white-space:pre-wrap; }
+        </style>
+        """,
+        shared=True,
+    )
+
     with ui.dialog() as dialog, ui.card().classes("w-[860px] max-w-[96vw] p-5"):
         score_text, counts_text = format_correction_summary(summary)
         ui.label("Barème EDN propositionnel").classes("text-sm font-semibold text-violet-700 dark:text-violet-300")
@@ -320,15 +336,15 @@ def open_qcm_correction(
                         ui.label(label).classes(f"text-xs font-semibold mt-2 {colour}")
                         with ui.expansion("Détails techniques", icon="info").classes("w-full mt-2"):
                             _render_technical_details(uness)
-                        ui.label(f"Votre réponse : {row['response'] or '—'}").classes(
-                            "text-sm whitespace-pre-wrap mt-2"
-                        )
-                        ui.label(f"Réponse correcte : {row['correct_answer'] or '—'}").classes(
-                            "text-sm text-green-700 dark:text-green-400 whitespace-pre-wrap"
-                        )
-                        ui.label(f"Explication : {row['explanation']}").classes(
-                            "text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap mt-1"
-                        )
+                        with ui.element("div").classes("correction-response-block"):
+                            ui.label("Votre réponse").classes("correction-block-title text-slate-500 dark:text-slate-400")
+                            ui.label(row["response"] or "—").classes("correction-block-body text-sm")
+                        with ui.element("div").classes("correction-answer-block"):
+                            ui.label("Réponse correcte").classes("correction-block-title text-green-700 dark:text-green-400")
+                            ui.label(row["correct_answer"] or "—").classes("correction-block-body text-sm text-green-700 dark:text-green-400")
+                        with ui.element("div").classes("correction-why-block"):
+                            ui.label("Pourquoi").classes("correction-block-title text-slate-700 dark:text-slate-200")
+                            ui.label(row["explanation"] or "Aucune explication disponible.").classes("correction-block-body text-sm text-slate-600 dark:text-slate-300")
                         propositions = row.get("propositions") or []
                         if propositions:
                             ui.label("Détail propositionnel EDN").classes(

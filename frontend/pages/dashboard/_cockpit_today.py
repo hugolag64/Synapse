@@ -479,11 +479,12 @@ async def render_today_cockpit() -> None:
 
             _render_summary(_data["load"], _data["crit"], total)
 
-            if _data.get("edn_status"):
+            if _data.get("edn_status") and data_store.preferences.get("edn_sprint_visible", True):
                 render_edn_insights_panel(
                     _data["edn_status"],
                     _data["edn_projections"],
                     _data["gain_items"],
+                    on_hide=_hide_sprint,
                 )
 
             def _finish_flash_zero() -> None:
@@ -551,6 +552,11 @@ async def render_today_cockpit() -> None:
     def _full_rebuild() -> None:
         _fetch()
         _render()
+
+    def _hide_sprint() -> None:
+        data_store.set_preference("edn_sprint_visible", False)
+        _full_rebuild()
+        ui.notify("Sprint masqué — réaffichable depuis les paramètres", type="info")
 
     state.rebuild_all = _full_rebuild
 

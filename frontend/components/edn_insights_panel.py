@@ -102,7 +102,7 @@ _SPRINT_CSS = """
 """
 
 
-def render_edn_insights_panel(status, projections=(), gain_items=()) -> None:
+def render_edn_insights_panel(status, projections=(), gain_items=(), on_hide=None) -> None:
     ui.add_head_html(f"<style>{_SPRINT_CSS}</style>", shared=True)
     model = edn_insights_model(status)
     with ui.element("div").classes("edn-sprint-panel w-full p-4 mb-4"):
@@ -113,6 +113,8 @@ def render_edn_insights_panel(status, projections=(), gain_items=()) -> None:
                     f"Objectif {model['target']} · phase {model['phase']}"
                 ).classes("edn-sprint-subtitle")
                 ui.label(model["focus_message"]).classes("edn-sprint-subtitle")
+            if on_hide:
+                ui.button("Masquer", on_click=on_hide).props("flat dense size=sm")
             with ui.element("div").classes("edn-sprint-stats"):
                 for label, value in (
                     ("Items", model["coverage"]),

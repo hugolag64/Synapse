@@ -25,6 +25,9 @@ persistance de la date cible EDN, la date de reprise, l’enregistrement explici
 Sprint. La neutralisation métier des tâches antérieures au 20 août viendra dans la tranche suivante,
 après validation de ce socle. La préférence est maintenant persistante et les paramètres proposent
 une sauvegarde explicite de la planification ainsi qu’un contrôle de masquage/réaffichage du Sprint.
+La carte Aujourd’hui respecte maintenant cette préférence : ses calculs restent exécutés, mais son
+rendu est masqué lorsqu’elle est désactivée. Un bouton « Masquer » est également disponible dans la
+carte et la réactivation se fait depuis les paramètres.
 
 ## Décisions validées
 
@@ -367,7 +370,8 @@ Objectif : rendre la reprise du 20 août déterministe depuis toutes les vues.
 **État au 9 août 2026 :** le modèle de préférences persiste désormais la date cible EDN, la date
 de reprise `2026-08-20` et la visibilité du Sprint, avec validation des dates et écriture groupée.
 Les paramètres enregistrent ces valeurs sur action explicite et permettent de masquer/réafficher le
-Sprint. Le filtrage métier des tâches antérieures au 20 août n’est pas encore activé.
+Sprint. La carte Aujourd’hui applique cette visibilité sans supprimer les calculs Sprint. Le
+filtrage métier des tâches antérieures au 20 août n’est pas encore activé.
 
 Livrables :
 

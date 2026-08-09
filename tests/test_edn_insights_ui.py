@@ -52,6 +52,17 @@ def test_dashboard_reads_the_persisted_edn_target_date():
     assert 'preferences.get("edn_target_date", "2026-10-15")' in source
 
 
+def test_sprint_visibility_is_persisted_and_hides_only_the_dashboard_card():
+    dashboard = Path("frontend/pages/dashboard/_cockpit_today.py").read_text(encoding="utf-8")
+    component = Path("frontend/components/edn_insights_panel.py").read_text(encoding="utf-8")
+
+    assert 'preferences.get("edn_sprint_visible", True)' in dashboard
+    assert 'set_preference("edn_sprint_visible", False)' in dashboard
+    assert "on_hide=_hide_sprint" in dashboard
+    assert "on_hide=None" in component
+    assert 'ui.button("Masquer", on_click=on_hide)' in component
+
+
 def test_streamlit_sprint_widget_is_gone():
     import subprocess
 

@@ -97,6 +97,24 @@ _CSS = """
 .se-switch-knob { position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:var(--bg);
   transition: left var(--duration-base) var(--ease-standard); box-shadow:0 1px 2px rgba(0,0,0,0.2); }
 .se-switch.on .se-switch-knob { left:18px; }
+.se-diag-expansion { border:1px solid var(--border); border-radius:10px; background:var(--surface); margin-top:12px; overflow:hidden; }
+.se-tele-kpis { display:flex; align-items:center; justify-content:space-between; gap:12px;
+  border:1px solid var(--border); border-radius:8px; background:var(--bg-alt); padding:12px 14px; }
+.se-tele-value { font-size:20px; font-weight:700; color:var(--success); }
+.se-tele-strong { font-size:13px; font-weight:600; color:var(--text); }
+.se-tele-muted { font-size:11px; color:var(--text-muted); }
+.se-tele-section-title { font-size:10px; text-transform:uppercase; letter-spacing:.04em;
+  color:var(--text-dim); font-weight:600; margin:14px 0 6px; }
+.se-tele-list { display:flex; flex-direction:column; gap:2px; max-height:190px; overflow-y:auto;
+  border:1px solid var(--border); border-radius:8px; background:var(--bg-alt); padding:8px 10px; }
+.se-tele-row { display:flex; align-items:center; justify-content:space-between; gap:10px;
+  font-size:11.5px; padding:5px 0; border-bottom:1px solid var(--border); }
+.se-tele-row:last-child { border-bottom:none; }
+.se-tele-name { font-weight:600; color:var(--text); min-width:0; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; flex:1 1 auto; }
+.se-tele-cost { font-family:var(--font-mono); font-weight:700; color:var(--success); flex:0 0 auto; }
+.se-tele-ok { font-family:var(--font-mono); font-weight:700; color:var(--success); flex:0 0 auto; }
+.se-tele-err { font-family:var(--font-mono); font-weight:700; color:var(--danger); flex:0 0 auto; }
 .se-uness-card { border:1px solid var(--border); border-radius:8px; padding:14px; }
 .se-uness-status { font-size:11.5px; color:var(--text-muted); margin-top:6px; }
 .se-diag-annale { border:1px solid var(--border); border-radius:8px; padding:12px 14px; margin-bottom:8px; }
@@ -361,7 +379,7 @@ def render_settings_cockpit() -> None:
                         ui.label("Nouvelles annales à qualifier").classes("text-lg font-semibold")
                         ui.label(
                             "Ces partiels n'ont jamais été importés : indique leur type avant de continuer."
-                        ).classes("text-xs text-slate-500 mb-3")
+                        ).classes("text-xs mb-3").style("color:var(--text-muted)")
                         for group in pending:
                             source_url = group["source_url"]
                             chosen[source_url] = "matiere"
@@ -370,7 +388,7 @@ def render_settings_cockpit() -> None:
                                 ui.label(
                                     f"{group['matiere'] or '—'} · {group['faculte'] or '—'} · {group['annee'] or '—'} "
                                     f"· {len(group['files'])} fichier(s)"
-                                ).classes("text-xs text-slate-500")
+                                ).classes("text-xs").style("color:var(--text-muted)")
                                 ui.select(
                                     import_service.ANNALE_TYPE_LABELS,
                                     value="matiere",
@@ -459,11 +477,13 @@ def render_settings_cockpit() -> None:
 
         with _settings_domain("DIAGNOSTICS ET TÉLÉMÉTRIE", "Couverture et consommation", "analytics"):
             with ui.expansion("COUVERTURE DP PAR ITEM", icon="assignment").classes(
-                "w-full border border-slate-700 rounded-lg mt-4"
+                "w-full se-diag-expansion"
             ):
                 render_dp_coverage(ui.column().classes("w-full p-4"))
 
-            with ui.expansion("CONSOMMATION, TÉLÉMÉTRIE & PARTIELS IMPORTÉS", icon="analytics").classes("w-full border border-slate-700 rounded-lg mt-4 bg-slate-900/40 text-sm font-semibold"):
+            with ui.expansion(
+                "CONSOMMATION, TÉLÉMÉTRIE & PARTIELS IMPORTÉS", icon="analytics"
+            ).classes("w-full se-diag-expansion"):
                 from backend.core.reviews.local_store import get_ai_usage_summary
                 usage_data = get_ai_usage_summary(limit=50)
                 summary = usage_data.get("summary", {})
@@ -480,52 +500,54 @@ def render_settings_cockpit() -> None:
                     render_uness_diagnostics(ui.column().classes("w-full mb-2"))
 
                     # Cartes KPI synthétiques
-                    with ui.row().classes("w-full justify-between items-center bg-slate-800/50 p-3 rounded-lg border border-slate-700/50"):
+                    with ui.element("div").classes("se-tele-kpis"):
                         with ui.column().classes("gap-0"):
-                            ui.label(f"${total_cost:.4f} USD").classes("text-xl font-bold text-emerald-400")
-                            ui.label("Coût IA cumulé").classes("text-xs text-slate-400")
+                            ui.label(f"${total_cost:.4f} USD").classes("se-tele-value")
+                            ui.label("Coût IA cumulé").classes("se-tele-muted")
                         with ui.column().classes("gap-0 text-right"):
-                            ui.label(f"{total_tok:,} tokens").classes("text-sm font-semibold")
-                            ui.label(f"{total_in:,} entrée · {total_out:,} sortie").classes("text-xs text-slate-400")
+                            ui.label(f"{total_tok:,} tokens").classes("se-tele-strong")
+                            ui.label(f"{total_in:,} entrée · {total_out:,} sortie").classes("se-tele-muted")
                         with ui.column().classes("gap-0 text-right"):
-                            ui.label(f"{total_calls} appels").classes("text-sm font-semibold")
-                            ui.label(f"{summary.get('total_errors', 0)} erreur(s)").classes("text-xs text-slate-400")
+                            ui.label(f"{total_calls} appels").classes("se-tele-strong")
+                            ui.label(f"{summary.get('total_errors', 0)} erreur(s)").classes("se-tele-muted")
 
                     # Détail clair par Partiel / Tâche / Contexte
-                    ui.label("Coûts par Partiel & Activité").classes("text-xs font-bold text-slate-300 mt-2")
+                    ui.label("Coûts par Partiel & Activité").classes("se-tele-section-title")
                     by_context = usage_data.get("by_context", [])
                     if not by_context:
-                        ui.label("Aucune donnée enregistrée.").classes("text-xs text-slate-500")
+                        ui.label("Aucune donnée enregistrée.").classes("se-tele-muted")
                     else:
-                        with ui.column().classes("w-full gap-1 max-h-[160px] overflow-y-auto bg-slate-900/60 p-2 rounded border border-slate-800"):
+                        with ui.element("div").classes("se-tele-list"):
                             for item in by_context:
                                 ctx_name = item.get("context") or item.get("task") or "Génération générale"
                                 cost_val = float(item.get("cost", 0.0))
                                 tok_val = int(item.get("tokens", 0))
                                 calls_val = int(item.get("calls", 0))
-                                with ui.row().classes("w-full justify-between items-center text-xs py-1 border-b border-slate-800/60"):
-                                    ui.label(str(ctx_name)).classes("font-semibold text-slate-200 truncate flex-1 pr-2")
-                                    ui.label(f"{calls_val} appel(s) · {tok_val:,} tok").classes("text-slate-400 text-[11px] pr-4")
-                                    ui.label(f"${cost_val:.5f}").classes("font-mono font-bold text-emerald-400")
+                                with ui.element("div").classes("se-tele-row"):
+                                    ui.label(str(ctx_name)).classes("se-tele-name")
+                                    ui.label(f"{calls_val} appel(s) · {tok_val:,} tok").classes("se-tele-muted")
+                                    ui.label(f"${cost_val:.5f}").classes("se-tele-cost")
 
                     # Journal récent détaillé
-                    ui.label("Historique des derniers appels Gemini").classes("text-xs font-bold text-slate-300 mt-2")
+                    ui.label("Historique des derniers appels Gemini").classes("se-tele-section-title")
                     if not recent:
-                        ui.label("Aucun appel IA enregistré pour le moment.").classes("text-xs text-slate-500 py-2")
+                        ui.label("Aucun appel IA enregistré pour le moment.").classes("se-tele-muted")
                     else:
-                        with ui.column().classes("w-full gap-1 max-h-[200px] overflow-y-auto bg-slate-900/60 p-2 rounded border border-slate-800"):
+                        with ui.element("div").classes("se-tele-list"):
                             for call in recent:
-                                status_color = "text-red-400" if call.get("error") else "text-emerald-400"
+                                status_class = "se-tele-err" if call.get("error") else "se-tele-ok"
                                 status_text = "ERR" if call.get("error") else "OK"
                                 c_usd = float(call.get("cost_usd", 0.0))
                                 dur = f"{float(call.get('duration_ms', 0)):.0f}ms" if call.get("duration_ms") else "—"
                                 ctx_label = str(call.get("context") or call.get("task") or "gemini_generate")
-                                with ui.row().classes("w-full items-center justify-between text-xs py-1 border-b border-slate-800/60"):
+                                with ui.element("div").classes("se-tele-row"):
                                     with ui.row().classes("items-center gap-2 flex-1 min-w-0"):
-                                        ui.label(status_text).classes(f"font-mono font-bold {status_color}")
-                                        ui.label(ctx_label).classes("font-semibold text-slate-200 truncate")
-                                        ui.label(str(call.get("model"))).classes("text-slate-500 text-[10px]")
-                                    with ui.row().classes("items-center gap-3 shrink-0 text-slate-400 font-mono text-[11px]"):
-                                        ui.label(f"{call.get('input_tokens',0)+call.get('output_tokens',0)} tok")
-                                        ui.label(dur)
-                                        ui.label(f"${c_usd:.5f}").classes("text-slate-200 font-bold")
+                                        ui.label(status_text).classes(status_class)
+                                        ui.label(ctx_label).classes("se-tele-name")
+                                        ui.label(str(call.get("model"))).classes("se-tele-muted")
+                                    with ui.row().classes("items-center gap-3 shrink-0"):
+                                        ui.label(
+                                            f"{call.get('input_tokens', 0) + call.get('output_tokens', 0)} tok"
+                                        ).classes("se-tele-muted")
+                                        ui.label(dur).classes("se-tele-muted")
+                                        ui.label(f"${c_usd:.5f}").classes("se-tele-cost")

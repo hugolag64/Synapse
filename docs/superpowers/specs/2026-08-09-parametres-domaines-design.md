@@ -1,7 +1,7 @@
 # Spécification — Paramètres organisés par domaines
 
-Date : 2026-08-09  
-Statut : design validé pour revue utilisateur  
+Date : 2026-08-09
+Statut : design validé pour revue utilisateur
 Périmètre : `frontend/pages/settings_cockpit.py`
 
 ## Contexte
@@ -85,4 +85,3 @@ QA navigateur :
 - La persistance du domaine ouvert n'est pas incluse.
 - La refonte graphique détaillée des formulaires internes n'est pas incluse.
 - Aucun changement de modèle de données ou d'API n'est requis.
-

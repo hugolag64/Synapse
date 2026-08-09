@@ -572,3 +572,19 @@ docker compose up -d --force-recreate synapse
 - Suite Python complete apres correction : `1335 passed, 2 warnings`.
 - Commit applicatif : `b550869`.
 - QA homeserver reste a effectuer.
+
+## QA Chromium finale contrat metrics - 2026-08-10
+
+- `/colleges` : `Avancement`, `maitrise` et `retention` sont distincts dans
+  le pilotage global ; aucun libelle generique de progression detecte.
+- `/items` : colonne `MAITRISE` visible et aucune confusion avec un indicateur
+  de progression ; aucun log navigateur `error` ou `warning`.
+- `/stats` : bandeau visible avec `25% avancement · 175/707 cours`, `40%
+  maitrise moyenne · 111 cours` et `40% retention moyenne`.
+- `/cours/256b9fc3-1e69-804a-acab-f1fbe576c5a1` : `MAITRISE`, `PREDICTION DE
+  MAITRISE`, courbe J+7 et projection adaptive visibles ; ressources chargees.
+- Les quatre URLs ont ete testees apres redeploiement et aucun log navigateur
+  `error` ou `warning` n'a ete observe.
+- Ecart de perimetre documente : `/stats` agrege 707 cours globaux, tandis que
+  `/colleges` pilote 583 cours rattaches aux colleges.
+- QA finale de la tranche : validee.

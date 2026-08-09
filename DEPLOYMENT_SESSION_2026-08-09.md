@@ -393,6 +393,17 @@ docker compose up -d --force-recreate synapse
 - Suite complete : `1318 passed`.
 - Redeploiement homeserver et QA Chromium a effectuer avec la commande ci-dessus.
 
+## Points faibles explicites - 2026-08-09
+
+- Les suggestions d'erreurs repetees normalisent maintenant les categories
+  techniques : `non_classe` devient `Erreur non classée`.
+- L'affichage indique explicitement la repetition et le volume de preuves,
+  par exemple `Erreur répétée · Non classée · 2 signaux` et `2 signaux sources`.
+- Commit applicatif pousse : `ef9023d` (`fix: clarify repeated weak point suggestions`).
+- Tests cibles : `2 passed`.
+- Suite complete : `1323 passed`.
+- Redeploiement homeserver et QA Chromium a effectuer avec la commande ci-dessus.
+
 ## Focus Revue hebdo vers Planning - 2026-08-09
 
 - Le bouton `Planifier ce focus` transmet maintenant les categories de points

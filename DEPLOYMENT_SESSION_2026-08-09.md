@@ -392,3 +392,15 @@ docker compose up -d --force-recreate synapse
 - Tests Annales et detail : `19 passed`.
 - Suite complete : `1318 passed`.
 - Redeploiement homeserver et QA Chromium a effectuer avec la commande ci-dessus.
+
+## Mode concours continu - 2026-08-09
+
+- La session de concours reprend maintenant `current_index` depuis
+  `continuous_exam_sessions` au lieu de repartir de la premiere sous-partie.
+- Chaque sous-partie est enchainee sans ouvrir sa correction ; la progression
+  est enregistree apres chaque sous-partie.
+- A la fin, un dialogue propose les corrections des sous-parties.
+- Commit applicatif pousse : `31bc510` (`feat: continue annale exams without intermediate correction`).
+- Tests cibles : `17 passed`.
+- Suite complete : `1319 passed`.
+- Redeploiement homeserver et QA Chromium a effectuer avec la commande ci-dessus.

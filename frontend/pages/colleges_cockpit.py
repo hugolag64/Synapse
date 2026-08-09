@@ -251,7 +251,14 @@ def _pilotage_summary(rows: list[dict]) -> dict:
     seen_courses: set[str] = set()
     seen_retention_courses: set[str] = set()
     for row in rows:
-        for key, count in row.get("status_counts", {}).items():
+        row_status_counts = row.get("status_counts", {})
+        if not row_status_counts and "pct" in row:
+            legacy_level = _level_from_score(
+                int(row["pct"] * 100) if row["total"] else None
+            )
+            legacy_key = legacy_level if legacy_level in {"solide", "correct", "fragile"} else "non_commence"
+            row_status_counts = {legacy_key: 1}
+        for key, count in row_status_counts.items():
             status_counts[key] = status_counts.get(key, 0) + int(count)
         for course_id, value in row.get("mastery_by_course", {}).items():
             if course_id in seen_courses:

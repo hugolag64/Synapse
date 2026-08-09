@@ -135,7 +135,7 @@ def show_bilan_session(state: DashboardState, done_today: int) -> None:
 
         with ui.element("div").classes("px-6 pb-6 flex flex-col gap-2"):
             ui.button(
-                "Voir ma progression",
+                "Voir mes statistiques",
                 on_click=lambda: (bilan_dlg.close(), ui.navigate.to("/stats")),
             ).props("unelevated rounded color=violet").classes("w-full font-semibold")
             ui.button("Fermer", on_click=bilan_dlg.close).props(

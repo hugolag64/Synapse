@@ -778,7 +778,7 @@ def _render_semaine_tab() -> None:
 # ── Page principale ───────────────────────────────────────────────────────────
 
 def stats_page() -> None:
-    with frame("Ma Progression"):
+    with frame("Statistiques"):
         # ── Refonte : bandeau + temps/collège + timeline cockpit (feature-flag) ─
         from frontend.pages.stats_cockpit import render_stats_cockpit
         render_stats_cockpit()

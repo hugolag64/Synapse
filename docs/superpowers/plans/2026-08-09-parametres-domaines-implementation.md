@@ -243,7 +243,7 @@ Run: `pytest -q`
 
 Expected: PASS, sans modification des fichiers utilisateur non suivis.
 
-- [ ] **Step 3: Tester `/settings` au navigateur** *(en attente du déploiement de `ef6a59c` sur le homeserver)*
+- [x] **Step 3: Tester `/settings` au navigateur** *(QA validée le 2026-08-09)*
 
 Avec Chromium via Playwright :
 
@@ -254,6 +254,8 @@ Avec Chromium via Playwright :
 5. Ouvrir `CONNEXIONS`, puis `PLANIFICATION EDN` ; vérifier que la première section se referme.
 6. Vérifier que les boutons d'import, de sauvegarde et de rafraîchissement restent accessibles après ouverture.
 7. Vérifier que le conteneur principal occupe toute la largeur disponible.
+
+Résultat : six domaines visibles, contenu fermé par défaut, ouverture exclusive confirmée, actions de planification et OIC accessibles, aucune erreur DOM ou log navigateur.
 
 - [x] **Step 4: Mettre à jour le rapport et le plan**
 

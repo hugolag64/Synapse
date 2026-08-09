@@ -44,7 +44,7 @@ La QA confirme la stabilité de navigation, mais ne vaut pas validation visuelle
 - Commit local poussé : `ef6a59c` (`feat: organize settings by collapsible domains`)
 - Tests locaux : `1306 passed, 2 warnings`
 - Vérification Chromium sur `http://192.168.1.5:8888/settings` : serveur accessible sans erreur, mais ancienne version encore active (`APPARENCE`, `UNESS`, anciens panneaux).
-- Conclusion : la QA navigateur de la nouvelle refonte est en attente du déploiement de `ef6a59c` sur le homeserver.
+- Historique : lors de la première tentative, la QA était en attente du déploiement de `ef6a59c` sur le homeserver.
 
 Commande à exécuter sur le homeserver :
 
@@ -54,6 +54,15 @@ git pull --ff-only origin main
 docker compose build --pull synapse
 docker compose up -d --force-recreate synapse
 ```
+
+### QA Paramètres validée — nouvelle version
+
+- URL : `http://192.168.1.5:8888/settings`
+- Les six domaines sont visibles : `CONNEXIONS`, `APPARENCE ET ACCESSIBILITÉ`, `PLANIFICATION EDN`, `DONNÉES UNESS`, `LISA / OIC`, `DIAGNOSTICS ET TÉLÉMÉTRIE`.
+- Au chargement, les contenus `Notion` et `Date cible EDN` sont invisibles ; les en-têtes restent accessibles.
+- Après ouverture de `CONNEXIONS`, `Notion` devient visible. L'ouverture de `PLANIFICATION EDN` referme `CONNEXIONS`.
+- Le bouton `Enregistrer la planification` et le bouton `Rafraîchir tous les OIC (LiSA)` sont accessibles après ouverture.
+- Aucun `Traceback`, `Internal Server Error`, exception DOM ou log navigateur d'erreur/avertissement n'a été relevé.
 
 ## État actuel
 

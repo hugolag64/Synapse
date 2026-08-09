@@ -320,7 +320,15 @@ docker exec synapse grep "host=\|port=" /app/main.py
 - Correction : lignes OIC en trois zones fixes code / contenu / actions, avec variante mobile.
 - Tests cibles OIC et ressources : `9 passed, 1 warning`.
 - Suite complete : `1312 passed, 2 warnings`.
-- QA navigateur et deploiement homeserver en attente ; SSH echoue encore avec `Permission denied (publickey,password)`.
+- Etat au moment de la tentative locale : QA et deploiement en attente ; cette attente a ensuite ete levee par le deploiement homeserver confirme ci-dessous.
+
+## QA effective apres deploiement OIC - 2026-08-09
+
+- Deploiement confirme par le homeserver : `git pull` vers `7bfb39f`, build Docker termine, conteneur `synapse` demarre.
+- `/colleges` : 8 tracks detectees ; les positions et largeurs de l'en-tete et d'une ligne sont identiques pour les 7 colonnes de contenu.
+- `/cours/256b9fc3-1e69-804a-acab-f1fbe576c5a1` puis onglet OIC : 9 objectifs charges, Rang A/B visibles, boutons de maitrise et d'evaluation visibles.
+- Mesure OIC : tracks identiques `110px / contenu / 132px` sur les deux premieres lignes controlees.
+- Aucun `Traceback`, `Internal Server Error`, log navigateur `error` ou `warning`.
 
 ## Mise Ã  jour QA Chromium CollÃ¨ges - 2026-08-09
 

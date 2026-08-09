@@ -29,5 +29,12 @@
 
 ### Task 2: Livraison
 
-- [ ] **Step 1: QA navigateur après déploiement** — ouvrir un item avec OIC de niveaux différents et vérifier l'alignement code, titre, niveau et actions.
-- [ ] **Step 2: Déploiement homeserver** — exécuter la commande habituelle après rétablissement de l'authentification SSH.
+- [x] **Step 1: QA navigateur après déploiement** — ouvrir un item avec OIC de niveaux différents et vérifier l'alignement code, titre, niveau et actions.
+- [x] **Step 2: Déploiement homeserver** — commande exécutée avec succès ; conteneur `synapse` démarré.
+
+### QA Chromium après déploiement - 2026-08-09
+
+- `/colleges` : 8 tracks détectées ; les positions et largeurs des cellules d'en-tête et de ligne sont identiques pour les 7 colonnes de contenu.
+- `/cours/256b9fc3-1e69-804a-acab-f1fbe576c5a1` puis onglet OIC : 9 objectifs chargés, Rang A/B visibles, actions de maîtrise et d'évaluation visibles.
+- Les lignes OIC mesurées partagent les tracks `110px / contenu / 132px`.
+- Aucun `Traceback`, `Internal Server Error`, log navigateur `error` ou `warning`.

@@ -21,8 +21,9 @@ class GoogleCalendarService:
     def __init__(self):
         self.creds = None
         self.service = None
-        self.credentials_path = "credentials.json"
-        self.token_path = "token.json"
+        secrets_dir = os.getenv("GOOGLE_CALENDAR_SECRETS_DIR", "google-secrets")
+        self.credentials_path = os.path.join(secrets_dir, "credentials.json")
+        self.token_path = os.path.join(secrets_dir, "token.json")
 
     def authenticate(self):
         """Authenticates the user and sets self.service. This handles the OAuth flow."""
@@ -49,7 +50,10 @@ class GoogleCalendarService:
             if not creds:
                 if not os.path.exists(self.credentials_path):
                     logger.error(f"File {self.credentials_path} not found.")
-                    raise FileNotFoundError(f"File {self.credentials_path} not found. Please place it in the project root.")
+                    raise FileNotFoundError(
+                        f"File {self.credentials_path} not found. "
+                        "Place the Google OAuth client file in the configured secrets directory."
+                    )
                 
                 logger.warning("Initiating local server for OAuth flow. Check browser!")
                 flow = InstalledAppFlow.from_client_secrets_file(

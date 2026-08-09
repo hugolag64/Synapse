@@ -16,3 +16,4 @@ tests
 docs
 *.db
 *.sqlite*
+google-secrets

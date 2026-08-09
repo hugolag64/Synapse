@@ -19,6 +19,7 @@ services:
     volumes:
       - synapse-data:/app/data
       - synapse-logs:/app/logs
+      - ${GOOGLE_CALENDAR_SECRETS_HOST_PATH:-./google-secrets}:/app/google-secrets:rw
       - ${OBSIDIAN_HOST_PATH:-./data/obsidian}:/data/obsidian:rw
       - ${MEDICINE_HOST_PATH:-./data/medicine}:/data/medicine:ro
       - ${FAC_HOST_PATH:-./data/fac}:/data/fac:ro

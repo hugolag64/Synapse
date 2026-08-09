@@ -176,7 +176,7 @@ def _check_obsidian():
 
 
 def _check_google_calendar():
-    import os
+    from backend.core.google.calendar_service import calendar_service
 
     with ui.card().classes(
         "w-full p-0 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
@@ -190,8 +190,8 @@ def _check_google_calendar():
             placeholder = ui.element("div")
 
         with ui.column().classes("px-5 py-4 gap-2 w-full"):
-            creds_ok = os.path.isfile("credentials.json")
-            token_ok = os.path.isfile("token.json")
+            creds_ok = os.path.isfile(calendar_service.credentials_path)
+            token_ok = os.path.isfile(calendar_service.token_path)
             overall = creds_ok and token_ok
 
             with placeholder:
@@ -199,7 +199,7 @@ def _check_google_calendar():
 
             rows = [
                 ("credentials.json", "✓ Présent" if creds_ok else "✗ Manquant — téléchargez-le depuis Google Cloud Console"),
-                ("token.json", "✓ Présent" if token_ok else "✗ Manquant — lancez l'app une fois pour déclencher le flux OAuth"),
+                ("token.json", "✓ Présent" if token_ok else "✗ Manquant — lancez l'autorisation OAuth"),
             ]
             with ui.grid(columns=2).classes("w-full gap-x-6 gap-y-1"):
                 for label, val in rows:

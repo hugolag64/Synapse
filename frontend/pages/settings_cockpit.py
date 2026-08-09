@@ -102,7 +102,9 @@ _CSS = """
 def _connection_rows() -> list[tuple[str, bool | None, str]]:
     notion_ok = bool(settings.notion.token)
     obsidian_ok = bool(settings.obsidian_vault_path)
-    calendar_ok = os.path.isfile("credentials.json") and os.path.isfile("token.json")
+    from backend.core.google.calendar_service import calendar_service
+
+    calendar_ok = os.path.isfile(calendar_service.credentials_path) and os.path.isfile(calendar_service.token_path)
 
     return [
         ("Notion", notion_ok, "Connecté" if notion_ok else "Non configuré"),

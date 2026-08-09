@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -52,6 +53,15 @@ def test_google_calendar_uses_selected_app_timezone():
         assert fake.events_api.list_kwargs["timeMin"].endswith("+02:00")
     finally:
         app_settings.set_app_timezone("Europe/Paris")
+
+
+def test_google_calendar_uses_configured_secrets_directory(tmp_path, monkeypatch):
+    monkeypatch.setenv("GOOGLE_CALENDAR_SECRETS_DIR", str(tmp_path))
+
+    service = GoogleCalendarService()
+
+    assert Path(service.credentials_path) == tmp_path / "credentials.json"
+    assert Path(service.token_path) == tmp_path / "token.json"
 
 
 def test_google_calendar_surfaces_authentication_failure(monkeypatch):

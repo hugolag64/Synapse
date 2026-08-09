@@ -24,6 +24,7 @@ cache/
 # Secrets & credentials (JAMAIS committer)
 credentials.json
 token.json
+google-secrets/
 
 # Cache runtime
 data_cache.json

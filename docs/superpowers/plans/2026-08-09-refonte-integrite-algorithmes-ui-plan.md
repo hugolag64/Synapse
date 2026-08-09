@@ -874,21 +874,21 @@ test: enforce metric and AI provenance contracts
 **Files:**
 - No source change expected; update failing tests discovered by the previous tasks only.
 
-- [ ] **Step 1: Exécuter les tests ciblés par lot**
+- [x] **Step 1: Exécuter les tests ciblés par lot**
 
 Run: `pytest tests/test_mastery_algorithm.py tests/test_practice_scoring.py tests/test_error_signal_ingestion.py tests/test_qcm_api.py tests/test_item_resource_panel.py tests/test_annales_page.py tests/test_annale_detail_page.py tests/test_qcm_replay.py tests/test_prepa_page.py -q`  
 Expected: PASS.
 
-- [ ] **Step 2: Exécuter la suite complète**
+- [x] **Step 2: Exécuter la suite complète**
 
 Run: `pytest -q`  
 Expected: PASS, or a complete list of unrelated pre-existing failures with no claim of completion until resolved or explicitly accepted.
 
-- [ ] **Step 3: Contrôler la base après tests**
+- [x] **Step 3: Contrôler la base après tests**
 
 Vérifier que les tests ont écrit uniquement dans une base temporaire, que la base de production n’a pas reçu de ligne `ai_usage_logs` artificielle et que les tables d’erreurs de l’environnement de test restent isolées.
 
-- [ ] **Step 4: QA navigateur**
+- [ ] **Step 4: QA navigateur** *(étape en cours)*
 
 Utiliser Playwright/Chromium uniquement après les tests Python pour vérifier : alignement header/lignes, pleine largeur, mode concours, absence d’UUID, lien Hypocampus vérifié, sections Paramètres repliées et focus hebdomadaire pleine largeur.
 

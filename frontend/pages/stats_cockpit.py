@@ -33,7 +33,7 @@ from frontend.pages.stats import (
 from frontend.components.mastery_indicator import _LEVEL_COLOR, _level_from_score
 
 _CSS = """
-.st-wrap { max-width:none; width:100%; }
+.st-wrap { max-width:none; width:100%; align-items:stretch; }
 .st-topbar { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:4px 0 18px; flex-wrap:wrap; }
 .st-title { font-size:20px; font-weight:600; color:var(--text); letter-spacing:-0.01em; }
 .st-subtitle { font-size:12.5px; color:var(--text-muted); margin-top:4px; }
@@ -46,7 +46,7 @@ _CSS = """
 .st-metric-val { font-size:24px; font-weight:700; line-height:1; color:var(--text); }
 .st-metric-sub { font-size:11.5px; color:var(--text-muted); }
 .st-vsep { width:1px; height:34px; background:var(--border); }
-.st-section { margin-bottom:24px; }
+.st-section { margin-bottom:24px; align-items:stretch; }
 .st-label { font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-dim); font-weight:600; margin-bottom:10px; }
 .st-college-row { display:flex; align-items:center; gap:12px; height:32px; }
 .st-college-name { flex:0 0 150px; font-size:12.5px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }

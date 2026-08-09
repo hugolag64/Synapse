@@ -183,6 +183,10 @@ directs sur toute la largeur disponible. Le bandeau, les métriques, les deux co
 et le focus hebdomadaire ne se rétractent plus chacun à leur largeur intrinsèque ; les données et les
 comparaisons avant/après restent inchangées.
 
+**État au 9 août 2026 — Statistiques :** le même correctif est appliqué au cadre principal et aux
+sections internes. Le bandeau, les métriques, les temps par collège et les lignes d’activité utilisent
+maintenant la largeur disponible, sans modifier les périodes, les agrégats ni le calcul de maîtrise.
+
 ### Détail item
 
 - supprimer le bouton Obsidian doublonné près de Mnemo/Image ;
@@ -416,7 +420,8 @@ conservent leur date de démarrage.
 
 Vérification de la tranche : tests ciblés reprise précédents **66/66**, tests ciblés collèges
 **13/13**, tests ciblés Items **8/8**, tests ciblés QCM **33/33**, tests ciblés Prépa **9/9**, tests
-ciblés Annales et nettoyage **23/23**, Revue hebdo / largeurs **5/5**, suite complète **à relancer
+ciblés Annales et nettoyage **23/23**, Revue hebdo / largeurs **5/5**, Statistiques / largeurs **6/6**,
+suite complète **à relancer
 après cette correction**, compilation
 Python de `backend` et `frontend` réussie. La vérification manuelle de l’application reste à faire
 quand le serveur Synapse sera ouvert dans l’onglet local.

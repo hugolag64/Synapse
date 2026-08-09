@@ -45,6 +45,12 @@ def test_weekly_review_stretches_children_to_the_available_width():
     assert ".rh-wrap { max-width:none; width:100%; align-items:stretch; }" in source
 
 
+def test_statistics_stretches_sections_and_their_rows():
+    source = Path("frontend/pages/stats_cockpit.py").read_text(encoding="utf-8")
+    assert ".st-wrap { max-width:none; width:100%; align-items:stretch; }" in source
+    assert ".st-section { margin-bottom:24px; align-items:stretch; }" in source
+
+
 def test_item_detail_center_column_reading_width_is_raised_not_removed():
     """Contrairement aux pages-liste (Task 1), la colonne centrale du détail
     d'item garde un plafond : elle contient du texte long (note Obsidian,

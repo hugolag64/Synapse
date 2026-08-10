@@ -589,6 +589,28 @@ def _sanitize_unsupported_questions(exam: UnessExam) -> UnessExam:
     return dataclasses.replace(exam, questions=tuple(sanitized_questions))
 
 
+_CLASSIFICATION_STEMS = 4
+
+
+def _classification_context(exam: UnessExam) -> str:
+    """Matière clinique à donner au classifieur d'items.
+
+    Les annales importées ont un `dp_context` vide en pratique : le classifieur
+    ne recevait alors que le titre, identique entre les sous-parties d'un même
+    examen à leur suffixe près (« … — DP1 », « … — DP2 »). Cinq dossiers
+    cliniques distincts se retrouvaient donc étiquetés du même item. À défaut de
+    vignette, les premiers énoncés portent le sujet réel du dossier.
+    """
+    vignette = str((exam.dp_context or {}).get("enonce_general", "") or "").strip()
+    if vignette:
+        return vignette
+    stems = [
+        str(getattr(question, "enonce", "") or "").strip()
+        for question in (exam.questions or ())[:_CLASSIFICATION_STEMS]
+    ]
+    return "\n".join(stem for stem in stems if stem)
+
+
 def _classify_exam_items(exam: UnessExam, matiere: str) -> tuple[str, tuple[str, ...]]:
     """Détermine le(s) item(s) EDN d'un examen UNESS via classification IA bon
     marché, bornée aux items candidats de sa matière — entrainement.uness.fr
@@ -598,7 +620,7 @@ def _classify_exam_items(exam: UnessExam, matiere: str) -> tuple[str, tuple[str,
     from backend.core.uness.item_classifier import classify_exam_items
 
     effective_matiere = matiere or str(exam.metadata.get("subject", ""))
-    context_text = str(exam.dp_context.get("enonce_general", "")) if exam.dp_context else ""
+    context_text = _classification_context(exam)
     try:
         result = classify_exam_items(exam.title, effective_matiere, context_text)
     except Exception as exc:

@@ -4,6 +4,7 @@ import zlib
 from base64 import b64decode
 from dataclasses import replace
 from io import BytesIO
+from types import SimpleNamespace
 
 import pytest
 from PIL import Image
@@ -783,3 +784,50 @@ def test_verify_exam_does_not_retry_an_unavailable_course_context_loader() -> No
         for question in verified.questions
         for proposition in question.propositions
     )
+
+
+def test_classification_context_falls_back_to_question_stems_when_vignette_is_empty():
+    """Les annales importées ont un dp_context vide : le classifieur ne voyait
+    que le titre (« … — DP1 »), identique entre les sous-parties d'un même
+    examen, d'où le même item attribué à cinq dossiers différents."""
+    from backend.core.uness.import_service import _classification_context
+
+    class _Q:
+        def __init__(self, enonce):
+            self.enonce = enonce
+
+    exam = SimpleNamespace(
+        dp_context={},
+        questions=(
+            _Q("Quel est le stade NYHA de cette dyspnée ?"),
+            _Q("Quelle est la valeur seuil du NT-proBNP ?"),
+        ),
+    )
+
+    context = _classification_context(exam)
+
+    assert "NYHA" in context
+    assert "NT-proBNP" in context
+
+
+def test_classification_context_prefers_the_vignette_when_it_exists():
+    from backend.core.uness.import_service import _classification_context
+
+    class _Q:
+        def __init__(self, enonce):
+            self.enonce = enonce
+
+    exam = SimpleNamespace(
+        dp_context={"enonce_general": "Patient de 62 ans, douleur thoracique brutale."},
+        questions=(_Q("Question sans intérêt pour le contexte"),),
+    )
+
+    context = _classification_context(exam)
+
+    assert context.startswith("Patient de 62 ans")
+
+
+def test_classification_context_is_empty_without_any_material():
+    from backend.core.uness.import_service import _classification_context
+
+    assert _classification_context(SimpleNamespace(dp_context={}, questions=())) == ""

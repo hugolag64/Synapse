@@ -4,38 +4,53 @@ La capture se fait avec un Chromium visible sur l'ordinateur où tu travailles.
 Synapse n'automatise aucune réponse : l'agent observe une correction déjà
 affichée, puis l'envoie au serveur quand tu cliques sur « Arrêter et importer ».
 
-## Première configuration
+## Installation unique sur Windows
 
-1. Générer un jeton long, puis l'ajouter dans le fichier .env du serveur :
+Depuis le dépôt Synapse, dans PowerShell :
 
-       EDNPRO_CAPTURE_TOKEN=une-valeur-secrete-longue
+~~~powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\scripts\ednpro\install_capture_agent.ps1
+~~~
 
-   Après modification, reconstruire/recréer le conteneur Synapse pour que la
-   variable soit chargée.
+Le script :
 
-2. Sur le PC Windows, lancer un Chrome visible avec le débogage local. Utiliser
-   un profil séparé pour ne pas perturber le Chrome habituel :
+1. demande le token EDNPRO_CAPTURE_TOKEN sans l'afficher ;
+2. crée un profil Chromium dédié ;
+3. installe l'agent dans les tâches Windows au démarrage de ta session ;
+4. lance l'agent immédiatement.
 
-       & "$env:ProgramFiles\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="$env:LOCALAPPDATA\Synapse\ednpro-chrome"
+La première fois, Chromium s'ouvre avec ce profil dédié : connecte-toi
+normalement à EDNpro. La session de connexion sera conservée dans ce profil.
+Le fichier de configuration est local et protégé pour ton compte Windows.
 
-3. Dans ce Chrome, ouvrir EDNpro et se connecter normalement.
+## Utilisation normale
 
-4. Depuis le dépôt Synapse, lancer l'agent local :
+1. Dans Synapse, ouvre QCM.
+2. Choisis « Capturer une session EDNpro ».
+3. Chromium s'ouvre automatiquement sur EDNpro et la capture démarre.
+4. Fais ta session et affiche la correction après chaque réponse.
+5. Clique sur « Arrêter et importer » dans Synapse.
 
-       .\.venv\Scripts\python.exe scripts\ednpro\qcm_capture_agent.py --synapse-url https://synapse.home.arpa --token "une-valeur-secrete-longue" --cdp-url http://127.0.0.1:9222
+Les questions corrigées sont importées, dédoublonnées par leur identifiant
+EDNpro et reliées aux tentatives, résultats, rangs et statistiques. Une question
+déjà présente n'est jamais écrasée ; une nouvelle tentative est conservée.
 
-   Le port de contrôle local est 8876 pour ne pas entrer en conflit avec
-   AnkiConnect (8765).
+La question actuellement non corrigée au moment de l'arrêt est ignorée. Si
+aucune correction n'est affichée, aucune session utile ni statistique n'est
+créée.
 
-## Utilisation
+## Dépannage
 
-Dans Synapse, ouvrir QCM, choisir « Capturer une session EDNpro », puis
-« Démarrer la capture ». Faire la session manuellement dans Chromium et
-afficher la correction après chaque réponse. Quand tu veux terminer, cliquer
-« Arrêter et importer ».
+L'agent écoute uniquement sur http://127.0.0.1:8876. Dans PowerShell, le
+diagnostic non sensible est :
 
-La question actuellement non corrigée est ignorée. Les questions corrigées
-sont dédoublonnées par leur identifiant EDNpro ; une question déjà présente
-n'est pas remplacée, mais sa nouvelle tentative est conservée. Les résultats
-par item sont envoyés au moteur QCM/maîtrise quand Synapse retrouve le cours
-correspondant.
+~~~powershell
+Invoke-WebRequest http://127.0.0.1:8876/status -UseBasicParsing |
+  Select-Object -ExpandProperty Content
+~~~
+
+Si Synapse indique que le relais est indisponible, relance une fois le script
+d'installation. Le mode CDP manuel reste disponible pour le diagnostic avancé,
+mais il n'est plus nécessaire au fonctionnement normal.
+

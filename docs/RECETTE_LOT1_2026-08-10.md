@@ -2,9 +2,14 @@
 
 Branche `fix/lot1-correctifs-rapides`, partie de `main` à `0474ddc`.
 
-Suite de tests complète : **1344 passed, 0 échec** (`./.venv/Scripts/python.exe -m pytest tests/ -q`).
+Suite de tests complète : **1346 passed, 0 échec** (`./.venv/Scripts/python.exe -m pytest tests/ -q`).
 Le plan annonçait des échecs préexistants dans deux modules dépréciés : ils ont disparu entre-temps,
 la suite est intégralement verte.
+
+Aucune capture d'écran n'accompagne ce compte rendu, contrairement à ce que prévoyait le plan : le
+volet navigateur n'était pas affiché pendant la session, donc la capture d'image était indisponible.
+Les vérifications visuelles ont été remplacées par des mesures de styles calculés dans la page, plus
+robustes qu'une capture pour ce qui est jugé ici — fonds, bordures et ratios de contraste.
 
 ## B1 — Le mode sombre ne se sauvegardait pas
 
@@ -106,9 +111,21 @@ en bout : piloter la dernière case à cocher du lecteur NiceGUI par clic synth�
 et `_finish()` refuse — correctement — de finaliser une session dont une réponse est vide. C'est ce
 garde-fou qui a bloqué la recette, pas un défaut.
 
-Le correctif reste vérifié par un test dédié et par deux revues de code indépendantes, dont l'une a
-confirmé que la capture du contexte d'affichage reste valide après la fermeture du dialogue du Tuteur.
-**À confirmer lors de la prochaine génération réelle d'un Tuteur DP.**
+**Seconde cause trouvée par la revue finale.** Le bug avait un deuxième volet que ni la recette ni les
+revues de tâche n'avaient vu, parce qu'il ne se manifeste que depuis une des deux entrées.
+
+`_open_session` appelait `refresh()` juste avant d'ouvrir le lecteur. Depuis `/cours/<id>` c'est sans
+effet, l'appelant passant `refresh=lambda: None`. Mais depuis `/qcm`, `refresh` vaut `_render`, qui
+descend jusqu'à `history_col.clear()` — or le bouton « Tuteur DP » qui a ouvert le dialogue vit dans
+`history_col`. Le slot capturé par le lecteur était donc supprimé avant que celui-ci ne s'affiche : le
+lecteur, puis la correction, étaient créés dans un slot mort, sans nœud parent côté navigateur.
+
+L'appel `refresh()` anticipé a été supprimé, ce qui aligne le Tuteur sur le flux standard
+`_open_generation_dialog`, lequel n'a jamais rafraîchi avant d'ouvrir. Le rafraîchissement n'est pas
+perdu : la correction le rejoue dans son `on_back`. Un test verrouille l'absence de l'appel anticipé.
+
+Le correctif est donc vérifié par deux tests dédiés et par trois revues de code indépendantes.
+**À confirmer lors de la prochaine génération réelle d'un Tuteur DP, de préférence depuis `/qcm`.**
 
 ## Observations relevées en passant
 

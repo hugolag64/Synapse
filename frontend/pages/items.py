@@ -109,6 +109,14 @@ def _primary_college(row: dict) -> str:
     return names[0] if names else "Sans collège"
 
 
+_ANNUAL_PRIORITY_RANK = {
+    "indispensable": 0,
+    "important": 1,
+    "basique": 2,
+    "jamais_tombe": 3,
+}
+
+
 def _sort_item_rows(rows: list[dict], mode: str = "item") -> list[dict]:
     """Trie sans dupliquer les items multi-collèges."""
     if mode == "college":
@@ -116,6 +124,18 @@ def _sort_item_rows(rows: list[dict], mode: str = "item") -> list[dict]:
             rows,
             key=lambda r: (
                 _primary_college(r).casefold(),
+                _safe_item_number(r["course"].item_number),
+                r["course"].title.casefold(),
+            ),
+        )
+    if mode == "priority":
+        return sorted(
+            rows,
+            key=lambda r: (
+                _ANNUAL_PRIORITY_RANK.get(
+                    str((r.get("ednpro_frequency") or {}).get("priority") or "jamais_tombe").strip().lower(),
+                    _ANNUAL_PRIORITY_RANK["jamais_tombe"],
+                ),
                 _safe_item_number(r["course"].item_number),
                 r["course"].title.casefold(),
             ),
@@ -298,7 +318,7 @@ def items_page(request: Request) -> None:
                 ui.label(f"Filtré sur {college_param}").classes("it-filter-hint")
 
             ui.label("Trier par").classes("it-filter-hint")
-            for label, mode in (("Item", "item"), ("Collège", "college")):
+            for label, mode in (("Item", "item"), ("Collège", "college"), ("Priorité annale", "priority")):
                 el = ui.element("div").classes(
                     "it-chip active" if filt["sort"] == mode else "it-chip"
                 )

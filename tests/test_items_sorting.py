@@ -33,6 +33,21 @@ def _full_row(item, title, colleges, level="maîtrisé", overdue=False):
     }
 
 
+def test_priority_sort_orders_annual_priority_from_high_to_low():
+    rows = [
+        {**_full_row("3", "Basique", ["A"]), "ednpro_frequency": {"priority": "basique"}},
+        {**_full_row("1", "Jamais", ["A"]), "ednpro_frequency": {"priority": "jamais_tombe"}},
+        {**_full_row("4", "Indispensable", ["A"]), "ednpro_frequency": {"priority": "indispensable"}},
+        {**_full_row("2", "Important", ["A"]), "ednpro_frequency": {"priority": "important"}},
+    ]
+
+    sorted_rows = _sort_item_rows(rows, "priority")
+
+    assert [r["course"].title for r in sorted_rows] == [
+        "Indispensable", "Important", "Basique", "Jamais",
+    ]
+
+
 def _filt(**overrides):
     base = {"mode": "all", "college": "Tous", "sort": "item"}
     base.update(overrides)

@@ -237,6 +237,40 @@ def test_local_capture_stop_contains_only_observed_corrections():
     assert buffer.status()["active"] is False
 
 
+def test_capture_buffer_reports_automatic_browser_lifecycle():
+    from scripts.ednpro.qcm_capture_agent import CaptureBuffer
+
+    buffer = CaptureBuffer()
+    assert buffer.status()["state"] == "ready"
+
+    buffer.start()
+    assert buffer.status()["state"] == "starting"
+
+    buffer.mark_browser_ready()
+    assert buffer.status()["state"] == "capturing"
+
+
+def test_capture_agent_loads_json_config_and_cli_overrides(tmp_path):
+    from scripts.ednpro.qcm_capture_agent import load_agent_config
+
+    config_path = tmp_path / "agent.json"
+    config_path.write_text(
+        '{"synapse_url":"https://synapse.home.arpa",'
+        '"token":"test-only-token",'
+        '"profile_dir":"C:/Users/test/AppData/Local/Synapse/ednpro-chrome",'
+        '"listen_port":8876}',
+        encoding="utf-8",
+    )
+
+    config = load_agent_config(config_path)
+    assert config["synapse_url"] == "https://synapse.home.arpa"
+    assert config["token"] == "test-only-token"
+    assert config["listen_port"] == 8876
+
+    overridden = load_agent_config(config_path, cli_overrides={"token": "cli-token"})
+    assert overridden["token"] == "cli-token"
+
+
 def test_import_can_publish_one_qcm_evaluation_per_item():
     from backend.core.ednpro.qcm_capture import import_session, normalize_observation, record_imported_evaluations
     from backend.core.reviews import local_store

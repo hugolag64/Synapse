@@ -196,15 +196,17 @@ def _nav_item(glyph: str, label: str, route, badge, active: str) -> None:
             ui.element("span").classes("cockpit-badge-dot")
 
 
-def _recent_nav_entries(limit: int = 5) -> list[tuple[str, str]]:
+def _recent_nav_entries(limit: int = 3) -> list[tuple[str, str]]:
     """(libellé, route) des dernières fiches ouvertes.
 
     Un cours encore présent dans l'historique local mais disparu du store
-    (supprimé côté Notion) est ignoré : on ne rend pas de lien mort.
+    (supprimé côté Notion) est ignoré : on ne rend pas de lien mort. On
+    sur-échantillonne donc l'historique pour que ces trous ne réduisent pas
+    le nombre d'entrées affichées.
     """
     try:
         from backend.core.reviews.local_store import get_recent_course_ids
-        course_ids = get_recent_course_ids(limit=limit)
+        course_ids = get_recent_course_ids(limit=limit * 4)
     except Exception:
         return []
 
@@ -219,6 +221,8 @@ def _recent_nav_entries(limit: int = 5) -> list[tuple[str, str]]:
         ).strip()
         label = f"Item {number} · {course.title}" if number else course.title
         entries.append((label, f"/cours/{course.id}"))
+        if len(entries) >= limit:
+            break
     return entries
 
 

@@ -112,3 +112,41 @@ def test_course_sheet_links_the_college_to_its_filtered_item_list():
 
     assert 'ui.link(college, f"/items?college={college}")' in source
     assert 'ui.link(college, "/colleges")' not in source
+
+
+def _course(course_id: str, number: str) -> SimpleNamespace:
+    return SimpleNamespace(
+        id=course_id,
+        title=f"Cours {course_id}",
+        item_number=number,
+        display_item_number="",
+    )
+
+
+def test_recent_nav_entries_are_capped_at_three(monkeypatch):
+    courses = [_course(f"c{i}", str(200 + i)) for i in range(6)]
+    monkeypatch.setattr(cockpit_shell.data_store, "cours", courses)
+    monkeypatch.setattr(
+        "backend.core.reviews.local_store.get_recent_course_ids",
+        lambda limit: [course.id for course in courses][:limit],
+    )
+
+    entries = cockpit_shell._recent_nav_entries()
+
+    assert len(entries) == 3
+    assert entries[0] == ("Item 200 · Cours c0", "/cours/c0")
+
+
+def test_recent_nav_entries_still_fill_three_slots_despite_dead_links(monkeypatch):
+    """Un cours supprimé côté Notion ne doit pas amputer la liste."""
+    live = [_course("c1", "201"), _course("c3", "203"), _course("c5", "205")]
+    recent_ids = ["c0", "c1", "c2", "c3", "c4", "c5"]
+    monkeypatch.setattr(cockpit_shell.data_store, "cours", live)
+    monkeypatch.setattr(
+        "backend.core.reviews.local_store.get_recent_course_ids",
+        lambda limit: recent_ids[:limit],
+    )
+
+    entries = cockpit_shell._recent_nav_entries()
+
+    assert [route for _label, route in entries] == ["/cours/c1", "/cours/c3", "/cours/c5"]

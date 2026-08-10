@@ -2,6 +2,9 @@
 weak_points.py — Redirection Cockpit.
 """
 from loguru import logger
+from nicegui import ui
+
+from backend.core.reviews import local_store
 from frontend.theme import frame
 
 

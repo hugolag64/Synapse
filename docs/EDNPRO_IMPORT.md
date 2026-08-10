@@ -94,3 +94,25 @@ modèle plus coûteux que si des images sont réellement collectées.
 
 La page **Prépa** fournit les raccourcis EDNpro et Hypocampus, ainsi que le
 bouton **Importer les EDN**. Le bouton lance le même flux en arrière-plan.
+
+## Capture des sessions QCM et rangs
+
+Le bouton **Capturer une session EDNpro** importe uniquement les corrections
+affichées dans le navigateur. Une question déjà connue est réutilisée ; seule
+la nouvelle tentative est ajoutée. Une session arrêtée avant correction ne
+produit donc pas de question exploitable.
+
+Quand EDNpro n'affiche pas le rang d'une question, Synapse effectue avant
+l'import une passe de classification par lot, une requête Gemini par item. Le
+lot contient toutes les questions sans rang et la liste dédupliquée des OIC de
+l'item, fournie une seule fois au modèle. Une réponse n'est acceptée que si le
+modèle renvoie `A` ou `B` avec une confiance strictement supérieure à `0,85`.
+
+Chaque rang conserve sa provenance (`ednpro`, `gemini`, `oic` ou `unknown`), sa
+confiance et les codes OIC utilisés. Le rang officiel EDNpro reste prioritaire
+sur toute inférence. Les questions sans rang fiable restent comptées dans
+`unknown` et n'entrent pas dans les dénominateurs Rang A/B.
+
+Les compteurs Rang A, Rang B et indéterminé sont également enregistrés dans la
+session QCM commune. Une erreur Gemini, l'absence de clé API ou l'absence d'OIC
+ne bloque jamais l'import des questions et de leurs corrections.

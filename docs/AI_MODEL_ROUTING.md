@@ -38,6 +38,20 @@ qcm = generate_qcm(prompt)
 dp = generate_dp(prompt)
 ```
 
+La classification des rangs EDNpro utilise la même route économique
+`ITEM_CLASSIFICATION` que l'appariement d'items :
+
+```python
+from backend.core.ai.tasks import infer_ednpro_ranks
+
+response = infer_ednpro_ranks(prompt_json)
+```
+
+Le métier regroupe les questions d'un même item afin de ne faire qu'un appel
+par item, puis valide localement le JSON et le seuil de confiance. Gemini ne
+calcule ni score ni maîtrise : les questions non classées restent
+indéterminées et les compteurs Rang A/B sont persistés par Synapse.
+
 Le score ne doit pas être demandé au modèle. Le code métier valide les réponses,
 applique les bornes et calcule la progression.
 

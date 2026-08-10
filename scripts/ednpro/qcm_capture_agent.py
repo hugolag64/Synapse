@@ -11,7 +11,9 @@ import argparse
 import asyncio
 import json
 import os
+import shutil
 import sys
+import subprocess
 import threading
 import urllib.error
 import urllib.parse
@@ -56,6 +58,76 @@ def load_agent_config(
     values.setdefault("listen_port", 8876)
     values.setdefault("poll_seconds", 0.75)
     return values
+
+
+def build_chrome_launch_command(
+    *,
+    chrome_path: str | Path,
+    profile_dir: str | Path,
+    cdp_port: int,
+    url: str,
+) -> list[str]:
+    return [
+        str(chrome_path),
+        f"--remote-debugging-port={cdp_port}",
+        f"--user-data-dir={profile_dir}",
+        "--new-window",
+        url,
+    ]
+
+
+def find_chrome_executable() -> Path:
+    candidates = [
+        shutil.which("chrome.exe"),
+        os.path.join(os.environ.get("PROGRAMFILES", ""), "Google", "Chrome", "Application", "chrome.exe"),
+        os.path.join(os.environ.get("PROGRAMFILES(X86)", ""), "Google", "Chrome", "Application", "chrome.exe"),
+        os.path.join(os.environ.get("LOCALAPPDATA", ""), "Google", "Chrome", "Application", "chrome.exe"),
+    ]
+    for candidate in candidates:
+        if candidate and Path(candidate).exists():
+            return Path(candidate)
+    raise RuntimeError("Google Chrome est introuvable sur ce PC")
+
+
+async def open_normal_chrome(
+    playwright: Any,
+    profile_dir: Path,
+    *,
+    cdp_port: int = 9222,
+    url: str = "https://ednpro.app/training-v2",
+):
+    cdp_url = f"http://127.0.0.1:{cdp_port}"
+    try:
+        browser = await playwright.chromium.connect_over_cdp(cdp_url)
+        if browser.contexts:
+            return browser, browser.contexts[0]
+    except Exception:
+        pass
+
+    chrome_path = find_chrome_executable()
+    profile_dir.mkdir(parents=True, exist_ok=True)
+    command = build_chrome_launch_command(
+        chrome_path=chrome_path,
+        profile_dir=profile_dir,
+        cdp_port=cdp_port,
+        url=url,
+    )
+    creationflags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0) | getattr(
+        subprocess, "DETACHED_PROCESS", 0
+    )
+    subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=creationflags)
+
+    deadline = asyncio.get_running_loop().time() + 20
+    last_error = ""
+    while asyncio.get_running_loop().time() < deadline:
+        try:
+            browser = await playwright.chromium.connect_over_cdp(cdp_url)
+            if browser.contexts:
+                return browser, browser.contexts[0]
+        except Exception as exc:
+            last_error = str(exc)
+        await asyncio.sleep(0.25)
+    raise RuntimeError(f"Chrome n'a pas ouvert son interface CDP : {last_error}")
 
 
 class CaptureBuffer:
@@ -258,15 +330,15 @@ async def run_agent(args: argparse.Namespace) -> None:
                 while True:
                     if buffer.status()["active"] and context is None:
                         try:
-                            context = await playwright.chromium.launch_persistent_context(
-                                str(config["profile_dir"]), headless=False
+                            connection, context = await open_normal_chrome(
+                                playwright,
+                                Path(config["profile_dir"]),
+                                cdp_port=9222,
+                                url="https://ednpro.app/training-v2",
                             )
-                            owns_context = True
                             page = context.pages[0] if context.pages else await context.new_page()
-                            await page.goto(
-                                "https://ednpro.app/training-v2",
-                                wait_until="domcontentloaded",
-                            )
+                            if "ednpro.app" not in str(page.url):
+                                await page.goto("https://ednpro.app/training-v2", wait_until="domcontentloaded")
                             buffer.mark_browser_ready()
                         except Exception as exc:
                             buffer.mark_error(f"Impossible d'ouvrir Chromium : {exc}")

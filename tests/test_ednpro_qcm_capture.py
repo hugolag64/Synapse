@@ -271,6 +271,23 @@ def test_capture_agent_loads_json_config_and_cli_overrides(tmp_path):
     assert overridden["token"] == "cli-token"
 
 
+def test_chrome_launch_command_uses_normal_browser_with_remote_debugging(tmp_path):
+    from scripts.ednpro.qcm_capture_agent import build_chrome_launch_command
+
+    command = build_chrome_launch_command(
+        chrome_path="C:/Program Files/Google/Chrome/Application/chrome.exe",
+        profile_dir=tmp_path / "chrome-profile",
+        cdp_port=9222,
+        url="https://ednpro.app/training-v2",
+    )
+
+    assert command[0].endswith("chrome.exe")
+    assert "--remote-debugging-port=9222" in command
+    assert any(value.startswith("--user-data-dir=") for value in command)
+    assert "--headless" not in " ".join(command)
+    assert "https://ednpro.app/training-v2" in command
+
+
 def test_import_can_publish_one_qcm_evaluation_per_item():
     from backend.core.ednpro.qcm_capture import import_session, normalize_observation, record_imported_evaluations
     from backend.core.reviews import local_store

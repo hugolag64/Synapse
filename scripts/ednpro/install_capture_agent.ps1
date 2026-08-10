@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
     [string]$RepoRoot = (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)),
-    [string]$SynapseUrl = "https://synapse.home.arpa"
+    [string]$SynapseUrl = "https://synapse.home.arpa",
+    [switch]$ReplaceToken
 )
 
 $ErrorActionPreference = "Stop"
@@ -15,22 +16,38 @@ if (-not (Test-Path -LiteralPath $agent)) {
     throw "Agent EDNpro introuvable : $agent"
 }
 
-$secureToken = Read-Host "Token EDNPRO_CAPTURE_TOKEN" -AsSecureString
-$tokenPtr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureToken)
-try {
-    $token = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($tokenPtr)
-}
-finally {
-    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($tokenPtr)
-}
-if ([string]::IsNullOrWhiteSpace($token)) {
-    throw "Le token ne peut pas être vide."
-}
-
 $configDir = Join-Path $env:APPDATA "Synapse"
 $configPath = Join-Path $configDir "ednpro-capture-agent.json"
 $profileDir = Join-Path $configDir "ednpro-chrome"
 New-Item -ItemType Directory -Force -Path $configDir, $profileDir | Out-Null
+
+$existingConfig = $null
+if ((Test-Path -LiteralPath $configPath) -and -not $ReplaceToken) {
+    try {
+        $existingConfig = Get-Content -Raw -LiteralPath $configPath | ConvertFrom-Json
+    }
+    catch {
+        Write-Warning "Configuration existante illisible ; un nouveau token sera demandé."
+    }
+}
+
+$token = if ($existingConfig -and -not [string]::IsNullOrWhiteSpace([string]$existingConfig.token)) {
+    Write-Host "Token existant conservé dans la configuration locale."
+    [string]$existingConfig.token
+}
+else {
+    $secureToken = Read-Host "Token EDNPRO_CAPTURE_TOKEN" -AsSecureString
+    $tokenPtr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureToken)
+    try {
+        [Runtime.InteropServices.Marshal]::PtrToStringBSTR($tokenPtr)
+    }
+    finally {
+        [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($tokenPtr)
+    }
+}
+if ([string]::IsNullOrWhiteSpace($token)) {
+    throw "Le token ne peut pas être vide."
+}
 
 $config = [ordered]@{
     synapse_url = $SynapseUrl
@@ -44,10 +61,15 @@ $json = $config | ConvertTo-Json -Compress
 [IO.File]::WriteAllText($configPath, $json, [Text.UTF8Encoding]::new($false))
 
 $currentUser = [Security.Principal.WindowsIdentity]::GetCurrent().Name
-$acl = Get-Acl -LiteralPath $configPath
-$acl.SetAccessRuleProtection($true, $false)
-$acl.SetAccessRule((New-Object Security.AccessControl.FileSystemAccessRule($currentUser, "FullControl", "Allow")))
-Set-Acl -LiteralPath $configPath -AclObject $acl
+try {
+    & icacls.exe $configPath /inheritance:r /grant:r "${currentUser}:(F)" | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "icacls a retourné le code $LASTEXITCODE"
+    }
+}
+catch {
+    Write-Warning "Restriction ACL non appliquée ; le fichier reste dans le profil utilisateur : $($_.Exception.Message)"
+}
 
 $taskName = "Synapse EDNpro Capture Agent"
 $arguments = '-u "' + $agent + '" --config "' + $configPath + '"'

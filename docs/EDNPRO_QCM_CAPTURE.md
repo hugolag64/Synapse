@@ -15,7 +15,8 @@ Set-ExecutionPolicy -Scope Process Bypass
 
 Le script :
 
-1. demande le token EDNPRO_CAPTURE_TOKEN sans l'afficher ;
+1. demande le token EDNPRO_CAPTURE_TOKEN sans l'afficher uniquement lors de la
+   première installation ;
 2. crée un profil Chromium dédié ;
 3. installe l'agent dans les tâches Windows au démarrage de ta session ;
 4. lance l'agent immédiatement.
@@ -23,6 +24,7 @@ Le script :
 La première fois, Chromium s'ouvre avec ce profil dédié : connecte-toi
 normalement à EDNpro. La session de connexion sera conservée dans ce profil.
 Le fichier de configuration est local et protégé pour ton compte Windows.
+Pour remplacer le token, relance le script avec `-ReplaceToken`.
 
 ## Utilisation normale
 

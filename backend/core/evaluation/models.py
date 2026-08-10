@@ -25,6 +25,11 @@ class EvaluationInput:
     total_questions: int | None = None
     correct_answers: int | None = None
     wrong_answers: int | None = None
+    rank_a_questions: int | None = None
+    rank_a_correct: int | None = None
+    rank_b_questions: int | None = None
+    rank_b_correct: int | None = None
+    rank_unknown_questions: int | None = None
     confidence: int | None = None
     activity_types: tuple[str, ...] = ()
     duration_minutes: int | None = None

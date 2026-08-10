@@ -602,6 +602,11 @@ def _stats_for_observations(observations: tuple[EdnproQuestionObservation, ...])
                 "correct": sum(row.rank == "B" and row.is_correct is True for row in rows),
                 "wrong": sum(row.rank == "B" and row.is_correct is False for row in rows),
             },
+            "rank_unknown": {
+                "attempts": sum(row.rank not in {"A", "B"} for row in rows),
+                "correct": sum(row.rank not in {"A", "B"} and row.is_correct is True for row in rows),
+                "wrong": sum(row.rank not in {"A", "B"} and row.is_correct is False for row in rows),
+            },
         }
     return result
 
@@ -645,6 +650,11 @@ def record_imported_evaluations(
             total_questions=stats["attempts"],
             correct_answers=stats["correct"],
             wrong_answers=stats["wrong"],
+            rank_a_questions=stats["rank_a"]["attempts"],
+            rank_a_correct=stats["rank_a"]["correct"],
+            rank_b_questions=stats["rank_b"]["attempts"],
+            rank_b_correct=stats["rank_b"]["correct"],
+            rank_unknown_questions=stats["rank_unknown"]["attempts"],
             session_type="QCM",
             platform="EDNpro",
             session_date=session_date,
@@ -680,4 +690,7 @@ def get_item_stats(item_number: str) -> dict[str, Any]:
         "average_score_percent": round(sum(valid_scores) / len(valid_scores), 2) if valid_scores else None,
         "rank_a": bucket([row for row in rows if str(row["rank"] or "").upper() == "A"]),
         "rank_b": bucket([row for row in rows if str(row["rank"] or "").upper() == "B"]),
+        "rank_unknown": bucket([
+            row for row in rows if str(row["rank"] or "").upper() not in {"A", "B"}
+        ]),
     }

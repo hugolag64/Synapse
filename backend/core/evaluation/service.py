@@ -32,6 +32,11 @@ def record_evaluation(evaluation: EvaluationInput) -> EvaluationOutcome:
             total_questions=evaluation.total_questions,
             correct_answers=evaluation.correct_answers,
             wrong_answers=evaluation.wrong_answers,
+            rank_a_questions=evaluation.rank_a_questions,
+            rank_a_correct=evaluation.rank_a_correct,
+            rank_b_questions=evaluation.rank_b_questions,
+            rank_b_correct=evaluation.rank_b_correct,
+            rank_unknown_questions=evaluation.rank_unknown_questions,
             error_types=list(evaluation.error_types), comments=evaluation.detail,
         )
         gap_proposal_ids = _pending_gap_ids(evaluation.item_number, evaluation.error_types)

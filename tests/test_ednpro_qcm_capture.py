@@ -218,6 +218,7 @@ def test_item_stats_expose_correct_wrong_and_rank_counts():
         "average_score_percent": 50.0,
         "rank_a": {"attempts": 1, "correct": 0, "wrong": 1},
         "rank_b": {"attempts": 1, "correct": 1, "wrong": 0},
+        "rank_unknown": {"attempts": 0, "correct": 0, "wrong": 0},
     }
 
 
@@ -304,4 +305,9 @@ def test_import_can_publish_one_qcm_evaluation_per_item():
     )
 
     assert len(persisted) == 1
-    assert local_store.get_qcm_sessions_by_course("course-221")[0]["platform"] == "EDNpro"
+    row = local_store.get_qcm_sessions_by_course("course-221")[0]
+    assert row["platform"] == "EDNpro"
+    assert row["rank_a_questions"] == 0
+    assert row["rank_b_questions"] == 1
+    assert row["rank_b_correct"] == 1
+    assert row["rank_unknown_questions"] == 0

@@ -3468,6 +3468,11 @@ def _migrate_qcm_sessions_v2() -> None:
             ("score_percent",   "ALTER TABLE qcm_sessions ADD COLUMN score_percent REAL"),
             ("correct_answers", "ALTER TABLE qcm_sessions ADD COLUMN correct_answers INTEGER"),
             ("wrong_answers",   "ALTER TABLE qcm_sessions ADD COLUMN wrong_answers INTEGER"),
+            ("rank_a_questions", "ALTER TABLE qcm_sessions ADD COLUMN rank_a_questions INTEGER"),
+            ("rank_a_correct", "ALTER TABLE qcm_sessions ADD COLUMN rank_a_correct INTEGER"),
+            ("rank_b_questions", "ALTER TABLE qcm_sessions ADD COLUMN rank_b_questions INTEGER"),
+            ("rank_b_correct", "ALTER TABLE qcm_sessions ADD COLUMN rank_b_correct INTEGER"),
+            ("rank_unknown_questions", "ALTER TABLE qcm_sessions ADD COLUMN rank_unknown_questions INTEGER"),
             ("difficulty",      "ALTER TABLE qcm_sessions ADD COLUMN difficulty TEXT"),
             ("error_types",     "ALTER TABLE qcm_sessions ADD COLUMN error_types TEXT DEFAULT '[]'"),
         ]
@@ -3758,6 +3763,11 @@ def add_qcm_session_full(
     total_questions: int | None = None,
     correct_answers: int | None = None,
     wrong_answers: int | None = None,
+    rank_a_questions: int | None = None,
+    rank_a_correct: int | None = None,
+    rank_b_questions: int | None = None,
+    rank_b_correct: int | None = None,
+    rank_unknown_questions: int | None = None,
     difficulty: str | None = None,
     error_types: list | None = None,
     comments: str | None = None,
@@ -3774,12 +3784,16 @@ def add_qcm_session_full(
                 (course_id, course_title, item_number, platform, session_date,
                  session_type, score, score_raw, score_percent,
                  total_questions, correct_answers, wrong_answers,
+                 rank_a_questions, rank_a_correct, rank_b_questions,
+                 rank_b_correct, rank_unknown_questions,
                  difficulty, error_types, comments, created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         """, (
             course_id, course_title, item_number, platform, session_date,
             session_type, score_percent, score_raw, score_percent,
             total_questions, correct_answers, wrong_answers,
+            rank_a_questions, rank_a_correct, rank_b_questions,
+            rank_b_correct, rank_unknown_questions,
             difficulty,
             _json.dumps(error_types or [], ensure_ascii=False),
             comments, now, now,

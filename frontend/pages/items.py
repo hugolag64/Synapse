@@ -70,13 +70,14 @@ _CSS = """
 .it-id { font-family:var(--font-mono); font-size:11.5px; color:var(--text-muted); flex:0 0 46px; text-align:center; }
 .it-title-cell { min-width:0; font-size:13px; line-height:1.3; white-space:normal; overflow:hidden; text-overflow:clip; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; }
 .it-frequency { min-width:0; display:flex; align-items:center; justify-content:center; text-align:center; }
-.it-college { min-width:0; font-size:12px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.it-college { min-width:0; font-size:12px; color:var(--text-muted); white-space:normal; overflow:hidden; text-overflow:clip;
+  text-align:center; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; }
 .it-last { min-width:0; display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); }
 .it-last-dot { width:6px; height:6px; border-radius:50%; flex:0 0 6px; }
 .it-type { font-family:var(--font-mono); font-size:10px; letter-spacing:.03em; color:var(--text-muted);
   border:1px solid var(--border); border-radius:4px; padding:1px 5px; text-align:center; }
-.it-mastery { min-width:0; }
-.it-next { min-width:0; display:flex; align-items:center; gap:5px; font-size:11.5px; color:var(--text-muted); }
+.it-mastery { min-width:0; display:flex; align-items:center; justify-content:center; text-align:center; }
+.it-next { min-width:0; display:flex; align-items:center; justify-content:center; gap:5px; font-size:11.5px; color:var(--text-muted); text-align:center; }
 .it-next-dot { width:6px; height:6px; border-radius:50%; flex:0 0 6px; }
 .it-empty { padding:32px 10px; text-align:center; color:var(--text-dim); font-size:13px; }
 .it-group-label { padding:12px 10px 6px; color:var(--text-dim); font-size:10px; font-weight:600;

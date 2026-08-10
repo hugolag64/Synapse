@@ -39,6 +39,7 @@ from frontend.components.qcm_replay import (
     session_action_keys as _session_action_keys,
 )
 from frontend.components.course_quick_actions import _open_quick_qcm_dialog
+from frontend.components.ednpro_capture_panel import open_ednpro_capture_dialog
 
 QCM_ENTRY_LABEL = "Saisir un résultat"
 
@@ -376,6 +377,10 @@ def render_qcm_cockpit() -> None:
                 ui.menu_item("Importer QCM / DP / KFP", on_click=lambda: open_practice_import_dialog(_render))
                 ui.separator()
                 ui.menu_item(QCM_ENTRY_LABEL, on_click=lambda: _open_add_dialog(_render))
+                ui.menu_item(
+                    "Capturer une session EDNpro",
+                    on_click=lambda: open_ednpro_capture_dialog(_render),
+                )
 
     def _draw_summary(rows: list, groups: list) -> None:
         summary.clear()

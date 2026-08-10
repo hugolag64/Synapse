@@ -226,6 +226,51 @@ def init_db() -> None:
             ON ednpro_frequency_history(collected_at DESC);
 
         -- ── Questions IA immuables et tentatives rejouables ────────────────
+        CREATE TABLE IF NOT EXISTS ednpro_qcm_questions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            external_question_id TEXT NOT NULL UNIQUE,
+            item_number TEXT NOT NULL DEFAULT '',
+            prompt TEXT NOT NULL DEFAULT '',
+            question_type TEXT NOT NULL DEFAULT 'QCM',
+            choices_json TEXT NOT NULL DEFAULT '[]',
+            correct_answers_json TEXT NOT NULL DEFAULT '[]',
+            explanation_simple TEXT NOT NULL DEFAULT '',
+            explanation_detailed TEXT NOT NULL DEFAULT '',
+            rank TEXT NOT NULL DEFAULT '',
+            source_url TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_ednpro_qcm_questions_item ON ednpro_qcm_questions(item_number);
+        CREATE TABLE IF NOT EXISTS ednpro_qcm_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            external_session_id TEXT NOT NULL UNIQUE,
+            session_date TEXT NOT NULL,
+            score_percent REAL,
+            total_questions INTEGER,
+            correct_answers INTEGER,
+            wrong_answers INTEGER,
+            imported_questions INTEGER NOT NULL DEFAULT 0,
+            raw_metadata_json TEXT NOT NULL DEFAULT '{}',
+            created_at TEXT NOT NULL,
+            imported_at TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS ednpro_qcm_attempts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id INTEGER NOT NULL,
+            question_id INTEGER NOT NULL,
+            selected_answers_json TEXT NOT NULL DEFAULT '[]',
+            is_correct INTEGER,
+            score_percent REAL,
+            rank TEXT NOT NULL DEFAULT '',
+            response_json TEXT NOT NULL DEFAULT '{}',
+            answered_at TEXT NOT NULL,
+            UNIQUE (session_id, question_id),
+            FOREIGN KEY (session_id) REFERENCES ednpro_qcm_sessions(id) ON DELETE CASCADE,
+            FOREIGN KEY (question_id) REFERENCES ednpro_qcm_questions(id) ON DELETE RESTRICT
+        );
+        CREATE INDEX IF NOT EXISTS idx_ednpro_qcm_attempts_question ON ednpro_qcm_attempts(question_id, answered_at DESC);
+
         CREATE TABLE IF NOT EXISTS ai_practice_sessions (
             id                  INTEGER PRIMARY KEY AUTOINCREMENT,
             course_id           TEXT NOT NULL DEFAULT '',

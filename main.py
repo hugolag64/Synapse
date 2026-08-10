@@ -5,6 +5,7 @@ from loguru import logger
 import sys
 import asyncio
 import os
+import hmac
 # ── Loguru : rotation quotidienne, 30 jours de rétention, compression ─────────
 logger.remove()
 logger.add(sys.stderr, level="INFO", colorize=True,
@@ -44,6 +45,46 @@ from backend.api.qcm import router as qcm_api_router
 from backend.config.runtime import get_runtime_config
 
 app.include_router(qcm_api_router)
+
+
+@app.post('/api/ednpro/qcm/import')
+async def import_ednpro_qcm_capture(request: Request):
+    """Importe les corrections remontées par l'agent Chromium local."""
+    expected_token = os.getenv("EDNPRO_CAPTURE_TOKEN", "").strip()
+    authorization = request.headers.get("authorization", "")
+    provided_token = authorization.removeprefix("Bearer ").strip()
+    if not expected_token or not hmac.compare_digest(provided_token, expected_token):
+        return JSONResponse({"ok": False, "error": "capture EDNpro non authentifiée"}, status_code=401)
+
+    from backend.core.ednpro.qcm_capture import import_session, record_imported_evaluations
+
+    try:
+        payload = await request.json()
+        result = import_session(payload)
+        item_courses = {
+            str(getattr(course, "item_number", "") or "").strip(): course
+            for course in getattr(data_store, "cours", []) or []
+            if str(getattr(course, "item_number", "") or "").strip()
+        }
+        evaluation_ids = record_imported_evaluations(
+            session=payload,
+            result=result,
+            course_resolver=lambda item: item_courses.get(str(item).strip()),
+        )
+    except (TypeError, ValueError, KeyError) as exc:
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
+    return JSONResponse({
+        "ok": True,
+        "session_id": result.session_id,
+        "imported_questions": result.imported_questions,
+        "discarded_questions": result.discarded_questions,
+        "new_questions": result.new_questions,
+        "new_attempts": result.new_attempts,
+        "duplicate_attempts": result.duplicate_attempts,
+        "item_stats": result.item_stats,
+        "session_item_stats": result.session_item_stats,
+        "evaluation_ids": evaluation_ids,
+    })
 
 
 @app.get('/api/healthz')

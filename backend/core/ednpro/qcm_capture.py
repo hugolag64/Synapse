@@ -1,0 +1,427 @@
+"""Import idempotent des corrections EDNpro observées dans Chromium.
+
+Ce module ne pilote pas les réponses et ne cherche pas à contourner le site.
+L'agent local lui transmet uniquement des snapshots de questions déjà corrigées.
+"""
+
+from __future__ import annotations
+
+import datetime as _datetime
+import json
+import re
+from dataclasses import dataclass, field
+from typing import Any, Mapping
+
+from backend.core.reviews import local_store
+
+
+def extract_corrected_observation(html: str, *, source_url: str = "") -> EdnproQuestionObservation | None:
+    """Extract one corrected question from the currently rendered DOM.
+
+    The selectors intentionally prefer semantic/data attributes and fall back
+    to the stable visual concepts (question card, proposition, explanation).
+    It never makes a network request and returns None until a correction is
+    visible in the page.
+    """
+    try:
+        from bs4 import BeautifulSoup
+    except ImportError:  # pragma: no cover - dependency is part of production requirements
+        return None
+    soup = BeautifulSoup(html or "", "html.parser")
+    containers = soup.select("[data-qcm-question], [data-question-id], article.question, .question-card, [data-question]")
+    if not containers:
+        return None
+    container = containers[0]
+
+    def node_text(selector: str) -> str:
+        node = container.select_one(selector)
+        return node.get_text(" ", strip=True) if node else ""
+
+    def attr(*names: str) -> str:
+        for name in names:
+            value = container.get(name)
+            if value is not None and _text(value):
+                return _text(value)
+        return ""
+
+    qid = attr("data-qcm-question", "data-question-id", "data-question", "data-id")
+    prompt = node_text("[data-question-stem], [data-stem], .question-stem, .question-text, .stem, h3, h4")
+    choices_nodes = container.select("[data-choice-id], [data-proposition-id], label.choice, .choice, .proposition")
+    choices: list[dict[str, Any]] = []
+    for index, choice in enumerate(choices_nodes, start=1):
+        choice_id = _text(choice.get("data-choice-id") or choice.get("data-proposition-id") or choice.get("data-id"))
+        choice_id = choice_id or f"{qid}-p{index}"
+        classes = " ".join(choice.get("class", []))
+        text = choice.get_text(" ", strip=True)
+        selected = str(choice.get("data-selected") or choice.get("aria-checked") or "").lower() in {"true", "1", "yes"}
+        checked = choice.select_one("input:checked")
+        selected = selected or checked is not None
+        correct_attr = choice.get("data-correct") or choice.get("data-expected")
+        correct = None if correct_attr is None else str(correct_attr).lower() in {"true", "1", "yes", "correct", "vrai"}
+        if correct is None and ("correct" in classes.lower() or "vrai" in classes.lower()):
+            correct = True
+        if correct is None and ("incorrect" in classes.lower() or "faux" in classes.lower()):
+            correct = False
+        choices.append({"id": choice_id, "text": text, "selected": selected, "correct": correct})
+
+    full_text = container.get_text(" ", strip=True)
+    corrected_marker = attr("data-corrected", "data-correction-displayed", "data-answered")
+    correction_visible = str(corrected_marker).lower() in {"true", "1", "yes"}
+    correction_visible = correction_visible or bool(container.select_one(
+        "[data-explanation-simple], [data-explanation-detailed], .explanation-simple, .explanation-detailed, .correction"
+    ))
+    correction_visible = correction_visible or any(choice.get("correct") is not None for choice in choices)
+    if not correction_visible:
+        return None
+    rank_match = re.search(r"\brang\s*([ABC])\b", full_text, re.IGNORECASE)
+    item_match = re.search(r"\bitem\s*#?\s*([0-9]+)\b", full_text, re.IGNORECASE)
+    score_match = re.search(r"(?:score|note)\s*[: ]\s*([0-9]+(?:[.,][0-9]+)?)\s*%?", full_text, re.IGNORECASE)
+    score = float(score_match.group(1).replace(",", ".")) if score_match else None
+    correct_answers = tuple(choice["id"] for choice in choices if choice.get("correct") is True)
+    selected_answers = tuple(choice["id"] for choice in choices if choice.get("selected"))
+    return EdnproQuestionObservation(
+        external_question_id=qid,
+        item_number=attr("data-item-number", "data-item") or (item_match.group(1) if item_match else ""),
+        prompt=prompt or full_text,
+        choices=tuple(choices),
+        correct_answers=correct_answers,
+        selected_answers=selected_answers,
+        explanation_simple=node_text("[data-explanation-simple], .explanation-simple, .simple-explanation"),
+        explanation_detailed=node_text("[data-explanation-detailed], .explanation-detailed, .ai-explanation, .correction"),
+        rank=rank_match.group(1).upper() if rank_match else "",
+        question_type=attr("data-question-type", "data-type") or "QCM",
+        score_percent=score,
+        is_correct=(set(selected_answers) == set(correct_answers)) if correct_answers else None,
+        corrected=True,
+        source_url=source_url,
+    )
+
+
+def _text(value: Any) -> str:
+    return "" if value is None else str(value).strip()
+
+
+def _tuple_text(value: Any) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, str):
+        return (_text(value),) if _text(value) else ()
+    return tuple(value for value in (_text(entry) for entry in value) if value)
+
+
+def _first(mapping: Mapping[str, Any], *keys: str, default: Any = None) -> Any:
+    for key in keys:
+        if key in mapping and mapping[key] is not None:
+            return mapping[key]
+    return default
+
+
+@dataclass(frozen=True)
+class EdnproQuestionObservation:
+    """Une question dont la correction a été affichée à l'utilisateur."""
+
+    external_question_id: str
+    item_number: str
+    prompt: str
+    choices: tuple[dict[str, Any], ...] = ()
+    correct_answers: tuple[str, ...] = ()
+    selected_answers: tuple[str, ...] = ()
+    explanation_simple: str = ""
+    explanation_detailed: str = ""
+    rank: str = ""
+    question_type: str = "QCM"
+    score_percent: float | None = None
+    is_correct: bool | None = None
+    corrected: bool = False
+    source_url: str = ""
+    observed_at: str = ""
+
+
+@dataclass(frozen=True)
+class EdnproImportResult:
+    session_id: int
+    imported_questions: int
+    discarded_questions: int
+    new_questions: int
+    new_attempts: int
+    duplicate_attempts: int
+    item_stats: dict[str, dict[str, Any]] = field(default_factory=dict)
+    session_item_stats: dict[str, dict[str, Any]] = field(default_factory=dict)
+
+
+def normalize_observation(raw: Mapping[str, Any] | EdnproQuestionObservation) -> EdnproQuestionObservation:
+    """Normalise un snapshot DOM/API en contrat stable pour l'import.
+
+    Les clés acceptées couvrent à la fois le payload de l'agent et les noms
+    courants affichés par la page de correction. La fonction reste pure pour
+    être testée sur des fixtures sans Chromium.
+    """
+    if isinstance(raw, EdnproQuestionObservation):
+        return raw
+    question = raw.get("question") if isinstance(raw.get("question"), Mapping) else raw
+    correction = raw.get("correction") if isinstance(raw.get("correction"), Mapping) else raw
+    choices = _first(question, "choices", "propositions", default=()) or ()
+    normalized_choices = tuple(dict(choice) for choice in choices if isinstance(choice, Mapping))
+    selected = _tuple_text(_first(correction, "selected_answers", "selected", "response", default=()))
+    correct = _tuple_text(_first(correction, "correct_answers", "expected", "answer", default=()))
+    if not selected:
+        selected = tuple(_text(choice.get("id") or choice.get("key") or choice.get("label"))
+                         for choice in normalized_choices if choice.get("selected"))
+        selected = tuple(value for value in selected if value)
+    if not correct:
+        correct = tuple(_text(choice.get("id") or choice.get("key") or choice.get("label"))
+                        for choice in normalized_choices if choice.get("correct") or choice.get("expected"))
+        correct = tuple(value for value in correct if value)
+
+    score_raw = _first(correction, "score_percent", "score", "percentage")
+    try:
+        score = float(score_raw) if score_raw is not None and _text(score_raw) else None
+    except (TypeError, ValueError):
+        score = None
+    displayed = _first(correction, "displayed", "corrected", "correction_displayed", default=False)
+    corrected = bool(displayed) or score is not None or _first(correction, "is_correct") is not None
+    is_correct_raw = _first(correction, "is_correct", "correct")
+    is_correct = None if is_correct_raw is None else bool(is_correct_raw)
+    if is_correct is None and score is not None:
+        is_correct = score >= 100.0
+
+    return EdnproQuestionObservation(
+        external_question_id=_text(_first(question, "external_question_id", "id", "question_id", "qid")),
+        item_number=_text(_first(question, "item_number", "item", "itemNumber")),
+        prompt=_text(_first(question, "prompt", "question", "title", default="")),
+        choices=normalized_choices,
+        correct_answers=correct,
+        selected_answers=selected,
+        explanation_simple=_text(_first(question, "explanation_simple", "simple_explanation", "explanation")),
+        explanation_detailed=_text(_first(question, "explanation_detailed", "detailed_explanation", "ai_explanation")),
+        rank=_text(_first(question, "rank", "rang", "level")).upper(),
+        question_type=_text(_first(question, "question_type", "type", "kind", default="QCM")).upper(),
+        score_percent=score,
+        is_correct=is_correct,
+        corrected=corrected,
+        source_url=_text(_first(raw, "source_url", "url")),
+        observed_at=_text(_first(raw, "observed_at", "timestamp")),
+    )
+
+
+def _session_date(raw: Any) -> str:
+    value = _text(raw)
+    return value or _datetime.datetime.now().astimezone().isoformat(timespec="seconds")
+
+
+def import_session(session: Mapping[str, Any]) -> EdnproImportResult:
+    """Importe une session corrigée de façon transactionnelle et idempotente."""
+    observations = tuple(normalize_observation(row) for row in (session.get("questions") or ()))
+    corrected = tuple(row for row in observations if row.corrected and row.external_question_id)
+    discarded = len(observations) - len(corrected)
+    external_session_id = _text(session.get("external_session_id") or session.get("session_id"))
+    if not external_session_id:
+        raise ValueError("external_session_id est requis pour importer une session EDNpro")
+    now = _datetime.datetime.now().astimezone().isoformat(timespec="seconds")
+    metadata = {key: value for key, value in session.items() if key not in {"questions"}}
+
+    new_questions = new_attempts = duplicate_attempts = 0
+    with local_store._conn() as con:
+        con.execute(
+            """INSERT INTO ednpro_qcm_sessions
+               (external_session_id, session_date, score_percent, total_questions,
+                correct_answers, wrong_answers, imported_questions, raw_metadata_json,
+                created_at, imported_at)
+               VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
+               ON CONFLICT(external_session_id) DO UPDATE SET
+                 score_percent=excluded.score_percent,
+                 total_questions=excluded.total_questions,
+                 correct_answers=excluded.correct_answers,
+                 wrong_answers=excluded.wrong_answers,
+                 raw_metadata_json=excluded.raw_metadata_json,
+                 imported_at=excluded.imported_at""",
+            (
+                external_session_id,
+                _session_date(session.get("session_date")),
+                session.get("score_percent"),
+                session.get("total_questions") or len(observations),
+                session.get("correct_answers"),
+                session.get("wrong_answers"),
+                json.dumps(metadata, ensure_ascii=False, sort_keys=True, default=str),
+                now,
+                now,
+            ),
+        )
+        session_row = con.execute(
+            "SELECT id FROM ednpro_qcm_sessions WHERE external_session_id = ?", (external_session_id,)
+        ).fetchone()
+        assert session_row is not None
+        persisted_session_id = int(session_row["id"])
+
+        for observation in corrected:
+            con.execute(
+                """INSERT INTO ednpro_qcm_questions
+                   (external_question_id, item_number, prompt, question_type,
+                    choices_json, correct_answers_json, explanation_simple,
+                    explanation_detailed, rank, source_url, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(external_question_id) DO NOTHING""",
+                (
+                    observation.external_question_id,
+                    observation.item_number,
+                    observation.prompt,
+                    observation.question_type,
+                    json.dumps(observation.choices, ensure_ascii=False, sort_keys=True),
+                    json.dumps(observation.correct_answers, ensure_ascii=False),
+                    observation.explanation_simple,
+                    observation.explanation_detailed,
+                    observation.rank,
+                    observation.source_url,
+                    now,
+                    now,
+                ),
+            )
+            new_questions += int(con.execute("SELECT changes()").fetchone()[0] == 1)
+            question_row = con.execute(
+                "SELECT id FROM ednpro_qcm_questions WHERE external_question_id = ?",
+                (observation.external_question_id,),
+            ).fetchone()
+            assert question_row is not None
+            question_id = int(question_row["id"])
+            con.execute(
+                """INSERT INTO ednpro_qcm_attempts
+                   (session_id, question_id, selected_answers_json, is_correct,
+                    score_percent, rank, response_json, answered_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(session_id, question_id) DO NOTHING""",
+                (
+                    persisted_session_id,
+                    question_id,
+                    json.dumps(observation.selected_answers, ensure_ascii=False),
+                    None if observation.is_correct is None else int(observation.is_correct),
+                    observation.score_percent,
+                    observation.rank,
+                    json.dumps({"selected_answers": observation.selected_answers}, ensure_ascii=False),
+                    observation.observed_at or now,
+                ),
+            )
+            inserted_attempt = int(con.execute("SELECT changes()").fetchone()[0] == 1)
+            new_attempts += inserted_attempt
+            duplicate_attempts += 1 - inserted_attempt
+
+        imported_total = con.execute(
+            "SELECT COUNT(*) FROM ednpro_qcm_attempts WHERE session_id = ?",
+            (persisted_session_id,),
+        ).fetchone()[0]
+        con.execute(
+            "UPDATE ednpro_qcm_sessions SET imported_questions = ? WHERE id = ?",
+            (imported_total, persisted_session_id),
+        )
+
+    session_item_stats = _stats_for_observations(corrected)
+    return EdnproImportResult(
+        session_id=persisted_session_id,
+        imported_questions=new_attempts,
+        discarded_questions=discarded,
+        new_questions=new_questions,
+        new_attempts=new_attempts,
+        duplicate_attempts=duplicate_attempts,
+        item_stats={row: get_item_stats(row) for row in {q.item_number for q in corrected if q.item_number}},
+        session_item_stats=session_item_stats,
+    )
+
+
+def _stats_for_observations(observations: tuple[EdnproQuestionObservation, ...]) -> dict[str, dict[str, Any]]:
+    result: dict[str, dict[str, Any]] = {}
+    for item_number in sorted({row.item_number for row in observations if row.item_number}):
+        rows = [row for row in observations if row.item_number == item_number]
+        scores = [row.score_percent for row in rows if row.score_percent is not None]
+        result[item_number] = {
+            "attempts": len(rows),
+            "correct": sum(row.is_correct is True for row in rows),
+            "wrong": sum(row.is_correct is False for row in rows),
+            "average_score_percent": round(sum(scores) / len(scores), 2) if scores else None,
+            "rank_a": {
+                "attempts": sum(row.rank == "A" for row in rows),
+                "correct": sum(row.rank == "A" and row.is_correct is True for row in rows),
+                "wrong": sum(row.rank == "A" and row.is_correct is False for row in rows),
+            },
+            "rank_b": {
+                "attempts": sum(row.rank == "B" for row in rows),
+                "correct": sum(row.rank == "B" and row.is_correct is True for row in rows),
+                "wrong": sum(row.rank == "B" and row.is_correct is False for row in rows),
+            },
+        }
+    return result
+
+
+def record_imported_evaluations(
+    *,
+    session: Mapping[str, Any],
+    result: EdnproImportResult,
+    course_resolver,
+) -> list[int]:
+    """Publie une évaluation QCM par item dans le moteur de maîtrise.
+
+    course_resolver retourne un objet/dict avec id et éventuellement title.
+    L'absence de cours local ne bloque jamais l'import du contenu.
+    """
+    if not result.new_attempts:
+        return []
+    from backend.core.evaluation.models import EvaluationInput
+    from backend.core.evaluation.service import record_evaluation
+
+    session_date = _session_date(session.get("session_date")).split("T", 1)[0]
+    persisted_ids: list[int] = []
+    for item_number, stats in result.session_item_stats.items():
+        course = course_resolver(item_number)
+        if course is None:
+            continue
+        if isinstance(course, Mapping):
+            course_id = _text(course.get("id"))
+            course_title = _text(course.get("title") or course.get("name"))
+        else:
+            course_id = _text(getattr(course, "id", ""))
+            course_title = _text(getattr(course, "title", ""))
+        if not course_id:
+            continue
+        outcome = record_evaluation(EvaluationInput(
+            source="qcm",
+            course_id=course_id,
+            item_number=item_number,
+            course_title=course_title,
+            score_percent=stats["average_score_percent"],
+            total_questions=stats["attempts"],
+            correct_answers=stats["correct"],
+            wrong_answers=stats["wrong"],
+            session_type="QCM",
+            platform="EDNpro",
+            session_date=session_date,
+        ))
+        persisted_ids.append(outcome.persisted_id)
+    return persisted_ids
+
+
+def get_item_stats(item_number: str) -> dict[str, Any]:
+    """Retourne les statistiques importées, ventilées par rang A/B."""
+    with local_store._conn() as con:
+        rows = con.execute(
+            """SELECT a.is_correct, a.score_percent, a.rank
+               FROM ednpro_qcm_attempts a
+               JOIN ednpro_qcm_questions q ON q.id = a.question_id
+               WHERE q.item_number = ?
+               ORDER BY a.id""",
+            (_text(item_number),),
+        ).fetchall()
+
+    def bucket(values) -> dict[str, int]:
+        return {
+            "attempts": len(values),
+            "correct": sum(row["is_correct"] == 1 for row in values),
+            "wrong": sum(row["is_correct"] == 0 for row in values),
+        }
+
+    valid_scores = [float(row["score_percent"]) for row in rows if row["score_percent"] is not None]
+    return {
+        "attempts": len(rows),
+        "correct": sum(row["is_correct"] == 1 for row in rows),
+        "wrong": sum(row["is_correct"] == 0 for row in rows),
+        "average_score_percent": round(sum(valid_scores) / len(valid_scores), 2) if valid_scores else None,
+        "rank_a": bucket([row for row in rows if str(row["rank"] or "").upper() == "A"]),
+        "rank_b": bucket([row for row in rows if str(row["rank"] or "").upper() == "B"]),
+    }

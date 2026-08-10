@@ -237,6 +237,9 @@ def init_db() -> None:
             explanation_simple TEXT NOT NULL DEFAULT '',
             explanation_detailed TEXT NOT NULL DEFAULT '',
             rank TEXT NOT NULL DEFAULT '',
+            rank_source TEXT NOT NULL DEFAULT 'unknown',
+            rank_confidence REAL,
+            rank_evidence_json TEXT NOT NULL DEFAULT '[]',
             source_url TEXT NOT NULL DEFAULT '',
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
@@ -263,6 +266,9 @@ def init_db() -> None:
             is_correct INTEGER,
             score_percent REAL,
             rank TEXT NOT NULL DEFAULT '',
+            rank_source TEXT NOT NULL DEFAULT 'unknown',
+            rank_confidence REAL,
+            rank_evidence_json TEXT NOT NULL DEFAULT '[]',
             response_json TEXT NOT NULL DEFAULT '{}',
             answered_at TEXT NOT NULL,
             UNIQUE (session_id, question_id),
@@ -603,6 +609,7 @@ def init_db() -> None:
         """)
     migrate_study_sessions_v2()
     _migrate_qcm_sessions_v2()
+    _migrate_ednpro_qcm_rank_metadata()
     _migrate_weak_points_v2()
     _migrate_weak_points_from_sessions()
     _migrate_weak_points_obsidian()
@@ -3475,6 +3482,24 @@ def _migrate_qcm_sessions_v2() -> None:
         """)
 
 
+def _migrate_ednpro_qcm_rank_metadata() -> None:
+    """Add provenance columns to imported EDNpro questions and attempts."""
+    with _conn() as con:
+        for table in ("ednpro_qcm_questions", "ednpro_qcm_attempts"):
+            existing = {
+                row["name"]
+                for row in con.execute(f"PRAGMA table_info({table})").fetchall()
+            }
+            migrations = (
+                ("rank_source", f"ALTER TABLE {table} ADD COLUMN rank_source TEXT NOT NULL DEFAULT 'unknown'"),
+                ("rank_confidence", f"ALTER TABLE {table} ADD COLUMN rank_confidence REAL"),
+                ("rank_evidence_json", f"ALTER TABLE {table} ADD COLUMN rank_evidence_json TEXT NOT NULL DEFAULT '[]'"),
+            )
+            for column, sql in migrations:
+                if column not in existing:
+                    con.execute(sql)
+
+
 def _migrate_weak_points_v2() -> None:
     """
     Migration douce : ajoute les colonnes manquantes à weak_points
@@ -5148,6 +5173,36 @@ def get_lisa_oic(course_id: str) -> list | None:
             "SELECT * FROM lisa_oic WHERE course_id = ? AND active = 1 ORDER BY rang, ordre",
             (course_id,),
         ).fetchall()
+
+
+def get_lisa_oic_for_item(item_number: str, course_ids: list[str] | tuple[str, ...]) -> list[dict]:
+    """Return deduplicated active OIC context for an item across course aliases."""
+    del item_number  # The caller resolves the canonical item to its course aliases.
+    normalized_ids = tuple(dict.fromkeys(str(course_id).strip() for course_id in course_ids if str(course_id).strip()))
+    if not normalized_ids:
+        return []
+    placeholders = ",".join("?" for _ in normalized_ids)
+    with _conn() as con:
+        rows = con.execute(
+            f"""SELECT oic_code, intitule, rang, rubrique, ordre
+                FROM lisa_oic
+                WHERE active = 1 AND oic_code IS NOT NULL AND TRIM(oic_code) != ''
+                  AND course_id IN ({placeholders})
+                ORDER BY CASE WHEN UPPER(rang) = 'A' THEN 0 ELSE 1 END,
+                         oic_code, ordre""",
+            normalized_ids,
+        ).fetchall()
+    result: dict[str, dict] = {}
+    for row in rows:
+        code = str(row["oic_code"] or "").strip()
+        if code and code not in result:
+            result[code] = {
+                "code": code,
+                "intitule": str(row["intitule"] or "").strip(),
+                "rang": str(row["rang"] or "").strip().upper(),
+                "rubrique": str(row["rubrique"] or "").strip(),
+            }
+    return list(result.values())
 
 
 def upsert_lisa_oic(course_id: str, oics: list[dict]) -> None:

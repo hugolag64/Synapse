@@ -3,6 +3,19 @@ from dataclasses import dataclass
 import pytest
 
 
+@pytest.fixture
+def isolated_rank_db(tmp_path, monkeypatch):
+    from backend.core.reviews import local_store
+
+    monkeypatch.setattr(local_store, "DB_PATH", tmp_path / "rank.db")
+    monkeypatch.setattr(local_store, "_DB", None)
+    local_store.init_db()
+    yield local_store
+    if local_store._DB is not None:
+        local_store._DB.close()
+    monkeypatch.setattr(local_store, "_DB", None)
+
+
 @dataclass(frozen=True)
 class FakeQuestion:
     external_question_id: str
@@ -84,3 +97,80 @@ def test_parser_ignores_unknown_question_ids_and_malformed_payload():
         ("q1",),
     ) == {}
     assert parse_rank_inference_response("not-json", ("q1",)) == {}
+
+
+def test_oics_are_deduplicated_across_college_aliases(isolated_rank_db):
+    isolated_rank_db.upsert_lisa_oic(
+        "course-a",
+        [{"oic_code": "OIC-1", "intitule": "OIC A", "rang": "A"}],
+    )
+    isolated_rank_db.upsert_lisa_oic(
+        "course-b",
+        [
+            {"oic_code": "OIC-1", "intitule": "OIC A", "rang": "A"},
+            {"oic_code": "OIC-2", "intitule": "OIC B", "rang": "B"},
+        ],
+    )
+
+    rows = isolated_rank_db.get_lisa_oic_for_item("233", ["course-a", "course-b"])
+
+    assert [row["code"] for row in rows] == ["OIC-1", "OIC-2"]
+    assert [row["rang"] for row in rows] == ["A", "B"]
+
+
+def test_dom_rank_is_marked_as_official():
+    from backend.core.ednpro.qcm_capture import extract_corrected_observation
+
+    observation = extract_corrected_observation(
+        """
+        <article data-qcm-question="q-dom" data-item-number="233" data-corrected="true">
+          <span>Item 233 · QCM · Rang B</span>
+          <h3 data-question-stem>Question visible</h3>
+          <label data-choice-id="a" data-selected="true" data-correct="true">A</label>
+          <div data-explanation-simple>Correction</div>
+        </article>
+        """
+    )
+
+    assert observation is not None
+    assert observation.rank == "B"
+    assert observation.rank_source == "ednpro"
+    assert observation.rank_confidence == 1.0
+
+
+def test_import_persists_rank_provenance_for_question_and_attempt(isolated_rank_db):
+    from backend.core.ednpro.qcm_capture import EdnproQuestionObservation, import_session
+
+    import_session(
+        {
+            "external_session_id": "session-provenance",
+            "session_date": "2026-08-10",
+            "questions": [
+                EdnproQuestionObservation(
+                    external_question_id="q-provenance",
+                    item_number="233",
+                    prompt="Question",
+                    rank="A",
+                    rank_source="gemini",
+                    rank_confidence=0.91,
+                    rank_evidence=("OIC-1",),
+                    corrected=True,
+                )
+            ],
+        }
+    )
+
+    with isolated_rank_db._conn() as con:
+        question = con.execute(
+            "SELECT rank, rank_source, rank_confidence, rank_evidence_json FROM ednpro_qcm_questions"
+        ).fetchone()
+        attempt = con.execute(
+            "SELECT rank, rank_source, rank_confidence, rank_evidence_json FROM ednpro_qcm_attempts"
+        ).fetchone()
+
+    assert question["rank"] == "A"
+    assert question["rank_source"] == "gemini"
+    assert question["rank_confidence"] == pytest.approx(0.91)
+    assert question["rank_evidence_json"] == '["OIC-1"]'
+    assert attempt["rank"] == "A"
+    assert attempt["rank_source"] == "gemini"

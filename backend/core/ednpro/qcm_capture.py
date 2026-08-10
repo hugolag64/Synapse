@@ -10,7 +10,7 @@ import datetime as _datetime
 import hashlib
 import json
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Mapping
 from urllib.parse import parse_qs, urlparse
 
@@ -185,6 +185,8 @@ def extract_corrected_observation(html: str, *, source_url: str = "") -> EdnproQ
             "[data-explanation-detailed], .explanation-detailed, .ai-explanation, .correction"
         ),
         rank=rank_match.group(1).upper() if rank_match else "",
+        rank_source="ednpro" if rank_match else "unknown",
+        rank_confidence=1.0 if rank_match else None,
         question_type=attr("data-question-type", "data-type") or "QCM",
         score_percent=score,
         is_correct=(score >= 100.0) if score is not None else (
@@ -197,6 +199,21 @@ def extract_corrected_observation(html: str, *, source_url: str = "") -> EdnproQ
 
 def _text(value: Any) -> str:
     return "" if value is None else str(value).strip()
+
+
+def _should_replace_rank(
+    existing_rank: str,
+    existing_source: str,
+    incoming_rank: str,
+    incoming_source: str,
+) -> bool:
+    """Keep official EDNpro metadata ahead of inferred metadata."""
+    if incoming_rank not in {"A", "B"}:
+        return False
+    if existing_rank not in {"A", "B"}:
+        return True
+    priority = {"unknown": 0, "gemini": 1, "oic": 2, "ednpro": 3}
+    return priority.get(incoming_source, 0) > priority.get(existing_source, 0)
 
 
 def _tuple_text(value: Any) -> tuple[str, ...]:
@@ -227,6 +244,9 @@ class EdnproQuestionObservation:
     explanation_simple: str = ""
     explanation_detailed: str = ""
     rank: str = ""
+    rank_source: str = "unknown"
+    rank_confidence: float | None = None
+    rank_evidence: tuple[str, ...] = ()
     question_type: str = "QCM"
     score_percent: float | None = None
     is_correct: bool | None = None
@@ -283,6 +303,19 @@ def normalize_observation(raw: Mapping[str, Any] | EdnproQuestionObservation) ->
     if is_correct is None and score is not None:
         is_correct = score >= 100.0
 
+    rank = _text(_first(question, "rank", "rang", "level")).upper()
+    rank_source = _text(_first(question, "rank_source", "rankSource", default=""))
+    if not rank_source:
+        rank_source = "ednpro" if rank in {"A", "B"} else "unknown"
+    rank_confidence_raw = _first(question, "rank_confidence", "rankConfidence")
+    try:
+        rank_confidence = float(rank_confidence_raw) if rank_confidence_raw is not None else (
+            1.0 if rank_source == "ednpro" and rank in {"A", "B"} else None
+        )
+    except (TypeError, ValueError):
+        rank_confidence = None
+    rank_evidence = _tuple_text(_first(question, "rank_evidence", "rankEvidence", default=()))
+
     return EdnproQuestionObservation(
         external_question_id=_text(_first(question, "external_question_id", "id", "question_id", "qid")),
         item_number=_text(_first(question, "item_number", "item", "itemNumber")),
@@ -292,7 +325,10 @@ def normalize_observation(raw: Mapping[str, Any] | EdnproQuestionObservation) ->
         selected_answers=selected,
         explanation_simple=_text(_first(question, "explanation_simple", "simple_explanation", "explanation")),
         explanation_detailed=_text(_first(question, "explanation_detailed", "detailed_explanation", "ai_explanation")),
-        rank=_text(_first(question, "rank", "rang", "level")).upper(),
+        rank=rank,
+        rank_source=rank_source,
+        rank_confidence=rank_confidence,
+        rank_evidence=rank_evidence,
         question_type=_text(_first(question, "question_type", "type", "kind", default="QCM")).upper(),
         score_percent=score,
         is_correct=is_correct,
@@ -356,8 +392,9 @@ def import_session(session: Mapping[str, Any]) -> EdnproImportResult:
                 """INSERT INTO ednpro_qcm_questions
                    (external_question_id, item_number, prompt, question_type,
                     choices_json, correct_answers_json, explanation_simple,
-                    explanation_detailed, rank, source_url, created_at, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    explanation_detailed, rank, rank_source, rank_confidence,
+                    rank_evidence_json, source_url, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                    ON CONFLICT(external_question_id) DO NOTHING""",
                 (
                     observation.external_question_id,
@@ -369,12 +406,42 @@ def import_session(session: Mapping[str, Any]) -> EdnproImportResult:
                     observation.explanation_simple,
                     observation.explanation_detailed,
                     observation.rank,
+                    observation.rank_source,
+                    observation.rank_confidence,
+                    json.dumps(observation.rank_evidence, ensure_ascii=False),
                     observation.source_url,
                     now,
                     now,
                 ),
             )
-            new_questions += int(con.execute("SELECT changes()").fetchone()[0] == 1)
+            inserted_question = int(con.execute("SELECT changes()").fetchone()[0] == 1)
+            new_questions += inserted_question
+            if not inserted_question and observation.rank in {"A", "B"}:
+                existing_question = con.execute(
+                    "SELECT rank, rank_source FROM ednpro_qcm_questions "
+                    "WHERE external_question_id = ?",
+                    (observation.external_question_id,),
+                ).fetchone()
+                if existing_question is not None and _should_replace_rank(
+                    str(existing_question["rank"] or ""),
+                    str(existing_question["rank_source"] or "unknown"),
+                    observation.rank,
+                    observation.rank_source,
+                ):
+                    con.execute(
+                        """UPDATE ednpro_qcm_questions
+                           SET rank = ?, rank_source = ?, rank_confidence = ?,
+                               rank_evidence_json = ?, updated_at = ?
+                           WHERE external_question_id = ?""",
+                        (
+                            observation.rank,
+                            observation.rank_source,
+                            observation.rank_confidence,
+                            json.dumps(observation.rank_evidence, ensure_ascii=False),
+                            now,
+                            observation.external_question_id,
+                        ),
+                    )
             question_row = con.execute(
                 "SELECT id FROM ednpro_qcm_questions WHERE external_question_id = ?",
                 (observation.external_question_id,),
@@ -384,8 +451,9 @@ def import_session(session: Mapping[str, Any]) -> EdnproImportResult:
             con.execute(
                 """INSERT INTO ednpro_qcm_attempts
                    (session_id, question_id, selected_answers_json, is_correct,
-                    score_percent, rank, response_json, answered_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    score_percent, rank, rank_source, rank_confidence,
+                    rank_evidence_json, response_json, answered_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                    ON CONFLICT(session_id, question_id) DO NOTHING""",
                 (
                     persisted_session_id,
@@ -394,6 +462,9 @@ def import_session(session: Mapping[str, Any]) -> EdnproImportResult:
                     None if observation.is_correct is None else int(observation.is_correct),
                     observation.score_percent,
                     observation.rank,
+                    observation.rank_source,
+                    observation.rank_confidence,
+                    json.dumps(observation.rank_evidence, ensure_ascii=False),
                     json.dumps({"selected_answers": observation.selected_answers}, ensure_ascii=False),
                     observation.observed_at or now,
                 ),

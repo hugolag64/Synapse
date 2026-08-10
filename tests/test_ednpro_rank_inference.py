@@ -174,3 +174,50 @@ def test_import_persists_rank_provenance_for_question_and_attempt(isolated_rank_
     assert question["rank_evidence_json"] == '["OIC-1"]'
     assert attempt["rank"] == "A"
     assert attempt["rank_source"] == "gemini"
+
+
+def test_enrich_session_calls_gemini_once_per_item_and_preserves_official_rank(monkeypatch):
+    from unittest.mock import Mock
+
+    from backend.core.ai.routing import AIModel, AIResponse
+    from backend.core.ednpro.qcm_capture import enrich_session_ranks
+
+    class Course:
+        def __init__(self, course_id, item_number):
+            self.id = course_id
+            self.item_number = item_number
+
+    monkeypatch.setattr(
+        "backend.core.reviews.local_store.get_lisa_oic_for_item",
+        lambda item_number, course_ids: [{"code": "OIC-1", "intitule": "OIC A", "rang": "A"}],
+    )
+    service = Mock()
+    service.generate.return_value = AIResponse(
+        '{"questions":[{"id":"q1","rank":"A","confidence":0.91,"oic_codes":["OIC-1"]},'
+        '{"id":"q2","rank":"B","confidence":0.84,"oic_codes":["OIC-1"]}]}',
+        AIModel.FLASH_LITE,
+    )
+    session = {
+        "external_session_id": "session-enrichment",
+        "questions": [
+            {"external_question_id": "q1", "item_number": "233", "prompt": "Q1", "corrected": True},
+            {"external_question_id": "q2", "item_number": "233", "prompt": "Q2", "corrected": True},
+            {"external_question_id": "q3", "item_number": "233", "prompt": "Q3", "rank": "B", "corrected": True},
+        ],
+    }
+
+    enriched = enrich_session_ranks(
+        session,
+        courses=[Course("course-233", "233")],
+        service=service,
+    )
+
+    assert service.generate.call_count == 1
+    prompt = service.generate.call_args.args[1]
+    assert prompt.count("OIC-1") == 1
+    by_id = {row["external_question_id"]: row for row in enriched["questions"]}
+    assert by_id["q1"]["rank"] == "A"
+    assert by_id["q1"]["rank_source"] == "gemini"
+    assert by_id["q2"]["rank"] == ""
+    assert by_id["q3"]["rank"] == "B"
+    assert by_id["q3"]["rank_source"] == "ednpro"

@@ -56,10 +56,19 @@ async def import_ednpro_qcm_capture(request: Request):
     if not expected_token or not hmac.compare_digest(provided_token, expected_token):
         return JSONResponse({"ok": False, "error": "capture EDNpro non authentifiée"}, status_code=401)
 
-    from backend.core.ednpro.qcm_capture import import_session, record_imported_evaluations
+    from backend.core.ednpro.qcm_capture import (
+        enrich_session_ranks,
+        import_session,
+        record_imported_evaluations,
+    )
 
     try:
         payload = await request.json()
+        payload = await asyncio.to_thread(
+            enrich_session_ranks,
+            payload,
+            courses=getattr(data_store, "cours", []) or [],
+        )
         result = import_session(payload)
         item_courses = {
             str(getattr(course, "item_number", "") or "").strip(): course

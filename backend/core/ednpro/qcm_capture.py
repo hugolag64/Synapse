@@ -10,11 +10,18 @@ import datetime as _datetime
 import hashlib
 import json
 import re
-from dataclasses import dataclass, field, replace
+from dataclasses import asdict, dataclass, field, replace
 from typing import Any, Mapping
 from urllib.parse import parse_qs, urlparse
 
+from loguru import logger
+
 from backend.core.reviews import local_store
+from backend.core.ednpro.rank_inference import (
+    build_rank_inference_prompt,
+    group_missing_rank_questions,
+    parse_rank_inference_response,
+)
 
 
 def extract_corrected_observation(html: str, *, source_url: str = "") -> EdnproQuestionObservation | None:
@@ -336,6 +343,86 @@ def normalize_observation(raw: Mapping[str, Any] | EdnproQuestionObservation) ->
         source_url=_text(_first(raw, "source_url", "url")),
         observed_at=_text(_first(raw, "observed_at", "timestamp")),
     )
+
+
+def _course_item_number(course: Any) -> str:
+    return _text(
+        getattr(course, "item_number", "")
+        or getattr(course, "display_item_number", "")
+        or (course.get("item_number", "") if isinstance(course, Mapping) else "")
+    )
+
+
+def _observation_id(observation: EdnproQuestionObservation) -> str:
+    return _text(observation.external_question_id)
+
+
+def enrich_session_ranks(
+    session: Mapping[str, Any],
+    *,
+    courses: Any = (),
+    service: Any = None,
+) -> dict[str, Any]:
+    """Infer missing ranks in one Gemini request per item, best effort."""
+    raw_questions = tuple(session.get("questions") or ())
+    observations = tuple(normalize_observation(row) for row in raw_questions)
+    groups = group_missing_rank_questions(observations)
+    if not groups:
+        return dict(session)
+
+    from backend.core.ai.tasks import infer_ednpro_ranks
+
+    if service is None:
+        from backend.config.settings import settings
+
+        if not settings.gemini_api_key:
+            return dict(session)
+
+    course_ids_by_item: dict[str, list[str]] = {}
+    for course in courses or ():
+        item_number = _course_item_number(course)
+        course_id = _text(
+            getattr(course, "id", "")
+            or (course.get("id", "") if isinstance(course, Mapping) else "")
+        )
+        if item_number and course_id:
+            course_ids_by_item.setdefault(item_number, []).append(course_id)
+
+    replacements: dict[str, EdnproQuestionObservation] = {}
+    for item_number, item_questions in groups.items():
+        try:
+            oics = local_store.get_lisa_oic_for_item(
+                item_number,
+                course_ids_by_item.get(item_number, []),
+            )
+            if not oics:
+                continue
+            prompt = build_rank_inference_prompt(item_number, item_questions, oics)
+            response = infer_ednpro_ranks(prompt, service=service)
+            inferred = parse_rank_inference_response(
+                response.text,
+                [_observation_id(row) for row in item_questions],
+            )
+        except Exception as exc:
+            logger.warning("Inférence de rang EDNpro ignorée pour l'item {} : {}", item_number, exc)
+            continue
+        by_id = {_observation_id(row): row for row in item_questions}
+        for question_id, result in inferred.items():
+            original = by_id.get(question_id)
+            if original is None:
+                continue
+            replacements[question_id] = replace(
+                original,
+                rank=result.rank,
+                rank_source=result.source,
+                rank_confidence=result.confidence,
+                rank_evidence=result.oic_codes,
+            )
+
+    enriched = [replacements.get(_observation_id(observation), observation) for observation in observations]
+    result = dict(session)
+    result["questions"] = [asdict(observation) for observation in enriched]
+    return result
 
 
 def _session_date(raw: Any) -> str:

@@ -7,6 +7,7 @@ from backend.core.ai.tasks import (
     generate_ecos,
     generate_kfp,
     generate_qcm,
+    infer_ednpro_ranks,
     generate_uness_correction,
 )
 
@@ -24,6 +25,18 @@ def test_generate_qcm_uses_json_lite_route():
     assert call.args[0] is AITask.QCM
     assert call.kwargs["response_format"] == "json"
     assert '"rank": "A" ou "B"' in call.args[1]
+
+
+def test_infer_ednpro_ranks_uses_item_classification_json_lite_route():
+    service = _service()
+
+    infer_ednpro_ranks("classe ce lot", service=service)
+
+    service.generate.assert_called_once_with(
+        AITask.ITEM_CLASSIFICATION,
+        "classe ce lot",
+        response_format="json",
+    )
 
 
 def test_generate_ecos_selects_lite_or_flash_by_complexity():

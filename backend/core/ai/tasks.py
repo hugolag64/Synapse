@@ -116,6 +116,19 @@ def classify_item(
     return svc.generate(AITask.ITEM_CLASSIFICATION, prompt, response_format="json")
 
 
+def infer_ednpro_ranks(
+    prompt: str,
+    *,
+    service: AIService | None = None,
+) -> AIResponse:
+    """Classify a batch of EDNpro questions against one item's OIC context."""
+    return (service or _default_service()).generate(
+        AITask.ITEM_CLASSIFICATION,
+        prompt,
+        response_format="json",
+    )
+
+
 @dataclass(frozen=True)
 class GridExtractionResult:
     response: AIResponse

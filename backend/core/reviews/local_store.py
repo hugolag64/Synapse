@@ -17,6 +17,7 @@ import hashlib
 import json
 import os
 import sqlite3
+import sys
 import threading
 import uuid
 from pathlib import Path
@@ -31,6 +32,32 @@ _ROOT = Path(__file__).parent.parent.parent.parent
 _configured_db_path = os.getenv("SYNAPSE_TEST_DB_PATH")
 DB_PATH = Path(_configured_db_path).expanduser() if _configured_db_path else _ROOT / "data" / "synapse_local.db"
 DB_BACKUP_DIR = DB_PATH.parent / "backups" if _configured_db_path else _ROOT / "data" / "backups"
+
+
+def _refuse_test_writes_to_the_real_database() -> None:
+    """Refuse d'exposer la base réelle à une suite de tests.
+
+    L'audit du 10 août 2026 a trouvé 695 lignes de test sur 1358 dans
+    `ai_usage_logs`, plus des fixtures dans `ai_practice_questions` et
+    `review_history` : des tests avaient écrit dans la vraie base. `conftest.py`
+    positionne bien `SYNAPSE_TEST_DB_PATH`, mais cette protection ne joue que si
+    elle s'applique avant l'import de ce module — un lancement hors pytest ou un
+    import prématuré y échappait, silencieusement.
+
+    Échouer bruyamment vaut mieux que polluer : une mesure faite sur une base
+    contaminée est indétectable après coup.
+    """
+    if _configured_db_path or "pytest" not in sys.modules:
+        return
+    raise RuntimeError(
+        "pytest est chargé mais SYNAPSE_TEST_DB_PATH n'est pas défini : "
+        f"local_store allait utiliser la base réelle ({DB_PATH}). "
+        "Définis SYNAPSE_TEST_DB_PATH avant d'importer ce module — "
+        "tests/conftest.py le fait déjà pour les exécutions pytest normales."
+    )
+
+
+_refuse_test_writes_to_the_real_database()
 
 
 # ── Connexion ─────────────────────────────────────────────────────────────────

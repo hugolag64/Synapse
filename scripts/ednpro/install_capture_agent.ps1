@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$RepoRoot = (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)),
-    [string]$SynapseUrl = "https://synapse.home.arpa",
+    [string]$SynapseUrl = "http://synapse.home.arpa",
     [switch]$ReplaceToken
 )
 

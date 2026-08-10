@@ -10,7 +10,7 @@ from backend.state.store import data_store
 
 _CSS = """
 .dpc-toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
-.dpc-table { border:1px solid var(--border); border-radius:8px; overflow:hidden; min-width:0; }
+.dpc-table { border:1px solid var(--border); border-radius:8px; overflow:hidden; min-width:0; flex:0 0 auto; }
 .dpc-head { display:grid; grid-template-columns:56px minmax(0,1fr) 64px; align-items:center; gap:10px; padding:6px 12px; font-size:10px;
   text-transform:uppercase; letter-spacing:.04em; color:var(--text-dim); font-weight:600;
   border-bottom:1px solid var(--border); background:var(--bg-alt); }

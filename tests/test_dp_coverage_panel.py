@@ -1,3 +1,4 @@
+from pathlib import Path
 from types import SimpleNamespace
 
 import frontend.components.dp_coverage_panel as panel
@@ -47,3 +48,22 @@ def test_dp_coverage_css_exposes_a_modern_inner_scrollbar():
     assert "overflow-y:scroll" in panel._CSS
     assert "scrollbar-gutter:stable" in panel._CSS
     assert ".dpc-scroll::-webkit-scrollbar" in panel._CSS
+
+
+def test_table_does_not_shrink_inside_the_scroll_container():
+    """.dpc-table est un enfant flex de .dpc-scroll : sans flex:0 0 auto il est
+    comprimé à la hauteur du parent, ses lignes sont masquées par son
+    overflow:hidden, et plus rien ne déborde — donc plus de barre de défilement."""
+    source = Path("frontend/components/dp_coverage_panel.py").read_text(encoding="utf-8")
+
+    table_rule = next(
+        line for line in source.splitlines() if line.startswith(".dpc-table {")
+    )
+    assert "flex:0 0 auto" in table_rule
+    assert "overflow:hidden" in table_rule
+
+    scroll_rule = next(
+        line for line in source.splitlines() if line.startswith(".dpc-scroll {")
+    )
+    assert "max-height:520px" in scroll_rule
+    assert "overflow-y:scroll" in scroll_rule

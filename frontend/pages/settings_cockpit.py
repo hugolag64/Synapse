@@ -100,11 +100,11 @@ _CSS = """
 .se-diag-expansion { border:1px solid var(--border); border-radius:10px; background:var(--surface); margin-top:12px; overflow:hidden; }
 .se-tele-kpis { display:flex; align-items:center; justify-content:space-between; gap:12px;
   border:1px solid var(--border); border-radius:8px; background:var(--bg-alt); padding:12px 14px; }
-.se-tele-value { font-size:20px; font-weight:700; color:var(--success); }
+.se-tele-value { font-size:20px; font-weight:700; color:var(--success-text); }
 .se-tele-strong { font-size:13px; font-weight:600; color:var(--text); }
 .se-tele-muted { font-size:11px; color:var(--text-muted); }
 .se-tele-section-title { font-size:10px; text-transform:uppercase; letter-spacing:.04em;
-  color:var(--text-dim); font-weight:600; margin:14px 0 6px; }
+  color:var(--text-muted); font-weight:600; margin:14px 0 6px; }
 .se-tele-list { display:flex; flex-direction:column; gap:2px; max-height:190px; overflow-y:auto;
   border:1px solid var(--border); border-radius:8px; background:var(--bg-alt); padding:8px 10px; }
 .se-tele-row { display:flex; align-items:center; justify-content:space-between; gap:10px;
@@ -112,9 +112,9 @@ _CSS = """
 .se-tele-row:last-child { border-bottom:none; }
 .se-tele-name { font-weight:600; color:var(--text); min-width:0; overflow:hidden;
   text-overflow:ellipsis; white-space:nowrap; flex:1 1 auto; }
-.se-tele-cost { font-family:var(--font-mono); font-weight:700; color:var(--success); flex:0 0 auto; }
-.se-tele-ok { font-family:var(--font-mono); font-weight:700; color:var(--success); flex:0 0 auto; }
-.se-tele-err { font-family:var(--font-mono); font-weight:700; color:var(--danger); flex:0 0 auto; }
+.se-tele-cost { font-family:var(--font-mono); font-weight:700; color:var(--success-text); flex:0 0 auto; }
+.se-tele-ok { font-family:var(--font-mono); font-weight:700; color:var(--success-text); flex:0 0 auto; }
+.se-tele-err { font-family:var(--font-mono); font-weight:700; color:var(--danger-text); flex:0 0 auto; }
 .se-uness-card { border:1px solid var(--border); border-radius:8px; padding:14px; }
 .se-uness-status { font-size:11.5px; color:var(--text-muted); margin-top:6px; }
 .se-diag-annale { border:1px solid var(--border); border-radius:8px; padding:12px 14px; margin-bottom:8px; }

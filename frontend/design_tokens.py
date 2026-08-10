@@ -41,6 +41,10 @@ _TOKENS_CSS = """
   --college-late-bg: rgba(229, 72, 77, 0.08);
   --scrim: rgba(15, 15, 20, 0.32);
 
+  /* Variantes lisibles en texte sur fond clair */
+  --success-text: #15803d;
+  --danger-text: #b4232a;
+
   /* Typographie */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
@@ -86,6 +90,8 @@ _TOKENS_CSS = """
   --accent-text: #0f0f14;          /* dérivé */
   --accent-wash: rgba(123, 133, 232, 0.14);  /* dérivé : translucide sur fond sombre */
   --shadow-popover: 0 2px 8px rgba(0, 0, 0, 0.40);  /* dérivé : visible sur sombre */
+  --success-text: #3fb271;
+  --danger-text: #e5484d;
 }
 """
 

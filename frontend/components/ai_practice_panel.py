@@ -272,7 +272,9 @@ def render_dp_tutor_action(
                     dialog.close()
                     ui.notify(f"Tuteur DP #{session_id} enregistré", type="positive")
                     refresh()
-                    open_qcm_session(session_id, on_complete=lambda _sid: None, on_back=lambda: None)
+                    # Réutilise le flux standard : il enchaîne vers la correction
+                    # une fois la session terminée.
+                    _open_answer_dialog(session_id, refresh)
 
                 with ui.row().classes("w-full justify-end gap-2 pt-2"):
                     ui.button("Annuler", on_click=dialog.close).props("flat")

@@ -10,6 +10,10 @@ COCKPIT_SOURCE = (
     Path(__file__).parents[1] / "frontend/pages/course_detail_cockpit.py"
 ).read_text(encoding="utf-8")
 
+PANEL_SOURCE = (
+    Path(__file__).parents[1] / "frontend/components/ai_practice_panel.py"
+).read_text(encoding="utf-8")
+
 
 def _extract_function(source: str, name: str) -> str:
     """Renvoie le corps source d'une fonction top-level jusqu'à la prochaine
@@ -73,3 +77,11 @@ def test_dp_tutor_context_is_explicit_and_session_is_dp():
     assert "Patient fébrile" in fake.context
     assert "rang_a" in fake.context
     assert "Urgence thérapeutique" in fake.context
+
+
+def test_tutor_dp_chains_into_the_standard_correction_flow():
+    """Terminer un Tuteur DP doit ouvrir sa correction, comme une session normale."""
+    tutor_body = _extract_function(PANEL_SOURCE, "render_dp_tutor_action")
+
+    assert "_open_answer_dialog(session_id, refresh)" in tutor_body
+    assert "on_complete=lambda _sid: None" not in tutor_body

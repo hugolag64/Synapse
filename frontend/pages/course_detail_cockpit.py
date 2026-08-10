@@ -55,7 +55,11 @@ from frontend.components.course_quick_actions import (
     open_start_tracking_dialog,
 )
 from frontend.components.anki_review_session import open_anki_review_session
-from frontend.components.ai_practice_panel import render_ai_practice_panel, render_dp_tutor_action
+from frontend.components.ai_practice_panel import (
+    render_ai_practice_panel,
+    render_dp_tutor_action,
+    trusted_dossier_context,
+)
 from frontend.components.ednpro_frequency_badge import ednpro_frequency_badge
 from frontend.components.responsive_drawer import (
     responsive_drawer, close_drawer, open_drawer, ensure_styles as _drawer_styles,
@@ -940,7 +944,7 @@ def _render_dp_tutor(course, lacunes) -> None:
             for entry in dp_history[:5]:
                 session = entry["session"]
                 questions = entry.get("questions", [])
-                dossier_context = "\n".join(str(q.get("prompt") or "") for q in questions[:5])
+                dossier_context = trusted_dossier_context(session, questions)
                 ui.button(
                     f"Ouvrir le Tuteur DP · Session #{session['id']}",
                     on_click=lambda session=session, dossier_context=dossier_context: render_dp_tutor_action(

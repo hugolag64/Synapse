@@ -108,3 +108,54 @@ def test_tutor_dp_open_session_does_not_refresh_before_opening_reader():
             "refresh() ne doit pas être appelé isolément avant l'ouverture "
             "du lecteur du Tuteur DP"
         )
+
+
+def test_dossier_context_is_dropped_when_the_session_item_was_inferred():
+    """Une session issue d'un import UNESS a reçu son item d'une classification
+    à l'échelle de l'examen entier, pas du sous-dossier. Réutiliser ses énoncés
+    comme contexte recopie l'erreur à chaque génération — c'est le mécanisme
+    observé sur l'item 230, dont le contexte parlait d'insuffisance cardiaque."""
+    from frontend.components.ai_practice_panel import trusted_dossier_context
+
+    questions = [{"prompt": "Stade NYHA de cette dyspnée ?"}, {"prompt": "NT-proBNP ?"}]
+
+    assert trusted_dossier_context({"id": 211, "annale_id": 52}, questions) == ""
+
+
+def test_dossier_context_is_kept_when_the_item_was_declared_at_creation():
+    from frontend.components.ai_practice_panel import trusted_dossier_context
+
+    questions = [{"prompt": "Premier énoncé"}, {"prompt": "Deuxième énoncé"}]
+
+    context = trusted_dossier_context({"id": 3, "annale_id": None}, questions)
+
+    assert context == "Premier énoncé\nDeuxième énoncé"
+
+
+def test_dossier_context_keeps_at_most_five_prompts():
+    from frontend.components.ai_practice_panel import trusted_dossier_context
+
+    questions = [{"prompt": f"Q{i}"} for i in range(9)]
+
+    context = trusted_dossier_context({"annale_id": None}, questions)
+
+    assert context.splitlines() == ["Q0", "Q1", "Q2", "Q3", "Q4"]
+
+
+def test_tutor_call_sites_no_longer_build_the_context_inline():
+    """Les deux points d'entrée doivent passer par le filtre de confiance."""
+    assert "trusted_dossier_context" in COCKPIT_SOURCE
+    assert 'q.get("prompt") or ""' not in _extract_function(COCKPIT_SOURCE, "_render_dp_tutor")
+
+    qcm_source = (
+        Path(__file__).parents[1] / "frontend/pages/qcm_cockpit.py"
+    ).read_text(encoding="utf-8")
+    assert "trusted_dossier_context" in qcm_source
+
+
+def test_dossier_context_refuses_a_session_without_known_provenance():
+    """Sans colonne annale_id dans le dictionnaire, on ne peut pas savoir si
+    l'item vient d'une classification à l'échelle de l'examen : on refuse."""
+    from frontend.components.ai_practice_panel import trusted_dossier_context
+
+    assert trusted_dossier_context({"id": 7}, [{"prompt": "Énoncé"}]) == ""

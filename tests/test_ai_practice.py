@@ -682,3 +682,86 @@ def test_stored_model_is_the_one_actually_returned_by_the_provider():
     service.create_new_session(spec)
 
     assert recorded["model"] == AIModel.FLASH.value
+
+
+def test_prompt_names_the_item_instead_of_only_its_number():
+    """Le modèle ne doit pas avoir à deviner ce qu'est « l'ITEM 230 » de mémoire."""
+    from backend.core.practice.service import _prompt_for
+
+    spec = PracticeSessionSpec(
+        practice_kind=PracticeKind.DP,
+        total_questions=3,
+        open_questions=0,
+        closed_questions=3,
+        item_number="230",
+    )
+
+    prompt = _prompt_for(spec)
+
+    assert "Douleur thoracique aiguë" in prompt
+    assert "Cardiovasculaire" in prompt
+    assert "ITEM 230" in prompt
+
+
+def test_prompt_stays_honest_when_the_item_is_unknown():
+    """Un item hors référentiel ne doit pas produire un intitulé inventé."""
+    from backend.core.practice.service import _prompt_for
+
+    spec = PracticeSessionSpec(
+        practice_kind=PracticeKind.QCM,
+        total_questions=1,
+        open_questions=0,
+        closed_questions=1,
+        item_number="9999",
+    )
+
+    prompt = _prompt_for(spec)
+
+    assert "9999" in prompt
+    assert "intitulé inconnu" in prompt
+
+
+def test_prompt_lists_the_oic_objectives_when_they_are_known():
+    from backend.core.practice.service import _prompt_for
+
+    spec = PracticeSessionSpec(
+        practice_kind=PracticeKind.DP,
+        total_questions=1,
+        open_questions=0,
+        closed_questions=1,
+        item_number="230",
+    )
+
+    prompt = _prompt_for(spec, objectives=("2C-230-DP-A01 : reconnaître un SCA ST+",))
+
+    assert "2C-230-DP-A01" in prompt
+
+
+def test_generation_survives_an_unavailable_oic_lookup(monkeypatch):
+    """Une panne de la base OIC ne doit pas empêcher de générer une session."""
+    import backend.core.practice.service as service_module
+
+    def _boom(_course_ids):
+        raise RuntimeError("base indisponible")
+
+    monkeypatch.setattr(service_module, "get_item_oics", _boom)
+
+    class FakeAI:
+        def generate(self, task, prompt, *, context=None, response_format="text", difficulty=None):
+            payload = {"questions": [
+                {"kind": "closed", "prompt": "P", "choices": ["A", "B"], "answer": "A", "explanation": "E"},
+            ]}
+            return AIResponse(json.dumps(payload), AIModel.FLASH, 10, 10)
+
+    spec = PracticeSessionSpec(
+        practice_kind=PracticeKind.QCM,
+        total_questions=1,
+        open_questions=0,
+        closed_questions=1,
+        item_number="230",
+        course_id="course-230",
+    )
+
+    questions = PracticeService(ai_service=FakeAI(), store=SimpleNamespace()).generate_questions(spec)
+
+    assert len(questions) == 1

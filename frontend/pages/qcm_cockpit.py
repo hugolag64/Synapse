@@ -25,7 +25,11 @@ from nicegui import ui
 from backend.core.qcm.service import QCM_PASS_THRESHOLD
 from backend.core.reviews import local_store
 from backend.state.store import data_store
-from frontend.components.ai_practice_panel import _open_generation_dialog, render_dp_tutor_action
+from frontend.components.ai_practice_panel import (
+    _open_generation_dialog,
+    render_dp_tutor_action,
+    trusted_dossier_context,
+)
 from frontend.components.mastery_indicator import _LEVEL_COLOR, _level_from_score
 from frontend.components.practice_import_panel import open_practice_import_dialog
 from frontend.components.practice_session_card import open_node_qcm, render_session_actions
@@ -532,11 +536,7 @@ def render_qcm_cockpit() -> None:
 
     def _open_dp_tutor(session: dict) -> None:
         questions = local_store.get_ai_practice_session(int(session["id"]))
-        dossier_context = "\n".join(
-            str(question.get("prompt") or "").strip()
-            for question in questions[:5]
-            if str(question.get("prompt") or "").strip()
-        )
+        dossier_context = trusted_dossier_context(session, questions)
         render_dp_tutor_action(
             item_number=str(session.get("item_number") or ""),
             dp_session={**session, "dossier_context": dossier_context},

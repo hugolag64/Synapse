@@ -2846,7 +2846,7 @@ def get_ai_practice_history(*, item_number: str, limit: int = 100) -> list:
     with _conn() as con:
         sessions = con.execute(
             """SELECT id, created_at, completed_at, practice_kind, model, difficulty,
-                      score_percent
+                      score_percent, annale_id
                FROM ai_practice_sessions
                WHERE item_number = ?
                ORDER BY id DESC LIMIT ?""",

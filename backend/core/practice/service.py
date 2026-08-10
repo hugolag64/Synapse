@@ -7,8 +7,12 @@ import re
 from dataclasses import asdict, replace
 from typing import Any
 
+from loguru import logger
+
 from backend.core.ai.routing import AITask, model_for_task
 from backend.core.ai.service import AIService
+from backend.core.lisa.item_service import get_item_oics
+from backend.core.qcm.items_mapping import resolve as resolve_item
 
 from .models import GeneratedQuestion, PracticeDifficulty, PracticeKind, PracticeSessionSpec, QuestionKind
 
@@ -42,7 +46,49 @@ def _task_for(kind: PracticeKind) -> AITask:
     }[kind]
 
 
-def _prompt_for(spec: PracticeSessionSpec, context: str = "") -> str:
+_MAX_OBJECTIVES_IN_PROMPT = 12
+
+
+def _item_identity(spec: PracticeSessionSpec) -> str:
+    """Identifie l'item par son intitulé, pas seulement par son numéro.
+
+    Le prompt ne portait que « ITEM 230 » : le modèle devait deviner de mémoire à
+    quoi ce numéro correspond, alors que la numérotation EDN a changé entre
+    versions du référentiel — d'où des dossiers hors sujet.
+    """
+    number = str(spec.item_number or "").strip()
+    if not number:
+        return "un ITEM non précisé"
+    title, college = resolve_item(number)
+    if not title:
+        return f"l'ITEM {number} (intitulé inconnu du référentiel)"
+    if college:
+        return f"l'ITEM {number} — {title} (collège : {college})"
+    return f"l'ITEM {number} — {title}"
+
+
+def _format_objectives(rows) -> tuple[str, ...]:
+    """Transforme des lignes OIC en libellés « code : intitulé » lisibles."""
+    formatted: list[str] = []
+    for row in rows or ():
+        try:
+            code = str(row["oic_code"] or "").strip()
+            label = str(row["intitule"] or "").strip()
+        except (TypeError, KeyError, IndexError):
+            continue
+        if not code and not label:
+            continue
+        formatted.append(f"{code} : {label}" if code and label else code or label)
+        if len(formatted) >= _MAX_OBJECTIVES_IN_PROMPT:
+            break
+    return tuple(formatted)
+
+
+def _prompt_for(
+    spec: PracticeSessionSpec,
+    context: str = "",
+    objectives: tuple[str, ...] = (),
+) -> str:
     distribution = (
         f"{spec.open_questions} ouverte(s) et {spec.closed_questions} fermée(s)"
     )
@@ -52,11 +98,17 @@ def _prompt_for(spec: PracticeSessionSpec, context: str = "") -> str:
         PracticeDifficulty.DIFFICULT: "niveau Difficile : ajouter des données parasites, des distracteurs plausibles et des décisions moins évidentes",
         PracticeDifficulty.CONCOURS: "niveau Concours : proposer des cas intégratifs, une hiérarchisation fine, de l'incertitude et des distracteurs très proches",
     }[spec.difficulty]
+    objectives_block = (
+        "Objectifs OIC de cet item :\n" + "\n".join(f"- {line}" for line in objectives)
+        if objectives
+        else f"Objectif OIC : {spec.objective_code or 'non précisé'}."
+    )
     return f"""
-Génère une session médicale fiable pour l'ITEM {spec.item_number or 'non précisé'}.
+Génère une session médicale fiable pour {_item_identity(spec)}.
+Le sujet doit rester celui de cet item : n'aborde pas une autre pathologie.
 Type : {spec.practice_kind.value}. Total : {spec.total_questions} questions ({distribution}).
 Niveau de difficulté : {difficulty_instructions}.
-Objectif OIC : {spec.objective_code or 'non précisé'}.
+{objectives_block}
 Contexte de cours : fourni dans le bloc documentaire séparé.
 
 Retourne uniquement ce JSON :
@@ -134,6 +186,20 @@ class PracticeService:
             store = local_store
         self.store = store
 
+    def _objectives_for(self, spec: PracticeSessionSpec) -> tuple[str, ...]:
+        """Objectifs OIC de l'item, ou rien si la base est indisponible.
+
+        Un enrichissement de prompt ne doit jamais empêcher de générer : en cas
+        d'échec on retombe sur le prompt sans objectifs.
+        """
+        if not spec.course_id:
+            return ()
+        try:
+            return _format_objectives(get_item_oics([spec.course_id]))
+        except Exception:
+            logger.warning("Objectifs OIC indisponibles pour {}", spec.course_id)
+            return ()
+
     def generate_questions(
         self,
         spec: PracticeSessionSpec,
@@ -164,6 +230,7 @@ class PracticeService:
             raise ValueError("max_attempts doit être compris entre 1 et 3")
         task = _task_for(spec.practice_kind)
         ctx_label = context or (f"ITEM {spec.item_number}" if spec.item_number else spec.practice_kind.value.upper())
+        objectives = self._objectives_for(spec)
         last_error: PracticeGenerationError | None = None
         for attempt in range(int(max_attempts)):
             retry_hint = ""
@@ -175,7 +242,7 @@ class PracticeService:
                 )
             response = self.ai_service.generate(
                 task,
-                _prompt_for(spec, context) + retry_hint,
+                _prompt_for(spec, context, objectives) + retry_hint,
                 context=ctx_label,
                 response_format="json",
                 difficulty=spec.difficulty,

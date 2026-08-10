@@ -158,6 +158,30 @@ def _open_correction_dialog(session_id: int, refresh) -> None:
     )
 
 
+_DOSSIER_CONTEXT_PROMPTS = 5
+
+
+def trusted_dossier_context(session: dict, questions: list[dict]) -> str:
+    """Énoncés réutilisables comme contexte, uniquement si l'item est fiable.
+
+    Une session rattachée à une annale (`annale_id`) a reçu son item d'une
+    classification faite à l'échelle de l'examen entier, pas du sous-dossier :
+    un examen de Cardiologie contenant cinq dossiers distincts les étiquette
+    tous du même item. Réutiliser ses énoncés comme contexte pédagogique
+    recopie l'erreur dans chaque nouvelle génération — c'est ce qui faisait
+    parler d'insuffisance cardiaque un Tuteur DP ouvert sur « Douleur
+    thoracique ». Mieux vaut un contexte vide qu'un contexte hors sujet.
+    """
+    # Provenance absente du dictionnaire : on refuse plutôt que de supposer.
+    if "annale_id" not in session or session["annale_id"] is not None:
+        return ""
+    prompts = [
+        str(question.get("prompt") or "").strip()
+        for question in (questions or [])[:_DOSSIER_CONTEXT_PROMPTS]
+    ]
+    return "\n".join(prompt for prompt in prompts if prompt)
+
+
 def build_dp_tutor_context(dossier_context: str, errors: list[dict], gap_details: list[str]) -> str:
     error_lines = [
         f"- {row.get('category', 'non_classe')}: {row.get('detail', '')}".strip()
@@ -195,6 +219,12 @@ def render_dp_tutor_action(
                 with context_panel:
                     ui.label("Contexte pédagogique").classes("text-sm font-semibold")
                     ui.label("Le dossier, tes erreurs et tes lacunes servent à cibler les questions.").classes("text-xs text-slate-500")
+                    if not str(dp_session.get("dossier_context") or "").strip():
+                        ui.label(
+                            "Aucun dossier n'a été pré-rempli : les sessions issues d'annales "
+                            "reçoivent leur item à l'échelle de l'examen entier, pas du sous-dossier, "
+                            "et pourraient porter sur un autre sujet. Décris le contexte toi-même."
+                        ).classes("text-xs text-amber-700 dark:text-amber-400")
                     context_input = ui.textarea(value=context).props("outlined autogrow").classes("w-full")
 
                 options_panel = ui.column().classes("w-full gap-3")

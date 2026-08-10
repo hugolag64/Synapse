@@ -38,6 +38,26 @@ def test_normalize_training_payload_merges_duplicate_items_and_years():
     ]
 
 
+def test_normalize_training_payload_accepts_ednpro_annales_index_shape():
+    from backend.core.ednpro.frequency import normalize_training_payload
+
+    rows = normalize_training_payload(
+        [{
+            "item_number": 247,
+            "nb_sessions": 13,
+            "nb_questions": 31,
+            "annees": [2025, 2024, 2023, 2022],
+        }],
+        source_url="https://ednpro.app/training-v2",
+        collected_at="2026-08-10T10:27:04+00:00",
+    )
+
+    assert rows[0]["priority"] == "indispensable"
+    assert rows[0]["session_count"] == 13
+    assert rows[0]["question_count"] == 31
+    assert rows[0]["years"] == [2022, 2023, 2024, 2025]
+
+
 def test_gain_priority_uses_mastery_gap_and_imported_question_availability():
     from backend.core.ednpro.frequency import calculate_gain_priority
 

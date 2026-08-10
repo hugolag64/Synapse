@@ -760,6 +760,15 @@ def get_ednpro_item_frequency(item_number: str) -> dict | None:
     return _frequency_row(row) if row else None
 
 
+def get_all_ednpro_item_frequencies() -> dict[str, dict]:
+    """Return the active EDNpro frequency snapshot indexed by item number."""
+    with _conn() as con:
+        rows = con.execute(
+            "SELECT * FROM ednpro_item_frequency ORDER BY item_number"
+        ).fetchall()
+    return {str(row["item_number"]): _frequency_row(row) for row in rows}
+
+
 def get_ednpro_frequency_snapshot() -> dict | None:
     with _conn() as con:
         row = con.execute(

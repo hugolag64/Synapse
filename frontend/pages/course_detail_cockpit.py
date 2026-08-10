@@ -56,6 +56,7 @@ from frontend.components.course_quick_actions import (
 )
 from frontend.components.anki_review_session import open_anki_review_session
 from frontend.components.ai_practice_panel import render_ai_practice_panel, render_dp_tutor_action
+from frontend.components.ednpro_frequency_badge import ednpro_frequency_badge
 from frontend.components.responsive_drawer import (
     responsive_drawer, close_drawer, open_drawer, ensure_styles as _drawer_styles,
 )
@@ -374,6 +375,8 @@ def render_item_cockpit(course_id: str) -> None:
 
     item_label = course.display_item_number or course.item_number or "—"
     college = (course.college or [""])[0] if course.college else ""
+    frequency_map = local_store.get_all_ednpro_item_frequencies()
+    frequency = frequency_map.get(str(course.item_number or "").strip().removeprefix("ITEM "))
     ring = _ring_glyph(score)
     item_key = str(course.display_item_number or course.item_number or "").strip()
     oic_course_ids = [
@@ -446,6 +449,9 @@ def render_item_cockpit(course_id: str) -> None:
                 with ui.element("div").classes("ci-meta-cell"):
                     ui.label("QCM moyen").classes("ci-meta-label")
                     ui.label(f"{qcm_summary['avg_score']} %").classes("ci-meta-val mono")
+            with ui.element("div").classes("ci-meta-cell"):
+                ui.label("EDNpro").classes("ci-meta-label")
+                ednpro_frequency_badge(frequency, compact=True)
 
         # Actions
         with ui.element("div").classes("ci-actions"):

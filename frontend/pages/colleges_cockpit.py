@@ -24,6 +24,7 @@ from nicegui import ui
 from backend.state.store import data_store
 from backend.core.knowledge import store as knowledge_store
 from backend.core.knowledge.college_validation import assess_college_validation
+from backend.core.reviews import local_store
 from backend.core.reviews.local_store import get_all_history, get_qcm_last_scores_by_course
 from backend.core.reviews.validation import complete_review
 from backend.core.reviews.service import review_service
@@ -32,6 +33,7 @@ from frontend.components.mastery_indicator import _LEVEL_COLOR, _level_from_scor
 from frontend.components.learning_metrics import build_advancement
 from frontend.components.data_grid import DataGrid, GridColumn
 from frontend.components.status_badge import status_class, status_label
+from frontend.components.ednpro_frequency_badge import ednpro_frequency_badge
 from frontend.components.responsive_drawer import (
     responsive_drawer, close_drawer, open_drawer, ensure_styles as _drawer_styles,
 )
@@ -122,8 +124,8 @@ _CSS = """
   .cg-panel > .synapse-responsive-drawer { display:contents; }
   .cg-context-open { display:inline-flex; }
 }
-.cg-items-grid { min-width:760px; }
-.cg-item-head, .cg-item { display:grid; grid-template-columns:minmax(180px,2fr) 76px 76px 120px 86px 100px 56px 88px; align-items:center; column-gap:10px; }
+.cg-items-grid { min-width:880px; }
+.cg-item-head, .cg-item { display:grid; grid-template-columns:minmax(180px,2fr) 76px 76px 120px 86px 100px 56px 104px 88px; align-items:center; column-gap:10px; }
 .cg-item-head > *, .cg-item > * { min-width:0; box-sizing:border-box; }
 .cg-item-head { min-height:24px; padding:0 0 5px; color:var(--text-dim); font-size:9px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; }
 .cg-item { min-height:36px; padding:5px 0; border-top:1px solid var(--border); }
@@ -161,6 +163,7 @@ _COLLEGE_ITEM_GRID = DataGrid(
         GridColumn("late", "Retard", "86px"),
         GridColumn("next", "Prochaine", "100px"),
         GridColumn("qcm", "QCM", "56px"),
+        GridColumn("ednpro", "EDNpro", "104px"),
         GridColumn("action", "", "88px"),
     )
 )
@@ -172,12 +175,14 @@ def _college_item_rows(
     mastery_by_course: dict[str, tuple] | None = None,
     urgent_ids: set[str] | None = None,
     qcm_map: dict[str, dict] | None = None,
+    frequency_map: dict[str, dict] | None = None,
     college_validated: bool = False,
 ) -> list[dict]:
     """Construit la vue simplifiée d'un collège, triée par numéro d'item."""
     mastery_by_course = mastery_by_course or {}
     urgent_ids = urgent_ids or set()
     qcm_map = qcm_map or {}
+    frequency_map = frequency_map or {}
     task_by_course: dict[str, object] = {}
     for task in tasks:
         previous = task_by_course.get(task.course_id)
@@ -196,6 +201,7 @@ def _college_item_rows(
         task = task_by_course.get(course.id)
         score, level = mastery_by_course.get(course.id, (None, None))
         semantics = _course_semantics(course, score, level, college_validated)
+        item_number = str(getattr(course, "item_number", "") or "").strip().removeprefix("ITEM ")
         rows.append({
             "course": course,
             "task": task,
@@ -205,6 +211,7 @@ def _college_item_rows(
             "urgent": course.id in urgent_ids,
             "next_task": task,
             "qcm_score": qcm_map.get(course.id, {}).get("last_score"),
+            "ednpro_frequency": frequency_map.get(item_number),
         })
     return rows
 
@@ -332,6 +339,7 @@ def render_colleges_cockpit() -> None:
         )
         urgent_ids = {t.course_id for t in review_service.get_urgent_tasks(all_tasks)}
         qcm_map = get_qcm_last_scores_by_course()
+        frequency_map = local_store.get_all_ednpro_item_frequencies()
 
         mastery_by_course: dict[str, tuple] = {}
         for t in all_tasks:
@@ -397,6 +405,7 @@ def render_colleges_cockpit() -> None:
                 "status_counts": status_counts,
                 "urgent_ids": urgent_ids,
                 "qcm_map": qcm_map,
+                "frequency_map": frequency_map,
                 "validation": validation,
             })
         return rows
@@ -597,7 +606,7 @@ def render_colleges_cockpit() -> None:
                             ui.label(label)
                     item_rows = _college_item_rows(
                         r["courses"], r["tasks"], r["mastery_by_course"],
-                        r["urgent_ids"], r["qcm_map"],
+                        r["urgent_ids"], r["qcm_map"], r["frequency_map"],
                         college_validated=r["validation"].manual_status == "valide",
                     )
                     if not item_rows:
@@ -649,6 +658,9 @@ def render_colleges_cockpit() -> None:
                             else:
                                 qcm_color = _LEVEL_COLOR.get(_level_from_score(qcm_score), "var(--text-muted)")
                                 ui.label(f"{qcm_score}%").classes("cg-item-cell mono").style(f"color:{qcm_color}")
+
+                            with ui.element("div").classes("cg-item-cell"):
+                                ednpro_frequency_badge(item["ednpro_frequency"], compact=True)
 
                             if task is not None:
                                 ui.button(

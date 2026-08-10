@@ -80,3 +80,21 @@ def test_frequency_history_keeps_snapshots_and_reports_changes():
         "221": "changed",
         "330": "added",
     }
+
+
+def test_get_all_ednpro_item_frequencies_returns_indexed_rows():
+    from backend.core.reviews import local_store
+
+    local_store.replace_ednpro_item_frequencies([
+        {
+            "item_number": "247", "priority": "indispensable",
+            "session_count": 13, "question_count": 31, "years": [2022, 2025],
+            "source_url": "training-v2", "collected_at": "2026-08-10T10:00:00+00:00",
+        },
+    ])
+
+    frequencies = local_store.get_all_ednpro_item_frequencies()
+
+    assert frequencies["247"]["priority"] == "indispensable"
+    assert frequencies["247"]["years"] == [2022, 2025]
+    assert frequencies.get("999") is None

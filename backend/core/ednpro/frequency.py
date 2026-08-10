@@ -62,6 +62,16 @@ def _priority(value: Any) -> str:
     return aliases.get(normalized, "basique")
 
 
+def _priority_from_session_count(session_count: int) -> str:
+    if session_count >= 3:
+        return "indispensable"
+    if session_count == 2:
+        return "important"
+    if session_count == 1:
+        return "basique"
+    return "jamais_tombe"
+
+
 def _looks_like_item_row(value: object) -> bool:
     if not isinstance(value, dict):
         return False
@@ -96,14 +106,19 @@ def normalize_training_payload(
         ))
         if not item_number:
             continue
+        session_count = _integer(_value(
+            row, "session_count", "nb_sessions", "sessions", "sessions_count",
+            "appearances", "occurrences", "annales", "frequency"
+        ))
+        priority_value = _value(
+            row, "priority", "category", "status", "priorite", "importance", "priority_category"
+        )
         candidate = {
             "item_number": item_number,
-            "priority": _priority(_value(row, "priority", "category", "status", "priorite", "importance", "priority_category")),
-            "session_count": _integer(_value(
-                row, "session_count", "sessions", "sessions_count", "nb_sessions", "appearances", "occurrences", "annales", "frequency"
-            )),
+            "priority": _priority(priority_value) if priority_value is not None else _priority_from_session_count(session_count),
+            "session_count": session_count,
             "question_count": _integer(_value(
-                row, "question_count", "questions", "nb_questions", "qcm_count", "qcm", "question_total"
+                row, "question_count", "nb_questions", "questions", "qcm_count", "qcm", "question_total"
             )),
             "years": _years(_value(
                 row, "years", "annees", "passages", "sessions_years", "years_seen", "annees_passage", default=[]

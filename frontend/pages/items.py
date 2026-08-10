@@ -35,6 +35,7 @@ from backend.core.reviews.local_store import (
 from backend.core.reviews.service import review_service
 from frontend.components.study_task_row import _ring_glyph, due_info
 from frontend.components.mastery_indicator import mastery_indicator, ensure_styles as _mastery_styles
+from frontend.components.ednpro_frequency_badge import ednpro_frequency_badge
 from frontend.components.command_palette import open_command_palette
 
 _CSS = """
@@ -56,38 +57,31 @@ _CSS = """
 .it-chip:hover { background:var(--surface); }
 .it-chip.active { background:var(--accent); border-color:var(--accent); color:var(--accent-text); }
 .it-filter-hint { font-size:11.5px; color:var(--text-dim); font-style:italic; }
-.it-head { display:flex; align-items:center; gap:12px; padding:0 10px 8px; font-size:10px;
+.it-head, .it-row { display:grid; box-sizing:border-box; grid-template-columns:16px 46px minmax(180px,1fr) 110px 160px 70px 140px 84px; align-items:center; column-gap:12px; }
+.it-head { width:100%; padding:0 10px 8px; font-size:10px;
   text-transform:uppercase; letter-spacing:.04em; color:var(--text-dim); font-weight:600;
   border-bottom:1px solid var(--border); }
-.it-h-ring { flex:0 0 16px; }
-.it-h-id { flex:0 0 46px; }
-.it-h-title { flex:1 1 auto; }
-.it-h-college { flex:0 0 160px; }
-.it-h-type { flex:0 0 70px; }
-.it-h-mastery { flex:0 0 140px; }
-.it-h-next { flex:0 0 84px; }
-.it-row { display:flex; align-items:center; gap:12px; height:44px; width:100%; min-width:0; padding:0 10px; border-bottom:1px solid var(--border);
+.it-row { min-height:54px; height:auto; width:100%; min-width:0; padding:7px 10px; border-bottom:1px solid var(--border);
   cursor:pointer; color:var(--text); text-decoration:none; transition: background var(--duration-fast) var(--ease-standard); }
 .it-row:hover { background:var(--surface); }
 .it-row:last-child { border-bottom:none; }
 .it-ring { font-size:14px; color:var(--text-muted); flex:0 0 16px; text-align:center; }
 .it-id { font-family:var(--font-mono); font-size:11.5px; color:var(--text-muted); flex:0 0 46px; }
-.it-title-cell { flex:1 1 auto; min-width:0; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.it-college { flex:0 0 160px; font-size:12px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.it-last { flex:0 0 160px; display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); }
+.it-title-cell { min-width:0; font-size:13px; line-height:1.3; white-space:normal; overflow:hidden; text-overflow:clip; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; }
+.it-frequency { min-width:0; }
+.it-college { min-width:0; font-size:12px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.it-last { min-width:0; display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); }
 .it-last-dot { width:6px; height:6px; border-radius:50%; flex:0 0 6px; }
 .it-type { font-family:var(--font-mono); font-size:10px; letter-spacing:.03em; color:var(--text-muted);
-  border:1px solid var(--border); border-radius:4px; padding:1px 5px; flex:0 0 70px; text-align:center; }
-.it-mastery { flex:0 0 140px; }
-.it-next { display:flex; align-items:center; gap:5px; flex:0 0 84px; font-size:11.5px; color:var(--text-muted); }
+  border:1px solid var(--border); border-radius:4px; padding:1px 5px; text-align:center; }
+.it-mastery { min-width:0; }
+.it-next { min-width:0; display:flex; align-items:center; gap:5px; font-size:11.5px; color:var(--text-muted); }
 .it-next-dot { width:6px; height:6px; border-radius:50%; flex:0 0 6px; }
 .it-empty { padding:32px 10px; text-align:center; color:var(--text-dim); font-size:13px; }
 .it-group-label { padding:12px 10px 6px; color:var(--text-dim); font-size:10px; font-weight:600;
   letter-spacing:.05em; text-transform:uppercase; border-bottom:1px solid var(--border); }
 @media (max-width: 900px) {
-  .it-college, .it-h-college { flex-basis:120px; }
-  .it-mastery, .it-h-mastery { flex-basis:110px; }
-  .it-next, .it-h-next { flex-basis:70px; }
+  .it-head, .it-row { grid-template-columns:16px 46px minmax(150px,1fr) 96px 120px 70px 110px 70px; }
 }
 """
 
@@ -236,6 +230,7 @@ def items_page(request: Request) -> None:
                 next_by_course[t.course_id] = t
 
         qcm_trends = local_store.get_qcm_latest_by_course()
+        frequency_map = local_store.get_all_ednpro_item_frequencies()
         rows = []
         for c in courses:
             sessions = sessions_map.get(c.id, [])
@@ -250,6 +245,9 @@ def items_page(request: Request) -> None:
                 "mastery_level": mastery.level,
                 "qcm_score": qcm_info.get("last_score"),
                 "qcm_trend": qcm_info.get("trend"),
+                "ednpro_frequency": frequency_map.get(
+                    str(c.item_number or "").strip().removeprefix("ITEM ")
+                ),
                 "type_tag": _type_tag(c, lacune_ids),
                 "next_task": next_by_course.get(c.id),
                 "sessions": sessions,
@@ -331,6 +329,7 @@ def items_page(request: Request) -> None:
             ui.label("").classes("it-h-ring")
             ui.label("ITEM").classes("it-h-id")
             ui.label("TITRE").classes("it-h-title")
+            ui.label("EDNpro").classes("it-h-frequency")
             ui.label("COLLÈGE" if show_college else "DERNIÈRE RÉVISION").classes("it-h-college")
             ui.label("TYPE").classes("it-h-type")
             ui.label("MAÎTRISE").classes("it-h-mastery")
@@ -345,6 +344,8 @@ def items_page(request: Request) -> None:
             ui.label(_ring_glyph(r["mastery_score"])).classes("it-ring")
             ui.label(c.item_number or "—").classes("it-id")
             ui.label(c.title).classes("it-title-cell")
+            with ui.element("div").classes("it-frequency"):
+                ednpro_frequency_badge(r.get("ednpro_frequency"), compact=True)
             if show_college:
                 college = " · ".join(c.college or [""])
                 ui.label(college).classes("it-college")

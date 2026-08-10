@@ -1073,3 +1073,45 @@ déjà éprouvé, pas une nouvelle convention à inventer.
 - La navigation principale (`cockpit_shell.py::_NAV_GROUPS`) ne contient aucune entrée vers une page
   cassée : les deux seules routes orphelines trouvées (`/exam`, `/health`) sont des doublons de
   fonctionnalités par ailleurs correctement exposées, pas des impasses pour l'utilisateur.
+
+---
+
+## Addendum du 10 août — nuance sur le constat « collège Notion vs référentiel UNESS »
+
+Le constat Critique de l'axe intégrité des données (« 51 % des cours classés contredisent le
+référentiel ») a été revérifié indépendamment. **Le chiffre est exact** — 289 cours divergents sur
+564 ayant à la fois un item et un collège — **mais sa qualification comme erreur ne l'est pas.**
+
+Les couples divergents les plus fréquents :
+
+| Cours | Collège Notion | Collège référentiel |
+|---:|---|---|
+| 17 | Pédiatrie | Infectiologie |
+| 11 | Anesthésie-Réanimation | Médecine Intensive - Réanimation |
+| 11 | Gynécologie médicale | Gynécologie-Obstétrique |
+| 7 | Pédiatrie | Hépato-Gastro-entérologie |
+| 6 | Pédiatrie | Hématologie |
+| 6 | Médecine Interne | Hématologie |
+
+Au moins trois phénomènes distincts sont confondus sous ce chiffre :
+
+1. **Variantes de libellé** — « Gynécologie médicale » et « Gynécologie-Obstétrique » désignent le
+   même collège ; « Anesthésie-Réanimation » et « Médecine Intensive - Réanimation » sont adjacents.
+   La comparaison se fait par inclusion de chaîne, ce qui les compte à tort comme divergences.
+2. **Items légitimement multi-collèges** — une pathologie infectieuse de l'enfant est couverte par le
+   Collège de Pédiatrie *et* par celui d'Infectiologie. Le référentiel n'en retient qu'un ; le choix
+   inverse dans Notion n'est pas une erreur.
+3. **De vraies erreurs de classement** — par exemple Hypercalcémie (item 268) rangée en
+   Endocrinologie alors que le référentiel dit Néphrologie.
+
+**Conséquence sur la piste proposée.** Réécrire les 289 cours sur le référentiel serait nuisible :
+cela reclasserait de force des cours de pédiatrie dans des collèges d'organes, en contradiction avec
+l'organisation réelle des ouvrages et des révisions.
+
+Le vrai sujet n'est pas un nettoyage de données mais une question de conception : **le modèle suppose
+un collège unique par item alors que la réalité en admet parfois deux**, et la comparaison utilisée
+pour détecter les divergences est trop naïve pour distinguer un synonyme d'un désaccord.
+
+Ce point est donc retiré de la vague 2 et remis à l'état de question ouverte, à instruire avant toute
+correction. Le principe « le référentiel UNESS fait autorité » reste valable pour arbitrer un
+désaccord réel ; il ne dit rien du cas où un item relève de deux collèges.

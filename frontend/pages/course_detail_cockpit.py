@@ -450,7 +450,7 @@ def render_item_cockpit(course_id: str) -> None:
                     ui.label("QCM moyen").classes("ci-meta-label")
                     ui.label(f"{qcm_summary['avg_score']} %").classes("ci-meta-val mono")
             with ui.element("div").classes("ci-meta-cell"):
-                ui.label("EDNpro").classes("ci-meta-label")
+                ui.label("Priorité annale").classes("ci-meta-label")
                 ednpro_frequency_badge(frequency, compact=True)
 
         # Actions

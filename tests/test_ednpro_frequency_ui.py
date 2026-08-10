@@ -27,9 +27,10 @@ def test_colleges_and_item_detail_render_ednpro_frequency_badge():
     detail_source = inspect.getsource(course_detail_cockpit)
     assert "get_all_ednpro_item_frequencies" in colleges_source
     assert "ednpro_frequency_badge" in colleges_source
-    assert "EDNpro" in colleges_source
+    assert "Priorité annale" in colleges_source
     assert "get_all_ednpro_item_frequencies" in detail_source
     assert "ednpro_frequency_badge" in detail_source
+    assert "Priorité annale" in detail_source
 
 
 def test_items_page_renders_frequency_badge_and_wrapped_title():
@@ -38,5 +39,8 @@ def test_items_page_renders_frequency_badge_and_wrapped_title():
     source = inspect.getsource(items)
     assert "get_all_ednpro_item_frequencies" in source
     assert "ednpro_frequency_badge" in source
-    assert "EDNpro" in source
+    assert "Priorité annale" in source
     assert "white-space:normal" in source or "white-space: normal" in source
+    assert ".it-head > * { text-align:center; }" in source
+    assert ".it-id {" in source and "text-align:center" in source
+    assert ".it-frequency {" in source and "justify-content:center" in source

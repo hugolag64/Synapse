@@ -55,7 +55,7 @@ def test_college_item_grid_uses_fixed_action_track():
 
     assert 'GridColumn("action", "", "88px")' in source
     assert "grid-template-columns:minmax(180px,2fr) 76px 76px 120px 86px 100px 56px 104px 88px;" in source
-    assert 'GridColumn("ednpro", "EDNpro", "104px")' in source
+    assert 'GridColumn("ednpro", "Priorité annale", "104px")' in source
     assert ".cg-item-head > *, .cg-item > * { min-width:0; box-sizing:border-box; }" in source
 
 

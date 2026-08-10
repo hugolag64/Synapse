@@ -61,14 +61,15 @@ _CSS = """
 .it-head { width:100%; padding:0 10px 8px; font-size:10px;
   text-transform:uppercase; letter-spacing:.04em; color:var(--text-dim); font-weight:600;
   border-bottom:1px solid var(--border); }
+.it-head > * { text-align:center; }
 .it-row { min-height:54px; height:auto; width:100%; min-width:0; padding:7px 10px; border-bottom:1px solid var(--border);
   cursor:pointer; color:var(--text); text-decoration:none; transition: background var(--duration-fast) var(--ease-standard); }
 .it-row:hover { background:var(--surface); }
 .it-row:last-child { border-bottom:none; }
 .it-ring { font-size:14px; color:var(--text-muted); flex:0 0 16px; text-align:center; }
-.it-id { font-family:var(--font-mono); font-size:11.5px; color:var(--text-muted); flex:0 0 46px; }
+.it-id { font-family:var(--font-mono); font-size:11.5px; color:var(--text-muted); flex:0 0 46px; text-align:center; }
 .it-title-cell { min-width:0; font-size:13px; line-height:1.3; white-space:normal; overflow:hidden; text-overflow:clip; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; }
-.it-frequency { min-width:0; }
+.it-frequency { min-width:0; display:flex; align-items:center; justify-content:center; text-align:center; }
 .it-college { min-width:0; font-size:12px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .it-last { min-width:0; display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); }
 .it-last-dot { width:6px; height:6px; border-radius:50%; flex:0 0 6px; }
@@ -329,7 +330,7 @@ def items_page(request: Request) -> None:
             ui.label("").classes("it-h-ring")
             ui.label("ITEM").classes("it-h-id")
             ui.label("TITRE").classes("it-h-title")
-            ui.label("EDNpro").classes("it-h-frequency")
+            ui.label("Priorité annale").classes("it-h-frequency")
             ui.label("COLLÈGE" if show_college else "DERNIÈRE RÉVISION").classes("it-h-college")
             ui.label("TYPE").classes("it-h-type")
             ui.label("MAÎTRISE").classes("it-h-mastery")

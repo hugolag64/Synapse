@@ -163,7 +163,7 @@ _COLLEGE_ITEM_GRID = DataGrid(
         GridColumn("late", "Retard", "86px"),
         GridColumn("next", "Prochaine", "100px"),
         GridColumn("qcm", "QCM", "56px"),
-        GridColumn("ednpro", "EDNpro", "104px"),
+        GridColumn("ednpro", "Priorité annale", "104px"),
         GridColumn("action", "", "88px"),
     )
 )

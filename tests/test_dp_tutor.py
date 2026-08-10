@@ -50,7 +50,7 @@ def test_dp_tutor_context_is_explicit_and_session_is_dp():
         def __init__(self):
             self.context = None
 
-        def generate(self, task, prompt, *, context=None, response_format="text"):
+        def generate(self, task, prompt, *, context=None, response_format="text", difficulty=None):
             self.context = context
             payload = {
                 "questions": [

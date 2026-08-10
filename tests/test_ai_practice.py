@@ -432,7 +432,7 @@ def test_practice_service_routes_dp_to_flash_and_persists():
         def __init__(self):
             self.calls = []
 
-        def generate(self, task, prompt, *, context=None, response_format):
+        def generate(self, task, prompt, *, context=None, response_format, difficulty=None):
             self.calls.append((task, context, response_format))
             payload = {"questions": [
                 {"kind": "open", "prompt": "P", "answer": "A", "explanation": "E"},
@@ -459,7 +459,7 @@ def test_practice_service_prompt_mentions_concours_difficulty():
         def __init__(self):
             self.prompt = ""
 
-        def generate(self, task, prompt, *, context=None, response_format):
+        def generate(self, task, prompt, *, context=None, response_format, difficulty=None):
             self.prompt = prompt
             payload = {"questions": [
                 {"kind": "closed", "prompt": "P", "choices": ["A", "B"], "answer": "A", "explanation": "E"},
@@ -485,7 +485,7 @@ def test_tutor_dp_retries_wrong_question_count_before_persisting(practice_db):
         def __init__(self):
             self.calls = 0
 
-        def generate(self, task, prompt, *, context=None, response_format):
+        def generate(self, task, prompt, *, context=None, response_format, difficulty=None):
             self.calls += 1
             count = 1 if self.calls == 1 else 2
             payload = {"questions": [
@@ -520,7 +520,7 @@ def test_tutor_dp_retries_wrong_question_count_before_persisting(practice_db):
 
 def test_tutor_dp_does_not_persist_after_exhausted_count_retry(practice_db):
     class FakeAI:
-        def generate(self, task, prompt, *, context=None, response_format):
+        def generate(self, task, prompt, *, context=None, response_format, difficulty=None):
             payload = {"questions": [{
                 "kind": "closed",
                 "prompt": "",
@@ -552,7 +552,7 @@ def test_tutor_dp_recovers_partial_provider_responses_one_question_at_a_time(pra
         def __init__(self):
             self.calls = 0
 
-        def generate(self, task, prompt, *, context=None, response_format):
+        def generate(self, task, prompt, *, context=None, response_format, difficulty=None):
             self.calls += 1
             payload = {"questions": [{
                 "kind": "closed",
@@ -621,3 +621,64 @@ def test_scored_ai_session_updates_mastery_evaluation_once(practice_db):
     assert stored[0]["session_type"] == "QCM"
     assert stored[0]["score_percent"] == 50
     assert record_ai_practice_mastery(session_id) is None
+
+
+def test_generation_passes_the_selected_difficulty_to_the_model_router():
+    """La difficulté choisie doit atteindre le routeur, sinon « Concours » ne change rien."""
+    captured = {}
+
+    class FakeAI:
+        def generate(self, task, prompt, *, context=None, response_format="text", difficulty=None):
+            captured["difficulty"] = difficulty
+            payload = {"questions": [
+                {"kind": "closed", "prompt": "P", "choices": ["A", "B"], "answer": "A", "explanation": "E"},
+            ]}
+            return AIResponse(json.dumps(payload), AIModel.FLASH, 10, 10)
+
+    spec = PracticeSessionSpec(
+        practice_kind=PracticeKind.QCM,
+        total_questions=1,
+        open_questions=0,
+        closed_questions=1,
+        item_number="230",
+        difficulty=PracticeDifficulty.CONCOURS,
+    )
+
+    PracticeService(ai_service=FakeAI(), store=SimpleNamespace()).generate_questions(spec)
+
+    assert captured["difficulty"] is PracticeDifficulty.CONCOURS
+
+
+def test_stored_model_is_the_one_actually_returned_by_the_provider():
+    """Le libellé enregistré doit refléter l'appel réel, pas un routage recalculé à part."""
+    recorded = {}
+
+    class FakeAI:
+        def generate(self, task, prompt, *, context=None, response_format="text", difficulty=None):
+            payload = {"questions": [
+                {"kind": "closed", "prompt": "P", "choices": ["A", "B"], "answer": "A", "explanation": "E"},
+            ]}
+            # Le fournisseur répond avec FLASH alors que le routage d'un QCM standard
+            # donnerait FLASH_LITE : c'est exactement le cas où l'ancien code mentait.
+            return AIResponse(json.dumps(payload), AIModel.FLASH, 10, 10)
+
+    def _capture(**kwargs):
+        recorded.update(kwargs)
+        return 1
+
+    spec = PracticeSessionSpec(
+        practice_kind=PracticeKind.QCM,
+        total_questions=1,
+        open_questions=0,
+        closed_questions=1,
+        item_number="230",
+        difficulty=PracticeDifficulty.STANDARD,
+    )
+
+    service = PracticeService(
+        ai_service=FakeAI(),
+        store=SimpleNamespace(create_ai_practice_session=_capture),
+    )
+    service.create_new_session(spec)
+
+    assert recorded["model"] == AIModel.FLASH.value

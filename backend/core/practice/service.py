@@ -17,6 +17,22 @@ class PracticeGenerationError(ValueError):
     """Réponse IA absente, invalide ou incompatible avec la session."""
 
 
+def _routed_model_label(spec: PracticeSessionSpec) -> str:
+    """Modèle attendu d'après le routage, utilisé seulement à défaut de réponse."""
+    return model_for_task(_task_for(spec.practice_kind), spec.difficulty).value
+
+
+def _model_label(response: Any, spec: PracticeSessionSpec) -> str:
+    """Libellé du modèle réellement utilisé, avec repli sur le routage attendu.
+
+    Le fournisseur fait foi : un routage recalculé côté appelant pouvait annoncer
+    un modèle différent de celui qui avait effectivement répondu.
+    """
+    model = getattr(response, "model", None)
+    label = getattr(model, "value", model)
+    return str(label) if label else _routed_model_label(spec)
+
+
 def _task_for(kind: PracticeKind) -> AITask:
     return {
         PracticeKind.OIC: AITask.OIC,
@@ -126,6 +142,24 @@ class PracticeService:
         max_attempts: int = 1,
         recover_partial: bool = False,
     ) -> list[dict]:
+        questions, _model = self._generate_with_model(
+            spec, context, max_attempts=max_attempts, recover_partial=recover_partial
+        )
+        return questions
+
+    def _generate_with_model(
+        self,
+        spec: PracticeSessionSpec,
+        context: str = "",
+        *,
+        max_attempts: int = 1,
+        recover_partial: bool = False,
+    ) -> tuple[list[dict], str]:
+        """Génère les questions et remonte le modèle réellement utilisé.
+
+        Le modèle est remonté plutôt que recalculé par l'appelant : recalculer le
+        routage à part produisait un libellé qui pouvait diverger de l'appel réel.
+        """
         if not 1 <= int(max_attempts) <= 3:
             raise ValueError("max_attempts doit être compris entre 1 et 3")
         task = _task_for(spec.practice_kind)
@@ -144,13 +178,14 @@ class PracticeService:
                 _prompt_for(spec, context) + retry_hint,
                 context=ctx_label,
                 response_format="json",
+                difficulty=spec.difficulty,
             )
             try:
                 questions = _parse_questions(response, spec)
             except PracticeGenerationError as exc:
                 last_error = exc
                 continue
-            return [asdict(q) for q in questions]
+            return [asdict(q) for q in questions], _model_label(response, spec)
         assert last_error is not None
         if recover_partial and "nombre de questions" in str(last_error):
             return self._recover_partial_questions(spec, context, max_attempts=max_attempts)
@@ -162,23 +197,23 @@ class PracticeService:
         context: str,
         *,
         max_attempts: int,
-    ) -> list[dict]:
+    ) -> tuple[list[dict], str]:
         """Fallback borné : demande une question par appel si le lot est partiel."""
         single_spec = replace(spec, total_questions=1, open_questions=0, closed_questions=1)
         recovered: list[dict] = []
+        model = _routed_model_label(spec)
         for position in range(spec.total_questions):
             single_context = (
                 f"{context}\n\nLOT DE RATTRAPAGE : génère la question {position + 1} "
                 f"sur {spec.total_questions}. Retourne exactement une question."
             )
-            recovered.extend(
-                self.generate_questions(
-                    single_spec,
-                    single_context,
-                    max_attempts=max_attempts,
-                )
+            questions, model = self._generate_with_model(
+                single_spec,
+                single_context,
+                max_attempts=max_attempts,
             )
-        return recovered
+            recovered.extend(questions)
+        return recovered, model
 
     def create_new_session(
         self,
@@ -188,7 +223,7 @@ class PracticeService:
         max_attempts: int = 1,
         recover_partial: bool = False,
     ) -> int:
-        questions = self.generate_questions(
+        questions, model = self._generate_with_model(
             spec,
             context,
             max_attempts=max_attempts,
@@ -197,7 +232,7 @@ class PracticeService:
         return self.store.create_ai_practice_session(
             spec=spec,
             questions=questions,
-            model=model_for_task(_task_for(spec.practice_kind), spec.difficulty).value,
+            model=model,
         )
 
     def create_tutor_dp_session(

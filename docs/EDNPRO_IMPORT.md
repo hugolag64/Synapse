@@ -116,3 +116,20 @@ sur toute inférence. Les questions sans rang fiable restent comptées dans
 Les compteurs Rang A, Rang B et indéterminé sont également enregistrés dans la
 session QCM commune. Une erreur Gemini, l'absence de clé API ou l'absence d'OIC
 ne bloque jamais l'import des questions et de leurs corrections.
+
+### Utilisation quotidienne
+
+Depuis Windows, double-cliquer sur `lancer_agent_ednpro.bat` à la racine du
+projet. Le script réutilise le token enregistré dans
+`%APPDATA%\Synapse\ednpro-capture-agent.json`, ne lance pas de doublon si le
+relais répond déjà et démarre l'agent dans une fenêtre minimisée.
+
+Pendant la session, seules les corrections affichées sont capturées. En
+cliquant sur **Arrêter et importer**, l'agent envoie la session à Synapse ;
+Synapse enrichit alors les rangs manquants, persiste les questions et tente les
+statistiques. Une question déjà présente n'est pas recréée : seule la nouvelle
+tentative est ajoutée.
+
+Le serveur de production a été mis à jour sur le commit `115ab3a`. Une session
+déjà importée avant ce déploiement n'est pas recalculée automatiquement ; une
+nouvelle capture est nécessaire pour activer l'inférence des rangs manquants.

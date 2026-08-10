@@ -7,10 +7,12 @@ L'agent local lui transmet uniquement des snapshots de questions déjà corrigé
 from __future__ import annotations
 
 import datetime as _datetime
+import hashlib
 import json
 import re
 from dataclasses import dataclass, field
 from typing import Any, Mapping
+from urllib.parse import parse_qs, urlparse
 
 from backend.core.reviews import local_store
 
@@ -28,7 +30,16 @@ def extract_corrected_observation(html: str, *, source_url: str = "") -> EdnproQ
     except ImportError:  # pragma: no cover - dependency is part of production requirements
         return None
     soup = BeautifulSoup(html or "", "html.parser")
-    containers = soup.select("[data-qcm-question], [data-question-id], article.question, .question-card, [data-question]")
+    containers = soup.select(
+        "[data-qcm-question], [data-question-id], article.question, .question-card, [data-question]"
+    )
+    if not containers:
+        containers = [
+            candidate
+            for candidate in soup.select("div.rounded-lg.border")
+            if re.search(r"\bitem\s*#?\s*\d+\b", candidate.get_text(" ", strip=True), re.IGNORECASE)
+            and candidate.select("button.w-full.text-left")
+        ]
     if not containers:
         return None
     container = containers[0]
@@ -45,23 +56,44 @@ def extract_corrected_observation(html: str, *, source_url: str = "") -> EdnproQ
         return ""
 
     qid = attr("data-qcm-question", "data-question-id", "data-question", "data-id")
-    prompt = node_text("[data-question-stem], [data-stem], .question-stem, .question-text, .stem, h3, h4")
-    choices_nodes = container.select("[data-choice-id], [data-proposition-id], label.choice, .choice, .proposition")
+    prompt = node_text(
+        "[data-question-stem], [data-stem], .question-stem, .question-text, .stem, h3, h4, p[class*='text-base']"
+    )
+    choices_nodes = container.select(
+        "[data-choice-id], [data-proposition-id], label.choice, .choice, .proposition, button.w-full.text-left"
+    )
     choices: list[dict[str, Any]] = []
     for index, choice in enumerate(choices_nodes, start=1):
         choice_id = _text(choice.get("data-choice-id") or choice.get("data-proposition-id") or choice.get("data-id"))
         choice_id = choice_id or f"{qid}-p{index}"
         classes = " ".join(choice.get("class", []))
-        text = choice.get_text(" ", strip=True)
+        label_node = choice.select_one("span[class*='leading-relaxed'][class*='flex-1']")
+        text = label_node.get_text(" ", strip=True) if label_node else choice.get_text(" ", strip=True)
+        label_match = re.search(r"\b([A-E])\.", choice.get_text(" ", strip=True))
+        if label_match:
+            choice_id = label_match.group(1)
         selected = str(choice.get("data-selected") or choice.get("aria-checked") or "").lower() in {"true", "1", "yes"}
         checked = choice.select_one("input:checked")
         selected = selected or checked is not None
+        checkbox_spans = choice.select("span.h-5.w-5")
+        selected = selected or any(span.select_one("svg") is not None for span in checkbox_spans)
         correct_attr = choice.get("data-correct") or choice.get("data-expected")
         correct = None if correct_attr is None else str(correct_attr).lower() in {"true", "1", "yes", "correct", "vrai"}
         if correct is None and ("correct" in classes.lower() or "vrai" in classes.lower()):
             correct = True
         if correct is None and ("incorrect" in classes.lower() or "faux" in classes.lower()):
             correct = False
+        if correct is None:
+            verdict_node = next(
+                (
+                    node
+                    for node in choice.select("p")
+                    if re.match(r"^\s*(vrai|faux)\b", node.get_text(" ", strip=True), re.IGNORECASE)
+                ),
+                None,
+            )
+            if verdict_node:
+                correct = bool(re.match(r"^\s*vrai\b", verdict_node.get_text(" ", strip=True), re.IGNORECASE))
         choices.append({"id": choice_id, "text": text, "selected": selected, "correct": correct})
 
     full_text = container.get_text(" ", strip=True)
@@ -71,27 +103,93 @@ def extract_corrected_observation(html: str, *, source_url: str = "") -> EdnproQ
         "[data-explanation-simple], [data-explanation-detailed], .explanation-simple, .explanation-detailed, .correction"
     ))
     correction_visible = correction_visible or any(choice.get("correct") is not None for choice in choices)
+    correction_visible = correction_visible or bool(
+        container.select_one("div[class*='space-y-2']")
+        and "explication détaillée" in container.get_text(" ", strip=True).casefold()
+    )
     if not correction_visible:
         return None
     rank_match = re.search(r"\brang\s*([ABC])\b", full_text, re.IGNORECASE)
     item_match = re.search(r"\bitem\s*#?\s*([0-9]+)\b", full_text, re.IGNORECASE)
-    score_match = re.search(r"(?:score|note)\s*[: ]\s*([0-9]+(?:[.,][0-9]+)?)\s*%?", full_text, re.IGNORECASE)
-    score = float(score_match.group(1).replace(",", ".")) if score_match else None
-    correct_answers = tuple(choice["id"] for choice in choices if choice.get("correct") is True)
+    score_match = re.search(
+        r"(?:note\s+(?:obtenue|partielle)?\s*)?([0-9]+(?:[.,][0-9]+)?)\s*/\s*([0-9]+(?:[.,][0-9]+)?)\s*pt",
+        full_text,
+        re.IGNORECASE,
+    )
+    if score_match:
+        numerator = float(score_match.group(1).replace(",", "."))
+        denominator = float(score_match.group(2).replace(",", "."))
+        score = round(numerator / denominator * 100, 2) if denominator else None
+    else:
+        percentage_match = re.search(r"(?:score|note)\s*[: ]\s*([0-9]+(?:[.,][0-9]+)?)\s*%", full_text, re.IGNORECASE)
+        score = float(percentage_match.group(1).replace(",", ".")) if percentage_match else None
+    simple_parts = []
+    for choice in choices:
+        choice_node = next(
+            (
+                node
+                for node in choices_nodes
+                if _text(node.get("data-choice-id") or node.get("data-proposition-id") or "") == choice["id"]
+                or re.search(rf"\b{re.escape(choice['id'])}\.", node.get_text(" ", strip=True))
+            ),
+            None,
+        )
+        explanation = choice_node.select_one(".prose") if choice_node else None
+        if explanation:
+            simple_parts.append(f"{choice['id']}. {explanation.get_text(' ', strip=True)}")
+    detail_node = next(
+        (
+            node
+            for node in container.select("div")
+            if node.get_text(" ", strip=True).casefold().startswith("explication détaillée par ia")
+        ),
+        None,
+    )
+    detail_text = detail_node.get_text(" ", strip=True) if detail_node else ""
+    correct_answers_match = re.search(
+        r"réponses?\s+correctes?\s+(?:sont|:)\s+([^\.\n]+)",
+        detail_text,
+        re.IGNORECASE,
+    )
+    if correct_answers_match:
+        correct_answers = tuple(dict.fromkeys(
+            re.findall(r"\b([A-E])\b", correct_answers_match.group(1).upper())
+        ))
+        for choice in choices:
+            choice["correct"] = choice["id"] in correct_answers
+    else:
+        correct_answers = tuple(choice["id"] for choice in choices if choice.get("correct") is True)
     selected_answers = tuple(choice["id"] for choice in choices if choice.get("selected"))
+    question_match = re.search(r"question\s+(\d+)\s*/\s*(\d+)", soup.get_text(" ", strip=True), re.IGNORECASE)
+    external_id = qid
+    if not external_id and question_match:
+        position = int(question_match.group(1)) - 1
+        query = parse_qs(urlparse(source_url).query)
+        external_ids = [
+            *query.get("legacyQids", [""])[0].split(","),
+            *query.get("iqIds", [""])[0].split(","),
+        ]
+        if 0 <= position < len(external_ids):
+            external_id = _text(external_ids[position])
+    if not external_id:
+        external_id = f"dom-{hashlib.sha1(prompt.encode('utf-8')).hexdigest()[:16]}"
     return EdnproQuestionObservation(
-        external_question_id=qid,
+        external_question_id=external_id,
         item_number=attr("data-item-number", "data-item") or (item_match.group(1) if item_match else ""),
         prompt=prompt or full_text,
         choices=tuple(choices),
         correct_answers=correct_answers,
         selected_answers=selected_answers,
-        explanation_simple=node_text("[data-explanation-simple], .explanation-simple, .simple-explanation"),
-        explanation_detailed=node_text("[data-explanation-detailed], .explanation-detailed, .ai-explanation, .correction"),
+        explanation_simple="\n".join(simple_parts),
+        explanation_detailed=detail_text or node_text(
+            "[data-explanation-detailed], .explanation-detailed, .ai-explanation, .correction"
+        ),
         rank=rank_match.group(1).upper() if rank_match else "",
         question_type=attr("data-question-type", "data-type") or "QCM",
         score_percent=score,
-        is_correct=(set(selected_answers) == set(correct_answers)) if correct_answers else None,
+        is_correct=(score >= 100.0) if score is not None else (
+            set(selected_answers) == set(correct_answers) if correct_answers else None
+        ),
         corrected=True,
         source_url=source_url,
     )

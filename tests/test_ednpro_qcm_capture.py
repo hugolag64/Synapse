@@ -91,6 +91,59 @@ def test_extract_corrected_observation_ignores_unanswered_dom_and_reads_rank():
     assert observation.correct_answers == ("a",)
 
 
+def test_extract_ednpro_react_card_without_data_attributes():
+    from backend.core.ednpro.qcm_capture import extract_corrected_observation
+
+    html = """
+    <div>Question 1 / 2</div>
+    <div class="rounded-lg border bg-card p-6 space-y-4">
+      <div><div>Item 75</div><div>QCM</div><div>Facile</div></div>
+      <p class="text-base sm:text-lg">Question d'addictologie</p>
+      <p class="text-xs italic">Une ou plusieurs réponses justes</p>
+      <div class="space-y-3">
+        <button class="w-full text-left p-3.5 rounded-lg border-2 border-destructive">
+          <div>
+            <span class="font-mono">A.</span>
+            <span class="text-sm leading-relaxed flex-1">Réponse A</span>
+            <span class="h-5 w-5"><svg></svg></span>
+            <span>100%</span>
+          </div>
+          <div><p>Vrai</p><div class="prose">Explication A</div></div>
+        </button>
+        <button class="w-full text-left p-3.5 rounded-lg border-2">
+          <div>
+            <span class="font-mono">B.</span>
+            <span class="text-sm leading-relaxed flex-1">Réponse B</span>
+            <span class="h-5 w-5"></span>
+            <span>0%</span>
+          </div>
+          <div><p>Faux</p><div class="prose">Explication B</div></div>
+        </button>
+      </div>
+      <div class="flex border-2"><span>Note obtenue</span><span>1 / 1 pt</span></div>
+      <div class="space-y-2"><div>Explication détaillée par IA</div><p>Les réponses correctes sont A. Analyse détaillée</p></div>
+    </div>
+    """
+
+    observation = extract_corrected_observation(
+        html,
+        source_url=(
+            "https://ednpro.app/objective-session/multi?"
+            "legacyQids=q-75&iqIds=q-76"
+        ),
+    )
+
+    assert observation is not None
+    assert observation.external_question_id == "q-75"
+    assert observation.item_number == "75"
+    assert observation.corrected is True
+    assert observation.score_percent == 100.0
+    assert observation.correct_answers == ("A",)
+    assert observation.selected_answers == ("A",)
+    assert "Explication A" in observation.explanation_simple
+    assert "Analyse détaillée" in observation.explanation_detailed
+
+
 def test_import_discards_question_not_yet_corrected_and_is_idempotent():
     from backend.core.ednpro.qcm_capture import normalize_observation, import_session
     from backend.core.reviews import local_store

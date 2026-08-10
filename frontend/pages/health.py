@@ -5,6 +5,7 @@ Vérifie en temps réel : Notion, Google Calendar, Obsidian, SQLite.
 from nicegui import ui
 from frontend.theme import frame
 from loguru import logger
+import os
 
 
 def _status_chip(ok: bool | None, label_ok: str, label_ko: str):

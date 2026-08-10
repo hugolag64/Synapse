@@ -271,9 +271,9 @@ def render_dp_tutor_action(
                         return
                     dialog.close()
                     ui.notify(f"Tuteur DP #{session_id} enregistré", type="positive")
-                    refresh()
-                    # Réutilise le flux standard : il enchaîne vers la correction
-                    # une fois la session terminée.
+                    # Pas de refresh() ici : depuis /qcm il vide le conteneur d'historique,
+                    # donc le slot sous lequel le lecteur allait s'ouvrir. Le flux standard
+                    # rejoue le rafraîchissement au retour de la correction.
                     _open_answer_dialog(session_id, refresh)
 
                 with ui.row().classes("w-full justify-end gap-2 pt-2"):

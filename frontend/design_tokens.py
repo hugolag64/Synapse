@@ -90,8 +90,8 @@ _TOKENS_CSS = """
   --accent-text: #0f0f14;          /* dérivé */
   --accent-wash: rgba(123, 133, 232, 0.14);  /* dérivé : translucide sur fond sombre */
   --shadow-popover: 0 2px 8px rgba(0, 0, 0, 0.40);  /* dérivé : visible sur sombre */
-  --success-text: #3fb271;
-  --danger-text: #e5484d;
+  --success-text: var(--success);
+  --danger-text: var(--danger);
 }
 """
 

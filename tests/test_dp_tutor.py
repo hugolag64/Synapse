@@ -85,3 +85,26 @@ def test_tutor_dp_chains_into_the_standard_correction_flow():
 
     assert "_open_answer_dialog(session_id, refresh)" in tutor_body
     assert "on_complete=lambda _sid: None" not in tutor_body
+
+
+def test_tutor_dp_open_session_does_not_refresh_before_opening_reader():
+    """_open_session ne doit pas appeler refresh() avant _open_answer_dialog.
+
+    Depuis /qcm, refresh() vide history_col — le slot parent du dialogue du
+    Tuteur DP — avant que le lecteur ne s'y ouvre, ce qui le crée dans un
+    slot détruit. Le flux standard rejoue déjà le rafraîchissement via
+    on_back -> open_chained_dialog une fois la correction terminée.
+    """
+    tutor_body = _extract_function(PANEL_SOURCE, "render_dp_tutor_action")
+
+    start = tutor_body.index("def _open_session() -> None:")
+    rest = tutor_body[start:]
+    end = rest.index("\n\n")
+    open_session_body = rest[:end]
+
+    assert "_open_answer_dialog(session_id, refresh)" in open_session_body
+    for line in open_session_body.splitlines():
+        assert line.strip() != "refresh()", (
+            "refresh() ne doit pas être appelé isolément avant l'ouverture "
+            "du lecteur du Tuteur DP"
+        )

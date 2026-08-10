@@ -66,4 +66,3 @@ try {
 catch {
     Write-Warning "La tâche est installée mais l'agent ne répond pas encore : $($_.Exception.Message)"
 }
-

@@ -53,4 +53,3 @@ Invoke-WebRequest http://127.0.0.1:8876/status -UseBasicParsing |
 Si Synapse indique que le relais est indisponible, relance une fois le script
 d'installation. Le mode CDP manuel reste disponible pour le diagnostic avancé,
 mais il n'est plus nécessaire au fonctionnement normal.
-

@@ -61,9 +61,9 @@ def test_normalize_training_payload_accepts_ednpro_annales_index_shape():
 def test_gain_priority_uses_mastery_gap_and_imported_question_availability():
     from backend.core.ednpro.frequency import calculate_gain_priority
 
-    assert calculate_gain_priority(session_count=5, mastery=20, question_count=10, imported_question_count=5) == 200.0
-    assert calculate_gain_priority(session_count=5, mastery=80, question_count=10, imported_question_count=5) == 50.0
-    assert calculate_gain_priority(session_count=5, mastery=20, question_count=10, imported_question_count=0) == 0.0
+    assert calculate_gain_priority(session_count=5, mastery=20, question_count=10, imported_question_count=5).raw == 200.0
+    assert calculate_gain_priority(session_count=5, mastery=80, question_count=10, imported_question_count=5).raw == 50.0
+    assert calculate_gain_priority(session_count=5, mastery=20, question_count=10, imported_question_count=0).raw == 0.0
 
 
 def test_frequency_sync_is_due_after_six_months_or_without_snapshot():
@@ -73,3 +73,63 @@ def test_frequency_sync_is_due_after_six_months_or_without_snapshot():
     assert is_frequency_sync_due(None, now=now)
     assert not is_frequency_sync_due((now - timedelta(days=179)).isoformat(), now=now)
     assert is_frequency_sync_due((now - timedelta(days=180)).isoformat(), now=now)
+
+
+def test_gain_priority_separates_unknown_mastery_from_zero_mastery():
+    """« Maîtrise inconnue » recevait le même écart maximal que « maîtrise nulle » :
+    79 % des items n'ayant aucune mesure, le Top 10 était composé à 100 % d'items
+    sur lesquels l'application ne sait rien."""
+    from backend.core.ednpro.frequency import calculate_gain_priority
+
+    unknown = calculate_gain_priority(
+        session_count=5, mastery=None, question_count=10, imported_question_count=5
+    )
+    zero = calculate_gain_priority(
+        session_count=5, mastery=0, question_count=10, imported_question_count=5
+    )
+
+    assert unknown.measured is False
+    assert unknown.score is None
+    assert zero.measured is True
+    assert zero.score is not None
+
+
+def test_gain_priority_exposes_a_zero_to_hundred_scale():
+    """Le nombre brut allait de 0 à 1300 sans échelle affichée."""
+    from backend.core.ednpro.frequency import calculate_gain_priority
+
+    top = calculate_gain_priority(
+        session_count=13, mastery=0, question_count=10, imported_question_count=10,
+        reference_session_count=13,
+    )
+    half = calculate_gain_priority(
+        session_count=13, mastery=50, question_count=10, imported_question_count=10,
+        reference_session_count=13,
+    )
+
+    assert top.score == 100.0
+    assert half.score == 50.0
+
+
+def test_gain_priority_keeps_its_raw_components_for_the_legend():
+    from backend.core.ednpro.frequency import calculate_gain_priority
+
+    result = calculate_gain_priority(
+        session_count=5, mastery=20, question_count=10, imported_question_count=5,
+        reference_session_count=13,
+    )
+
+    assert result.frequency == 5
+    assert result.availability == 0.5
+    assert result.raw == 200.0
+
+
+def test_gain_priority_is_zero_when_no_question_is_available():
+    from backend.core.ednpro.frequency import calculate_gain_priority
+
+    result = calculate_gain_priority(
+        session_count=5, mastery=20, question_count=10, imported_question_count=0
+    )
+
+    assert result.measured is True
+    assert result.score == 0.0

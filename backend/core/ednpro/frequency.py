@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -158,13 +159,57 @@ def is_frequency_sync_due(
     return current - stamp >= timedelta(days=max(1, int(interval_days)))
 
 
+DEFAULT_REFERENCE_SESSION_COUNT = 13
+"""Fréquence EDNpro la plus élevée du référentiel, borne haute de l'échelle."""
+
+
+@dataclass(frozen=True)
+class GainPriority:
+    """Priorité relative de travail, avec ses composantes et son échelle.
+
+    `measured` distingue « maîtrise inconnue » de « maîtrise nulle ». Les deux
+    donnaient auparavant le même écart maximal, si bien qu'un item sans aucune
+    donnée décrochait le score le plus élevé : le classement remontait les items
+    sur lesquels l'application ne sait rien plutôt que ceux à travailler.
+    """
+
+    measured: bool
+    score: float | None
+    raw: float
+    frequency: int
+    availability: float
+
+
 def calculate_gain_priority(
-    *, session_count: int, mastery: float | None, question_count: int, imported_question_count: int
-) -> float:
-    """Return a deterministic relative potential; it is not a rank prediction."""
+    *,
+    session_count: int,
+    mastery: float | None,
+    question_count: int,
+    imported_question_count: int,
+    reference_session_count: int = DEFAULT_REFERENCE_SESSION_COUNT,
+) -> GainPriority:
+    """Priorité relative de travail — un tri, jamais une prédiction de gain.
+
+    `score` est ramené sur 0-100 : 100 correspond à l'item le plus fréquent aux
+    annales, jamais travaillé, et dont toutes les questions sont disponibles.
+    """
     frequency = max(0, int(session_count or 0))
-    gap = max(0.0, min(100.0, 100.0 - float(mastery if mastery is not None else 0.0)))
     expected = max(0, int(question_count or 0))
     available = max(0, int(imported_question_count or 0))
     availability = 0.0 if available <= 0 else (1.0 if expected <= 0 else min(1.0, available / expected))
-    return round(frequency * gap * availability, 1)
+
+    if mastery is None:
+        return GainPriority(
+            measured=False, score=None, raw=0.0, frequency=frequency, availability=availability
+        )
+
+    gap = max(0.0, min(100.0, 100.0 - float(mastery)))
+    raw = round(frequency * gap * availability, 1)
+    ceiling = max(1, int(reference_session_count or 1)) * 100.0
+    return GainPriority(
+        measured=True,
+        score=round(min(100.0, raw / ceiling * 100.0), 1),
+        raw=raw,
+        frequency=frequency,
+        availability=availability,
+    )

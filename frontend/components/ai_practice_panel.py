@@ -457,6 +457,32 @@ def _start_ednpro_training(course, refresh) -> None:
     _open_answer_dialog(session_id, refresh)
 
 
+def _render_gain_priority(gain) -> None:
+    """Affiche la priorité de travail, ou dit franchement qu'elle n'est pas mesurable.
+
+    L'ancien affichage était un nombre brut allant jusqu'à 1300, sans échelle ni
+    légende, et un item sans aucune mesure de maîtrise y décrochait le score le
+    plus élevé — le classement remontait donc l'ignorance plutôt que le travail
+    à faire.
+    """
+    if not gain.measured:
+        badge = ui.label("Lacune non mesurée").classes("text-sm font-semibold text-slate-500")
+        badge.tooltip(
+            "Aucune maîtrise mesurée sur cet item : la priorité de travail ne peut pas "
+            "être calculée. Enregistre une révision ou une session pour la faire apparaître."
+        )
+        return
+    label = ui.label(f"Priorité de travail {gain.score:g}/100").classes(
+        "text-sm font-semibold text-amber-700"
+    )
+    label.tooltip(
+        "Tri relatif, pas un gain de points prédit. Combine la fréquence de l'item aux "
+        f"annales ({gain.frequency} session(s)), ta marge de progression, et la part de "
+        f"questions disponibles localement ({gain.availability:.0%}). "
+        "100 = item le plus fréquent, jamais travaillé, questions toutes disponibles."
+    )
+
+
 def _render_ednpro_frequency(course, mastery_score, refresh) -> None:
     item_number = _item_number(course)
     frequency = local_store.get_ednpro_item_frequency(item_number)
@@ -493,7 +519,7 @@ def _render_ednpro_frequency(course, mastery_score, refresh) -> None:
             with ui.column().classes("gap-0"):
                 ui.label("Annales EDNpro").classes("ci-section-title")
                 ui.label("Source tierce fiable, non officielle").classes("text-xs text-slate-500")
-            ui.label(f"Potentiel de gain {gain:g}").classes("text-sm font-semibold text-amber-700")
+            _render_gain_priority(gain)
         with ui.row().classes("items-center gap-4 flex-wrap mt-2"):
             ui.label(f"{frequency['priority'].replace('_', ' ').title()}").classes("text-sm font-medium")
             ui.label(f"{frequency['session_count']} session(s)").classes("text-sm text-slate-600")

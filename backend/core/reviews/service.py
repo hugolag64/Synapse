@@ -45,6 +45,28 @@ FUTURE_HORIZON_DAYS = 30
 _HIDDEN_STATUSES = {"done", "ignored", "cancelled"}
 
 
+def _sessions_across_item_fiches(sessions_map: dict) -> dict:
+    """Rassemble les séances de travail des fiches décrivant le même item.
+
+    Un item est souvent saisi une fois par collège dans Notion : 162 items sur
+    365 ont de 2 à 4 fiches, et toutes portent une part de l'historique. Sans ce
+    regroupement, une séance faite depuis la fiche Chirurgie digestive reste
+    invisible depuis la fiche Orthopédie du même item, et la planification comme
+    la maîtrise reposent sur une fraction des preuves.
+    """
+    try:
+        from backend.core.knowledge.course_aliases import merge_course_map
+        from backend.state.store import data_store
+
+        aliases = {
+            str(course.id): data_store.alias_ids(course.id) for course in data_store.cours
+        }
+        return merge_course_map(sessions_map, aliases)
+    except Exception:
+        logger.warning("Regroupement des séances par item indisponible")
+        return sessions_map
+
+
 class ReviewService:
     """
     Génère et classe les ReviewTask virtuelles.
@@ -116,6 +138,7 @@ class ReviewService:
 
         history      = history      or {}
         sessions_map = sessions_map or get_sessions_by_course()
+        sessions_map = _sessions_across_item_fiches(sessions_map)
         postpone_map = postpone_map or get_postpone_counts()
         qcm_done_set = get_qcm_done_course_ids()
 

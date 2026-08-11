@@ -99,6 +99,42 @@ def dedupe_by_item(courses: Sequence) -> list:
     ]
 
 
+def alias_map(courses: Iterable) -> dict[str, tuple[str, ...]]:
+    """Pour chaque fiche, l'ensemble des fiches qui décrivent le même item.
+
+    Une fiche sans item est seule dans son groupe : avant l'externat les cours
+    n'étaient organisés ni par collège ni par item, ils n'ont pas d'alias.
+    """
+    courses = list(courses)
+    groups = group_courses_by_item(courses)
+    by_item = {
+        item: tuple(str(c.id) for c in fiches) for item, fiches in groups.items()
+    }
+    mapping: dict[str, tuple[str, ...]] = {}
+    for course in courses:
+        item = normalized_item(course)
+        mapping[str(course.id)] = by_item.get(item) or (str(course.id),)
+    return mapping
+
+
+def merge_course_map(mapping: dict, aliases: dict[str, tuple[str, ...]]) -> dict:
+    """Rassemble les preuves des fiches d'un même item sous chacune d'elles.
+
+    Réviser un item depuis sa fiche Chirurgie digestive doit compter quand on
+    le regarde depuis sa fiche Orthopédie : sans cela l'historique reste éclaté
+    et la maîtrise est calculée sur une fraction des preuves.
+    """
+    merged: dict = {}
+    for course_id, sibling_ids in aliases.items():
+        gathered: list = []
+        for sibling in sibling_ids:
+            gathered.extend(mapping.get(sibling) or [])
+        merged[course_id] = gathered
+    for course_id, rows in mapping.items():
+        merged.setdefault(course_id, list(rows or []))
+    return merged
+
+
 def referential_college(course) -> str:
     """Collège officiel de l'item de ce cours, ou '' s'il est inconnu."""
     item = normalized_item(course)

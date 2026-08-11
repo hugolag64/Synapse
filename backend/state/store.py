@@ -27,6 +27,8 @@ class DataStore:
         self.colleges_order: List[str] = []
         self._items_map: Dict[int, str] = {}  # item_number (int) -> page_id
         self.items_last_synced: datetime = None
+        self._alias_map: Dict[str, tuple] | None = None  # fiches d'un même item EDN
+        self._alias_signature: int = -1
         
         # Loading State
         self.loading_progress = 0.0
@@ -621,6 +623,20 @@ class DataStore:
         final_order.extend(remaining)
         
         return final_order
+
+    def alias_ids(self, course_id: str) -> tuple:
+        """Identifiants de toutes les fiches décrivant le même item EDN.
+
+        Le calcul est mémorisé : la maîtrise l'interroge une fois par cours, et
+        reconstruire le regroupement à chaque appel serait quadratique.
+        """
+        from backend.core.knowledge.course_aliases import alias_map
+
+        signature = len(self.cours)
+        if getattr(self, "_alias_map", None) is None or self._alias_signature != signature:
+            self._alias_map = alias_map(self.cours)
+            self._alias_signature = signature
+        return self._alias_map.get(str(course_id)) or (str(course_id),)
 
     def get_cours_for_college(self, college: str) -> List[Cours]:
         """Cours d'un collège, une seule fiche par item EDN.

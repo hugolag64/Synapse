@@ -66,6 +66,47 @@ PROGRESSION_COLORS: dict[str, str] = {
 
 # ── Calcul principal ──────────────────────────────────────────────────────────
 
+def _item_fiche_ids(course) -> tuple[str, ...]:
+    """Fiches Notion décrivant le même item EDN que ce cours.
+
+    Un item est souvent saisi une fois par collège : 162 items sur 365 ont de 2
+    à 4 fiches, et toutes portent une part des preuves. Lire une seule fiche
+    revient à diviser la maîtrise par le nombre de fiches.
+    """
+    try:
+        from backend.state.store import data_store
+
+        return data_store.alias_ids(course.id)
+    except Exception:
+        return (str(course.id),)
+
+
+def _qcm_rows_for_item(course) -> list:
+    """Sessions QCM de toutes les fiches de l'item, pas de la seule fiche ouverte."""
+    from backend.core.reviews import local_store
+
+    rows: list = []
+    for course_id in _item_fiche_ids(course):
+        rows.extend(local_store.get_qcm_sessions_by_course(course_id) or [])
+    return rows
+
+
+def _oic_rows_for_item(course) -> list:
+    """Objectifs OIC de toutes les fiches de l'item, dédoublonnés par identifiant."""
+    from backend.core.reviews import local_store
+
+    rows: list = []
+    seen: set = set()
+    for course_id in _item_fiche_ids(course):
+        for row in local_store.get_lisa_oic(course_id) or []:
+            identifier = _safe_get(row, "id")
+            if identifier in seen:
+                continue
+            seen.add(identifier)
+            rows.append(row)
+    return rows
+
+
 def get_course_mastery(
     course,
     context: Literal["college", "ue"] = "college",
@@ -220,7 +261,7 @@ def get_course_mastery(
     try:
         from backend.core.reviews import local_store
         today = datetime.date.today()
-        recent_rows = local_store.get_qcm_sessions_by_course(course.id)
+        recent_rows = _qcm_rows_for_item(course)
         for row in recent_rows:
             try:
                 when = _coerce_evidence_date(_safe_get(row, "session_date"), today)
@@ -415,7 +456,7 @@ def _canonical_retention_evidence(
 
     evidence: list[Evidence] = []
     qcm_by_day: dict[tuple[str, datetime.date], float] = {}
-    for row in local_store.get_qcm_sessions_by_course(course.id):
+    for row in _qcm_rows_for_item(course):
         source = _qcm_source(_safe_get(row, "session_type"))
         if source is None:
             continue
@@ -429,7 +470,7 @@ def _canonical_retention_evidence(
 
     evidence.extend(Evidence(day, source, quality) for (source, day), quality in qcm_by_day.items())
 
-    for oic_row in local_store.get_lisa_oic(course.id) or []:
+    for oic_row in _oic_rows_for_item(course):
         for attempt in local_store.get_oic_attempts(_safe_get(oic_row, "id")):
             attempted_at = _coerce_evidence_date(_safe_get(attempt, "attempted_at"), fallback_date)
             if ("oic", attempted_at) not in study_evidence_keys:

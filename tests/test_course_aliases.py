@@ -145,3 +145,50 @@ def test_item_page_breadcrumb_uses_the_referential_college():
 
     assert "referential_college(course)" in source
     assert 'college = (course.college or [""])[0] if course.college else ""' not in source
+
+
+def test_alias_map_links_every_fiche_of_an_item_to_all_the_others():
+    from backend.core.knowledge.course_aliases import alias_map
+
+    courses = [
+        _course("a", "357", ["Orthopédie - Traumatologie 🦴"]),
+        _course("b", "357", ["Chirurgie digestive 🧵"]),
+        _course("c", "230", ["Cardiovasculaire ❤️"]),
+        _course("d", "", ["UE 3"]),
+    ]
+
+    mapping = alias_map(courses)
+
+    assert mapping["a"] == ("a", "b")
+    assert mapping["b"] == ("a", "b")
+    assert mapping["c"] == ("c",)
+    assert mapping["d"] == ("d",)
+
+
+def test_merging_a_per_course_map_unions_the_evidence_of_an_item():
+    """Réviser depuis une fiche doit compter pour toutes les fiches de l'item."""
+    from backend.core.knowledge.course_aliases import alias_map, merge_course_map
+
+    courses = [
+        _course("a", "357", ["Orthopédie - Traumatologie 🦴"]),
+        _course("b", "357", ["Chirurgie digestive 🧵"]),
+        _course("c", "230", ["Cardiovasculaire ❤️"]),
+    ]
+    par_cours = {"a": ["revision 1"], "b": ["revision 2", "revision 3"], "c": ["revision 4"]}
+
+    merged = merge_course_map(par_cours, alias_map(courses))
+
+    assert merged["a"] == ["revision 1", "revision 2", "revision 3"]
+    assert merged["b"] == ["revision 1", "revision 2", "revision 3"]
+    assert merged["c"] == ["revision 4"]
+
+
+def test_merging_keeps_courses_absent_from_the_map():
+    from backend.core.knowledge.course_aliases import alias_map, merge_course_map
+
+    courses = [_course("a", "357", []), _course("b", "357", [])]
+
+    merged = merge_course_map({"a": ["x"]}, alias_map(courses))
+
+    assert merged["a"] == ["x"]
+    assert merged["b"] == ["x"]

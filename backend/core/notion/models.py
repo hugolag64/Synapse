@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import List, Optional, Any
 from datetime import date, datetime
 from backend.config.settings import NOTION_PROPS as P
@@ -188,6 +188,39 @@ class Cours(BaseModel):
 
     def __hash__(self):
         return hash(self.id)
+
+    @model_validator(mode="after")
+    def _union_of_college_sources(self):
+        """Complète les collèges Notion par celui du référentiel EDN.
+
+        Un item comme « Tuberculose de l'adulte et de l'enfant » est enseigné en
+        Pédiatrie *et* en Infectiologie. Notion n'en portait qu'un, le référentiel
+        l'autre, et l'écart — 289 cours — était lu comme une contradiction. C'est
+        une double appartenance légitime : chaque liste de collège doit être
+        complète vis-à-vis du programme officiel, sans écraser l'organisation de
+        l'utilisateur, qui reste en tête de liste.
+
+        Le validateur porte sur le modèle et non sur la lecture Notion : il
+        s'applique donc aussi aux cours reconstruits depuis le cache disque.
+        """
+        from backend.core.qcm.items_mapping import resolve
+
+        raw = str(self.item_number or "").strip()
+        if not raw:
+            return self
+        try:
+            number = int(float(raw))
+        except (TypeError, ValueError):
+            return self
+        _title, referential_college = resolve(number)
+        if not referential_college:
+            return self
+
+        colleges = [str(c).strip() for c in (self.college or []) if str(c).strip()]
+        if not any(referential_college in c or c in referential_college for c in colleges):
+            colleges.append(referential_college)
+            object.__setattr__(self, "college", colleges)
+        return self
 
     @property
     def display_item_number(self) -> str:

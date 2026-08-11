@@ -25,7 +25,11 @@ from backend.state.store import data_store
 from backend.core.knowledge import store as knowledge_store
 from backend.core.knowledge.college_validation import assess_college_validation
 from backend.core.reviews import local_store
-from backend.core.reviews.local_store import get_all_history, get_qcm_last_scores_by_course
+from backend.core.reviews.local_store import (
+    get_active_course_ids,
+    get_all_history,
+    get_qcm_last_scores_by_course,
+)
 from backend.core.reviews.validation import complete_review
 from backend.core.reviews.service import review_service
 from frontend.components.study_task_row import due_info
@@ -257,6 +261,21 @@ def _course_semantics(
     }
 
 
+def count_started(courses, active_course_ids: set[str]) -> int:
+    """Nombre de cours réellement entrés dans le travail.
+
+    Le compte ne retenait que `date_1ere_lecture`, renseignée sur 8 cours sur 707,
+    alors que 250 révisions avaient été effectuées — dont 80 % par des chemins
+    (consolidation, bonus, annales) qui ne renseignent jamais ce champ. La
+    progression affichait donc une inactivité qui n'existait pas.
+    """
+    return sum(
+        1
+        for course in courses
+        if getattr(course, "date_1ere_lecture", None) or course.id in active_course_ids
+    )
+
+
 def _pilotage_summary(rows: list[dict]) -> dict:
     """Agrégats légers pour le panneau de pilotage, sans nouvelle requête."""
     total_courses = sum(r["total"] for r in rows)
@@ -330,6 +349,7 @@ def render_colleges_cockpit() -> None:
 
     def _compute() -> list[dict]:
         history = get_all_history()
+        active_course_ids = get_active_course_ids()
         college_statuses = knowledge_store.get_all_college_statuses()
         item_states = knowledge_store.get_all_item_states("college")
         all_tasks = review_service.generate_reviews(
@@ -358,9 +378,7 @@ def render_colleges_cockpit() -> None:
                 manual_status=college_statuses.get(name, "non_etudie"),
             )
             college_validated = validation.manual_status == "valide"
-            started = total if college_validated else sum(
-                1 for c in courses if getattr(c, "date_1ere_lecture", None)
-            )
+            started = total if college_validated else count_started(courses, active_course_ids)
             advancement = build_advancement(
                 started,
                 total,

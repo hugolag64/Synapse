@@ -1379,6 +1379,25 @@ def get_history(task_id: str) -> sqlite3.Row | None:
         ).fetchone()
 
 
+def get_active_course_ids() -> set[str]:
+    """Cours portant une trace de travail réelle, quel qu'en soit le chemin.
+
+    `date_1ere_lecture` ne couvre que le cycle classique J3-J30 : les révisions
+    de consolidation, les révisions bonus et les sessions d'annale n'y touchent
+    jamais. Cette requête rassemble les signaux qui prouvent qu'un cours a été
+    travaillé, pour que la progression cesse d'afficher une inactivité fausse.
+    """
+    with _conn() as con:
+        rows = con.execute(
+            """SELECT course_id FROM review_history
+               WHERE status = 'done' AND TRIM(COALESCE(course_id, '')) != ''
+               UNION
+               SELECT course_id FROM ai_practice_sessions
+               WHERE TRIM(COALESCE(course_id, '')) != ''"""
+        ).fetchall()
+    return {str(row[0]) for row in rows}
+
+
 def get_all_history() -> dict[str, sqlite3.Row]:
     """
     Retourne TOUT l'historique sous la forme {task_id: Row}.

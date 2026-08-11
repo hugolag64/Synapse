@@ -121,8 +121,8 @@ _CSS = """
 .se-diag-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .se-diag-title { font-size:13px; font-weight:600; color:var(--text); }
 .se-diag-ratio { font-size:12px; font-weight:600; }
-.se-diag-ratio.full { color:var(--success); }
-.se-diag-ratio.partial { color:var(--warning); }
+.se-diag-ratio.full { color:var(--success-text); }
+.se-diag-ratio.partial { color:var(--warning-text); }
 .se-diag-quiz-row { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:4px 0; font-size:12.5px; }
 .se-diag-quiz-detail { color:var(--text-muted); font-size:11.5px; }
 @media (max-width: 820px) {
@@ -300,13 +300,13 @@ def render_settings_cockpit() -> None:
                         url = _validate_uness_annale_url(url_input.value)
                     except ValueError as exc:
                         status.set_text(str(exc))
-                        status.style("color:var(--danger)")
+                        status.style("color:var(--danger-text)")
                         ui.notify(str(exc), type="negative")
                         return
                     data_store.set_preference("uness_annale_url", url)
                     data_store.set_preference("uness_import_status", "prepared")
                     status.set_text("URL enregistrée ✓ — prête pour le collecteur local et la normalisation JSON.")
-                    status.style("color:var(--success)")
+                    status.style("color:var(--success-text)")
                     ui.notify("URL UNESS enregistrée", type="positive", icon="school")
 
                 ui.button(
@@ -320,12 +320,12 @@ def render_settings_cockpit() -> None:
                         url = _validate_uness_annale_url(url_input.value)
                     except ValueError as exc:
                         status.set_text(str(exc))
-                        status.style("color:var(--danger)")
+                        status.style("color:var(--danger-text)")
                         ui.notify(str(exc), type="negative")
                         return
                     data_store.set_preference("uness_annale_url", url)
                     status.set_text("Collecte en cours — Chrome va s’ouvrir…")
-                    status.style("color:var(--warning)")
+                    status.style("color:var(--warning-text)")
                     script = Path("scripts/uness/collector.py").resolve()
                     process = await asyncio.create_subprocess_exec(
                         sys.executable,
@@ -341,12 +341,12 @@ def render_settings_cockpit() -> None:
                         status.set_text(
                             f"Collecte terminée ✓ — fichier prêt à envoyer dans ChatGPT : {output.decode(errors='replace').strip()}"
                         )
-                        status.style("color:var(--success)")
+                        status.style("color:var(--success-text)")
                         ui.notify("Collecte UNESS terminée", type="positive", icon="school")
                     else:
                         message = output.decode(errors="replace").strip()[-500:]
                         status.set_text(f"Échec de la collecte : {message}")
-                        status.style("color:var(--danger)")
+                        status.style("color:var(--danger-text)")
                         ui.notify("Échec de la collecte UNESS", type="negative")
 
                 ui.button(
@@ -367,7 +367,7 @@ def render_settings_cockpit() -> None:
                         f"Scan terminé : {imported_count} importé(s), "
                         f"{len(result['skipped'])} déjà présent(s), {error_count} erreur(s)."
                     )
-                    status.style("color:var(--danger)" if error_count else "color:var(--success)")
+                    status.style("color:var(--danger-text)" if error_count else "color:var(--success-text)")
                     ui.notify(
                         f"{imported_count} partiel(s) importé(s)" if not error_count else "Import terminé avec des erreurs",
                         type="positive" if not error_count else "warning",
@@ -407,7 +407,7 @@ def render_settings_cockpit() -> None:
                         _finalize_scan()
                     except Exception as e:
                         status.set_text(f"Erreur lors du scan : {str(e)}")
-                        status.style("color:var(--danger)")
+                        status.style("color:var(--danger-text)")
                         ui.notify(f"Erreur du scanner : {str(e)}", type="negative")
 
                 ui.button(
@@ -452,7 +452,7 @@ def render_settings_cockpit() -> None:
                             f"Terminé : {result['items_ok']}/{result['items_total']} items mis à jour"
                             + (f", {failed} échec(s)" if failed else "")
                         )
-                        oic_status.style("color:var(--danger)" if failed else "color:var(--success)")
+                        oic_status.style("color:var(--danger-text)" if failed else "color:var(--success-text)")
                         ui.notify(
                             f"OIC rafraîchis : {result['items_ok']}/{result['items_total']}"
                             + (f" ({failed} échec(s))" if failed else ""),
@@ -461,7 +461,7 @@ def render_settings_cockpit() -> None:
                         )
                     except Exception as exc:
                         oic_status.set_text(f"Erreur : {exc}")
-                        oic_status.style("color:var(--danger)")
+                        oic_status.style("color:var(--danger-text)")
                         ui.notify(f"Échec du rafraîchissement OIC : {exc}", type="negative")
                     finally:
                         timer = oic_timer_holder.pop("timer", None)

@@ -44,6 +44,7 @@ _TOKENS_CSS = """
   /* Variantes lisibles en texte sur fond clair */
   --success-text: #15803d;
   --danger-text: #b4232a;
+  --warning-text: #96591a;
 
   /* Typographie */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -92,6 +93,7 @@ _TOKENS_CSS = """
   --shadow-popover: 0 2px 8px rgba(0, 0, 0, 0.40);  /* dérivé : visible sur sombre */
   --success-text: var(--success);
   --danger-text: var(--danger);
+  --warning-text: var(--warning);
 }
 """
 

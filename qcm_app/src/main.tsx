@@ -249,7 +249,7 @@ export function Correction({ payload, onReplay }: { payload: CorrectionPayload; 
     <div className="reader-kicker">CORRECTION TERMINÉE · {new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}</div>
     <h1>{payload.session.course_title || 'QCM'}</h1>
     <p className="reader-subtitle">Tu peux parcourir les erreurs, relire les explications et relancer ce QCM quand tu veux.</p>
-    <div className="score-mode-banner"><strong>Barème EDN propositionnel</strong><span>Chaque question suit la grille 1 / 0,5 / 0,2 / 0.</span></div>
+    <div className="score-mode-banner"><strong>Barème EDN propositionnel — partiel</strong><span>Grille des discordances 1 / 0,5 / 0,2 / 0 uniquement. Les pénalités absolues du barème officiel (proposition indispensable omise, inacceptable cochée) ne s'appliquent pas : les annales importées ne portent pas cette information.</span></div>
     <section className="kpis">
       <div>
         <strong>{score20} / 20</strong>

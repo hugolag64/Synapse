@@ -32,7 +32,7 @@ _CSS = """
 .wp-topbar { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:4px 0 0; flex-wrap:wrap; }
 .wp-title { font-size:20px; font-weight:600; color:var(--text); letter-spacing:-0.01em; }
 .wp-subtitle { font-size:12.5px; color:var(--text-muted); margin-top:4px; }
-.wp-subtitle .critical { color:var(--danger); font-weight:500; }
+.wp-subtitle .critical { color:var(--danger-text); font-weight:500; }
 .wp-actions { display:flex; gap:8px; flex:0 0 auto; }
 .wp-btn { display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 14px; border-radius:6px;
   font-size:12.5px; font-weight:500; cursor:pointer; border:1px solid var(--border); background:var(--bg);

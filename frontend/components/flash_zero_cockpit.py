@@ -13,7 +13,7 @@ _CSS = """
 .flash-zero-card { border:1px solid var(--border); border-left:3px solid var(--warning); border-radius:8px; background:var(--bg); box-shadow:var(--shadow-popover); transition:border-color var(--duration-fast) var(--ease-standard), background var(--duration-fast) var(--ease-standard); }
 .flash-zero-card:hover { border-color:var(--border-strong); background:var(--surface); }
 .flash-zero-layout { display:flex; align-items:center; gap:12px; min-width:0; }
-.flash-zero-icon { width:28px; height:28px; flex:0 0 28px; display:flex; align-items:center; justify-content:center; border-radius:6px; background:rgba(229,162,63,.12); color:var(--warning); font-size:15px; }
+.flash-zero-icon { width:28px; height:28px; flex:0 0 28px; display:flex; align-items:center; justify-content:center; border-radius:6px; background:rgba(229,162,63,.12); color:var(--warning-text); font-size:15px; }
 .flash-zero-copy { flex:1; min-width:0; }
 .flash-zero-title { color:var(--text); font-size:13px; font-weight:600; }
 .flash-zero-meta { color:var(--text-muted); font-family:var(--font-mono); font-size:11px; }
@@ -23,7 +23,7 @@ _CSS = """
    réservé même masquée, pour que le survol ne décale pas la carte. */
 .flash-zero-dismiss { flex:0 0 auto; opacity:0; pointer-events:none; color:var(--text-muted); transition:opacity var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard); }
 .flash-zero-card:hover .flash-zero-dismiss, .flash-zero-card:focus-within .flash-zero-dismiss { opacity:1; pointer-events:auto; }
-.flash-zero-dismiss:hover { color:var(--danger); }
+.flash-zero-dismiss:hover { color:var(--danger-text); }
 .flash-zero-answer { display:flex; flex-direction:column; gap:2px; margin-top:10px; }
 .flash-zero-answer-label { font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-dim); font-weight:600; }
 .flash-zero-answer-value { font-size:13px; color:var(--text); line-height:1.4; }
@@ -32,8 +32,8 @@ _CSS = """
 .flash-zero-wizard-progress { height:4px; border-radius:999px; background:var(--border); overflow:hidden; }
 .flash-zero-wizard-progress > div { height:100%; background:var(--accent); transition:width .18s ease; }
 .flash-zero-correction { border:1px solid var(--border); border-radius:8px; padding:14px; background:var(--bg-alt); }
-.flash-zero-correction.good { border-color:var(--success); background:color-mix(in srgb, var(--success) 8%, var(--bg-alt)); }
-.flash-zero-correction.bad { border-color:var(--danger); background:color-mix(in srgb, var(--danger) 7%, var(--bg-alt)); }
+.flash-zero-correction.good { border-color:var(--success-text); background:color-mix(in srgb, var(--success) 8%, var(--bg-alt)); }
+.flash-zero-correction.bad { border-color:var(--danger-text); background:color-mix(in srgb, var(--danger) 7%, var(--bg-alt)); }
 @media (max-width: 560px) { .flash-zero-status { display:none; } }
 """
 

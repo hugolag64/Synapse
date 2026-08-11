@@ -214,6 +214,12 @@ def test_qcm_correction_discloses_official_uness_correction(monkeypatch):
         def props(self, _value):
             return self
 
+        def tooltip(self, _text):
+            return self
+
+        def style(self, _value):
+            return self
+
         def clear(self):
             return None
 
@@ -321,7 +327,10 @@ def test_qcm_correction_discloses_official_uness_correction(monkeypatch):
     qcm_replay.open_qcm_correction(4, on_back=lambda: None, on_replay=lambda _id: None)
 
     assert any("Correction officielle UNESS" in label for label in labels)
-    assert "Barème EDN propositionnel" in labels
+    # « partiel » : les pénalités absolues du barème officiel ne s'appliquent
+    # jamais, aucune question importée ne portant les marqueurs indispensable
+    # ou inacceptable.
+    assert "Barème EDN propositionnel — partiel" in labels
     assert any("Réponse IA" in label for label in labels)
     assert any("Sélectionnée" in label and "Attendue" in label and "Rang A" in label for label in labels)
     assert "Divergence avec la correction officielle UNESS" in labels

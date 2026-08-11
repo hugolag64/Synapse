@@ -301,12 +301,12 @@ _CSS = """
 .qc-score-cell { min-width:0; display:flex; align-items:center; justify-content:flex-end; gap:8px; }
 .qc-score { font-family:var(--font-mono); font-size:13px; font-weight:600; }
 .qc-badge { font-size:10.5px; font-weight:500; padding:2px 7px; border-radius:4px;
-  background:rgba(229,72,77,0.1); color:var(--danger); white-space:nowrap; }
+  background:rgba(229,72,77,0.1); color:var(--danger-text); white-space:nowrap; }
 .qc-empty { padding:32px 10px; text-align:center; color:var(--text-dim); font-size:13px; }
 .qc-pending { margin-top:24px; }
 .qc-pending .qc-row { align-items:flex-start; }
 .qc-pending .qc-course-title { white-space:normal; overflow:visible; text-overflow:clip; overflow-wrap:anywhere; line-height:1.4; }
-.qc-pending-state { flex:0 0 64px; padding-top:2px; font-size:11px; color:var(--warning); }
+.qc-pending-state { flex:0 0 64px; padding-top:2px; font-size:11px; color:var(--warning-text); }
 .qc-pending-action { flex:0 0 110px; justify-content:flex-start; padding-left:0; padding-right:0; }
 .qc-workspace { display:grid; grid-template-columns:minmax(0, 1.1fr) minmax(320px, .9fr); gap:20px; width:100%; margin:24px 0 8px; align-items:stretch; }
 .qc-history { min-width:0; max-height:620px; overflow-x:hidden; overflow-y:auto; padding:14px; border:1px solid var(--border); border-radius:8px; background:var(--bg); }

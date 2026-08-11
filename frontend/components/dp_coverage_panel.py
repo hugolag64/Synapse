@@ -22,7 +22,7 @@ _CSS = """
 .dpc-title { min-width:0; line-height:1.35; overflow-wrap:anywhere; }
 .dpc-college { color:var(--text-muted); font-size:11px; line-height:1.3; margin-top:2px; overflow-wrap:anywhere; }
 .dpc-count { min-width:0; text-align:right; font-family:var(--font-mono); font-weight:600; }
-.dpc-count.zero { color:var(--danger); }
+.dpc-count.zero { color:var(--danger-text); }
 .dpc-empty { padding:24px 12px; text-align:center; color:var(--text-dim); font-size:12.5px; }
 .dpc-summary { font-size:11.5px; color:var(--text-muted); margin-bottom:8px; }
 .dpc-scroll { max-height:520px; overflow-y:scroll; overflow-x:hidden; min-width:0; scrollbar-gutter:stable; scrollbar-width:thin; scrollbar-color:var(--border-strong) var(--bg-alt); overscroll-behavior:contain; }

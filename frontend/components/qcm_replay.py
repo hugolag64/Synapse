@@ -311,7 +311,15 @@ def open_qcm_correction(
 
     with ui.dialog() as dialog, ui.card().classes("w-[860px] max-w-[96vw] p-5"):
         score_text, counts_text = format_correction_summary(summary)
-        ui.label("Barème EDN propositionnel").classes("text-sm font-semibold text-violet-700 dark:text-violet-300")
+        barème = ui.label("Barème EDN propositionnel — partiel").classes(
+            "text-sm font-semibold text-violet-700 dark:text-violet-300"
+        )
+        barème.tooltip(
+            "Seule la grille des discordances (1 / 0,5 / 0,2 / 0) est appliquée. "
+            "Les pénalités absolues du barème officiel — proposition indispensable "
+            "omise, proposition inacceptable cochée — ne s'appliquent pas : les "
+            "annales importées ne portent pas cette information."
+        )
         ui.label(score_text).classes("text-xl font-semibold")
         ui.label(counts_text).classes("text-sm text-slate-600 dark:text-slate-300 mb-3")
         errors_toggle = ui.checkbox("Afficher uniquement les erreurs", value=False).props("dense")

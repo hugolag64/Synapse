@@ -32,6 +32,7 @@ class CourseProgressSnapshot:
     next_action: str = ""
     # ── Socle « état des connaissances » ──────────────────────────────────────
     declared_level: str | None = None      # solide | correct | flou
+    evidence_count: int = 0                # preuves réelles (0 = score purement déclaré)
     oic_coverage_a: float = 0.0            # part d'OIC de rang A réussis
     has_rang_a_badge: bool = False
     score_rang_a: int | None = None        # Score de maîtrise Rang A (0-100)
@@ -102,6 +103,11 @@ def get_course_mastery(
     _has_rang_a_badge    = badge_from_coverage(_cov)
     _extra = {
         "declared_level":   seed.declared_level,
+        # Nombre de preuves réelles derrière le score. Sans lui, un score issu
+        # d'une auto-déclaration qui s'efface avec le temps est visuellement
+        # indiscernable d'un score mesuré : 96 % des cours affichés « fragile »
+        # ou « critique » viennent de cette graine, pas d'un échec constaté.
+        "evidence_count":   int(seed.n_evidence or 0),
         "oic_coverage_a":   _oic_coverage_a,
         "has_rang_a_badge": _has_rang_a_badge,
         "rang_a_referential": _has_rang_a_referential,

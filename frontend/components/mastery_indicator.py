@@ -6,11 +6,13 @@ couleur encode la santé (solide vert ≥80 · correct gris 55–79 · fragile a
 """
 from nicegui import ui
 
+# Variantes « -text » : --success/--warning/--danger sont calibrés pour un fond
+# sombre et tombent sous le seuil AA en thème clair quand ils colorent du texte.
 _LEVEL_COLOR = {
-    "solide":   "var(--success)",
+    "solide":   "var(--success-text)",
     "correct":  "var(--text-muted)",
-    "fragile":  "var(--warning)",
-    "critique": "var(--danger)",
+    "fragile":  "var(--warning-text)",
+    "critique": "var(--danger-text)",
 }
 
 _CSS = """
@@ -18,6 +20,7 @@ _CSS = """
 .mastery-track { flex:1; height:5px; border-radius:3px; background:var(--surface-hover); overflow:hidden; }
 .mastery-fill { height:100%; border-radius:3px; transition: width var(--duration-base) var(--ease-standard); }
 .mastery-score { font-family:var(--font-mono); font-size:12px; font-weight:600; min-width:20px; text-align:right; }
+.mastery-origin { font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-muted); flex:0 0 auto; }
 """
 _injected = {"done": False}
 
@@ -41,9 +44,33 @@ def ensure_styles() -> None:
         _injected["done"] = True
 
 
+def provenance_label(evidence_count: int) -> str:
+    """« déclaré » quand rien ne prouve le score, « mesuré » sinon."""
+    return "mesuré" if int(evidence_count or 0) > 0 else "déclaré"
+
+
+def provenance_tooltip(evidence_count: int) -> str:
+    count = int(evidence_count or 0)
+    if count <= 0:
+        return (
+            "Score issu du niveau que tu as déclaré, sans aucune preuve d'apprentissage "
+            "enregistrée depuis. Il décroît avec le temps et ne reflète pas un échec "
+            "constaté. Une révision ou une session le fera reposer sur du réel."
+        )
+    return (
+        f"Score appuyé sur {count} preuve(s) réelle(s) : révisions, sessions ou "
+        "évaluations enregistrées."
+    )
+
+
 def mastery_indicator(score, level: str | None = None, *, width: str = "100%",
-                      show_score: bool = True) -> None:
-    """Barre + score. `score` peut être None (affiche « — », couleur neutre)."""
+                      show_score: bool = True, evidence_count: int | None = None) -> None:
+    """Barre + score. `score` peut être None (affiche « — », couleur neutre).
+
+    `evidence_count` fait apparaître d'où vient le score : sans lui, une
+    auto-déclaration qui s'efface avec le temps est visuellement identique à
+    une mesure.
+    """
     ensure_styles()
 
     lvl = level or _level_from_score(score)
@@ -56,9 +83,12 @@ def mastery_indicator(score, level: str | None = None, *, width: str = "100%",
                 f"width:{pct}%; background:{color}"
             )
         if show_score:
-            ui.label(str(score) if score is not None else "—").classes(
+            label = ui.label(str(score) if score is not None else "—").classes(
                 "mastery-score"
             ).style(f"color:{color}")
+            if evidence_count is not None and score is not None:
+                label.tooltip(provenance_tooltip(evidence_count))
+                ui.label(provenance_label(evidence_count)).classes("mastery-origin")
 
 
 def dual_rank_badges(score_rang_a: int | None, score_rang_b: int | None) -> None:

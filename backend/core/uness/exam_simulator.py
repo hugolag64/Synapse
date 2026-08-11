@@ -58,48 +58,42 @@ def count_mismatches(user_choices: Dict[str, bool], correct_choices: Dict[str, b
 
 
 def compute_edn_score(user_choices: Dict[str, bool], propositions: List[Dict[str, Any]]) -> tuple[float, int]:
-    """Calcule le score EDN officiel pour une question à choix multiples.
+    """Score EDN d'une question fermée, délégué au moteur unique du barème.
 
-    Barème EDN :
-    - 0 erreur : 1.0 pt
-    - 1 erreur : 0.5 pt
-    - 2 erreurs : 0.2 pt
-    - >= 3 erreurs : 0.0 pt
-    - Annulation (0.0 pt) si oubli ou erreur sur une proposition vitale / Rang A critique
+    Ce module réimplémentait le barème avec des règles subtilement différentes
+    de `backend/core/practice/scoring.py` : une même réponse pouvait donner deux
+    notes selon qu'on s'entraînait en mode standard ou en mode concours. Le
+    barème n'a plus qu'une seule implémentation, ici seulement adaptée aux
+    structures du simulateur.
+
+    Retourne (score, nombre de discordances) pour ne pas casser ses appelants.
     """
+    from backend.core.practice.scoring import compute_question_score_edn
+
     correct_choices = {
         p.get("id", "").lower(): bool(p.get("reponse_uness", p.get("verdict_ia", False)))
         for p in propositions
     }
-
-    # Normalisation des choix utilisateur
     user_map = {k.lower(): bool(v) for k, v in user_choices.items()}
 
-    mismatches = count_mismatches(user_map, correct_choices)
+    selected = {pid for pid, chosen in user_map.items() if chosen}
+    expected = {pid for pid, correct in correct_choices.items() if correct}
+    # Une proposition vraie de Rang A oubliée annule la question : c'est
+    # exactement la règle « indispensable manquante » du moteur canonique.
+    indispensable = {
+        p.get("id", "").lower()
+        for p in propositions
+        if str(p.get("rank") or p.get("rang") or "").strip().upper() == "A"
+        and correct_choices.get(p.get("id", "").lower(), False)
+    }
 
-    # Vérification annulation Rang A si configuré
-    has_rang_a_fatal = False
-    for p in propositions:
-        pid = p.get("id", "").lower()
-        is_rang_a = str(p.get("rank") or p.get("rang") or "").strip().upper() == "A"
-        u_val = user_map.get(pid, False)
-        c_val = correct_choices.get(pid, False)
-        # Oubli d'un vrai Rang A indispensable
-        if is_rang_a and c_val is True and u_val is False:
-            has_rang_a_fatal = True
-            break
-
-    if has_rang_a_fatal:
-        return 0.0, mismatches
-
-    if mismatches == 0:
-        return 1.0, 0
-    elif mismatches == 1:
-        return 0.5, 1
-    elif mismatches == 2:
-        return 0.2, 2
-    else:
-        return 0.0, mismatches
+    result = compute_question_score_edn(
+        selected,
+        expected,
+        question_kind="QRM",
+        indispensable_choices=indispensable,
+    )
+    return float(result["score"]), count_mismatches(user_map, correct_choices)
 
 
 def list_available_subjects() -> List[str]:

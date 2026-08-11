@@ -50,7 +50,7 @@ _CSS = """
 .fm-objectif { font-size:13.5px; color:var(--text-muted); max-width:520px; margin-bottom:10px; }
 .fm-timer { font-family:var(--font-mono); font-size:68px; font-weight:600; color:var(--text); line-height:1;
   letter-spacing:-0.01em; margin-top:8px; }
-.fm-timer.done { color:var(--danger); }
+.fm-timer.done { color:var(--danger-text); }
 .fm-progress-track { width:220px; height:4px; border-radius:2px; background:var(--surface-hover); overflow:hidden; margin:14px 0 22px; }
 .fm-progress-fill { height:100%; border-radius:2px; background:var(--accent); transition: width 1s linear; }
 .fm-row { display:flex; align-items:center; gap:10px; }

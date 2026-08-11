@@ -64,7 +64,7 @@ def render_external_result_import(on_import=None) -> None:
                 model = import_report_model(report)
                 result_label.set_text(model["summary"])
                 result_label.style(
-                    "color:var(--danger)" if model["errors"] else "color:var(--success)"
+                    "color:var(--danger-text)" if model["errors"] else "color:var(--success-text)"
                 )
                 if model["errors"]:
                     ui.notify("Import terminé avec des lignes ignorées", type="warning")
@@ -74,7 +74,7 @@ def render_external_result_import(on_import=None) -> None:
                     on_import(report)
             except (TypeError, ValueError) as exc:
                 result_label.set_text(f"Import impossible : {exc}")
-                result_label.style("color:var(--danger)")
+                result_label.style("color:var(--danger-text)")
                 ui.notify("Import EDN impossible", type="negative")
 
         ui.button("Importer les résultats", icon="upload_file", on_click=_import).props(

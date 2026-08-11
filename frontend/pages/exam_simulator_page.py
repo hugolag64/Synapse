@@ -37,7 +37,7 @@ _EXAM_CSS = """
 .ex-prop-text { font-size:13px; color:var(--text); line-height:1.4; flex:1; }
 
 .ex-badge-rank { font-size:10px; font-weight:600; font-family:var(--font-mono); padding:2px 6px; border-radius:var(--radius-sm); }
-.ex-badge-rank-a { background:var(--college-late-bg); color:var(--danger); border:1px solid rgba(229,72,77,0.2); }
+.ex-badge-rank-a { background:var(--college-late-bg); color:var(--danger-text); border:1px solid rgba(229,72,77,0.2); }
 .ex-badge-rank-b { background:var(--surface-hover); color:var(--text-muted); border:1px solid var(--border); }
 """
 

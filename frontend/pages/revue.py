@@ -194,14 +194,14 @@ def revue_page() -> None:
 
             n_improved = len(report.courses_improved)
             with ui.element("div").classes("rh-metric"):
-                ui.label(f"+{n_improved}").classes("rh-metric-val").style("color:var(--success)")
+                ui.label(f"+{n_improved}").classes("rh-metric-val").style("color:var(--success-text)")
                 ui.label("items consolidés").classes("rh-metric-sub")
 
             ui.element("div").classes("rh-vsep")
 
             n_regressed = len(report.courses_regressed)
             with ui.element("div").classes("rh-metric"):
-                ui.label(f"−{n_regressed}").classes("rh-metric-val").style("color:var(--danger)")
+                ui.label(f"−{n_regressed}").classes("rh-metric-val").style("color:var(--danger-text)")
                 ui.label("items en régression").classes("rh-metric-sub")
 
             ui.element("div").classes("rh-vsep")

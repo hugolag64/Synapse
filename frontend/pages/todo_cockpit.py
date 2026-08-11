@@ -229,7 +229,7 @@ async def render_revisions_cockpit() -> None:
                 with ui.element("div").classes("rv-subtitle"):
                     ui.label(f"{len(data['tasks'])} dues ·")
                     ui.label(f"{data['overdue']} en retard").style(
-                        "color:var(--danger); font-weight:500;")
+                        "color:var(--danger-text); font-weight:500;")
                     ui.label("· répétition espacée J3/J7/J14/J30")
             context = ui.label("Pilotage").classes("rv-context-open")
             context.on("click", lambda: open_drawer(drawer_state["root"]) if drawer_state["root"] else None)

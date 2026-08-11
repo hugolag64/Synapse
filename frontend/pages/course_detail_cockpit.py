@@ -55,6 +55,7 @@ from frontend.components.course_quick_actions import (
     open_start_tracking_dialog,
 )
 from frontend.components.anki_review_session import open_anki_review_session
+from backend.core.knowledge.course_aliases import referential_college
 from frontend.components.ai_practice_panel import (
     render_ai_practice_panel,
     render_dp_tutor_action,
@@ -378,7 +379,10 @@ def render_item_cockpit(course_id: str) -> None:
     has_first_read = bool(getattr(course, "date_1ere_lecture", None))
 
     item_label = course.display_item_number or course.item_number or "—"
-    college = (course.college or [""])[0] if course.college else ""
+    # Rattachement stable : un item saisi une fois par collège dans Notion
+    # affichait un fil d'Ariane différent selon la fiche ouverte. Le collège du
+    # référentiel EDN ne dépend pas de la fiche par laquelle on est arrivé.
+    college = referential_college(course) or ((course.college or [""])[0] if course.college else "")
     frequency_map = local_store.get_all_ednpro_item_frequencies()
     frequency = frequency_map.get(str(course.item_number or "").strip().removeprefix("ITEM "))
     ring = _ring_glyph(score)

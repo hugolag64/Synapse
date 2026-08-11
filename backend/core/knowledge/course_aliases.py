@@ -1,0 +1,108 @@
+"""Rassemble les fiches Notion qui décrivent le même item EDN.
+
+Un item est souvent saisi une fois par collège dans Notion : « Péritonite aiguë »
+existe en quatre fiches (Orthopédie, Réanimation, Chirurgie digestive,
+Anesthésie). Mesuré sur les données réelles : 162 items sur 365 ont de 2 à 4
+fiches, et tous ont leur historique éclaté entre elles — réviser depuis l'une
+rend la révision invisible depuis les autres, et la maîtrise de l'item existe en
+autant d'exemplaires partiels.
+
+Ce module n'écrit rien : il donne aux lectures de quoi traiter ces fiches comme
+un seul item. Notion garde ses doublons, qui restent l'entrée par collège.
+"""
+
+from __future__ import annotations
+
+from typing import Iterable, Sequence, TypeVar
+
+from backend.core.qcm.items_mapping import resolve
+
+Course = TypeVar("Course")
+
+
+def normalized_item(course) -> str:
+    """Numéro d'item sous forme canonique, ou '' si le cours n'en a pas."""
+    raw = str(getattr(course, "item_number", "") or "").strip()
+    if not raw:
+        return ""
+    try:
+        return str(int(float(raw)))
+    except (TypeError, ValueError):
+        return ""
+
+
+def group_courses_by_item(courses: Iterable) -> dict[str, list]:
+    """Fiches regroupées par item. Les cours sans item sont écartés.
+
+    Avant l'externat les cours n'étaient organisés ni par collège ni par item :
+    leur absence de regroupement est normale, pas une anomalie.
+    """
+    groups: dict[str, list] = {}
+    for course in courses:
+        item = normalized_item(course)
+        if item:
+            groups.setdefault(item, []).append(course)
+    return groups
+
+
+def colleges_of_item(courses: Sequence) -> list[str]:
+    """Union ordonnée des collèges de toutes les fiches d'un item."""
+    seen: list[str] = []
+    for course in courses:
+        for college in getattr(course, "college", None) or []:
+            label = str(college).strip()
+            if label and label not in seen:
+                seen.append(label)
+    return seen
+
+
+def canonical_course(courses: Sequence):
+    """Fiche qui représente l'item : celle rattachée au collège du référentiel.
+
+    Le référentiel UNESS fait autorité sur l'association collège-item, ce qui
+    donne un rattachement stable indépendant de l'organisation personnelle. À
+    défaut de correspondance, la plus ancienne fiche fait référence — un choix
+    déterministe vaut mieux qu'un ordre de chargement.
+    """
+    if not courses:
+        raise ValueError("Un item doit avoir au moins une fiche")
+    if len(courses) == 1:
+        return courses[0]
+
+    item = normalized_item(courses[0])
+    _title, referential_college = resolve(item) if item else ("", "")
+    if referential_college:
+        for course in courses:
+            colleges = [str(c).strip() for c in (getattr(course, "college", None) or [])]
+            if any(referential_college in c or c in referential_college for c in colleges):
+                return course
+
+    return min(courses, key=lambda c: (getattr(c, "created_time", None) or 0, str(c.id)))
+
+
+def dedupe_by_item(courses: Sequence) -> list:
+    """Une seule fiche par item, en conservant l'ordre d'entrée.
+
+    Deux fiches d'un même item peuvent porter le même collège : la liste de ce
+    collège afficherait alors deux fois le même item. Mesuré sur les données
+    réelles : 207 lignes en double réparties sur 28 collèges.
+
+    Les cours sans item — ceux d'avant l'externat, organisés par UE et non par
+    collège — n'ont pas de doublon possible et sont tous conservés.
+    """
+    groups = group_courses_by_item(courses)
+    keepers = {id(canonical_course(fiches)) for fiches in groups.values()}
+    return [
+        course
+        for course in courses
+        if not normalized_item(course) or id(course) in keepers
+    ]
+
+
+def referential_college(course) -> str:
+    """Collège officiel de l'item de ce cours, ou '' s'il est inconnu."""
+    item = normalized_item(course)
+    if not item:
+        return ""
+    _title, college = resolve(item)
+    return college or ""

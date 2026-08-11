@@ -623,10 +623,20 @@ class DataStore:
         return final_order
 
     def get_cours_for_college(self, college: str) -> List[Cours]:
-        """Return courses linked to a specific college."""
+        """Cours d'un collège, une seule fiche par item EDN.
+
+        Un item est souvent saisi une fois par collège dans Notion. Quand deux
+        de ces fiches portent le même collège, la liste affichait deux fois le
+        même item — 207 lignes en double sur 28 collèges. On ne garde que la
+        fiche de référence de chaque item.
+        """
+        from backend.core.knowledge.course_aliases import dedupe_by_item
+
         if college == "Tout":
-            return [c for c in self.cours if c.college] # Only courses with a college
-        return [c for c in self.cours if c.college and college in c.college]
+            matching = [c for c in self.cours if c.college]
+        else:
+            matching = [c for c in self.cours if c.college and college in c.college]
+        return dedupe_by_item(matching)
         
     def get_items_for_college(self, college: str) -> List[str]:
         """Return unique item names (cours) for a specific college."""

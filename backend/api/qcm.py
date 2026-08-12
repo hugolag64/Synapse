@@ -116,9 +116,46 @@ def import_uness(payload: UnessImportPayload) -> dict:
     }
 
 
+def _correction_payload(session_id: int, summary: dict) -> dict:
+    """Construit la correction d'une session déjà répondue, sans effet de bord.
+
+    Partagé avec la finalisation : celle-ci enregistre la maîtrise et clôt la
+    session, cette lecture ne fait ni l'un ni l'autre. Sans elle, la correction
+    n'existait qu'en retour de `POST /complete` et ne pouvait pas être rouverte.
+    """
+    questions = local_store.get_ai_practice_session(session_id)
+    current = local_store.get_ai_practice_session_summary(session_id)
+    rows = build_correction_rows(questions, current)
+    latest_attempts = {
+        int(attempt["question_id"]): int(attempt["id"])
+        for attempt in (current or {}).get("latest_attempts", [])
+    }
+    for row in rows:
+        correction = row.get("question", {}).get("correction")
+        if correction:
+            row["correction"] = correction
+        attempt_id = latest_attempts.get(int(row["question"]["id"]))
+        if attempt_id is not None:
+            row["propositions"] = local_store.get_ai_practice_attempt_propositions(attempt_id)
+    return {
+        "session": summary,
+        "rows": rows,
+        "follow_up": _follow_up(session_id, dict(current or summary), rows),
+    }
+
+
 @router.get("/sessions/{session_id}")
 def get_session(session_id: int) -> dict:
     return _session_payload(session_id)
+
+
+@router.get("/sessions/{session_id}/correction")
+def get_correction(session_id: int) -> dict:
+    """Relit la correction d'une session sans la finaliser ni rejouer la maîtrise."""
+    summary = local_store.get_ai_practice_session_summary(session_id)
+    if summary is None:
+        raise HTTPException(status_code=404, detail="Session QCM introuvable")
+    return _correction_payload(session_id, {key: value for key, value in dict(summary).items() if key != "latest_attempts"})
 
 
 @router.get("/sessions/{session_id}/questions/{question_id}/images/{image_index}")
@@ -204,25 +241,7 @@ def complete_session(session_id: int) -> dict:
             },
         )
     record_ai_practice_mastery(session_id)
-    questions = local_store.get_ai_practice_session(session_id)
-    current = local_store.get_ai_practice_session_summary(session_id)
-    rows = build_correction_rows(questions, current)
-    latest_attempts = {
-        int(attempt["question_id"]): int(attempt["id"])
-        for attempt in (current or {}).get("latest_attempts", [])
-    }
-    for row in rows:
-        correction = row.get("question", {}).get("correction")
-        if correction:
-            row["correction"] = correction
-        attempt_id = latest_attempts.get(int(row["question"]["id"]))
-        if attempt_id is not None:
-            row["propositions"] = local_store.get_ai_practice_attempt_propositions(attempt_id)
-    return {
-        "session": summary,
-        "rows": rows,
-        "follow_up": _follow_up(session_id, dict(current or summary), rows),
-    }
+    return _correction_payload(session_id, summary)
 
 
 @router.post("/sessions/{session_id}/follow-up")

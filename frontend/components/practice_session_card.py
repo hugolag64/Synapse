@@ -12,11 +12,18 @@ from frontend.components.qcm_replay import session_action_keys
 QCM_NODE_DIST = Path(__file__).parents[2] / "qcm_app" / "dist" / "index.html"
 
 
-def open_node_qcm(session_id: int, exam: bool = False) -> bool:
-    """Open the approved Node reader when its production bundle is available."""
+def open_node_qcm(session_id: int, exam: bool = False, correction: bool = False) -> bool:
+    """Ouvre le lecteur React quand son bundle de production est disponible.
+
+    `correction` rouvre la correction d'une session déjà répondue sans repasser
+    par la phase de réponse. Renvoie False si le bundle manque, pour que
+    l'appelant puisse retomber sur le lecteur NiceGUI.
+    """
     if not QCM_NODE_DIST.exists():
         return False
     suffix = "&exam=1" if exam else ""
+    if correction:
+        suffix += "&correction=1"
     ui.navigate.to(f"/qcm-app/?session={int(session_id)}{suffix}")
     return True
 

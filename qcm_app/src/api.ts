@@ -11,6 +11,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const fetchSession = (id: number) => request<SessionPayload>(`/api/qcm/sessions/${id}`)
 
+/** Relit la correction d'une session déjà répondue, sans la finaliser. */
+export const fetchCorrection = (id: number) =>
+  request<CorrectionPayload>(`/api/qcm/sessions/${id}/correction`)
+
 export const saveAttempt = (sessionId: number, questionId: number, response: string) =>
   request(`/api/qcm/sessions/${sessionId}/attempts`, {
     method: 'POST',

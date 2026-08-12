@@ -159,3 +159,28 @@ def test_dossier_context_refuses_a_session_without_known_provenance():
     from frontend.components.ai_practice_panel import trusted_dossier_context
 
     assert trusted_dossier_context({"id": 7}, [{"prompt": "Énoncé"}]) == ""
+
+
+def test_item_sessions_open_the_react_reader_first():
+    """Les sessions IA de la fiche item n'essayaient jamais le lecteur React,
+    seul à afficher le contexte clinique partagé d'un dossier progressif et les
+    images pendant la phase de réponse."""
+    body = _extract_function(PANEL_SOURCE, "_open_answer_dialog")
+
+    assert "open_node_qcm(session_id)" in body
+    assert "open_qcm_session(" in body, "le lecteur NiceGUI reste le repli"
+
+
+def test_item_corrections_open_the_react_reader_first():
+    body = _extract_function(PANEL_SOURCE, "_open_correction_dialog")
+
+    assert "open_node_qcm(session_id" in body
+
+
+def test_the_nicegui_reader_stays_reachable_when_the_bundle_is_missing():
+    """open_node_qcm renvoie False sans qcm_app/dist : sans repli, le clic
+    resterait sans effet."""
+    body = _extract_function(PANEL_SOURCE, "_open_answer_dialog")
+
+    assert "if open_node_qcm(session_id)" in body
+    assert "return" in body

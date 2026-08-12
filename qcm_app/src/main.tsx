@@ -1,6 +1,6 @@
 import { Component, useEffect, useMemo, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { completeSession, fetchSession, followUpAction, replaySession, saveAttempt } from './api'
+import { completeSession, fetchCorrection, fetchSession, followUpAction, replaySession, saveAttempt } from './api'
 import type { CorrectionPayload, CorrectionRow, Question, SessionPayload, UnessImage } from './types'
 import { MedicalImageViewer } from './components/MedicalImageViewer'
 import './styles.css'
@@ -302,7 +302,14 @@ export function CorrectionCard({ row, sessionId }: { row: CorrectionRow; session
 function App() {
   const [data, setData] = useState<SessionPayload | CorrectionPayload | null>(null)
   const [error, setError] = useState('')
-  useEffect(() => { if (!sessionId) return setError('Session QCM manquante'); fetchSession(sessionId).then(setData).catch((reason) => setError(reason.message)) }, [])
+  // ?correction=1 rouvre la correction d'une session déjà répondue : la fiche
+  // item y renvoie directement, sans repasser par la phase de réponse.
+  const wantsCorrection = new URLSearchParams(window.location.search).get('correction') === '1'
+  useEffect(() => {
+    if (!sessionId) return setError('Session QCM manquante')
+    const load = wantsCorrection ? fetchCorrection(sessionId) : fetchSession(sessionId)
+    load.then(setData).catch((reason) => setError(reason.message))
+  }, [])
   if (error) return <main className="state"><Header /><h1>Impossible d’ouvrir ce QCM</h1><p>{error}</p></main>
   if (!data) return <main className="state"><Header /><p>Chargement du QCM…</p></main>
   if ('rows' in data) return <Correction payload={data} onReplay={(id) => { window.location.search = `?session=${id}` }} />

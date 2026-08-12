@@ -16,6 +16,7 @@ from backend.core.practice.service import PracticeService
 from backend.core.ednpro.frequency import calculate_gain_priority
 from backend.core.reviews import local_store
 from frontend.components.practice_import_panel import open_practice_import_dialog
+from frontend.components.practice_session_card import open_node_qcm
 from frontend.components.qcm_replay import (
     open_chained_dialog,
     open_qcm_correction,
@@ -132,7 +133,20 @@ def _open_generation_dialog(course, refresh) -> None:
 
 
 def _open_answer_dialog(session_id: int, refresh) -> None:
-    """Open the resumable, step-based stored-session reader."""
+    """Ouvre le lecteur React, avec le lecteur NiceGUI en repli.
+
+    Le lecteur React est seul à afficher le contexte clinique partagé d'un
+    dossier progressif et les images médicales pendant la phase de réponse, et
+    seul à déclencher le filet « plusieurs échecs » en fin de session. La fiche
+    item, écran le plus consulté, ne l'essayait jamais.
+
+    `open_node_qcm` navigue vers une autre page : il n'y a rien à enchaîner
+    ensuite côté NiceGUI, React affiche lui-même la correction. Le repli reste
+    nécessaire tant que `qcm_app/dist` peut manquer.
+    """
+    if open_node_qcm(session_id):
+        return
+
     page_slot = ui.context.slot
     # set_ai_practice_anchor remains available from the reader for stored questions.
     open_qcm_session(
@@ -146,7 +160,10 @@ def _open_answer_dialog(session_id: int, refresh) -> None:
 
 
 def _open_correction_dialog(session_id: int, refresh) -> None:
-    """Open correction and route replayed sessions back into the step reader."""
+    """Ouvre la correction React, avec le lecteur NiceGUI en repli."""
+    if open_node_qcm(session_id, correction=True):
+        return
+
     page_slot = ui.context.slot
     open_qcm_correction(
         session_id,

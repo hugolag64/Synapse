@@ -5,6 +5,8 @@ from __future__ import annotations
 import datetime
 from typing import Any
 
+from loguru import logger
+
 from backend.core.edn.error_profile import map_discordance_to_error_category
 from backend.core.practice.scoring import ScoredAttempt, score_closed_attempt
 from backend.core.reviews import local_store
@@ -63,8 +65,23 @@ def score_and_record_closed_attempt(
             question_id=question_id,
             question=question,
             propositions=scored.propositions,
+            session_id=session_id,
         )
     return attempt_id, scored
+
+
+def _session_item_fallback(session_id: int | None) -> list[dict[str, Any]]:
+    """Item de la session, sous la forme attendue pour un rattachement."""
+    if session_id is None:
+        return []
+    try:
+        summary = local_store.get_ai_practice_session_summary(int(session_id))
+    except Exception:
+        return []
+    item_number = str((dict(summary) if summary else {}).get("item_number") or "").strip()
+    if not item_number.isdigit():
+        return []
+    return [{"item_number": item_number, "source": "session-fallback", "confidence": 0.5}]
 
 
 def record_error_signals_for_attempt(
@@ -73,10 +90,27 @@ def record_error_signals_for_attempt(
     question_id: int,
     question: dict[str, Any] | None,
     propositions: list[dict[str, Any]],
+    session_id: int | None = None,
 ) -> None:
-    """Persist idempotent cognitive error signals for a scored attempt."""
+    """Enregistre les signaux d'erreur d'une tentative scorée, sans doublon.
+
+    La fonction s'arrêtait quand la question n'avait aucune classification par
+    item. Sur les données réelles, aucune tentative n'a jamais réuni les deux
+    conditions requises — question classée ET détail propositionnel — si bien
+    que la table est restée vide depuis toujours, en silence.
+
+    À défaut de classification propre, la question hérite de l'item de sa
+    session : une question de dossier porte sur le dossier. Sans item nulle
+    part, on trace au lieu de disparaître.
+    """
     item_rows = local_store.get_ai_practice_question_items(question_id)
     if not item_rows:
+        item_rows = _session_item_fallback(session_id)
+    if not item_rows:
+        logger.warning(
+            "Signal d'erreur abandonné : ni la question {} ni sa session ne portent d'item",
+            question_id,
+        )
         return
     occurred_at = datetime.date.today().isoformat()
     for item_row in item_rows:

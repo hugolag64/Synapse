@@ -104,6 +104,42 @@ def get_seed_snapshot(
 
 # ── Couverture OIC ────────────────────────────────────────────────────────────
 
+RANG_A_MIN_ATTEMPTS = 3
+"""Objectifs de rang A à avoir tentés pour que le socle soit jugeable."""
+
+RANG_A_MIN_RATIO = 1 / 3
+"""…ou cette part de la liste, pour ne pas bloquer les items à liste courte."""
+
+
+def rang_a_verdict(coverage: dict) -> dict:
+    """Dit si le socle Rang A est jugeable, et sur quoi le juger.
+
+    L'ancien calcul s'armait dès la première tentative et divisait par le
+    nombre TOTAL d'objectifs : ouvrir un objectif sur treize donnait 0 % et
+    verrouillait le cours en « fragile » quasi définitivement. Deux corrections :
+
+    - il faut un échantillon représentatif pour conclure — trois objectifs
+      tentés, ou un tiers de la liste quand elle est courte ;
+    - le verdict porte sur ce qui a été **tenté**, pas sur la liste entière :
+      sinon allonger la liste d'objectifs dégrade mécaniquement le résultat.
+
+    `pct` vaut None tant qu'on ne peut pas conclure — « non mesuré » n'est pas
+    « raté ».
+    """
+    total = int(coverage.get("rang_a_total") or 0)
+    attempted = int(coverage.get("rang_a_attempted") or 0)
+    mastered = int(coverage.get("rang_a_ok") or 0)
+
+    if total <= 0 or attempted <= 0:
+        return {"conclusive": False, "pct": None, "attempted": attempted}
+
+    enough = attempted >= RANG_A_MIN_ATTEMPTS or (attempted / total) >= RANG_A_MIN_RATIO
+    if not enough:
+        return {"conclusive": False, "pct": None, "attempted": attempted}
+
+    return {"conclusive": True, "pct": mastered / attempted, "attempted": attempted}
+
+
 def oic_coverage(course_id: str) -> dict:
     """
     Couverture des objectifs de connaissance d'un item.
@@ -136,11 +172,16 @@ def oic_coverage(course_id: str) -> dict:
         and int(row["attempt_count"] or 0) > 0
     )
 
+    verdict = rang_a_verdict(
+        {"rang_a_total": a_total, "rang_a_ok": a_ok, "rang_a_attempted": a_attempted}
+    )
     return {
         "rang_a_total": a_total,
         "rang_a_ok":    a_ok,
         "rang_a_pct":   (a_ok / a_total) if a_total else 0.0,
         "rang_a_attempted": a_attempted,
+        "rang_a_conclusive": verdict["conclusive"],
+        "rang_a_pct_attempted": verdict["pct"],
         "rang_b_total": b_total,
         "rang_b_ok":    b_ok,
         "rang_b_pct":   (b_ok / b_total) if b_total else 0.0,

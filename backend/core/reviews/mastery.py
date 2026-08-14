@@ -141,6 +141,8 @@ def get_course_mastery(
     _oic_coverage_a      = _cov["rang_a_pct"]
     _has_rang_a_referential = _cov["rang_a_total"] > 0
     _has_rang_a_evaluated = _cov.get("rang_a_attempted", 0) > 0
+    _rang_a_conclusive = bool(_cov.get("rang_a_conclusive"))
+    _oic_coverage_a_attempted = _cov.get("rang_a_pct_attempted")
     _has_rang_a_badge    = badge_from_coverage(_cov)
     _extra = {
         "declared_level":   seed.declared_level,
@@ -313,8 +315,13 @@ def get_course_mastery(
     # Le verrou Rang A (utilisé plus bas pour fragile/critique) ne doit s'appliquer
     # que si le cours a réellement été évalué sur ses OIC de Rang A — sinon
     # l'absence de mesure serait traitée comme un échec (score_rang_a < 75).
-    if _has_rang_a_evaluated:
-        score_rang_a = max(0, min(100, round(mastery_score * 0.5 + (_oic_coverage_a * 100) * 0.5)))
+    # Le verrou ne juge que sur un échantillon représentatif, et sur les
+    # objectifs réellement tentés : ouvrir le premier objectif d'une liste de
+    # treize ne doit pas valoir 0 % de couverture.
+    if _rang_a_conclusive and _oic_coverage_a_attempted is not None:
+        score_rang_a = max(
+            0, min(100, round(mastery_score * 0.5 + (_oic_coverage_a_attempted * 100) * 0.5))
+        )
     else:
         score_rang_a = mastery_score
     
@@ -335,13 +342,13 @@ def get_course_mastery(
         _has_rang_a_evaluated and score_rang_a is not None and score_rang_a < 40
     ):
         level = "critique"
-        if _has_rang_a_evaluated and score_rang_a is not None and score_rang_a < 40:
+        if _rang_a_conclusive and score_rang_a is not None and score_rang_a < 40:
             reasons.append("Socle Rang A critique (<40%)")
     elif mastery_score < 60 or (
-        _has_rang_a_evaluated and score_rang_a is not None and score_rang_a < 75
+        _rang_a_conclusive and score_rang_a is not None and score_rang_a < 75
     ):
         level = "fragile"
-        if _has_rang_a_evaluated and score_rang_a is not None and score_rang_a < 75:
+        if _rang_a_conclusive and score_rang_a is not None and score_rang_a < 75:
             reasons.append("Sécurité Rang A non atteinte (<75%)")
     elif mastery_score >= 80 and qcm_done:
         level = "maîtrisé"

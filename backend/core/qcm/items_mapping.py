@@ -1,21 +1,25 @@
 """
 qcm/items_mapping.py — Synapse
 -------------------------------
-Mapping statique des 367 items EDN depuis data/items_edn.json.
+Mapping des items EDN depuis les référentiels locaux.
 
 Fournit :
   - item_title(item_number)   → titre officiel EDN (str)
   - item_college(item_number) → abréviation collège nexternat (str)
   - college_full(abbr)        → nom Notion complet (str)
-  - resolve(item_number)      → (title, college_full) ou ("", "")
+  - item_colleges(item_number) → tous les collèges référentiels, dans l'ordre
+  - resolve(item_number)      → (titre, collège principal) ou ("", "")
 """
 from __future__ import annotations
 
 import json
+import unicodedata
 from functools import lru_cache
 from pathlib import Path
 
 _DATA_PATH = Path(__file__).parent.parent.parent.parent / "data" / "items_edn.json"
+_NEXTERNAT_PATH = _DATA_PATH.with_name("nexternat_items.json")
+_COLLEGE_MAPPING_PATH = _DATA_PATH.with_name("college_consolidation.json")
 
 # Abréviation nexternat → nom exact du multi_select "Collège" dans Notion (avec emoji).
 # Source de vérité : options récupérées via l'API Notion (databases.retrieve).
@@ -95,6 +99,79 @@ def item_college_abbr(item_number: str | int) -> str:
 def college_full(abbr: str) -> str:
     """Abréviation → nom Notion exact (avec emoji). Ex: 'MCV' → 'Cardiovasculaire ❤️'."""
     return _ABBR_TO_NOTION.get(abbr) or ""
+
+
+def _normalize_college_name(value: str) -> str:
+    """Clé tolérante pour les noms des collèges du référentiel UNESS."""
+    text = unicodedata.normalize("NFKD", str(value or ""))
+    text = "".join(char for char in text if not unicodedata.combining(char))
+    return " ".join(text.casefold().split())
+
+
+@lru_cache(maxsize=1)
+def _referential_name_to_notion() -> dict[str, str]:
+    """Construit la table des 59 noms UNESS vers les collèges Notion.
+
+    ``nexternat_items.json`` conserve les noms et acronymes des collèges
+    référentiels. ``college_consolidation.json`` documente leur regroupement
+    dans les 39 collèges utilisés par Synapse (par exemple Cardiologie et
+    Chirurgie thoracique/Cardio-vasculaire → Cardiovasculaire ❤️).
+    """
+    try:
+        payload = json.loads(_COLLEGE_MAPPING_PATH.read_text(encoding="utf-8"))
+        acronym_to_notion = payload.get("mapping", {})
+        acronym_to_name = payload.get("nexternat_names", {})
+        return {
+            _normalize_college_name(name): acronym_to_notion[acronym]
+            for acronym, name in acronym_to_name.items()
+            if acronym_to_notion.get(acronym)
+        }
+    except Exception:
+        return {}
+
+
+@lru_cache(maxsize=1)
+def _load_nexternat() -> dict[int, dict]:
+    """Charge le référentiel multi-collèges UNESS, indexé par item."""
+    try:
+        payload = json.loads(_NEXTERNAT_PATH.read_text(encoding="utf-8"))
+        entries = payload.get("items", {})
+        return {int(number): entry for number, entry in entries.items()}
+    except Exception:
+        return {}
+
+
+@lru_cache(maxsize=None)
+def item_colleges(item_number: str | int) -> tuple[str, ...]:
+    """Retourne tous les collèges Notion associés à un item EDN.
+
+    L'ordre suit le référentiel UNESS (écriture puis relecture). Les doublons
+    sont supprimés après consolidation : plusieurs sociétés savantes peuvent
+    donc alimenter un même collège Notion.
+    """
+    n = _normalize_item(item_number)
+    if n is None:
+        return ()
+
+    entry = _load_nexternat().get(n)
+    if not entry:
+        _title, college = resolve(n)
+        return (college,) if college else ()
+
+    by_name = _referential_name_to_notion()
+    result: list[str] = []
+    for section in ("ecriture", "relecture"):
+        for row in entry.get(section, []) or []:
+            name = str(row.get("name") or "").strip()
+            acronym = str(row.get("acronym") or "").strip()
+            college = by_name.get(_normalize_college_name(name)) or college_full(acronym)
+            if college and college not in result:
+                result.append(college)
+
+    if result:
+        return tuple(result)
+    _title, college = resolve(n)
+    return (college,) if college else ()
 
 
 def resolve(item_number: str | int) -> tuple[str, str]:

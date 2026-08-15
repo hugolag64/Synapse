@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from typing import Iterable, Sequence, TypeVar
 
-from backend.core.qcm.items_mapping import resolve
+from backend.core.qcm.items_mapping import item_colleges
 
 Course = TypeVar("Course")
 
@@ -70,12 +70,14 @@ def canonical_course(courses: Sequence):
         return courses[0]
 
     item = normalized_item(courses[0])
-    _title, referential_college = resolve(item) if item else ("", "")
-    if referential_college:
-        for course in courses:
-            colleges = [str(c).strip() for c in (getattr(course, "college", None) or [])]
-            if any(referential_college in c or c in referential_college for c in colleges):
-                return course
+    referential_colleges = item_colleges(item) if item else ()
+    if referential_colleges:
+        for referential_college in referential_colleges:
+            for course in courses:
+                colleges = [str(c).strip() for c in (getattr(course, "college", None) or [])]
+                normalized = {college.casefold() for college in colleges}
+                if referential_college.casefold() in normalized:
+                    return course
 
     return min(courses, key=lambda c: (getattr(c, "created_time", None) or 0, str(c.id)))
 
@@ -116,8 +118,41 @@ def course_for_college(course, college: str, courses: Iterable):
     return None
 
 
+def college_for_item_view(course, requested_college: str | None, courses: Iterable) -> str:
+    """Collège à afficher et à utiliser pour les ressources de la vue item.
+
+    Une navigation depuis un collège est contextuelle : elle doit conserver la
+    fiche et le PDF de ce collège, même si l'accès direct à l'item utilise la
+    fiche principale. Sans contexte, le premier collège du référentiel reste le
+    fallback stable.
+    """
+    siblings = [candidate for candidate in courses if normalized_item(candidate) == normalized_item(course)]
+    if not siblings:
+        siblings = [course]
+
+    if requested_college:
+        selected = course_for_college(course, requested_college, siblings)
+        if selected:
+            wanted = str(requested_college).strip().casefold()
+            for label in getattr(selected, "college", None) or []:
+                if str(label).strip().casefold() == wanted:
+                    return str(label).strip()
+
+    available = colleges_of_item(siblings)
+    for referential in item_colleges(normalized_item(course)):
+        for label in available:
+            if label.casefold() == referential.casefold():
+                return label
+    return available[0] if available else ""
+
+
 def dedupe_by_item(courses: Sequence) -> list:
-    """Une seule fiche par item, en conservant l'ordre d'entrée.
+    """Une seule fiche par item dans la collection reçue, ordre conservé.
+
+    Cette fonction déduplique ce qu'on lui passe ; elle ne reconstitue pas les
+    collèges d'un item après un filtrage. Les vues qui doivent afficher tous les
+    items d'un collège doivent donc filtrer leur catalogue d'items en amont,
+    puis choisir une fiche représentative.
 
     Deux fiches d'un même item peuvent porter le même collège : la liste de ce
     collège afficherait alors deux fois le même item. Mesuré sur les données
@@ -176,5 +211,5 @@ def referential_college(course) -> str:
     item = normalized_item(course)
     if not item:
         return ""
-    _title, college = resolve(item)
-    return college or ""
+    colleges = item_colleges(item)
+    return colleges[0] if colleges else ""

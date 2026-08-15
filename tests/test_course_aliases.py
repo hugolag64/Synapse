@@ -14,10 +14,12 @@ from types import SimpleNamespace
 from backend.core.knowledge.course_aliases import (
     canonical_course,
     canonical_course_for_item,
+    college_for_item_view,
     colleges_of_item,
     course_for_college,
     group_courses_by_item,
 )
+from backend.core.qcm.items_mapping import item_colleges
 
 
 def _course(cid, item, colleges, title="Cours", created=1):
@@ -98,6 +100,31 @@ def test_college_navigation_selects_the_fiche_for_that_college():
     assert course_for_college(cardio, "Infectiologie 🦠", [infectio, cardio]) is infectio
 
 
+def test_item_colleges_uses_all_nexternat_referential_entries():
+    assert item_colleges(152) == ("Infectiologie 🦠", "Cardiovasculaire ❤️")
+
+
+def test_canonical_fiche_uses_the_primary_referential_college():
+    infectio = _course("infectio", "152", ["Infectiologie 🦠"])
+    cardio = _course("cardio", "152", ["Cardiovasculaire ❤️"])
+
+    assert canonical_course([cardio, infectio]) is infectio
+
+
+def test_item_view_keeps_the_opened_college_for_pdf_and_breadcrumb():
+    infectio = _course("infectio", "152", ["Infectiologie 🦠"])
+    cardio = _course("cardio", "152", ["Cardiovasculaire ❤️"])
+
+    assert college_for_item_view(cardio, "Infectiologie 🦠", [infectio, cardio]) == "Infectiologie 🦠"
+
+
+def test_item_view_falls_back_to_referential_college_without_context():
+    infectio = _course("infectio", "152", ["Infectiologie 🦠"])
+    cardio = _course("cardio", "152", ["Cardiovasculaire ❤️"])
+
+    assert college_for_item_view(cardio, None, [infectio, cardio]) == "Infectiologie 🦠"
+
+
 def test_college_item_link_carries_the_current_college_context():
     from pathlib import Path
 
@@ -167,8 +194,17 @@ def test_item_page_breadcrumb_uses_the_referential_college():
 
     source = Path("frontend/pages/course_detail_cockpit.py").read_text(encoding="utf-8")
 
-    assert "referential_college(course)" in source
+    assert "college_for_item_view(course, college, data_store.cours)" in source
     assert 'college = (course.college or [""])[0] if course.college else ""' not in source
+
+
+def test_oic_panel_uses_the_store_alias_service():
+    from pathlib import Path
+
+    source = Path("frontend/pages/course_detail_cockpit.py").read_text(encoding="utf-8")
+
+    assert "data_store.alias_ids(course.id)" in source
+    assert "oic_course_ids = [" not in source
 
 
 def test_alias_map_links_every_fiche_of_an_item_to_all_the_others():

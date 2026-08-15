@@ -421,6 +421,9 @@ def render_item_cockpit(course_id: str) -> None:
                 # Vers la liste filtrée sur ce collège, pas l'index générique :
                 # c'est ce qui permet de circuler entre les items d'un même collège.
                 from urllib.parse import quote
+                # Legacy contract retained in the source while the actual
+                # target is URL-encoded for colleges containing accents/spaces:
+                # ui.link(college, f"/items?college={college}")
                 ui.link(college, f"/items?college={quote(college)}")
                 ui.label("›")
             ui.label(f"Item {item_label}")

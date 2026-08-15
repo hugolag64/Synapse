@@ -13,6 +13,7 @@ from types import SimpleNamespace
 
 from backend.core.knowledge.course_aliases import (
     canonical_course,
+    canonical_course_for_item,
     colleges_of_item,
     group_courses_by_item,
 )
@@ -80,6 +81,13 @@ def test_canonical_of_a_single_fiche_is_itself():
     only = _course("a", "230", [])
 
     assert canonical_course([only]) is only
+
+
+def test_pdf_selection_from_a_non_canonical_fiche_uses_the_canonical_fiche():
+    other = _course("other", "230", ["Orthopédie - Traumatologie 🦴"])
+    cardio = _course("cardio", "230", ["Cardiovasculaire ❤️"])
+
+    assert canonical_course_for_item(other, [other, cardio]) is cardio
 
 
 def test_a_college_lists_each_item_once():

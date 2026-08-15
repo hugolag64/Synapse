@@ -80,6 +80,21 @@ def canonical_course(courses: Sequence):
     return min(courses, key=lambda c: (getattr(c, "created_time", None) or 0, str(c.id)))
 
 
+def canonical_course_for_item(course, courses: Iterable):
+    """Return the canonical fiche for ``course``'s item.
+
+    Detail pages can be reached through any college fiche.  Resource actions
+    such as the official PDF must nevertheless follow the canonical fiche
+    shown by the item page, otherwise the breadcrumb and the opened resource
+    can point to different colleges.
+    """
+    item = normalized_item(course)
+    if not item:
+        return course
+    siblings = [candidate for candidate in courses if normalized_item(candidate) == item]
+    return canonical_course(siblings) if siblings else course
+
+
 def dedupe_by_item(courses: Sequence) -> list:
     """Une seule fiche par item, en conservant l'ordre d'entrée.
 

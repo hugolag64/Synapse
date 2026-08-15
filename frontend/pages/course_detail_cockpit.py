@@ -55,7 +55,10 @@ from frontend.components.course_quick_actions import (
     open_start_tracking_dialog,
 )
 from frontend.components.anki_review_session import open_anki_review_session
-from backend.core.knowledge.course_aliases import referential_college
+from backend.core.knowledge.course_aliases import (
+    canonical_course_for_item,
+    referential_college,
+)
 from frontend.components.ai_practice_panel import (
     render_ai_practice_panel,
     render_dp_tutor_action,
@@ -307,6 +310,11 @@ def render_item_cockpit(course_id: str) -> None:
             ui.link("‹ Retour à Aujourd'hui", "/").classes("ci-p-link")
         return
 
+    # The detail page can be opened through any college fiche.  Resource
+    # actions must follow the canonical fiche used by the item view, so the
+    # breadcrumb and the official PDF never point to different colleges.
+    pdf_course = canonical_course_for_item(course, data_store.cours)
+
     # Historique de consultation pour la section « Récents » de la sidebar.
     # Une seule écriture upsert, jamais bloquante : cette page est déjà lente.
     try:
@@ -376,7 +384,7 @@ def render_item_cockpit(course_id: str) -> None:
             obs_path = obsidian_service.find_course_note(course)
         except Exception:
             obs_path = None
-    has_pdf = bool(getattr(course, "url_pdf", None))
+    has_pdf = bool(getattr(pdf_course, "url_pdf", None))
     has_first_read = bool(getattr(course, "date_1ere_lecture", None))
 
     item_label = course.display_item_number or course.item_number or "—"
@@ -490,7 +498,7 @@ def render_item_cockpit(course_id: str) -> None:
                 if not has_pdf:
                     _start.tooltip("Liez d'abord un PDF pour démarrer le suivi")
             elif has_pdf:
-                ui.link("↗ Ouvrir le cours", f"/pdf/{course.id}", new_tab=True).classes(
+                ui.link("↗ Ouvrir le cours", f"/pdf/{pdf_course.id}", new_tab=True).classes(
                     "ci-btn primary"
                 )
             else:
@@ -514,19 +522,19 @@ def render_item_cockpit(course_id: str) -> None:
                     ui.label("Lier un PDF")
                 _link_pdf.on(
                     "click",
-                    lambda c=course: open_pdf_wizard(
+                    lambda c=pdf_course: open_pdf_wizard(
                         c, "college", lambda: ui.navigate.reload(), ui.context.client
                     ),
                 )
 
             if has_pdf:
-                ui.link("↗ PDF", f"/pdf/{course.id}", new_tab=True).classes("ci-btn")
+                ui.link("↗ PDF", f"/pdf/{pdf_course.id}", new_tab=True).classes("ci-btn")
             _edit_pdf = ui.element("div").classes("ci-btn")
             with _edit_pdf:
                 ui.label("Modifier le PDF")
             _edit_pdf.on(
                 "click",
-                lambda c=course: open_pdf_wizard(
+                lambda c=pdf_course: open_pdf_wizard(
                     c, "college", lambda: ui.navigate.reload(), ui.context.client
                 ),
             )
@@ -612,7 +620,7 @@ def render_item_cockpit(course_id: str) -> None:
 
         with responsive_drawer(on_close=_close_context, aria_label="Contexte de l'item") as drawer_root:
             drawer_state["root"] = drawer_root
-            _render_panel(course, lacunes, has_pdf, obs_path)
+            _render_panel(course, pdf_course, lacunes, has_pdf, obs_path)
 
 
 # ── Onglets ───────────────────────────────────────────────────────────────────
@@ -1298,7 +1306,7 @@ def build_item_resources(item_number: str, rows=None) -> list[dict]:
     return resources
 
 
-def _render_panel(course, lacunes, has_pdf: bool, obs_path) -> None:
+def _render_panel(course, pdf_course, lacunes, has_pdf: bool, obs_path) -> None:
     by_id = {c.id: c for c in data_store.cours}
 
     with ui.element("div").classes("ci-p-section"):
@@ -1329,7 +1337,7 @@ def _render_panel(course, lacunes, has_pdf: bool, obs_path) -> None:
         ui.label("Ressources").classes("ci-label")
         any_res = False
         if has_pdf:
-            ui.link("↗ PDF officiel", f"/pdf/{course.id}", new_tab=True).classes("ci-p-link")
+            ui.link("↗ PDF officiel", f"/pdf/{pdf_course.id}", new_tab=True).classes("ci-p-link")
             any_res = True
         if obs_path is not None:
             _o = ui.element("div").classes("ci-p-link")

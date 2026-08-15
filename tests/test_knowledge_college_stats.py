@@ -6,7 +6,7 @@ du cockpit.
 """
 from types import SimpleNamespace
 
-from frontend.pages.colleges_cockpit import _college_item_rows, _pilotage_summary
+from frontend.pages.colleges_cockpit import _college_item_rows, _pilotage_summary, count_no_pdf
 
 
 def _course(course_id: str, item_number: str, started: bool):
@@ -69,3 +69,38 @@ def test_pilotage_summary_expose_les_niveaux_et_la_charge():
     assert summary["level_counts"]["solide"] == 1
     assert summary["level_counts"]["non_commence"] == 1
     assert summary["estimated_minutes"] == 20
+
+
+def test_no_pdf_compte_les_fiches_sans_pdf():
+    courses = [
+        _course("a", "1", False),
+        _course("b", "2", False),
+    ]
+    courses[0].url_pdf = ""
+
+    assert count_no_pdf(courses) == 1
+
+
+def test_pilotage_ne_compte_pas_deux_fois_une_fiche_multi_colleges_sans_pdf():
+    rows = [
+        {
+            "item_ids": {"item-1"},
+            "no_pdf_course_ids": {"fiche-1"},
+            "total": 1,
+            "started": 0,
+            "retard": 0,
+            "fragile": 0,
+            "no_pdf": True,
+        },
+        {
+            "item_ids": {"item-1"},
+            "no_pdf_course_ids": {"fiche-1"},
+            "total": 1,
+            "started": 0,
+            "retard": 0,
+            "fragile": 0,
+            "no_pdf": True,
+        },
+    ]
+
+    assert _pilotage_summary(rows)["no_pdf"] == 1

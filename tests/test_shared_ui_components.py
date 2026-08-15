@@ -21,6 +21,10 @@ def test_status_badge_has_stable_label_and_css_class():
     assert status_class("non_commence") == "non-commence"
 
 
+def test_status_class_removes_all_accents_for_css_selectors():
+    assert status_class("maîtrisé") == "maitrise"
+
+
 def test_shared_tokens_define_content_width_and_panel_density():
     assert "--content-readable: 1100px" in _TOKENS_CSS
     assert "--content-full: 100%" in _TOKENS_CSS

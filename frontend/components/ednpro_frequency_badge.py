@@ -9,6 +9,7 @@ _PRIORITY_PRESENTATION = {
     "important": ("IMPORTANT", "var(--warning)"),
     "basique": ("BASIQUE", "var(--accent)"),
     "jamais_tombe": ("JAMAIS TOMBÉ", "var(--text-dim)"),
+    "inconnu": ("INCONNU", "var(--text-dim)"),
 }
 
 _CSS = """
@@ -26,8 +27,10 @@ _injected = {"done": False}
 
 
 def _priority_key(frequency: dict | None) -> str:
-    priority = str((frequency or {}).get("priority") or "jamais_tombe").strip().lower()
-    return priority if priority in _PRIORITY_PRESENTATION else "jamais_tombe"
+    if not frequency:
+        return "inconnu"
+    priority = str(frequency.get("priority") or "").strip().lower()
+    return priority if priority in _PRIORITY_PRESENTATION else "inconnu"
 
 
 def frequency_badge_text(frequency: dict | None) -> str:

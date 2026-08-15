@@ -30,3 +30,9 @@ def test_frequency_badge_tooltip_handles_singular_and_missing_frequency():
         "question_count": 1, "years": [],
     }) == "1 session · 1 question · années indisponibles"
     assert frequency_badge_tooltip(None) == "Fréquence EDNpro indisponible"
+
+
+def test_missing_frequency_has_a_neutral_unknown_badge():
+    from frontend.components.ednpro_frequency_badge import frequency_badge_text
+
+    assert frequency_badge_text(None) == "INCONNU"

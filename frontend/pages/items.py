@@ -45,6 +45,8 @@ from frontend.components.mastery_indicator import mastery_indicator, ensure_styl
 from frontend.components.ednpro_frequency_badge import ednpro_frequency_badge
 from frontend.components.command_palette import open_command_palette
 
+_PAGE_SIZE = 150
+
 _CSS = """
 .it-wrap { max-width:none; width:100%; min-width:0; overflow:hidden; }
 .it-topbar { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:4px 0 14px; flex-wrap:wrap; }
@@ -239,14 +241,13 @@ def visible_item_rows(rows: list[dict], filt: dict) -> list[dict]:
     college = filt.get("college", "Tous")
     mode = filt.get("mode", "all")
 
+    selected = list(rows)
     if college != "Tous":
-        selected = [r for r in rows if college in (r["course"].college or [])]
-    elif mode == "fragile":
-        selected = [r for r in rows if r["mastery_level"] in ("fragile", "critique")]
+        selected = [r for r in selected if college in (r["course"].college or [])]
+    if mode == "fragile":
+        selected = [r for r in selected if r["mastery_level"] in ("fragile", "critique")]
     elif mode == "overdue":
-        selected = [r for r in rows if r["overdue"]]
-    else:
-        selected = list(rows)
+        selected = [r for r in selected if r["overdue"]]
 
     return _sort_item_rows(selected, filt.get("sort", "item"))
 
@@ -275,14 +276,6 @@ def _last_review_info(sessions: list) -> tuple[str, str]:
     return color, label
 
 
-def _type_tag(course, lacune_ids: set[str]) -> str:
-    if course.id in lacune_ids:
-        return "LACUNE"
-    if course.url_pdf:
-        return "PDF"
-    return "NOTE"
-
-
 @ui.page('/items')
 @frame('Items')
 def items_page(request: Request) -> None:
@@ -295,7 +288,7 @@ def items_page(request: Request) -> None:
 
     college_param = request.query_params.get("college") or None
     filt = {"mode": "college" if college_param else "all", "sort": "item",
-            "college": college_param or "Tous"}
+            "college": college_param or "Tous", "page": 0}
 
     with ui.column().classes("it-wrap gap-0"):
         topbar = ui.element("div").classes("it-topbar")
@@ -336,7 +329,6 @@ def items_page(request: Request) -> None:
         qcm_trends = local_store.get_qcm_latest_by_course()
         frequency_map = local_store.get_all_ednpro_item_frequencies()
         rows = []
-        rows = []
         for item_row in item_rows:
             c = item_row["course"]
             fiche_ids = item_row["fiche_ids"]
@@ -371,7 +363,7 @@ def items_page(request: Request) -> None:
                 "ednpro_frequency": frequency_map.get(
                     str(c.item_number or "").strip().removeprefix("ITEM ")
                 ),
-                "type_tag": _type_tag(c, lacune_ids.intersection(set(fiche_ids))),
+                "fiche_count": len(fiche_ids),
                 "next_task": next_by_item.get(_normalized_item_number(c.item_number) or c.id),
                 "sessions": sessions,
                 "overdue": _normalized_item_number(c.item_number) in urgent_items or bool(set(fiche_ids) & urgent_fiche_ids),
@@ -379,12 +371,14 @@ def items_page(request: Request) -> None:
         return _sort_item_rows(rows, filt["sort"])
 
 
-    def _draw_topbar() -> None:
+    def _draw_topbar(total_count: int, visible_count: int) -> None:
         topbar.clear()
         with topbar:
             with ui.column().classes("gap-0"):
                 ui.label("Items").classes("it-title")
-                ui.label("Tous les items médicaux · cliquez pour ouvrir le détail").classes("it-subtitle")
+                ui.label(
+                    f"{visible_count} / {total_count} items affichés · cliquez pour ouvrir le détail"
+                ).classes("it-subtitle")
             search = ui.element("div").classes("it-search")
             with search:
                 ui.label("⌕")
@@ -394,6 +388,13 @@ def items_page(request: Request) -> None:
 
     def _select(mode: str) -> None:
         filt["mode"] = mode
+        filt["page"] = 0
+        if mode == "all":
+            filt["college"] = "Tous"
+        elif mode == "college" and college_param:
+            filt["college"] = college_param
+        visible_count = len(visible_item_rows(_all_rows["value"], filt))
+        _draw_topbar(len(_all_rows["value"]), visible_count)
         _draw_chips()
         _draw_head()
         _draw_list(_all_rows["value"])
@@ -403,8 +404,11 @@ def items_page(request: Request) -> None:
         with chips_row:
             with ui.element("div").classes("it-chips"):
                 def _chip(label: str, mode: str) -> None:
+                    active = filt["mode"] == mode
+                    if mode == "college":
+                        active = filt["college"] != "Tous"
                     el = ui.element("div").classes(
-                        "it-chip active" if filt["mode"] == mode else "it-chip")
+                        "it-chip active" if active else "it-chip")
                     with el:
                         ui.label(label)
                     el.on("click", lambda m=mode: _select(m))
@@ -435,12 +439,16 @@ def items_page(request: Request) -> None:
 
     def _select_sort(mode: str) -> None:
         filt["sort"] = mode
+        filt["page"] = 0
         _draw_chips()
         _draw_list(_all_rows["value"])
 
     def _select_college(name: str) -> None:
         filt["college"] = name or "Tous"
         filt["mode"] = "college" if name and name != "Tous" else "all"
+        filt["page"] = 0
+        visible_count = len(visible_item_rows(_all_rows["value"], filt))
+        _draw_topbar(len(_all_rows["value"]), visible_count)
         _draw_chips()
         _draw_head()
         _draw_list(_all_rows["value"])
@@ -454,7 +462,7 @@ def items_page(request: Request) -> None:
             ui.label("TITRE").classes("it-h-title")
             ui.label("Priorité annale").classes("it-h-frequency")
             ui.label("COLLÈGE" if show_college else "DERNIÈRE RÉVISION").classes("it-h-college")
-            ui.label("TYPE").classes("it-h-type")
+            ui.label("FICHES").classes("it-h-type")
             ui.label("MAÎTRISE").classes("it-h-mastery")
             ui.label("PROCHAINE").classes("it-h-next")
 
@@ -480,7 +488,7 @@ def items_page(request: Request) -> None:
                 with ui.element("div").classes("it-last"):
                     ui.element("span").classes("it-last-dot").style(f"background:{color}")
                     ui.label(label)
-            ui.label(r["type_tag"]).classes("it-type")
+            ui.label(str(r["fiche_count"])).classes("it-type").tooltip("Fiches liées à cet item")
             with ui.element("div").classes("it-mastery flex items-center gap-2"):
                 mastery_indicator(
                     r["mastery_score"], r["mastery_level"],
@@ -499,28 +507,40 @@ def items_page(request: Request) -> None:
                     ui.element("span").classes("it-next-dot").style(f"background:{color}")
                     ui.label(label)
 
+    def _load_more() -> None:
+        filt["page"] += 1
+        _draw_list(_all_rows["value"])
+
     def _draw_list(rows: list[dict]) -> None:
         list_col.clear()
         visible = visible_item_rows(rows, filt)
+        limit = (filt["page"] + 1) * _PAGE_SIZE
+        rendered = visible[:limit]
         with list_col:
             if not visible:
                 with ui.element("div").classes("it-empty"):
                     ui.label("Aucun item pour ce filtrage.")
                 return
             if filt.get("sort") == "college":
-                for college, group in group_item_rows(visible):
+                for college, group in group_item_rows(rendered):
                     ui.label(college).classes("it-group-label")
                     for r in group:
                         _draw_row(r)
             else:
-                for r in visible:
+                for r in rendered:
                     _draw_row(r)
+            if len(rendered) < len(visible):
+                ui.button(
+                    f"Afficher {min(_PAGE_SIZE, len(visible) - len(rendered))} items supplémentaires",
+                    on_click=_load_more,
+                ).props("flat no-caps").classes("mx-auto my-3")
 
     _all_rows = {"value": []}
 
     def _render() -> None:
         _all_rows["value"] = _compute()
-        _draw_topbar()
+        visible_count = len(visible_item_rows(_all_rows["value"], filt))
+        _draw_topbar(len(_all_rows["value"]), visible_count)
         _draw_chips()
         _draw_head()
         _draw_list(_all_rows["value"])

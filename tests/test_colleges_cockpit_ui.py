@@ -97,6 +97,30 @@ def test_college_pilotage_labels_reading_progress_separately_from_mastery():
     assert "rétention" in source
 
 
+def test_college_pilotage_status_distribution_covers_emitted_statuses():
+    from frontend.pages.colleges_cockpit import status_distribution_rows
+
+    rows = status_distribution_rows()
+    keys = [key for key, _label, _color in rows]
+
+    assert "critique" in keys
+    assert "maîtrisé" in keys
+    assert all(label and color for _key, label, color in rows)
+
+
+def test_college_actions_stop_row_click_propagation():
+    source = open("frontend/pages/colleges_cockpit.py", encoding="utf-8").read()
+
+    assert "event.stopPropagation()" in source
+
+
+def test_college_pdf_kpi_counts_fiches_not_colleges():
+    source = open("frontend/pages/colleges_cockpit.py", encoding="utf-8").read()
+
+    assert '"fiches sans PDF"' in source
+    assert "count_no_pdf(courses)" in source
+
+
 def test_college_header_names_learning_avancement_explicitly():
     source = open("frontend/pages/colleges_cockpit.py", encoding="utf-8").read()
 

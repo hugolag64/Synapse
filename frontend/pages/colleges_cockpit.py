@@ -44,7 +44,13 @@ from frontend.components.mastery_indicator import (
 )
 from frontend.components.learning_metrics import build_advancement, college_progress_level
 from frontend.components.data_grid import DataGrid, GridColumn
-from frontend.components.status_badge import status_class, status_label
+from frontend.components.status_badge import (
+    STATUS_COLORS,
+    STATUS_LABELS,
+    STATUS_ORDER,
+    status_class,
+    status_label,
+)
 from frontend.components.ednpro_frequency_badge import ednpro_frequency_badge
 from frontend.components.responsive_drawer import (
     responsive_drawer, close_drawer, open_drawer, ensure_styles as _drawer_styles,
@@ -153,8 +159,10 @@ _CSS = """
 .cg-item-status.a-lire { color:var(--text-muted); }
 .cg-item-status.lu-sans-preuve { color:var(--warning-text); }
 .cg-item-status.en-construction, .cg-item-status.a-consolider { color:var(--info); }
+.cg-item-status.a-preparer, .cg-item-status.a-entrainer { color:var(--accent); }
 .cg-item-status.correct { color:var(--text-muted); }
 .cg-item-status.solide { color:var(--success-text); }
+.cg-item-status.maitrise { color:var(--success-text); }
 .cg-item-status.fragile { color:var(--warning-text); }
 .cg-item-status.critique { color:var(--danger-text); }
 .cg-item-late { color:var(--danger-text); font-weight:500; }
@@ -179,6 +187,22 @@ _COLLEGE_ITEM_GRID = DataGrid(
         GridColumn("action", "", "88px"),
     )
 )
+
+_STOP_PROPAGATION_JS = "(event) => { event.stopPropagation(); emit(event); }"
+
+
+def status_distribution_rows() -> list[tuple[str, str, str]]:
+    """Return the single status vocabulary used by the pilotage panel."""
+    return [
+        (key, STATUS_LABELS[key], STATUS_COLORS.get(key, "var(--text-muted)"))
+        for key in STATUS_ORDER
+        if key in STATUS_LABELS
+    ]
+
+
+def count_no_pdf(courses: list) -> int:
+    """Count fiches without a linked PDF, rather than colleges containing one."""
+    return sum(1 for course in courses if not getattr(course, "url_pdf", None))
 
 
 def _college_item_rows(
@@ -342,6 +366,14 @@ def _pilotage_summary(rows: list[dict]) -> dict:
             if value is not None:
                 retention_values.append(float(value))
     advancement = build_advancement(started, total_courses)
+    no_pdf_course_ids: set[str] = set()
+    for row in rows:
+        no_pdf_course_ids.update(str(course_id) for course_id in row.get("no_pdf_course_ids", set()))
+    no_pdf_total = (
+        len(no_pdf_course_ids)
+        if no_pdf_course_ids
+        else sum(int(r.get("no_pdf_count", r.get("no_pdf", False))) for r in rows)
+    )
     return {
         "total_courses": total_courses,
         "started": started,
@@ -350,7 +382,7 @@ def _pilotage_summary(rows: list[dict]) -> dict:
         "retention_avg": round(sum(retention_values) / len(retention_values)) if retention_values else None,
         "overdue": sum(r["retard"] for r in rows),
         "fragile": sum(r["fragile"] for r in rows),
-        "no_pdf": sum(1 for r in rows if r["no_pdf"]),
+        "no_pdf": no_pdf_total,
         "status_counts": status_counts,
         "level_counts": status_counts,
         "estimated_minutes": max(0, total_courses - started) * 20,
@@ -506,7 +538,8 @@ def render_colleges_cockpit() -> None:
             ]
             qcm_avg = round(sum(qcm_scores) / len(qcm_scores)) if qcm_scores else None
 
-            no_pdf = any(not getattr(c, "url_pdf", None) for c in courses)
+            no_pdf_count = count_no_pdf(courses)
+            no_pdf = no_pdf_count > 0
             status_counts: dict[str, int] = {}
             status_by_item: dict[str, str] = {}
             for course in courses:
@@ -524,7 +557,13 @@ def render_colleges_cockpit() -> None:
                 "name": name, "total": total, "started": started, "pct": pct,
                 "retard": retard_count, "fragile": fragile_count,
                 "next_task": next_task, "qcm_avg": qcm_avg, "unread": started == 0,
-                "no_pdf": no_pdf, "courses": courses,
+                "no_pdf": no_pdf,
+                "no_pdf_count": no_pdf_count,
+                "no_pdf_course_ids": {
+                    str(course.id) for course in courses
+                    if not getattr(course, "url_pdf", None)
+                },
+                "courses": courses,
                 "tasks": college_tasks,
                 "mastery_by_course": mastery_by_course,
                 "retention_by_course": retention_by_course,
@@ -549,7 +588,7 @@ def render_colleges_cockpit() -> None:
         if filt["overdue"]:
             out = [r for r in out if r["retard"] > 0]
         if filt["no_pdf"]:
-            out = [r for r in out if r["no_pdf"]]
+            out = [r for r in out if r["no_pdf_count"] > 0]
         return out
 
     def _open_items(college: str) -> None:
@@ -601,7 +640,7 @@ def render_colleges_cockpit() -> None:
                 for value, label in [
                     (summary["overdue"], "révisions en retard"),
                     (summary["fragile"], "collèges fragiles"),
-                    (summary["no_pdf"], "sans PDF"),
+            (summary["no_pdf"], "fiches sans PDF"),
                     (f"{summary['estimated_minutes'] // 60} h", "charge estimée"),
                     (f"{summary['mastery_avg']}%" if summary["mastery_avg"] is not None else "—", "maîtrise moyenne"),
                     (f"{summary['retention_avg']}%" if summary["retention_avg"] is not None else "—", "rétention"),
@@ -612,14 +651,7 @@ def render_colleges_cockpit() -> None:
 
             with ui.element("div").classes("cg-panel-section"):
                 ui.label("Répartition des statuts").classes("cg-panel-section-title")
-                for key, label, color in [
-                    ("a_lire", "À lire", "var(--text-dim)"),
-                    ("lu_sans_preuve", "Lu · maîtrise non évaluée", "var(--warning)"),
-                    ("en construction", "En construction", "var(--info)"),
-                    ("à consolider", "À consolider", "var(--info)"),
-                    ("fragile", "Fragiles", "var(--warning)"),
-                    ("solide", "Solides", "var(--success)"),
-                ]:
+                for key, label, color in status_distribution_rows():
                     count = summary["status_counts"].get(key, 0)
                     ratio = count / summary["total_courses"] if summary["total_courses"] else 0
                     with ui.element("div").classes("cg-mastery-row"):
@@ -689,11 +721,14 @@ def render_colleges_cockpit() -> None:
                 ).classes("cg-name-sub")
                 if validation.manual_status != "valide":
                     action_label = "Confirmer" if validation.automatic_ready else "Valider manuellement"
-                    ui.button(
-                        action_label,
-                        icon="check",
-                        on_click=lambda name=r["name"]: _confirm_college(name),
-                    ).props("flat dense no-caps size=sm color=primary")
+                    confirm_button = ui.button(action_label, icon="check").props(
+                        "flat dense no-caps size=sm color=primary"
+                    )
+                    confirm_button.on(
+                        "click",
+                        lambda name=r["name"]: _confirm_college(name),
+                        js_handler=_STOP_PROPAGATION_JS,
+                    )
 
             with ui.element("div").classes("cg-bar-cell"):
                 with ui.element("div").classes("cg-bar-track"):
@@ -714,7 +749,11 @@ def render_colleges_cockpit() -> None:
             with retard_el:
                 ui.label(f"{r['retard']} en retard" if r["retard"] > 0 else "à jour")
                 ui.label("›")
-            retard_el.on("click", lambda name=r["name"]: _open_items(name))
+            retard_el.on(
+                "click",
+                lambda name=r["name"]: _open_items(name),
+                js_handler=_STOP_PROPAGATION_JS,
+            )
 
             with ui.element("div").classes("cg-fragile"):
                 dot_color = "var(--warning)" if r["fragile"] > 0 else "var(--text-dim)"
@@ -786,7 +825,11 @@ def render_colleges_cockpit() -> None:
 
                             if item["urgent"]:
                                 late = ui.label("En retard").classes("cg-item-cell cg-item-late")
-                                late.on("click", lambda name=r["name"]: _open_items(name))
+                                late.on(
+                                    "click",
+                                    lambda name=r["name"]: _open_items(name),
+                                    js_handler=_STOP_PROPAGATION_JS,
+                                )
                             else:
                                 ui.label("À jour").classes("cg-item-cell cg-item-muted")
 
@@ -810,10 +853,14 @@ def render_colleges_cockpit() -> None:
                                 ednpro_frequency_badge(item["ednpro_frequency"], compact=True)
 
                             if task is not None:
-                                ui.button(
-                                    "Valider", icon="check",
-                                    on_click=lambda t=task, el=item_el: _open_feedback(t, el),
-                                ).props("unelevated dense size=sm color=positive").classes("cg-item-action")
+                                validate_button = ui.button("Valider", icon="check").props(
+                                    "unelevated dense size=sm color=positive"
+                                ).classes("cg-item-action")
+                                validate_button.on(
+                                    "click",
+                                    lambda t=task, el=item_el: _open_feedback(t, el),
+                                    js_handler=_STOP_PROPAGATION_JS,
+                                )
                             else:
                                 ui.label("—").classes("cg-item-cell cg-item-muted cg-item-action")
 

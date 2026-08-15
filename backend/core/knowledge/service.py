@@ -169,14 +169,15 @@ def rang_a_verdict(coverage: dict) -> dict:
     return {"conclusive": True, "pct": mastered / attempted, "attempted": attempted}
 
 
-def oic_coverage(course_id: str) -> dict:
+def oic_coverage(course_id: str | list[str] | tuple[str, ...]) -> dict:
     """
     Couverture des objectifs de connaissance d'un item.
 
     Le rang A conditionne le badge ; le rang B est affiché sans jamais rien
     conditionner — l'ériger en condition transformerait un bonus en dette infinie.
     """
-    coverage = oic_coverage_for_courses((course_id,))
+    course_ids = course_id if isinstance(course_id, (list, tuple)) else (course_id,)
+    coverage = oic_coverage_for_courses(tuple(course_ids))
     # Keep the verdict fields explicit at this compatibility boundary:
     # rang_a_conclusive means "measured", while rang_a_pct_attempted remains
     # None when there is no representative attempt (never an implicit zero).

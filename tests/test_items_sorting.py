@@ -105,6 +105,18 @@ def test_visible_rows_filter_on_fragile_and_overdue_modes():
     assert [r["course"].title for r in overdue] == ["Trois"]
 
 
+def test_visible_rows_combine_college_and_status_mode():
+    rows = [
+        _full_row("1", "Fragile A", ["A"], level="fragile"),
+        _full_row("2", "Solide A", ["A"], level="maîtrisé"),
+        _full_row("3", "Fragile B", ["B"], level="fragile"),
+    ]
+
+    visible = visible_item_rows(rows, _filt(college="A", mode="fragile"))
+
+    assert [r["course"].title for r in visible] == ["Fragile A"]
+
+
 def test_items_list_is_not_capped_at_a_fixed_width():
     from pathlib import Path
 
@@ -112,6 +124,16 @@ def test_items_list_is_not_capped_at_a_fixed_width():
 
     assert ".it-wrap { max-width:none;" in source
     assert "max-width:1200px" not in source
+
+
+def test_items_list_shows_counts_and_fiche_signal():
+    from pathlib import Path
+
+    source = Path("frontend/pages/items.py").read_text(encoding="utf-8")
+
+    assert "items affichés" in source
+    assert 'ui.label("FICHES")' in source
+    assert 'r["type_tag"]' not in source
 
 
 def test_college_sort_exposes_visible_groups_without_duplicate_items():

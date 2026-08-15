@@ -131,6 +131,15 @@ def test_le_badge_rang_a_se_declenche_au_seuil():
     assert ksv.has_rang_a_badge("course-1") is True
 
 
+def test_oic_coverage_accepts_all_sibling_fiche_ids():
+    _seed_oics("course-1", ["A"])
+    _seed_oics("course-2", ["A"])
+
+    cov = ksv.oic_coverage(["course-1", "course-2"])
+
+    assert cov["rang_a_total"] == 2
+
+
 def test_le_badge_rang_a_ne_se_declenche_pas_sous_le_seuil():
     oic_ids = _seed_oics("course-1", ["A"] * 5)
     for oid in oic_ids[:3]:

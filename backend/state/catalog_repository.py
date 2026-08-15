@@ -103,6 +103,49 @@ class CatalogRepository:
             ).fetchall()
         return [self._fiche(row) for row in rows]
 
+    def list_all_fiches(self, include_archived: bool = False) -> list[CatalogFiche]:
+        where = "" if include_archived else " WHERE archived_at IS NULL"
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT id, item_id, external_notion_id, imported_title, archived_at
+                FROM catalog_fiches
+                """ + where + " ORDER BY created_at, id"
+            ).fetchall()
+        return [self._fiche(row) for row in rows]
+
+    def get_fiche_payload(self, fiche_id: str) -> dict:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT payload_json FROM catalog_fiches WHERE id = ?", (fiche_id,)
+            ).fetchone()
+        return json.loads(row[0]) if row and row[0] else {}
+
+    def get_fiche_colleges(self, fiche_id: str) -> list[str]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT c.name
+                FROM catalog_colleges c
+                JOIN catalog_fiche_colleges link ON link.college_id = c.id
+                WHERE link.fiche_id = ?
+                ORDER BY c.sort_order, c.name
+                """,
+                (fiche_id,),
+            ).fetchall()
+        return [str(row[0]) for row in rows]
+
+    def list_colleges(self, active_only: bool = True) -> list[str]:
+        where = " WHERE active = 1" if active_only else ""
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT name FROM catalog_colleges" + where + " ORDER BY sort_order, name"
+            ).fetchall()
+        return [str(row[0]) for row in rows]
+
+    def is_populated(self) -> bool:
+        return self.count_items() > 0
+
     def list_colleges_for_item(self, item_id: str) -> list[str]:
         with self._connect() as connection:
             rows = connection.execute(

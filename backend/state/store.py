@@ -11,6 +11,8 @@ import json
 import os
 from datetime import datetime
 
+from backend.state.catalog_repository import CatalogRepository
+
 class DataStore:
     _instance = None
     # Resolve absolute path to project root (3 levels up from backend/state/store.py)
@@ -314,6 +316,11 @@ class DataStore:
 
         force=True : ignore la limite de 12h (fallback hors-ligne).
         """
+        catalog_db_path = os.getenv("SYNAPSE_CATALOG_DB_PATH")
+        catalog = CatalogRepository(catalog_db_path)
+        if catalog.is_populated():
+            return self._load_from_catalog(catalog)
+
         cache_path = self.CACHE_FILE
         if not os.path.exists(cache_path) and os.path.exists(self.LEGACY_CACHE_FILE):
             cache_path = self.LEGACY_CACHE_FILE
@@ -321,6 +328,33 @@ class DataStore:
 
         if not os.path.exists(cache_path):
             logger.info("No cache file found.")
+            return False
+
+    def _load_from_catalog(self, catalog: CatalogRepository) -> bool:
+        """Load active fiche compatibility objects from the local catalog."""
+        try:
+            courses: list[Cours] = []
+            for fiche in catalog.list_all_fiches():
+                payload = catalog.get_fiche_payload(fiche.id)
+                payload["id"] = fiche.id
+                payload["college"] = catalog.get_fiche_colleges(fiche.id)
+                courses.append(Cours(**payload))
+            self.cours = courses
+            self.colleges_order = catalog.list_colleges()
+            self.items_map = {
+                item.item_number: item.id for item in catalog.list_items()
+            }
+            self.is_loaded = True
+            self._alias_map = None
+            self._alias_signature = -1
+            logger.success(
+                "Loaded catalog from SQLite: %s active fiches, %s items",
+                len(self.cours),
+                len(self.items_map),
+            )
+            return True
+        except Exception as exc:
+            logger.exception(f"Failed to load catalog from SQLite: {exc}")
             return False
 
         try:
@@ -623,6 +657,18 @@ class DataStore:
         final_order.extend(remaining)
         
         return final_order
+
+    def get_item_by_number(self, item_number: int | str):
+        """Return the local catalog item for an EDN number when available."""
+        try:
+            normalized = int(float(str(item_number).strip()))
+        except (TypeError, ValueError):
+            return None
+        repository = CatalogRepository(os.getenv("SYNAPSE_CATALOG_DB_PATH"))
+        if repository.is_populated():
+            return repository.get_item_by_number(normalized)
+        title = self.items_map.get(normalized)
+        return next((course for course in self.cours if course.id == title), None)
 
     def alias_ids(self, course_id: str) -> tuple:
         """Identifiants de toutes les fiches décrivant le même item EDN.

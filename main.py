@@ -115,7 +115,13 @@ def _resolve_pdf_path(raw: str) -> str | None:
     """Normalise un chemin PDF et vérifie qu'il est sûr (extension + répertoire autorisé)."""
     path = raw
     if path.startswith('file:///'):
-        path = path[8:]
+        # `file:///data/...` is a Unix absolute path, while the legacy Windows
+        # form `file:///C:/...` must keep its drive prefix on Windows.
+        path = path[7:]
+        if os.name == "nt" and len(path) >= 4 and path[0] == "/" and path[2:4] == ":/":
+            path = path[1:]
+        elif not path.startswith(("/", "\\")):
+            path = os.sep + path
     path = path.replace('/', os.sep)
 
     if not path.lower().endswith('.pdf'):

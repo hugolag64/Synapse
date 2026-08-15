@@ -652,6 +652,8 @@ def init_db() -> None:
     _migrate_notion_sync_queue()
     _migrate_uness_scanned_catalog()
     _migrate_flash_zero_ai_questions()
+    from backend.state.catalog_migrations import run_catalog_migrations
+    run_catalog_migrations(DB_PATH)
     logger.info(f"SQLite initialisé : {DB_PATH}")
 
 

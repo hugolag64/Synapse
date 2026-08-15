@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from uuid import uuid4
 from dataclasses import dataclass
@@ -42,7 +43,11 @@ class CatalogRepository:
     """Small transaction-per-operation repository over catalog tables."""
 
     def __init__(self, db_path: Path | str | None = None):
-        self.db_path = Path(db_path) if db_path is not None else None
+        configured_path = db_path or os.getenv("SYNAPSE_CATALOG_DB_PATH")
+        # Tests already isolate the legacy local store with this path; use the
+        # same file unless a catalog-specific path is explicitly requested.
+        configured_path = configured_path or os.getenv("SYNAPSE_TEST_DB_PATH")
+        self.db_path = Path(configured_path) if configured_path is not None else None
         run_catalog_migrations(self.db_path)
 
     def _connect(self) -> sqlite3.Connection:

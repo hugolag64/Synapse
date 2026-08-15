@@ -52,6 +52,60 @@ def test_item_mastery_is_identical_from_each_fiche(monkeypatch):
     assert first_snapshot.course_id == second_snapshot.course_id
 
 
+def test_item_sessions_are_aggregated_across_all_fiches(monkeypatch):
+    first = _course("fiche-255-a", college="Endocrinologie")
+    second = _course("fiche-255-b", college="Pédiatrie")
+    from backend.state.store import data_store
+
+    monkeypatch.setattr(data_store, "cours", [first, second])
+    data_store._alias_map = None
+    data_store._alias_signature = -1
+    monkeypatch.setattr(
+        local_store,
+        "get_sessions_by_course",
+        lambda: {"fiche-255-a": [{"id": "a"}], "fiche-255-b": [{"id": "b"}]},
+    )
+
+    sessions = mastery.get_item_sessions(first.id)
+
+    assert {row["id"] for row in sessions} == {"a", "b"}
+
+
+def test_item_detail_activity_is_aggregated_across_all_fiches(monkeypatch):
+    first = _course("fiche-255-a", college="Endocrinologie")
+    second = _course("fiche-255-b", college="Pédiatrie")
+    from backend.state.store import data_store
+
+    monkeypatch.setattr(data_store, "cours", [first, second])
+    data_store._alias_map = None
+    data_store._alias_signature = -1
+    monkeypatch.setattr(
+        local_store,
+        "get_qcm_sessions_by_course",
+        lambda course_id: [{"id": f"qcm-{course_id}"}],
+    )
+    monkeypatch.setattr(
+        local_store,
+        "get_weak_points_for_course",
+        lambda course_id: [{"id": f"weak-{course_id}"}],
+    )
+    monkeypatch.setattr(
+        local_store,
+        "get_review_history_by_course",
+        lambda course_id: [{"id": f"history-{course_id}", "review_type": "J3"}],
+    )
+
+    assert {row["id"] for row in mastery.get_item_qcm_sessions(first.id)} == {
+        "qcm-fiche-255-a", "qcm-fiche-255-b"
+    }
+    assert {row["id"] for row in mastery.get_item_weak_points(first.id)} == {
+        "weak-fiche-255-a", "weak-fiche-255-b"
+    }
+    assert {row["id"] for row in mastery.get_item_review_history(first.id)} == {
+        "history-fiche-255-a", "history-fiche-255-b"
+    }
+
+
 def test_item_tasks_are_unique_across_fiches(monkeypatch):
     service = ReviewService()
     tasks = [

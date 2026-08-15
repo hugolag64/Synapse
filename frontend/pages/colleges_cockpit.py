@@ -35,9 +35,13 @@ from backend.core.reviews.local_store import (
 )
 from backend.core.reviews.validation import complete_review
 from backend.core.reviews.service import review_service
-from backend.core.reviews.mastery import get_item_mastery
+from backend.core.reviews.mastery import get_course_mastery, get_item_mastery
 from frontend.components.study_task_row import due_info
-from frontend.components.mastery_indicator import _LEVEL_COLOR, _level_from_score
+from frontend.components.mastery_indicator import (
+    _LEVEL_COLOR,
+    _level_from_score,
+    provenance_tooltip,
+)
 from frontend.components.learning_metrics import build_advancement, college_progress_level
 from frontend.components.data_grid import DataGrid, GridColumn
 from frontend.components.status_badge import status_class, status_label
@@ -214,7 +218,10 @@ def _college_item_rows(
     for course in sorted(courses, key=sort_key):
         item_number = str(getattr(course, "item_number", "") or "").strip()
         task = task_by_course.get(course.id) or task_by_item.get(item_number)
-        score, level = mastery_by_course.get(course.id, (None, None))
+        mastery_values = tuple(mastery_by_course.get(course.id, (None, None)) or ())
+        score = mastery_values[0] if mastery_values else None
+        level = mastery_values[1] if len(mastery_values) > 1 else None
+        evidence_count = mastery_values[2] if len(mastery_values) > 2 else 0
         semantics = _course_semantics(course, score, level, college_validated)
         item_number = str(getattr(course, "item_number", "") or "").strip().removeprefix("ITEM ")
         rows.append({
@@ -222,6 +229,7 @@ def _college_item_rows(
             "task": task,
             "pct": semantics["reading_pct"],
             "score": score,
+            "evidence_count": evidence_count,
             **semantics,
             "urgent": course.id in urgent_ids,
             "next_task": task,
@@ -418,15 +426,30 @@ def render_colleges_cockpit() -> None:
             catalog_item_rows = build_item_rows(catalog)
 
         mastery_by_course: dict[str, tuple] = {}
-        for t in all_tasks:
-            mastery_by_course.setdefault(t.course_id, (t.mastery_score, t.mastery_level))
         if catalog_item_rows:
             for item_row in catalog_item_rows:
                 try:
                     snapshot = get_item_mastery(item_row["item_number"])
                 except LookupError:
                     continue
-                mastery_by_course[item_row["course"].id] = (snapshot.score, snapshot.level)
+                mastery_by_course[item_row["course"].id] = (
+                    snapshot.score, snapshot.level, snapshot.evidence_count
+                )
+        else:
+            snapshots_by_item: dict[str, object] = {}
+            for candidate in data_store.cours:
+                item_number = str(getattr(candidate, "item_number", "") or "").strip()
+                if not item_number:
+                    continue
+                if item_number not in snapshots_by_item:
+                    try:
+                        snapshots_by_item[item_number] = get_item_mastery(item_number)
+                    except LookupError:
+                        snapshots_by_item[item_number] = get_course_mastery(candidate)
+                snapshot = snapshots_by_item[item_number]
+                mastery_by_course[candidate.id] = (
+                    snapshot.score, snapshot.level, snapshot.evidence_count
+                )
 
         rows = []
         college_names = catalog.list_colleges() if catalog_item_rows else data_store.get_colleges()
@@ -751,8 +774,11 @@ def render_colleges_cockpit() -> None:
                                 mastery_color = _LEVEL_COLOR.get(
                                     _level_from_score(mastery_score), "var(--text-muted)"
                                 )
-                                ui.label(f"{mastery_score}%").classes("cg-item-cell mono").style(
-                                    f"color:{mastery_color}"
+                                mastery_label = ui.label(f"{mastery_score}%").classes(
+                                    "cg-item-cell mono"
+                                ).style(f"color:{mastery_color}")
+                                mastery_label.tooltip(
+                                    provenance_tooltip(item["evidence_count"])
                                 )
 
                             ui.label(item["status_text"]).classes(

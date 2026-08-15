@@ -39,7 +39,7 @@ from backend.core.reviews.local_store import (
     get_qcm_done_course_ids, get_active_lacunes_count_by_course,
 )
 from backend.core.reviews.service import review_service
-from backend.core.reviews.mastery import get_item_mastery
+from backend.core.reviews.mastery import get_course_mastery, get_item_mastery
 from frontend.components.study_task_row import _ring_glyph, due_info
 from frontend.components.mastery_indicator import mastery_indicator, ensure_styles as _mastery_styles
 from frontend.components.ednpro_frequency_badge import ednpro_frequency_badge
@@ -344,9 +344,15 @@ def items_page(request: Request) -> None:
             try:
                 mastery = get_item_mastery(c.item_number)
             except LookupError:
-                mastery = review_service._get_mastery_cached(
-                    c, "college", sessions, sum(postpone_map.get(fid, 0) for fid in fiche_ids),
-                    any(fid in qcm_done_set for fid in fiche_ids),
+                # Catalog-only rows have no fiche in data_store. They are
+                # still evaluated through the public mastery seam, never via
+                # ReviewService's private per-fiche cache.
+                mastery = get_course_mastery(
+                    c,
+                    context="college",
+                    sessions=sessions,
+                    total_postpone=sum(postpone_map.get(fid, 0) for fid in fiche_ids),
+                    qcm_done_local=any(fid in qcm_done_set for fid in fiche_ids),
                 )
             qcm_info = next(
                 (qcm_trends.get(fiche_id, {}) for fiche_id in fiche_ids if fiche_id in qcm_trends),

@@ -25,7 +25,17 @@ from loguru import logger
 
 from backend.state.store import data_store
 from backend.core.reviews import local_store
-from backend.core.reviews.mastery import get_course_mastery, get_item_mastery
+from backend.core.reviews.mastery import (
+    get_course_mastery,
+    get_item_fiche_ids,
+    get_item_manual_reviews,
+    get_item_mastery,
+    get_item_qcm_sessions,
+    get_item_qcm_summary,
+    get_item_review_history,
+    get_item_sessions,
+    get_item_weak_points,
+)
 from backend.core.reviews.anchors import anchor_priority, anchor_status, is_anchor_due
 from backend.core.reviews.recommendation_service import get_next_action
 from backend.core.reviews.service import review_service
@@ -325,13 +335,16 @@ def render_item_cockpit(course_id: str, college: str | None = None) -> None:
         logger.warning(f"visite non enregistrée pour {course_id}: {exc}")
 
     # ── Données (mêmes sources que la vue classic) ────────────────────────────
-    sessions = local_store.get_sessions_by_course().get(course_id, [])
-    postpone_cnt = local_store.get_postpone_counts().get(course_id, 0)
-    qcm_summary = local_store.get_qcm_summary_for_course(course_id)
-    qcm_sessions = local_store.get_qcm_sessions_all(limit=20, course_id=course_id)
-    lacunes = list(local_store.get_weak_points_for_course(course_id))
-    review_hist = local_store.get_review_history_by_course(course_id)
-    manual_reviews = local_store.get_manual_reviews_by_course(course_id)
+    item_id = course.item_number or course.id
+    item_fiche_ids = get_item_fiche_ids(item_id)
+    sessions = get_item_sessions(item_id)
+    postpone_map = local_store.get_postpone_counts()
+    postpone_cnt = sum(postpone_map.get(fiche_id, 0) for fiche_id in item_fiche_ids)
+    qcm_summary = get_item_qcm_summary(item_id)
+    qcm_sessions = get_item_qcm_sessions(item_id)[:20]
+    lacunes = get_item_weak_points(item_id)
+    review_hist = get_item_review_history(item_id)
+    manual_reviews = get_item_manual_reviews(item_id)
 
     try:
         # L'écran détail est une vue d'item : toutes les fiches du même item

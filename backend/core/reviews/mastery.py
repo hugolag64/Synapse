@@ -119,6 +119,95 @@ def get_item_fiche_ids(item_id: str | int) -> tuple[str, ...]:
     return tuple(str(course.id) for course in _courses_for_item(item_id))
 
 
+def get_item_sessions(item_id: str | int) -> list:
+    """Return study sessions aggregated across every fiche of an item."""
+    sessions_map = local_store.get_sessions_by_course()
+    sessions = [
+        session
+        for fiche_id in get_item_fiche_ids(item_id)
+        for session in sessions_map.get(fiche_id, [])
+    ]
+    return sorted(
+        sessions,
+        key=lambda row: str(_safe_get(row, "session_date", "") or ""),
+        reverse=True,
+    )
+
+
+def get_item_qcm_sessions(item_id: str | int) -> list:
+    """Return QCM sessions aggregated across every fiche of an item."""
+    rows = [
+        row
+        for fiche_id in get_item_fiche_ids(item_id)
+        for row in local_store.get_qcm_sessions_by_course(fiche_id)
+    ]
+    return sorted(
+        rows,
+        key=lambda row: str(_safe_get(row, "session_date", "") or ""),
+        reverse=True,
+    )
+
+
+def get_item_qcm_summary(item_id: str | int) -> dict:
+    """Return the QCM summary using sessions from every fiche of an item."""
+    rows = [
+        row for row in get_item_qcm_sessions(item_id)
+        if _safe_get(row, "score_percent") is not None
+    ]
+    if not rows:
+        return {
+            "count": 0, "avg_score": None, "last_score": None,
+            "last_date": None, "passed": 0, "failed": 0,
+        }
+    scores = [float(_safe_get(row, "score_percent")) for row in rows]
+    passed = sum(1 for score in scores if score >= local_store.QCM_PASS_THRESHOLD)
+    return {
+        "count": len(scores),
+        "avg_score": round(sum(scores) / len(scores), 1),
+        "last_score": scores[0],
+        "last_date": _safe_get(rows[0], "session_date"),
+        "passed": passed,
+        "failed": len(scores) - passed,
+    }
+
+
+def get_item_weak_points(item_id: str | int) -> list:
+    """Return active weak points from every fiche of an item."""
+    return [
+        row
+        for fiche_id in get_item_fiche_ids(item_id)
+        for row in local_store.get_weak_points_for_course(fiche_id)
+    ]
+
+
+def get_item_review_history(item_id: str | int) -> list:
+    """Return review history aggregated across every fiche of an item."""
+    rows = [
+        row
+        for fiche_id in get_item_fiche_ids(item_id)
+        for row in local_store.get_review_history_by_course(fiche_id)
+    ]
+    return sorted(
+        rows,
+        key=lambda row: str(
+            _safe_get(row, "effective_due_date", "")
+            or _safe_get(row, "completed_at", "")
+            or ""
+        ),
+        reverse=True,
+    )
+
+
+def get_item_manual_reviews(item_id: str | int) -> list:
+    """Return completed manual reviews from every fiche of an item."""
+    return [
+        row
+        for row in get_item_review_history(item_id)
+        if _safe_get(row, "review_type") == "manuel"
+        and _safe_get(row, "status") == "done"
+    ]
+
+
 def _merged_item_course(courses: list):
     from backend.core.knowledge.course_aliases import canonical_course, colleges_of_item
 
@@ -188,8 +277,7 @@ def get_item_mastery(
         raise LookupError(f"Item introuvable : {item_id}")
     course = _merged_item_course(courses)
     fiche_ids = tuple(str(c.id) for c in courses)
-    sessions_map = local_store.get_sessions_by_course()
-    sessions = [row for fiche_id in fiche_ids for row in sessions_map.get(fiche_id, [])]
+    sessions = get_item_sessions(item_id)
     qcm_done = any(local_store.get_qcm_sessions_by_course(fiche_id) for fiche_id in fiche_ids)
     return get_course_mastery(
         course,

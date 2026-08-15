@@ -39,3 +39,19 @@ def test_merge_keeps_the_master_and_moves_fiches(admin_repository):
 
     assert admin_repository.get_item("item:2").archived_at is not None
     assert {fiche.item_id for fiche in admin_repository.list_fiches("item:1")} == {"item:1"}
+
+
+def test_local_title_and_alias_are_audited(admin_repository):
+    admin_repository.set_local_title("item:1", "Titre personnel", "Clarification locale")
+    admin_repository.add_college_alias("college:cardio", "Cardio", "Alias usuel")
+
+    assert admin_repository.get_item("item:1").title == "Titre personnel"
+    assert "Cardio" in admin_repository.list_college_aliases("college:cardio")
+    assert any(entry["operation"] == "set_title" for entry in admin_repository.list_audit_log())
+
+
+def test_fiche_archive_is_reversible(admin_repository):
+    admin_repository.archive_fiche("fiche:1", "Fiche obsolète")
+    assert admin_repository.list_fiches("item:1") == []
+    admin_repository.restore_fiche("fiche:1", "Fiche restaurée")
+    assert [fiche.id for fiche in admin_repository.list_fiches("item:1")] == ["fiche:1"]

@@ -474,6 +474,75 @@ class CatalogRepository:
             ).fetchall()
         return [dict(row) for row in rows]
 
+    def set_local_title(self, item_id: str, title: str, justification: str) -> None:
+        if not str(justification or "").strip():
+            raise ValueError("justification obligatoire")
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT official_title, local_title FROM catalog_items WHERE id = ?", (item_id,)
+            ).fetchone()
+            if row is None:
+                raise ValueError("item introuvable")
+            before = {"local_title": row["local_title"]}
+            connection.execute(
+                "UPDATE catalog_items SET local_title = ?, updated_at = ? WHERE id = ?",
+                (str(title or "").strip() or None, _now(), item_id),
+            )
+            self._audit(
+                connection, "item", item_id, "set_title", before,
+                {"local_title": str(title or "").strip() or None}, justification,
+            )
+
+    def add_college_alias(self, college_id: str, alias: str, justification: str) -> None:
+        if not str(alias or "").strip():
+            raise ValueError("alias obligatoire")
+        if not str(justification or "").strip():
+            raise ValueError("justification obligatoire")
+        with self._connect() as connection:
+            if connection.execute("SELECT 1 FROM catalog_colleges WHERE id = ?", (college_id,)).fetchone() is None:
+                raise ValueError("collège introuvable")
+            connection.execute(
+                "INSERT OR IGNORE INTO catalog_college_aliases(college_id, alias, source) VALUES (?, ?, 'local')",
+                (college_id, alias.strip()),
+            )
+            self._audit(
+                connection, "college", college_id, "add_alias", None,
+                {"alias": alias.strip()}, justification,
+            )
+
+    def list_college_aliases(self, college_id: str) -> list[str]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT alias FROM catalog_college_aliases WHERE college_id = ? ORDER BY alias",
+                (college_id,),
+            ).fetchall()
+        return [str(row[0]) for row in rows]
+
+    def archive_fiche(self, fiche_id: str, justification: str) -> None:
+        self._set_fiche_archived(fiche_id, justification, archived=True)
+
+    def restore_fiche(self, fiche_id: str, justification: str) -> None:
+        self._set_fiche_archived(fiche_id, justification, archived=False)
+
+    def _set_fiche_archived(self, fiche_id: str, justification: str, *, archived: bool) -> None:
+        if not str(justification or "").strip():
+            raise ValueError("justification obligatoire")
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT archived_at FROM catalog_fiches WHERE id = ?", (fiche_id,)
+            ).fetchone()
+            if row is None:
+                raise ValueError("fiche introuvable")
+            value = _now() if archived else None
+            connection.execute(
+                "UPDATE catalog_fiches SET archived_at = ?, updated_at = ? WHERE id = ?",
+                (value, _now(), fiche_id),
+            )
+            self._audit(
+                connection, "fiche", fiche_id, "archive" if archived else "restore",
+                {"archived_at": row[0]}, {"archived_at": value}, justification,
+            )
+
     @staticmethod
     def _audit(connection, entity_type, entity_id, operation, before, after, justification):
         connection.execute(

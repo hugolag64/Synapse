@@ -33,6 +33,7 @@ SQLite étendra `data/synapse_local.db` au lieu de créer une seconde base.
 - `colleges` : UUID local stable, libellé local, statut actif/archivé, ordre d’affichage.
 - `college_aliases` : noms officiels et historiques associés à un collège local.
 - `course_fiches` : UUID local, référence externe Notion facultative, item parent, titre importé, données de ressource et statut d’archivage.
+- `archived_courses` : cours historiques sans item/collège conservés hors du catalogue actif, avec payload d’origine et motif d’archivage.
 - `fiche_colleges` : relation plusieurs-à-plusieurs entre fiches et collèges.
 - `official_item_colleges` : rattachements du référentiel `data/nexternat_items.json`, traduits par `data/college_consolidation.json`.
 - `local_item_college_overrides` : ajouts/retraits locaux, justification obligatoire, auteur local et provenance.

@@ -106,4 +106,17 @@ CATALOG_MIGRATIONS: tuple[tuple[int, str], ...] = (
         CREATE INDEX catalog_official_item_colleges_college_idx ON catalog_official_item_colleges(college_id);
         """,
     ),
+    (
+        2,
+        """
+        CREATE TABLE catalog_archived_courses (
+            id TEXT PRIMARY KEY,
+            external_notion_id TEXT UNIQUE,
+            title TEXT NOT NULL DEFAULT '',
+            payload_json TEXT NOT NULL DEFAULT '{}',
+            archive_reason TEXT NOT NULL,
+            archived_at TEXT NOT NULL
+        );
+        """,
+    ),
 )

@@ -171,6 +171,19 @@ CREATE INDEX catalog_official_item_colleges_college_idx ON catalog_official_item
 
 Call the runner from the existing SQLite initialization path, never from an import or page render.
 
+Add migration version 2 for courses that have no item parent:
+
+```sql
+CREATE TABLE catalog_archived_courses (
+    id TEXT PRIMARY KEY,
+    external_notion_id TEXT UNIQUE,
+    title TEXT NOT NULL DEFAULT '',
+    payload_json TEXT NOT NULL DEFAULT '{}',
+    archive_reason TEXT NOT NULL,
+    archived_at TEXT NOT NULL
+);
+```
+
 - [ ] **Step 4: Run the focused tests and the existing local-store tests.**
 
 Run: `.venv\Scripts\python.exe -m pytest -q tests/test_catalog_migrations.py tests/test_store_dedup.py`

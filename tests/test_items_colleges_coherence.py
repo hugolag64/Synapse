@@ -65,6 +65,6 @@ def test_college_progress_has_five_levels_and_manual_validation():
     from frontend.components.learning_metrics import college_progress_level
 
     assert [college_progress_level(value) for value in (0, 10, 50, 80, 100)] == [
-        "Non commencé", "En cours", "En cours", "Parcouru", "Validé",
+        "Non commencé", "En cours", "Parcouru", "Consolidé", "Validé",
     ]
     assert college_progress_level(40, manually_validated=True) == "Validé"

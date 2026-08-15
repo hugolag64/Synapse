@@ -7,9 +7,9 @@ from datetime import date
 
 COLLEGE_PROGRESS_LEVELS = (
     (0, "Non commencé"),
-    (25, "En cours"),
-    (60, "Parcouru"),
-    (90, "Consolidé"),
+    (1, "En cours"),
+    (40, "Parcouru"),
+    (70, "Consolidé"),
     (100, "Validé"),
 )
 

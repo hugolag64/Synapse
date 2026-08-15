@@ -5,6 +5,28 @@ from __future__ import annotations
 from datetime import date
 
 
+COLLEGE_PROGRESS_LEVELS = (
+    (0, "Non commencé"),
+    (25, "En cours"),
+    (60, "Parcouru"),
+    (90, "Consolidé"),
+    (100, "Validé"),
+)
+
+
+def college_progress_level(percent: int | None, *, manually_validated: bool = False) -> str:
+    """Return the five-level college progress vocabulary."""
+    if manually_validated:
+        return "Validé"
+    if percent is None or percent <= 0:
+        return "Non commencé"
+    normalized = max(0, min(100, int(percent)))
+    for threshold, label in reversed(COLLEGE_PROGRESS_LEVELS):
+        if normalized >= threshold:
+            return label
+    return "Non commencé"
+
+
 def build_advancement(
     done: int | None,
     total: int | None,

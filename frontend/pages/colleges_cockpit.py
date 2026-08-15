@@ -36,7 +36,7 @@ from backend.core.reviews.service import review_service
 from backend.core.reviews.mastery import get_item_mastery
 from frontend.components.study_task_row import due_info
 from frontend.components.mastery_indicator import _LEVEL_COLOR, _level_from_score
-from frontend.components.learning_metrics import build_advancement
+from frontend.components.learning_metrics import build_advancement, college_progress_level
 from frontend.components.data_grid import DataGrid, GridColumn
 from frontend.components.status_badge import status_class, status_label
 from frontend.components.ednpro_frequency_badge import ednpro_frequency_badge
@@ -675,7 +675,14 @@ def render_colleges_cockpit() -> None:
                     ui.element("div").classes("cg-bar-fill").style(
                         f"width:{pct_int}%; background:{bar_color}")
 
-            ui.label(f"{pct_int}%").classes("cg-pct")
+            progress_level = college_progress_level(
+                pct_int,
+                manually_validated=(
+                    r["validation"].manual_status == "valide"
+                    or r["validation"].automatic_ready
+                ),
+            )
+            ui.label(f"{pct_int}%").classes("cg-pct").tooltip(progress_level)
 
             retard_cls = "cg-retard late" if r["retard"] > 0 else "cg-retard ok"
             retard_el = ui.element("div").classes(retard_cls)

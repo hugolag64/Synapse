@@ -95,6 +95,27 @@ def canonical_course_for_item(course, courses: Iterable):
     return canonical_course(siblings) if siblings else course
 
 
+def course_for_college(course, college: str, courses: Iterable):
+    """Return the item's fiche attached to ``college``, when it exists."""
+    requested = str(college or "").strip().casefold()
+    if not requested:
+        return None
+    item = normalized_item(course)
+    if not item:
+        return None
+    for candidate in courses:
+        if normalized_item(candidate) != item:
+            continue
+        candidate_colleges = {
+            str(name).strip().casefold()
+            for name in (getattr(candidate, "college", None) or [])
+            if str(name).strip()
+        }
+        if requested in candidate_colleges:
+            return candidate
+    return None
+
+
 def dedupe_by_item(courses: Sequence) -> list:
     """Une seule fiche par item, en conservant l'ordre d'entrée.
 

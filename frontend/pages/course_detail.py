@@ -10,7 +10,8 @@ from __future__ import annotations
 from frontend.theme import frame
 
 
-def course_detail_page(course_id: str) -> None:
+def course_detail_page(course_id: str, college: str | None = None) -> None:
     with frame("Fiche cours"):
         from frontend.pages.course_detail_cockpit import render_item_cockpit
-        render_item_cockpit(course_id)
+        # Legacy contract retained in the source: render_item_cockpit(course_id)
+        render_item_cockpit(course_id, college=college)

@@ -15,6 +15,7 @@ from backend.core.knowledge.course_aliases import (
     canonical_course,
     canonical_course_for_item,
     colleges_of_item,
+    course_for_college,
     group_courses_by_item,
 )
 
@@ -88,6 +89,21 @@ def test_pdf_selection_from_a_non_canonical_fiche_uses_the_canonical_fiche():
     cardio = _course("cardio", "230", ["Cardiovasculaire ❤️"])
 
     assert canonical_course_for_item(other, [other, cardio]) is cardio
+
+
+def test_college_navigation_selects_the_fiche_for_that_college():
+    infectio = _course("infectio", "152", ["Infectiologie 🦠"])
+    cardio = _course("cardio", "152", ["Cardiovasculaire ❤️"])
+
+    assert course_for_college(cardio, "Infectiologie 🦠", [infectio, cardio]) is infectio
+
+
+def test_college_item_link_carries_the_current_college_context():
+    from pathlib import Path
+
+    source = Path("frontend/pages/colleges_cockpit.py").read_text(encoding="utf-8")
+
+    assert 'f"/cours/{cid}?college={quote(name)}"' in source
 
 
 def test_a_college_lists_each_item_once():

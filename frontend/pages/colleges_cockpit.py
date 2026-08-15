@@ -19,6 +19,8 @@ grid de cours) reste strictement inchangé.
 """
 from __future__ import annotations
 
+from urllib.parse import quote
+
 from nicegui import ui
 
 from backend.state.store import data_store
@@ -731,7 +733,12 @@ def render_colleges_cockpit() -> None:
                         with ui.element("div").classes("cg-item") as item_el:
                             number = getattr(course, "item_number", None) or "—"
                             title_el = ui.label(f"Item {number} · {course.title}").classes("cg-item-title")
-                            title_el.on("click", lambda cid=course.id: ui.navigate.to(f"/cours/{cid}"))
+                            title_el.on(
+                                "click",
+                                lambda cid=course.id, name=r["name"]: ui.navigate.to(
+                                    f"/cours/{cid}?college={quote(name)}"
+                                ),
+                            )
                             ui.label(item["lecture_label"]).classes(
                                 "cg-item-cell cg-item-lecture "
                                 + ("text-emerald-400" if item["lecture_label"] == "Lu" else "cg-item-muted")

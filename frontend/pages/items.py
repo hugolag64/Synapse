@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import datetime
 import os
+from urllib.parse import quote
 
 from nicegui import ui
 from starlette.requests import Request
@@ -454,8 +455,11 @@ def items_page(request: Request) -> None:
     def _draw_row(r: dict) -> None:
         c = r["course"]
         show_college = filt["college"] == "Tous"
+        target = f"/cours/{c.id}"
+        if not show_college:
+            target += f"?college={quote(filt['college'])}"
         row = ui.element("div").classes("it-row")
-        row.on("click", lambda cid=c.id: ui.navigate.to(f"/cours/{cid}"))
+        row.on("click", lambda destination=target: ui.navigate.to(destination))
         with row:
             ui.label(_ring_glyph(r["mastery_score"])).classes("it-ring")
             ui.label(c.item_number or "—").classes("it-id")

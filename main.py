@@ -332,8 +332,8 @@ async def planning(request: Request):
 # Détail d'un item. La route n'avait jamais été déclarée alors que la command
 # palette, dashboard_card et search_bar y naviguent déjà.
 @ui.page('/cours/{course_id}')
-def cours(course_id: str):
-    course_detail_page(course_id)
+def cours(course_id: str, request: Request):
+    course_detail_page(course_id, college=request.query_params.get("college"))
 
 
 @ui.page('/colleges')

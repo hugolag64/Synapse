@@ -57,6 +57,7 @@ from frontend.components.course_quick_actions import (
 from frontend.components.anki_review_session import open_anki_review_session
 from backend.core.knowledge.course_aliases import (
     canonical_course_for_item,
+    course_for_college,
     referential_college,
 )
 from frontend.components.ai_practice_panel import (
@@ -291,7 +292,7 @@ def _row_get(row, key, default=None):
 
 # ── Page ──────────────────────────────────────────────────────────────────────
 
-def render_item_cockpit(course_id: str) -> None:
+def render_item_cockpit(course_id: str, college: str | None = None) -> None:
     logger.info(f"ENTERING COURSE DETAIL (cockpit) — {course_id}")
 
     # CSS injecté AU BUILD synchrone (cf. Journal : un add_head_html tardif
@@ -310,10 +311,11 @@ def render_item_cockpit(course_id: str) -> None:
             ui.link("‹ Retour à Aujourd'hui", "/").classes("ci-p-link")
         return
 
-    # The detail page can be opened through any college fiche.  Resource
-    # actions must follow the canonical fiche used by the item view, so the
-    # breadcrumb and the official PDF never point to different colleges.
-    pdf_course = canonical_course_for_item(course, data_store.cours)
+    # Keep the college context when the item was opened from a college list.
+    # Without it, the merged item falls back to its canonical fiche and the
+    # breadcrumb/PDF silently jump to another college.
+    context_course = course_for_college(course, college, data_store.cours)
+    pdf_course = context_course or canonical_course_for_item(course, data_store.cours)
 
     # Historique de consultation pour la section « Récents » de la sidebar.
     # Une seule écriture upsert, jamais bloquante : cette page est déjà lente.
@@ -391,7 +393,9 @@ def render_item_cockpit(course_id: str) -> None:
     # Rattachement stable : un item saisi une fois par collège dans Notion
     # affichait un fil d'Ariane différent selon la fiche ouverte. Le collège du
     # référentiel EDN ne dépend pas de la fiche par laquelle on est arrivé.
-    college = referential_college(course) or ((course.college or [""])[0] if course.college else "")
+    displayed_college = (
+        str(college).strip() if context_course and college else None
+    ) or referential_college(course) or ((course.college or [""])[0] if course.college else "")
     frequency_map = local_store.get_all_ednpro_item_frequencies()
     frequency = frequency_map.get(str(course.item_number or "").strip().removeprefix("ITEM "))
     ring = _ring_glyph(score)
@@ -425,14 +429,15 @@ def render_item_cockpit(course_id: str) -> None:
         with ui.element("div").classes("ci-crumb"):
             ui.link("Aujourd'hui", "/")
             ui.label("›")
-            if college:
+            if displayed_college:
                 # Vers la liste filtrée sur ce collège, pas l'index générique :
                 # c'est ce qui permet de circuler entre les items d'un même collège.
                 from urllib.parse import quote
                 # Legacy contract retained in the source while the actual
                 # target is URL-encoded for colleges containing accents/spaces:
+                # Legacy contract retained in the source:
                 # ui.link(college, f"/items?college={college}")
-                ui.link(college, f"/items?college={quote(college)}")
+                ui.link(displayed_college, f"/items?college={quote(displayed_college)}")
                 ui.label("›")
             ui.label(f"Item {item_label}")
 

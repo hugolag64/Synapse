@@ -4,6 +4,7 @@ from loguru import logger
 from backend.state.store import data_store
 from backend.core.notion.service import notion_service
 from backend.config.settings import now_local
+from backend.state.catalog_repository import CatalogRepository
 
 # Cache pour les cours déjà correctement liés (liaison réussie uniquement)
 # Encapsulé dans une classe pour faciliter le reset entre tests
@@ -38,6 +39,9 @@ _FULL_REFRESH_EVERY = 12  # 60 minutes
 
 async def _delta_refresh_cours() -> None:
     """Rafraîchit uniquement les cours modifiés depuis le dernier sync complet."""
+    if CatalogRepository().is_populated():
+        logger.info("Catalogue SQLite actif — delta Notion des cours ignoré.")
+        return
     since = data_store.cours_last_synced
     if not since:
         return
@@ -70,8 +74,12 @@ async def run_background_tasks():
     while True:
         _CYCLE += 1
         try:
+            catalog_active = CatalogRepository().is_populated()
             # ── 1. Refresh cours Notion (complet 60 min, delta toutes les 5 min) ──
-            if _CYCLE == 1 or _CYCLE % _FULL_REFRESH_EVERY == 0:
+            if catalog_active:
+                logger.info("Catalogue SQLite actif — source locale conservée, refresh Notion ignoré.")
+                data_store.load_from_disk(force=True)
+            elif _CYCLE == 1 or _CYCLE % _FULL_REFRESH_EVERY == 0:
                 logger.info(f"[Cycle {_CYCLE}] Refresh complet des cours Notion…")
                 await data_store.refresh()
             else:
@@ -79,7 +87,7 @@ async def run_background_tasks():
 
             # ── 2. Sync différentielle des items ──────────────────────────────────
             since = data_store.items_last_synced
-            if not data_store.items_map:
+            if not catalog_active and not data_store.items_map:
                 logger.info("Cache items vide — chargement initial complet…")
                 try:
                     new_map = await notion_service.get_all_items_map()
@@ -89,7 +97,7 @@ async def run_background_tasks():
                     logger.success(f"{len(new_map)} items chargés.")
                 except Exception as e:
                     logger.error(f"Échec chargement items : {e}")
-            else:
+            elif not catalog_active:
                 try:
                     if since:
                         updated = await notion_service.get_updated_items_map(since.isoformat())
@@ -108,7 +116,7 @@ async def run_background_tasks():
                     logger.error(f"Échec sync différentielle items : {e}")
 
             # ── 3. Auto-link cours ↔ items ────────────────────────────────────────
-            if data_store.items_map:
+            if not catalog_active and data_store.items_map:
                 await auto_link_process(data_store.items_map)
 
             # ── 4. Vault Obsidian — une seule fois au démarrage ───────────────────

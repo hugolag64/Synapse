@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from uuid import uuid4
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -80,6 +81,15 @@ class CatalogRepository:
             ).fetchone()
         return self._item(row) if row else None
 
+    def get_item(self, item_id: str) -> CatalogItem | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """SELECT id, item_number, official_title, local_title, archived_at
+                   FROM catalog_items WHERE id = ?""",
+                (item_id,),
+            ).fetchone()
+        return self._item(row) if row else None
+
     def list_items(self, include_archived: bool = False) -> list[CatalogItem]:
         where = "" if include_archived else " WHERE archived_at IS NULL"
         with self._connect() as connection:
@@ -135,6 +145,32 @@ class CatalogRepository:
             ).fetchall()
         return [str(row[0]) for row in rows]
 
+    def get_primary_resource(self, item_id: str, college_name: str | None = None) -> dict | None:
+        """Select college-specific, then shared, then deterministic fallback resource."""
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT r.id, r.fiche_id, r.resource_type, r.title, r.url,
+                       r.status, r.is_primary,
+                       GROUP_CONCAT(c.name) AS colleges
+                FROM catalog_resources r
+                JOIN catalog_fiches f ON f.id = r.fiche_id
+                LEFT JOIN catalog_resource_colleges rc ON rc.resource_id = r.id
+                LEFT JOIN catalog_colleges c ON c.id = rc.college_id
+                WHERE f.item_id = ? AND f.archived_at IS NULL AND r.status = 'active'
+                GROUP BY r.id
+                ORDER BY r.is_primary DESC, r.created_at, r.id
+                """,
+                (item_id,),
+            ).fetchall()
+        if not rows:
+            return None
+        normalized = str(college_name or "").strip()
+        specific = [row for row in rows if normalized and normalized in (row["colleges"] or "").split(",")]
+        shared = [row for row in rows if not (row["colleges"] or "").strip()]
+        chosen = (specific or shared or list(rows))[0]
+        return dict(chosen)
+
     def list_colleges(self, active_only: bool = True) -> list[str]:
         where = " WHERE active = 1" if active_only else ""
         with self._connect() as connection:
@@ -163,6 +199,27 @@ class CatalogRepository:
                 ORDER BY name
                 """,
                 (item_id, item_id),
+            ).fetchall()
+        return [str(row[0]) for row in rows]
+
+    def list_item_ids_for_college(self, college_name: str) -> list[str]:
+        """Return unique active item ids related to a college."""
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT DISTINCT item_id FROM catalog_official_item_colleges oi
+                JOIN catalog_colleges c ON c.id = oi.college_id
+                JOIN catalog_items i ON i.id = oi.item_id
+                WHERE c.name = ? AND i.archived_at IS NULL
+                UNION
+                SELECT DISTINCT f.item_id FROM catalog_fiche_colleges fc
+                JOIN catalog_colleges c ON c.id = fc.college_id
+                JOIN catalog_fiches f ON f.id = fc.fiche_id
+                JOIN catalog_items i ON i.id = f.item_id
+                WHERE c.name = ? AND f.archived_at IS NULL AND i.archived_at IS NULL
+                ORDER BY item_id
+                """,
+                (college_name, college_name),
             ).fetchall()
         return [str(row[0]) for row in rows]
 
@@ -312,11 +369,121 @@ class CatalogRepository:
             connection.execute(
                 """
                 INSERT INTO catalog_import_runs
-                    (id, source, mode, status, backup_path, summary_json, created_at, completed_at)
+                (id, source, mode, status, backup_path, summary_json, created_at, completed_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (run_id, source, mode, status, backup_path, json.dumps(summary, ensure_ascii=False), _now(), _now()),
             )
+
+    def save_override(self, item_id: str, college_id: str, action: str, justification: str) -> None:
+        """Persist and apply a local item-college mapping override."""
+        if action not in {"add", "remove"}:
+            raise ValueError("action inconnue")
+        if not str(justification or "").strip():
+            raise ValueError("justification obligatoire")
+        with self._connect() as connection:
+            item = connection.execute("SELECT id FROM catalog_items WHERE id = ?", (item_id,)).fetchone()
+            college = connection.execute("SELECT id FROM catalog_colleges WHERE id = ?", (college_id,)).fetchone()
+            if not item or not college:
+                raise ValueError("item ou collège introuvable")
+            before = connection.execute(
+                "SELECT 1 FROM catalog_official_item_colleges WHERE item_id = ? AND college_id = ?",
+                (item_id, college_id),
+            ).fetchone()
+            connection.execute(
+                """INSERT INTO catalog_local_overrides
+                   (id, item_id, college_id, action, justification, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (str(uuid4()), item_id, college_id, action, justification.strip(), _now()),
+            )
+            if action == "add":
+                connection.execute(
+                    """INSERT OR IGNORE INTO catalog_official_item_colleges
+                       (item_id, college_id, source_acronym) VALUES (?, ?, 'local_override')""",
+                    (item_id, college_id),
+                )
+            else:
+                connection.execute(
+                    "DELETE FROM catalog_official_item_colleges WHERE item_id = ? AND college_id = ?",
+                    (item_id, college_id),
+                )
+            self._audit(
+                connection, "item_college", f"{item_id}:{college_id}", "override",
+                {"linked": bool(before)}, {"linked": action == "add"}, justification,
+            )
+
+    def archive_item(self, item_id: str, justification: str) -> None:
+        self._set_item_archived(item_id, justification, archived=True)
+
+    def restore_item(self, item_id: str, justification: str) -> None:
+        self._set_item_archived(item_id, justification, archived=False)
+
+    def _set_item_archived(self, item_id: str, justification: str, *, archived: bool) -> None:
+        if not str(justification or "").strip():
+            raise ValueError("justification obligatoire")
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT archived_at FROM catalog_items WHERE id = ?", (item_id,)
+            ).fetchone()
+            if row is None:
+                raise ValueError("item introuvable")
+            before = {"archived_at": row[0]}
+            value = _now() if archived else None
+            connection.execute(
+                "UPDATE catalog_items SET archived_at = ?, updated_at = ? WHERE id = ?",
+                (value, _now(), item_id),
+            )
+            self._audit(
+                connection, "item", item_id, "archive" if archived else "restore",
+                before, {"archived_at": value}, justification,
+            )
+
+    def merge_items(self, master_id: str, duplicate_id: str, justification: str) -> None:
+        if not str(justification or "").strip():
+            raise ValueError("justification obligatoire")
+        if master_id == duplicate_id:
+            raise ValueError("fusion impossible avec le même item")
+        with self._connect() as connection:
+            master = connection.execute("SELECT id FROM catalog_items WHERE id = ?", (master_id,)).fetchone()
+            duplicate = connection.execute("SELECT id, archived_at FROM catalog_items WHERE id = ?", (duplicate_id,)).fetchone()
+            if not master or not duplicate:
+                raise ValueError("item introuvable")
+            fiche_count = connection.execute(
+                "SELECT COUNT(*) FROM catalog_fiches WHERE item_id = ?", (duplicate_id,)
+            ).fetchone()[0]
+            connection.execute("UPDATE catalog_fiches SET item_id = ? WHERE item_id = ?", (master_id, duplicate_id))
+            connection.execute(
+                "UPDATE catalog_items SET archived_at = ?, updated_at = ? WHERE id = ?",
+                (_now(), _now(), duplicate_id),
+            )
+            self._audit(
+                connection, "item", duplicate_id, "merge",
+                {"master_id": None, "fiche_count": fiche_count},
+                {"master_id": master_id, "fiche_count": fiche_count}, justification,
+            )
+
+    def list_audit_log(self, limit: int = 100) -> list[dict]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT * FROM catalog_audit_log ORDER BY created_at DESC LIMIT ?", (limit,)
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    @staticmethod
+    def _audit(connection, entity_type, entity_id, operation, before, after, justification):
+        connection.execute(
+            """INSERT INTO catalog_audit_log
+               (id, entity_type, entity_id, operation, before_json, after_json,
+                justification, provenance, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, 'local_admin', ?)""",
+            (
+                str(uuid4()), entity_type, entity_id, operation,
+                json.dumps(before, ensure_ascii=False),
+                json.dumps(after, ensure_ascii=False),
+                justification,
+                _now(),
+            ),
+        )
 
     @staticmethod
     def _item(row: sqlite3.Row) -> CatalogItem:

@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 from backend.core.knowledge.retention import Evidence, evaluate_retention
+from backend.core.reviews import local_store
 
 
 # ── Snapshot ──────────────────────────────────────────────────────────────────
@@ -81,6 +82,124 @@ def _item_fiche_ids(course) -> tuple[str, ...]:
         return (str(course.id),)
 
 
+def _normalized_item_number(value) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    try:
+        return str(int(float(raw)))
+    except (TypeError, ValueError):
+        return ""
+
+
+def _courses_for_item(item_id) -> list:
+    """Resolve a fiche id or item number to every active fiche."""
+    from backend.state.store import data_store
+
+    value = str(item_id).strip()
+    numeric = _normalized_item_number(value)
+    courses = list(data_store.cours)
+    if numeric:
+        return [
+            course for course in courses
+            if _normalized_item_number(getattr(course, "item_number", "")) == numeric
+        ]
+    selected = next((course for course in courses if str(course.id) == value), None)
+    if selected is None:
+        return []
+    selected_number = _normalized_item_number(getattr(selected, "item_number", ""))
+    return [
+        course for course in courses
+        if _normalized_item_number(getattr(course, "item_number", "")) == selected_number
+    ]
+
+
+def get_item_fiche_ids(item_id: str | int) -> tuple[str, ...]:
+    """Return every active fiche id belonging to an item."""
+    return tuple(str(course.id) for course in _courses_for_item(item_id))
+
+
+def _merged_item_course(courses: list):
+    from backend.core.knowledge.course_aliases import canonical_course, colleges_of_item
+
+    canonical = canonical_course(courses)
+    updates = {
+        "college": colleges_of_item(courses),
+        "url_pdf": next((c.url_pdf for c in courses if c.url_pdf), None),
+        "url_pdf_ue": next((c.url_pdf_ue for c in courses if c.url_pdf_ue), None),
+        "date_1ere_lecture": next((c.date_1ere_lecture for c in courses if c.date_1ere_lecture), None),
+        "date_1ere_lecture_ue": next((c.date_1ere_lecture_ue for c in courses if c.date_1ere_lecture_ue), None),
+        "nb_lectures": max((getattr(c, "nb_lectures", 0) or 0) for c in courses),
+        "nb_lectures_ue": max((getattr(c, "nb_lectures_ue", 0) or 0) for c in courses),
+        "qcm_done": any(getattr(c, "qcm_done", False) for c in courses),
+        "anki": any(getattr(c, "anki", False) for c in courses),
+    }
+    return canonical.model_copy(update=updates) if hasattr(canonical, "model_copy") else canonical.copy(update=updates)
+
+
+@dataclass(frozen=True)
+class EvidenceSummary:
+    """Counts of real evidence aggregated at item level."""
+
+    sessions: int = 0
+    qcm: int = 0
+    oic_attempts: int = 0
+    anki_reviews: int = 0
+    annales: int = 0
+
+    @property
+    def total(self) -> int:
+        return self.sessions + self.qcm + self.oic_attempts + self.anki_reviews + self.annales
+
+    @property
+    def evidence_count(self) -> int:
+        return self.total
+
+
+def get_item_evidence(item_id: str | int) -> EvidenceSummary:
+    """Aggregate all locally recorded evidence across an item's fiches."""
+    fiche_ids = get_item_fiche_ids(item_id)
+    if not fiche_ids:
+        return EvidenceSummary()
+    sessions = local_store.get_sessions_by_course()
+    session_count = sum(len(sessions.get(fiche_id, [])) for fiche_id in fiche_ids)
+    qcm_count = sum(len(local_store.get_qcm_sessions_by_course(fiche_id) or []) for fiche_id in fiche_ids)
+    with local_store._conn() as connection:
+        placeholders = ",".join("?" for _ in fiche_ids)
+        row = connection.execute(
+            f"""SELECT COUNT(a.id) FROM oic_attempts a
+                JOIN lisa_oic o ON o.id = a.oic_id
+                WHERE o.course_id IN ({placeholders})""",
+            fiche_ids,
+        ).fetchone()
+    item_number = _normalized_item_number(getattr(_courses_for_item(item_id)[0], "item_number", ""))
+    anki_rows = local_store.get_anki_review_evidence(item_number) if item_number else []
+    annales = local_store.get_ai_practice_sessions(item_number=item_number, limit=1000) if item_number else []
+    return EvidenceSummary(session_count, qcm_count, int(row[0] or 0), len(anki_rows), len(annales))
+
+
+def get_item_mastery(
+    item_id: str | int,
+    context: Literal["college", "ue"] = "college",
+) -> CourseProgressSnapshot:
+    """Calculate one coherent mastery snapshot for every fiche of an item."""
+    courses = _courses_for_item(item_id)
+    if not courses:
+        raise LookupError(f"Item introuvable : {item_id}")
+    course = _merged_item_course(courses)
+    fiche_ids = tuple(str(c.id) for c in courses)
+    sessions_map = local_store.get_sessions_by_course()
+    sessions = [row for fiche_id in fiche_ids for row in sessions_map.get(fiche_id, [])]
+    qcm_done = any(local_store.get_qcm_sessions_by_course(fiche_id) for fiche_id in fiche_ids)
+    return get_course_mastery(
+        course,
+        context=context,
+        sessions=sessions,
+        qcm_done_local=qcm_done,
+        knowledge_id=str(course.id),
+    )
+
+
 def _qcm_rows_for_item(course) -> list:
     """Sessions QCM de toutes les fiches de l'item, pas de la seule fiche ouverte."""
     from backend.core.reviews import local_store
@@ -113,6 +232,7 @@ def get_course_mastery(
     sessions: list | None = None,
     total_postpone: int = 0,
     qcm_done_local: bool = False,
+    knowledge_id: str | None = None,
 ) -> CourseProgressSnapshot:
     """
     Calcule le snapshot de progression d'un cours.
@@ -128,16 +248,21 @@ def get_course_mastery(
     # Un item déclaré (ancien collège validé) possède une graine de score qui se
     # dégrade avec le temps et se dilue devant les preuves réelles.
     from backend.core.knowledge.service import (
-        get_seed_snapshot, oic_coverage, badge_from_coverage,
+        get_seed_snapshot_for_item, oic_coverage_for_courses, badge_from_coverage,
     )
     from backend.core.knowledge.models import blend, level_from_seed
 
-    seed = get_seed_snapshot(course.id, context)
+    fiche_ids = _item_fiche_ids(course)
+    seed = get_seed_snapshot_for_item(
+        knowledge_id or course.id,
+        (course.id, *fiche_ids),
+        context,
+    )
     # Couverture OIC calculée pour tout cours (plus seulement les items déclarés) :
     # sinon un cours réellement évalué sur ses OIC de Rang A voyait sa couverture
     # ignorée faute de "niveau déclaré" (ancien système collèges), et le verrou
     # Rang A ci-dessous appliquait une pénalité à l'aveugle.
-    _cov = oic_coverage(course.id)      # une seule lecture, réutilisée pour le badge
+    _cov = oic_coverage_for_courses((course.id, *fiche_ids))
     _oic_coverage_a      = _cov["rang_a_pct"]
     _has_rang_a_referential = _cov["rang_a_total"] > 0
     _has_rang_a_evaluated = _cov.get("rang_a_attempted", 0) > 0
@@ -179,6 +304,16 @@ def get_course_mastery(
 
     # 2. Règles strictes (non commencés)
     # Note: un cours sans PDF peut quand même avoir une première lecture et être révisable
+    if seed.seed_score is not None and seed.n_evidence == 0:
+        return CourseProgressSnapshot(
+            course_id=course.id, context=context,
+            level=level_from_seed(seed.seed_score), mastery_score=seed.seed_score, retention_score=seed.seed_score,
+            has_pdf=has_pdf, has_first_read=has_first_read, nb_lectures=nb_lectures,
+            qcm_done=qcm_done, anki_done=anki_done,
+            reasons=[f"Niveau déclaré : {seed.declared_level}"],
+            next_action="Réviser", **_extra, **_retention_defaults,
+        )
+
     if not has_pdf and not has_first_read:
         return CourseProgressSnapshot(
             course_id=course.id, context=context, level="à préparer", mastery_score=None, retention_score=None,
@@ -190,15 +325,6 @@ def get_course_mastery(
     if not has_first_read:
         # Item déclaré sans preuve réelle : la graine tient lieu de score.
         # C'est ce qui rend planifiables les items des anciens collèges validés.
-        if seed.seed_score is not None and seed.n_evidence == 0:
-            return CourseProgressSnapshot(
-                course_id=course.id, context=context,
-                level=level_from_seed(seed.seed_score), mastery_score=seed.seed_score, retention_score=seed.seed_score,
-                has_pdf=has_pdf, has_first_read=has_first_read, nb_lectures=nb_lectures,
-                qcm_done=qcm_done, anki_done=anki_done,
-                reasons=[f"Niveau déclaré : {seed.declared_level}"],
-                next_action="Réviser", **_extra, **_retention_defaults,
-            )
         if seed.seed_score is None:
             return CourseProgressSnapshot(
                 course_id=course.id, context=context, level="à lire", mastery_score=None, retention_score=None,

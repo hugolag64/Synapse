@@ -45,6 +45,7 @@ from backend.core.lisa import item_service
 from frontend.components.uness_diagnostic_panel import render as render_uness_diagnostics
 from frontend.components.dp_coverage_panel import render as render_dp_coverage
 from frontend.components.calendar_sources_panel import render as render_calendar_sources
+from frontend.pages.catalog_admin import render_catalog_admin
 
 def toggle_dark_mode(value: bool | None = None) -> bool:
     dark = ui.dark_mode()
@@ -474,6 +475,8 @@ def render_settings_cockpit() -> None:
                     icon="refresh",
                 ).props("outline color=violet size=sm rounded").classes("mt-3")
                 oic_button.on("click", lambda: asyncio.ensure_future(_refresh_all_oic(oic_button)))
+
+        render_catalog_admin()
 
         with _settings_domain("DIAGNOSTICS ET TÉLÉMÉTRIE", "Couverture et consommation", "analytics"):
             with ui.expansion("COUVERTURE DP PAR ITEM", icon="assignment").classes(

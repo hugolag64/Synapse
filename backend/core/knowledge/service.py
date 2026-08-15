@@ -102,6 +102,35 @@ def get_seed_snapshot(
     )
 
 
+def get_seed_snapshot_for_item(
+    item_id: str,
+    course_ids: list[str] | tuple[str, ...] = (),
+    context: str = "college",
+    today: datetime.date | None = None,
+) -> SeedSnapshot:
+    """Return one declared seed and aggregate its evidence across all fiches.
+
+    The legacy table stores declarations against a course id.  During the
+    transition to the catalog, an item can therefore have its declaration on
+    either the stable catalog id or one of its fiche ids.  The first matching
+    state wins deterministically; evidence is always summed across the item.
+    """
+    today = today or datetime.date.today()
+    candidates = tuple(dict.fromkeys([str(item_id), *(str(cid) for cid in course_ids)]))
+    state = next((ks.get_item_state(candidate, context) for candidate in candidates if ks.get_item_state(candidate, context)), None)
+    if state is None:
+        return SeedSnapshot(declared_level=None, seed_score=None, n_evidence=0)
+
+    evidence_count = sum(count_evidence(candidate) for candidate in candidates)
+    evidence_dates = [first_evidence_date(candidate) for candidate in candidates]
+    until = min((value for value in evidence_dates if value is not None), default=today)
+    return SeedSnapshot(
+        declared_level=state.declared_level,
+        seed_score=decayed_seed(state.declared_level, state.declared_at, until),
+        n_evidence=evidence_count,
+    )
+
+
 # ── Couverture OIC ────────────────────────────────────────────────────────────
 
 RANG_A_MIN_ATTEMPTS = 3
@@ -147,16 +176,38 @@ def oic_coverage(course_id: str) -> dict:
     Le rang A conditionne le badge ; le rang B est affiché sans jamais rien
     conditionner — l'ériger en condition transformerait un bonus en dette infinie.
     """
+    coverage = oic_coverage_for_courses((course_id,))
+    # Keep the verdict fields explicit at this compatibility boundary:
+    # rang_a_conclusive means "measured", while rang_a_pct_attempted remains
+    # None when there is no representative attempt (never an implicit zero).
+    return {
+        **coverage,
+        "rang_a_conclusive": coverage["rang_a_conclusive"],
+        "rang_a_pct_attempted": coverage["rang_a_pct_attempted"],
+    }
+
+
+def oic_coverage_for_courses(course_ids: list[str] | tuple[str, ...]) -> dict:
+    """Aggregate active OIC coverage across every fiche of an item."""
+    normalized_ids = tuple(dict.fromkeys(str(value) for value in course_ids if str(value).strip()))
+    if not normalized_ids:
+        return {
+            "rang_a_total": 0, "rang_a_ok": 0, "rang_a_pct": 0.0,
+            "rang_a_attempted": 0, "rang_a_conclusive": False,
+            "rang_a_pct_attempted": None, "rang_b_total": 0, "rang_b_ok": 0,
+            "rang_b_pct": 0.0,
+        }
+    placeholders = ",".join("?" for _ in normalized_ids)
     with _conn() as con:
         rows = con.execute(
-            """
+            f"""
             SELECT o.rang, o.mastered, COUNT(a.id) AS attempt_count
             FROM lisa_oic o
             LEFT JOIN oic_attempts a ON a.oic_id = o.id
-            WHERE o.course_id = ? AND o.active = 1
+            WHERE o.course_id IN ({placeholders}) AND o.active = 1
             GROUP BY o.id, o.rang, o.mastered
             """,
-            (course_id,),
+            normalized_ids,
         ).fetchall()
 
     def _tally(rang: str) -> tuple[int, int]:

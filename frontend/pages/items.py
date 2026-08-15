@@ -21,18 +21,24 @@ profit de « Dernière révision » (README §7).
 from __future__ import annotations
 
 import datetime
+import os
 
 from nicegui import ui
 from starlette.requests import Request
 
 from frontend.theme import frame
 from backend.state.store import data_store
+from backend.state.catalog_repository import CatalogRepository
+from backend.core.notion.models import Cours
+from backend.core.knowledge.course_aliases import canonical_course, colleges_of_item, normalized_item
+from backend.core.reviews.mastery import _merged_item_course
 from backend.core.reviews import local_store
 from backend.core.reviews.local_store import (
     get_all_history, get_sessions_by_course, get_postpone_counts,
     get_qcm_done_course_ids, get_active_lacunes_count_by_course,
 )
 from backend.core.reviews.service import review_service
+from backend.core.reviews.mastery import get_item_mastery
 from frontend.components.study_task_row import _ring_glyph, due_info
 from frontend.components.mastery_indicator import mastery_indicator, ensure_styles as _mastery_styles
 from frontend.components.ednpro_frequency_badge import ednpro_frequency_badge
@@ -92,9 +98,17 @@ def _safe_item_number(n: str | None) -> float:
     if not n:
         return 999999.0
     try:
-        return float(n.replace(",", "."))
-    except ValueError:
+        return float(str(n).replace(",", "."))
+    except (TypeError, ValueError):
         return 999999.0
+
+
+def _normalized_item_number(value) -> str:
+    raw = str(value or "").strip().removeprefix("ITEM ")
+    try:
+        return str(int(float(raw)))
+    except (TypeError, ValueError):
+        return ""
 
 
 def _college_names(course) -> tuple[str, ...]:
@@ -107,6 +121,65 @@ def _college_names(course) -> tuple[str, ...]:
 def _primary_college(row: dict) -> str:
     names = _college_names(row["course"])
     return names[0] if names else "Sans collège"
+
+
+def build_item_rows(repository: CatalogRepository | None = None) -> list[dict]:
+    """Build one row per official item, including items without a fiche."""
+    courses = list(data_store.cours)
+    by_id = {str(course.id): course for course in courses}
+    if repository is None:
+        repository = CatalogRepository(os.getenv("SYNAPSE_CATALOG_DB_PATH"))
+
+    official_items = list(repository.list_items()) if hasattr(repository, "list_items") else []
+    rows: list[dict] = []
+    if official_items:
+        for item in official_items:
+            fiche_records = list(repository.list_fiches(item.id))
+            fiche_ids = tuple(str(fiche.id) for fiche in fiche_records)
+            fiche_courses = [by_id[fiche_id] for fiche_id in fiche_ids if fiche_id in by_id]
+            if fiche_courses:
+                course = _merged_item_course(fiche_courses)
+            else:
+                course = Cours(
+                    id=item.id,
+                    title=item.title,
+                    item_number=str(item.item_number),
+                    college=list(repository.list_colleges_for_item(item.id)),
+                    created_time=datetime.datetime.now(datetime.timezone.utc),
+                )
+            colleges = list(repository.list_colleges_for_item(item.id)) or list(course.college or [])
+            updates = {"title": item.title, "item_number": str(item.item_number), "college": colleges}
+            course = course.model_copy(update=updates) if hasattr(course, "model_copy") else course.copy(update=updates)
+            rows.append({
+                "item_id": item.id,
+                "item_number": item.item_number,
+                "title": item.title,
+                "course": course,
+                "fiche_ids": fiche_ids,
+                "colleges": colleges,
+                "missing_fiche": not bool(fiche_courses),
+            })
+        return rows
+
+    # Explicit fallback for an unimported installation: preserve the legacy
+    # JSON-backed screen, but still collapse duplicate fiches by item number.
+    groups: dict[str, list] = {}
+    for course in courses:
+        item_number = normalized_item(course)
+        if item_number:
+            groups.setdefault(item_number, []).append(course)
+    for item_number, item_courses in sorted(groups.items(), key=lambda pair: int(pair[0])):
+        course = _merged_item_course(item_courses)
+        rows.append({
+            "item_id": str(course.id),
+            "item_number": int(item_number),
+            "title": course.title,
+            "course": course,
+            "fiche_ids": tuple(str(c.id) for c in item_courses),
+            "colleges": list(course.college or []),
+            "missing_fiche": False,
+        })
+    return rows
 
 
 _ANNUAL_PRIORITY_RANK = {
@@ -230,7 +303,8 @@ def items_page(request: Request) -> None:
         list_col = ui.column().classes("w-full gap-0")
 
     def _compute() -> list[dict]:
-        courses = [c for c in data_store.cours if c.college]
+        item_rows = build_item_rows(CatalogRepository(os.getenv("SYNAPSE_CATALOG_DB_PATH")))
+        courses = [row["course"] for row in item_rows]
 
         history = get_all_history()
         sessions_map = get_sessions_by_course()
@@ -244,36 +318,56 @@ def items_page(request: Request) -> None:
             sessions_map=sessions_map, postpone_map=postpone_map,
             active_only=True,
         )
-        urgent_ids = {t.course_id for t in review_service.get_urgent_tasks(all_tasks)}
-        next_by_course: dict[str, object] = {}
+        urgent_tasks = review_service.get_urgent_tasks(all_tasks)
+        urgent_fiche_ids = {t.course_id for t in urgent_tasks}
+        urgent_items = {
+            _normalized_item_number(t.item_number)
+            for t in urgent_tasks
+            if _normalized_item_number(t.item_number)
+        }
+        next_by_item: dict[str, object] = {}
         for t in all_tasks:
-            cur = next_by_course.get(t.course_id)
-            if cur is None or t.due_date < cur.due_date:
-                next_by_course[t.course_id] = t
+            key = _normalized_item_number(t.item_number) or str(t.course_id)
+            cur = next_by_item.get(key)
+            if cur is None or (t.due_date, t.id) < (cur.due_date, cur.id):
+                next_by_item[key] = t
 
         qcm_trends = local_store.get_qcm_latest_by_course()
         frequency_map = local_store.get_all_ednpro_item_frequencies()
         rows = []
-        for c in courses:
-            sessions = sessions_map.get(c.id, [])
-            mastery = review_service._get_mastery_cached(
-                c, "college", sessions, postpone_map.get(c.id, 0),
-                (c.id in qcm_done_set),
+        rows = []
+        for item_row in item_rows:
+            c = item_row["course"]
+            fiche_ids = item_row["fiche_ids"]
+            sessions = [session for fiche_id in fiche_ids for session in sessions_map.get(fiche_id, [])]
+            try:
+                mastery = get_item_mastery(c.item_number)
+            except LookupError:
+                mastery = review_service._get_mastery_cached(
+                    c, "college", sessions, sum(postpone_map.get(fid, 0) for fid in fiche_ids),
+                    any(fid in qcm_done_set for fid in fiche_ids),
+                )
+            qcm_info = next(
+                (qcm_trends.get(fiche_id, {}) for fiche_id in fiche_ids if fiche_id in qcm_trends),
+                {},
             )
-            qcm_info = qcm_trends.get(c.id, {})
             rows.append({
                 "course": c,
+                "item_id": item_row["item_id"],
+                "fiche_ids": fiche_ids,
+                "missing_fiche": item_row["missing_fiche"],
                 "mastery_score": mastery.score,
                 "mastery_level": mastery.level,
+                "evidence_count": mastery.evidence_count,
                 "qcm_score": qcm_info.get("last_score"),
                 "qcm_trend": qcm_info.get("trend"),
                 "ednpro_frequency": frequency_map.get(
                     str(c.item_number or "").strip().removeprefix("ITEM ")
                 ),
-                "type_tag": _type_tag(c, lacune_ids),
-                "next_task": next_by_course.get(c.id),
+                "type_tag": _type_tag(c, lacune_ids.intersection(set(fiche_ids))),
+                "next_task": next_by_item.get(_normalized_item_number(c.item_number) or c.id),
                 "sessions": sessions,
-                "overdue": c.id in urgent_ids,
+                "overdue": _normalized_item_number(c.item_number) in urgent_items or bool(set(fiche_ids) & urgent_fiche_ids),
             })
         return _sort_item_rows(rows, filt["sort"])
 
@@ -378,7 +472,10 @@ def items_page(request: Request) -> None:
                     ui.label(label)
             ui.label(r["type_tag"]).classes("it-type")
             with ui.element("div").classes("it-mastery flex items-center gap-2"):
-                mastery_indicator(r["mastery_score"], r["mastery_level"])
+                mastery_indicator(
+                    r["mastery_score"], r["mastery_level"],
+                    evidence_count=r.get("evidence_count"),
+                )
                 q_score = r.get("qcm_score")
                 if q_score is not None:
                     trend = r.get("qcm_trend") or ""

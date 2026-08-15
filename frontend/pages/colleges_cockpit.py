@@ -22,6 +22,7 @@ from __future__ import annotations
 from nicegui import ui
 
 from backend.state.store import data_store
+from backend.state.catalog_repository import CatalogRepository
 from backend.core.knowledge import store as knowledge_store
 from backend.core.knowledge.college_validation import assess_college_validation
 from backend.core.reviews import local_store
@@ -321,6 +322,32 @@ def _pilotage_summary(rows: list[dict]) -> dict:
         "status_counts": status_counts,
         "level_counts": status_counts,
         "estimated_minutes": max(0, total_courses - started) * 20,
+    }
+
+
+def build_college_rows(repository: CatalogRepository | None = None) -> list[dict]:
+    """Build catalogue-level college rows, including empty colleges."""
+    repository = repository or CatalogRepository()
+    if not hasattr(repository, "list_colleges"):
+        return []
+    rows = []
+    for name in repository.list_colleges():
+        item_ids = set(repository.list_item_ids_for_college(name))
+        rows.append({"name": name, "item_ids": item_ids, "total": len(item_ids)})
+    return rows
+
+
+def build_pilotage_summary(rows: list[dict]) -> dict:
+    """Deduplicate item totals while retaining college-item relation counts."""
+    item_ids = set()
+    relations = 0
+    for row in rows:
+        current = set(row.get("item_ids") or ())
+        item_ids.update(current)
+        relations += int(row.get("total", len(current)) or 0)
+    return {
+        "total_items": len(item_ids),
+        "total_college_relations": relations,
     }
 
 

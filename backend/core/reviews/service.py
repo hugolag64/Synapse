@@ -45,6 +45,27 @@ FUTURE_HORIZON_DAYS = 30
 _HIDDEN_STATUSES = {"done", "ignored", "cancelled"}
 
 
+def build_tasks_by_item(tasks) -> dict[str, list[ReviewTask]]:
+    """Index review tasks once for item-centric consumers."""
+    result: dict[str, list[ReviewTask]] = {}
+    for task in tasks:
+        key = str(task.item_number or task.course_id).strip()
+        result.setdefault(key, []).append(task)
+    return result
+
+
+def build_history_by_course(history) -> dict[str, set[str]]:
+    """Index legacy history rows by course id without repeated scans."""
+    result: dict[str, set[str]] = {}
+    for task_id, row in (history or {}).items():
+        try:
+            course_id = row["course_id"]
+        except (KeyError, IndexError, TypeError):
+            course_id = str(task_id).split("_")[0]
+        result.setdefault(str(course_id), set()).add(str(task_id))
+    return result
+
+
 def _sessions_across_item_fiches(sessions_map: dict) -> dict:
     """Rassemble les séances de travail des fiches décrivant le même item.
 
@@ -285,6 +306,37 @@ class ReviewService:
                 unstarted.append(mastery)
                 
         return unstarted
+
+    def get_tasks_for_item(
+        self,
+        item_id: str | int,
+        context: ReviewContext = "college",
+    ) -> List[ReviewTask]:
+        """Return at most one actionable review task for an EDN item.
+
+        Legacy review generation still emits one task per fiche so existing
+        history ids remain valid.  Item-centric screens use this boundary and
+        select the earliest task deterministically.
+        """
+        raw = str(item_id).strip()
+        try:
+            target = str(int(float(raw)))
+        except (TypeError, ValueError):
+            target = ""
+        if not target:
+            from backend.state.store import data_store
+
+            course = next((c for c in data_store.cours if str(c.id) == raw), None)
+            target = str(int(float(course.item_number))) if course and course.item_number else raw
+
+        tasks = [
+            task for task in self.generate_reviews(context=context)
+            if (str(task.item_number).strip() == target)
+            or (not target and str(task.course_id) == raw)
+        ]
+        if not tasks:
+            return []
+        return [min(tasks, key=lambda task: (task.due_date, -task.priority_score, task.id))]
 
     def generate_all_reviews(
         self,

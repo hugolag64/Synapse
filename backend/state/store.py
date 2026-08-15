@@ -330,6 +330,36 @@ class DataStore:
             logger.info("No cache file found.")
             return False
 
+        try:
+            with open(cache_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            self._load_preferences(data.get("preferences", {}))
+            if not force and "last_updated" in data:
+                last_updated = datetime.fromisoformat(data["last_updated"])
+                if (datetime.now() - last_updated).total_seconds() > 12 * 3600:
+                    logger.info("Cache obsolète (>12h), cours ignorés mais préférences conservées.")
+                    return False
+
+            self.cours = [Cours(**c) for c in data.get("cours", [])]
+            self.colleges_order = data.get("colleges_order", [])
+            logger.debug(f"Loaded colleges_order from {cache_path}: {self.colleges_order}")
+            self.items_map = data.get("items_map", {})
+            if data.get("items_last_synced"):
+                self.items_last_synced = datetime.fromisoformat(data["items_last_synced"])
+            if data.get("cours_last_synced"):
+                self.cours_last_synced = datetime.fromisoformat(data["cours_last_synced"])
+            self.is_loaded = True
+            self.done_review_ids = set(data.get("done_review_ids", []))
+            self.ues_map = data.get("ues_map", {})
+            self._resolve_item_numbers()
+            self.cours = self._deduplicate_cours(self.cours)
+            logger.success(f"Loaded from disk: {len(self.cours)} Cours, {len(self.items_map)} Items")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to load data from disk: {e}")
+            return False
+
     def _load_from_catalog(self, catalog: CatalogRepository) -> bool:
         """Load active fiche compatibility objects from the local catalog."""
         try:
@@ -357,46 +387,6 @@ class DataStore:
             logger.exception(f"Failed to load catalog from SQLite: {exc}")
             return False
 
-        try:
-            with open(cache_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-
-            # Les préférences vivent dans le même fichier que le cache cours,
-            # mais leur durée de vie est indépendante.
-            self._load_preferences(data.get("preferences", {}))
-
-            # Auto-cleaning cache si > 12h (sauf mode force)
-            if not force and "last_updated" in data:
-                last_updated = datetime.fromisoformat(data["last_updated"])
-                if (datetime.now() - last_updated).total_seconds() > 12 * 3600:
-                    logger.info("Cache obsolète (>12h), cours ignorés mais préférences conservées.")
-                    return False
-            
-            self.cours = [Cours(**c) for c in data.get("cours", [])]
-            self.colleges_order = data.get("colleges_order", [])
-            logger.debug(f"Loaded colleges_order from {self.CACHE_FILE}: {self.colleges_order}")
-            
-            # Reconstruct items_map — le setter normalise les clés en int
-            raw_map = data.get("items_map", {})
-            self.items_map = raw_map  # le setter gère la normalisation float→int
-            
-            if data.get("items_last_synced"):
-                self.items_last_synced = datetime.fromisoformat(data.get("items_last_synced"))
-            if data.get("cours_last_synced"):
-                self.cours_last_synced = datetime.fromisoformat(data["cours_last_synced"])
-
-            self.is_loaded = True
-
-            self.done_review_ids = set(data.get("done_review_ids", []))
-
-            self.ues_map = data.get("ues_map", {})
-            self._resolve_item_numbers()
-            self.cours = self._deduplicate_cours(self.cours)
-            logger.success(f"Loaded from disk: {len(self.cours)} Cours, {len(self.items_map)} Items")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to load data from disk: {e}")
-            return False
     
     async def preload_all_views(self):
         """Fetch EVERYTHING needed for the app to feel instant."""
@@ -640,6 +630,9 @@ class DataStore:
 
     def get_colleges(self) -> List[str]:
         """Return distinct colleges sorted (using custom order if available)."""
+        catalog = CatalogRepository(os.getenv("SYNAPSE_CATALOG_DB_PATH"))
+        if catalog.is_populated():
+            return catalog.list_colleges()
         colleges = set()
         for c in self.cours:
             if c.college:
@@ -667,8 +660,12 @@ class DataStore:
         repository = CatalogRepository(os.getenv("SYNAPSE_CATALOG_DB_PATH"))
         if repository.is_populated():
             return repository.get_item_by_number(normalized)
-        title = self.items_map.get(normalized)
-        return next((course for course in self.cours if course.id == title), None)
+        return next(
+            (course for course in self.cours
+             if str(getattr(course, "item_number", "")).strip()
+             and int(float(str(course.item_number).strip())) == normalized),
+            None,
+        )
 
     def alias_ids(self, course_id: str) -> tuple:
         """Identifiants de toutes les fiches décrivant le même item EDN.
@@ -692,6 +689,40 @@ class DataStore:
         même item — 207 lignes en double sur 28 collèges. On ne garde que la
         fiche de référence de chaque item.
         """
+        catalog = CatalogRepository(os.getenv("SYNAPSE_CATALOG_DB_PATH"))
+        if catalog.is_populated():
+            item_ids = (
+                {item.id for item in catalog.list_items()}
+                if college == "Tout"
+                else set(catalog.list_item_ids_for_college(college))
+            )
+            by_item: dict[str, list[Cours]] = {}
+            for course in self.cours:
+                raw_number = str(getattr(course, "item_number", "") or "").strip()
+                if not raw_number:
+                    continue
+                try:
+                    item = catalog.get_item_by_number(int(float(raw_number)))
+                except (TypeError, ValueError):
+                    item = None
+                if item and item.id in item_ids:
+                    by_item.setdefault(item.id, []).append(course)
+            result: list[Cours] = []
+            for item in catalog.list_items():
+                if item.id not in item_ids:
+                    continue
+                candidates = by_item.get(item.id, [])
+                if candidates:
+                    result.append(candidates[0])
+                else:
+                    result.append(Cours(
+                        id=item.id,
+                        title=item.title,
+                        item_number=str(item.item_number),
+                        college=[college] if college != "Tout" else catalog.list_colleges_for_item(item.id),
+                        created_time=datetime.now(),
+                    ))
+            return result
         from backend.core.knowledge.course_aliases import dedupe_by_item
 
         if college == "Tout":

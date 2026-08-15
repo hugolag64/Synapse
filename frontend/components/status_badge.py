@@ -4,9 +4,12 @@ from __future__ import annotations
 
 
 STATUS_LABELS = {
+    "à préparer": "À préparer",
+    "à lire": "À lire",
     "non_commence": "Non commencé",
     "en construction": "En construction",
     "à consolider": "À consolider",
+    "à entraîner": "À entraîner",
     "solide": "Solide",
     "correct": "Correct",
     "fragile": "Fragile",

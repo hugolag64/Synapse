@@ -25,7 +25,7 @@ from loguru import logger
 
 from backend.state.store import data_store
 from backend.core.reviews import local_store
-from backend.core.reviews.mastery import get_course_mastery
+from backend.core.reviews.mastery import get_course_mastery, get_item_mastery
 from backend.core.reviews.anchors import anchor_priority, anchor_status, is_anchor_due
 from backend.core.reviews.recommendation_service import get_next_action
 from backend.core.reviews.service import review_service
@@ -324,8 +324,9 @@ def render_item_cockpit(course_id: str) -> None:
     manual_reviews = local_store.get_manual_reviews_by_course(course_id)
 
     try:
-        # Signature complète : (course, context, sessions, total_postpone, …).
-        mastery = get_course_mastery(course, "college", sessions, postpone_cnt)
+        # L'écran détail est une vue d'item : toutes les fiches du même item
+        # contribuent au même snapshot, quel que soit le collège ouvert.
+        mastery = get_item_mastery(course.item_number or course.id)
     except Exception as exc:
         logger.warning(f"mastery indisponible pour {course_id}: {exc}")
         mastery = None
@@ -419,7 +420,8 @@ def render_item_cockpit(course_id: str) -> None:
             if college:
                 # Vers la liste filtrée sur ce collège, pas l'index générique :
                 # c'est ce qui permet de circuler entre les items d'un même collège.
-                ui.link(college, f"/items?college={college}")
+                from urllib.parse import quote
+                ui.link(college, f"/items?college={quote(college)}")
                 ui.label("›")
             ui.label(f"Item {item_label}")
 
@@ -435,7 +437,10 @@ def render_item_cockpit(course_id: str) -> None:
         with ui.element("div").classes("ci-meta"):
             with ui.element("div").classes("ci-meta-cell"):
                 ui.label("Maîtrise").classes("ci-meta-label")
-                mastery_indicator(score, level, width="72px")
+                mastery_indicator(
+                    score, level, width="72px",
+                    evidence_count=mastery.evidence_count if mastery else None,
+                )
                 ui.label(level or "à situer").classes("ci-meta-val")
             if mastery:
                 with ui.element("div").classes("ci-meta-cell"):

@@ -18,6 +18,15 @@ class TestReviewService(TestCase):
         # Date de référence fixe pour le test : Vendredi 22 Mai 2026
         self.today_mock = date(2026, 5, 22)
 
+    def test_get_tasks_for_course_uses_the_cached_generation_boundary(self):
+        first = MagicMock(course_id="fiche-a")
+        second = MagicMock(course_id="fiche-b")
+        with patch.object(self.service, "generate_reviews", return_value=[first, second]) as generate:
+            result = self.service.get_tasks_for_course("fiche-a")
+
+        assert result == [first]
+        generate.assert_called_once_with(context="college")
+
     @patch('backend.core.reviews.service.date')
     @patch('backend.state.store.data_store')
     def test_generate_reviews_categories(self, mock_data_store, mock_date):

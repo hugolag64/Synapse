@@ -59,6 +59,7 @@ def assess_college_validation(
     item_states: Mapping[str, object],
     history: Mapping[str, Mapping[str, object]],
     manual_status: str = "non_etudie",
+    history_by_course: Mapping[str, set[str]] | None = None,
 ) -> CollegeValidationReport:
     """Assess item evidence and the complete J3/J7/J14/J30 cycle.
 
@@ -82,17 +83,22 @@ def assess_college_validation(
         sorted(set(course_ids).difference(evidence_ids))
     )
 
+    if history_by_course is None:
+        history_by_course = {}
+        for row in history.values():
+            course_id = str(_field(row, "course_id") or "")
+            if (
+                _field(row, "context") == "college"
+                and _field(row, "status") == "done"
+            ):
+                history_by_course.setdefault(course_id, set()).add(
+                    str(_field(row, "review_type"))
+                )
+
     completed_j_cycle_ids: list[str] = []
     missing_j_cycle_ids: list[str] = []
     for course_id in course_ids:
-        completed_types = {
-            str(_field(row, "review_type"))
-            for row in history.values()
-            if str(_field(row, "course_id")) == course_id
-            and _field(row, "context") == "college"
-            and _field(row, "status") == "done"
-            and _field(row, "review_type") in REQUIRED_J_CYCLE
-        }
+        completed_types = history_by_course.get(course_id, set())
         if set(REQUIRED_J_CYCLE).issubset(completed_types):
             completed_j_cycle_ids.append(course_id)
         else:

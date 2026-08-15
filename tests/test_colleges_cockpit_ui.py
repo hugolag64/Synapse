@@ -121,6 +121,14 @@ def test_college_pdf_kpi_counts_fiches_not_colleges():
     assert "count_no_pdf(courses)" in source
 
 
+def test_college_reuses_computed_rows_for_filters_and_expansion():
+    source = open("frontend/pages/colleges_cockpit.py", encoding="utf-8").read()
+
+    assert "if recompute or _computed_rows is None" in source
+    assert "_draw_list(_computed_rows or [])" in source
+    assert "_render(recompute=True)" in source
+
+
 def test_college_header_names_learning_avancement_explicitly():
     source = open("frontend/pages/colleges_cockpit.py", encoding="utf-8").read()
 

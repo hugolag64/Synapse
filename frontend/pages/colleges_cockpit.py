@@ -34,7 +34,7 @@ from backend.core.reviews.local_store import (
     get_qcm_last_scores_by_course,
 )
 from backend.core.reviews.validation import complete_review
-from backend.core.reviews.service import review_service
+from backend.core.reviews.service import build_review_types_by_course, review_service
 from backend.core.reviews.mastery import get_course_mastery, get_item_mastery
 from frontend.components.study_task_row import due_info
 from frontend.components.mastery_indicator import (
@@ -443,12 +443,17 @@ def render_colleges_cockpit() -> None:
         active_course_ids = get_active_course_ids()
         college_statuses = knowledge_store.get_all_college_statuses()
         item_states = knowledge_store.get_all_item_states("college")
-        all_tasks = review_service.generate_reviews(
-            context="college",
-            history=history,
-            active_only=True,
-        )
+        all_tasks = review_service.generate_reviews(context="college", active_only=True)
+        tasks_by_course: dict[str, list] = {}
+        for task in all_tasks:
+            tasks_by_course.setdefault(str(task.course_id), []).append(task)
+        history_by_course = build_review_types_by_course(history)
         urgent_ids = {t.course_id for t in review_service.get_urgent_tasks(all_tasks)}
+        urgent_item_numbers = {
+            str(t.item_number).strip()
+            for t in all_tasks
+            if t.course_id in urgent_ids and t.item_number
+        }
         qcm_map = get_qcm_last_scores_by_course()
         frequency_map = local_store.get_all_ednpro_item_frequencies()
         catalog = CatalogRepository()
@@ -502,6 +507,7 @@ def render_colleges_cockpit() -> None:
                 item_states,
                 history,
                 manual_status=college_statuses.get(name, "non_etudie"),
+                history_by_course=history_by_course,
             )
             college_validated = validation.manual_status == "valide"
             started = total if college_validated else count_started(courses, active_course_ids)
@@ -512,10 +518,6 @@ def render_colleges_cockpit() -> None:
             )
             pct = (advancement["percent"] / 100) if advancement["percent"] is not None else 0.0
 
-            urgent_item_numbers = {
-                str(t.item_number).strip() for t in all_tasks
-                if t.course_id in urgent_ids and t.item_number
-            }
             retard_count = (
                 sum(1 for row in selected_item_rows if str(row["item_number"]) in urgent_item_numbers)
                 if catalog_item_rows else sum(1 for cid in ids if cid in urgent_ids)
@@ -525,10 +527,13 @@ def render_colleges_cockpit() -> None:
                 if mastery_by_course.get(course.id, (None, None))[1] in ("fragile", "critique")
             )
 
+            selected_item_numbers = {
+                str(row["item_number"]).strip() for row in selected_item_rows
+            }
             college_tasks = [
-                t for t in all_tasks
-                if (t.item_number and any(str(t.item_number).strip() == str(row["item_number"]) for row in selected_item_rows))
-                or t.course_id in course_ids
+                task for task in all_tasks
+                if (task.item_number and str(task.item_number).strip() in selected_item_numbers)
+                or task.course_id in course_ids
             ]
             next_task = min(college_tasks, key=lambda t: t.due_date) if college_tasks else None
 
@@ -549,7 +554,14 @@ def render_colleges_cockpit() -> None:
                 item_key = next((row["item_id"] for row in selected_item_rows if row["course"].id == course.id), course.id)
                 status_by_item[item_key] = status_key
             retention_by_course = {
-                cid: getattr(next((task for task in college_tasks if task.course_id == cid), None), "retention_score", None)
+                cid: next(
+                    (
+                        getattr(task, "retention_score", None)
+                        for task in tasks_by_course.get(str(cid), [])
+                        if getattr(task, "retention_score", None) is not None
+                    ),
+                    None,
+                )
                 for cid in course_ids
             }
 
@@ -598,7 +610,7 @@ def render_colleges_cockpit() -> None:
     def _confirm_college(college: str) -> None:
         knowledge_store.set_college_status(college, "valide")
         ui.notify(f"Collège confirmé : {college}", type="positive")
-        _render()
+        _render(recompute=True)
 
     def _draw_topbar(n_total: int) -> None:
         topbar.clear()
@@ -878,7 +890,7 @@ def render_colleges_cockpit() -> None:
             weak_detail=weak_detail,
         )
         ui.notify(f"✓ Validé : {task.course_title}", type="positive")
-        _render()
+        _render(recompute=True)
 
     def _open_feedback(task, card) -> None:
         from frontend.pages.dashboard._dialogs import open_session_feedback_dialog
@@ -889,7 +901,7 @@ def render_colleges_cockpit() -> None:
             expanded.remove(name)
         else:
             expanded.add(name)
-        _render()
+        _draw_list(_computed_rows or [])
 
     def _draw_list(rows: list[dict]) -> None:
         list_col.clear()
@@ -904,13 +916,19 @@ def render_colleges_cockpit() -> None:
 
     def _toggle(key: str) -> None:
         filt[key] = not filt[key]
-        _render()
+        _draw_topbar(len(_computed_rows or []))
+        _draw_list(_computed_rows or [])
 
-    def _render() -> None:
-        rows = _compute()
+    _computed_rows: list[dict] | None = None
+
+    def _render(*, recompute: bool = False) -> None:
+        nonlocal _computed_rows
+        if recompute or _computed_rows is None:
+            _computed_rows = _compute()
+        rows = _computed_rows
         _draw_topbar(len(rows))
         _draw_pilotage(rows)
         _draw_head()
         _draw_list(rows)
 
-    _render()
+    _render(recompute=True)

@@ -54,6 +54,91 @@ MAX_ITEMS_PER_DAY = 6
 _HIDDEN_STATUSES = {"done", "ignored", "cancelled"}
 
 
+def _due_consolidation_task_for_course(
+    course,
+    context: str,
+    today: datetime.date,
+    sessions_map: dict,
+    postpone_map: dict,
+    qcm_done_set: set,
+    historical_ids: set,
+    gate_map: dict,
+    horizon_days: int = 0,
+) -> Optional[ReviewTask]:
+    """Build one due consolidation task without scanning sibling courses."""
+    from backend.core.reviews.service import review_service
+
+    date_ref = course.date_1ere_lecture if context == "college" else course.date_1ere_lecture_ue
+    mastery = review_service._get_mastery_cached(
+        course,
+        context,
+        sessions_map.get(course.id, []),
+        postpone_map.get(course.id, 0),
+        course.id in qcm_done_set,
+    )
+    if mastery.score is None:
+        return None
+    if (
+        date_ref is not None
+        and course.id not in historical_ids
+        and not local_store.is_j_cycle_complete(course.id, context)
+    ):
+        return None
+
+    due = local_store.get_consolidation_due_date(course.id, context)
+    if due is None:
+        bootstrap_date = _bootstrap_at_date(course, context, date_ref, today)
+        initial = INITIAL_INTERVAL_BY_LEVEL.get(mastery.level, DEFAULT_INITIAL_INTERVAL)
+        local_store.bootstrap_consolidation(
+            course.id, context, course.title, course.item_number or "", initial, bootstrap_date,
+        )
+        due = local_store.get_consolidation_due_date(course.id, context)
+        if due is None:
+            return None
+
+    not_before = gate_map.get(course.id)
+    if not_before and today < not_before:
+        return None
+    effective_due = max(due, not_before) if not_before else due
+    task_id = local_store.make_task_id(course.id, context, "consolidation", effective_due)
+    row = local_store.get_history(task_id)
+    status = row["status"] if row else "todo"
+    if status in _HIDDEN_STATUSES:
+        return None
+    effective = (
+        datetime.date.fromisoformat(row["postponed_to"])
+        if status == "postponed" and row["postponed_to"]
+        else effective_due
+    )
+    if effective > today + datetime.timedelta(days=max(0, horizon_days)):
+        return None
+
+    return ReviewTask(
+        id=task_id,
+        course_id=course.id,
+        course_title=course.title,
+        item_number=course.item_number or None,
+        college=list(course.college),
+        context=context,
+        url_pdf=course.url_pdf,
+        url_pdf_ue=course.url_pdf_ue,
+        agregation_fiche_edn=course.agregation_fiche_edn,
+        theoretical_due_date=effective_due,
+        due_date=effective,
+        review_type="consolidation",
+        status=status,
+        nb_lectures=course.nb_lectures if context == "college" else course.nb_lectures_ue,
+        anki=getattr(course, "anki", False),
+        qcm_done=getattr(course, "qcm_done", False),
+        course_status=getattr(course, "course_status", "À lire"),
+        days_overdue=max((today - effective).days, 0),
+        mastery_score=mastery.score,
+        mastery_level=mastery.level,
+        mastery_reasons=mastery.reasons,
+        semestre=course.semestre,
+    )
+
+
 def _bootstrap_at_date(
     course, context: str, date_ref: Optional[datetime.date], today: datetime.date
 ) -> datetime.date:
@@ -96,84 +181,46 @@ def get_due_consolidation_tasks(
     gate_map = local_store.get_consolidation_not_before_map(context)
 
     for c in data_store.cours:
-        date_ref = c.date_1ere_lecture if context == "college" else c.date_1ere_lecture_ue
-
-        mastery = review_service._get_mastery_cached(
-            c, context, sessions_map.get(c.id, []), postpone_map.get(c.id, 0),
-            (c.id in qcm_done_set),
+        task = _due_consolidation_task_for_course(
+            c, context, today, sessions_map, postpone_map, qcm_done_set,
+            historical_ids, gate_map, horizon_days,
         )
-        if mastery.score is None:
-            continue
-
-        if (
-            date_ref is not None
-            and c.id not in historical_ids
-            and not local_store.is_j_cycle_complete(c.id, context)
-        ):
-            continue  # encore en cours de cycle J3-J30 normal
-
-        due = local_store.get_consolidation_due_date(c.id, context)
-        if due is None:
-            bootstrap_date = _bootstrap_at_date(c, context, date_ref, today)
-            initial = INITIAL_INTERVAL_BY_LEVEL.get(mastery.level, DEFAULT_INITIAL_INTERVAL)
-            local_store.bootstrap_consolidation(
-                c.id, context, c.title, c.item_number or "", initial, bootstrap_date,
-            )
-            due = local_store.get_consolidation_due_date(c.id, context)
-            if due is None:
-                continue
-
-        not_before = gate_map.get(c.id)
-        if not_before and today < not_before:
-            continue
-        effective_due = max(due, not_before) if not_before else due
-
-        task_id = local_store.make_task_id(c.id, context, "consolidation", effective_due)
-        row = local_store.get_history(task_id)
-        status = row["status"] if row else "todo"
-        if status in _HIDDEN_STATUSES:
-            continue
-
-        if status == "postponed" and row["postponed_to"]:
-            effective = datetime.date.fromisoformat(row["postponed_to"])
-        else:
-            effective = effective_due
-
-        if effective > today + datetime.timedelta(days=max(0, horizon_days)):
-            continue
-
-        days_overdue = (today - effective).days
-
-        tasks.append(ReviewTask(
-            id=task_id,
-            course_id=c.id,
-            course_title=c.title,
-            item_number=c.item_number or None,
-            college=list(c.college),
-            context=context,
-            url_pdf=c.url_pdf,
-            url_pdf_ue=c.url_pdf_ue,
-            agregation_fiche_edn=c.agregation_fiche_edn,
-            theoretical_due_date=effective_due,
-            due_date=effective,
-            review_type="consolidation",
-            status=status,
-            nb_lectures=c.nb_lectures if context == "college" else c.nb_lectures_ue,
-            anki=getattr(c, "anki", False),
-            qcm_done=getattr(c, "qcm_done", False),
-            course_status=getattr(c, "course_status", "À lire"),
-            days_overdue=max(days_overdue, 0),
-            mastery_score=mastery.score,
-            mastery_level=mastery.level,
-            mastery_reasons=mastery.reasons,
-            semestre=c.semestre,
-        ))
+        if task is not None:
+            tasks.append(task)
 
     active_tasks = filter_active_review_tasks(
         tasks,
         get_study_resume_date(data_store.preferences),
     )
     return active_tasks
+
+
+def get_due_consolidation_task_for_course(
+    course_id: str,
+    context: str = "college",
+    today: Optional[datetime.date] = None,
+) -> Optional[ReviewTask]:
+    """Return one due consolidation task without generating the daily batch."""
+    from backend.state.store import data_store
+    from backend.core.knowledge.service import get_historically_completed_course_ids
+    from backend.core.reviews.local_store import (
+        get_qcm_done_course_ids, get_sessions_by_course, get_postpone_counts,
+    )
+
+    course = next((candidate for candidate in data_store.cours if candidate.id == course_id), None)
+    if course is None:
+        return None
+    today = today or datetime.date.today()
+    return _due_consolidation_task_for_course(
+        course,
+        context,
+        today,
+        get_sessions_by_course(),
+        get_postpone_counts(),
+        get_qcm_done_course_ids(),
+        get_historically_completed_course_ids(data_store.cours, context),
+        local_store.get_consolidation_not_before_map(context),
+    )
 
 
 def _semestre_num(semestre: Optional[str]) -> Optional[int]:

@@ -358,23 +358,21 @@ def render_item_cockpit(course_id: str, college: str | None = None) -> None:
     level = mastery.level if mastery else None
 
     # Tâche de révision réelle si le moteur en produit une pour ce cours.
-    # Deux sources, comme dans _cockpit_today._fetch : le moteur J3–J30 ET le
-    # planificateur de consolidation. N'interroger que le premier faisait
-    # afficher « non planifiée » sur un item que le dashboard donne en retard.
+    # Le moteur J3–J30 est servi par son cache et filtré sur la fiche ouverte.
+    # La vue détail n'a pas besoin de reconstruire toutes les tâches.
     task = None
     try:
-        pending = review_service.generate_reviews(
-            context="college", history=local_store.get_all_history()
-        )
+        pending = review_service.get_tasks_for_course(course_id, context="college")
     except Exception as exc:
         logger.warning(f"generate_reviews indisponible pour {course_id}: {exc}")
         pending = []
     try:
-        from backend.core.planning.service import planning_service
-        cons, _ = planning_service.plan_consolidation()
-        pending = list(pending) + list(cons)
+        from backend.core.reviews.consolidation import get_due_consolidation_task_for_course
+        consolidation_task = get_due_consolidation_task_for_course(course_id)
+        if consolidation_task is not None:
+            pending = list(pending) + [consolidation_task]
     except Exception as exc:
-        logger.warning(f"plan_consolidation indisponible pour {course_id}: {exc}")
+        logger.warning(f"consolidation indisponible pour {course_id}: {exc}")
 
     cands = [t for t in pending if t.course_id == course_id]
     task = min(cands, key=lambda t: t.due_date) if cands else None

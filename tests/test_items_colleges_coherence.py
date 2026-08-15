@@ -68,3 +68,45 @@ def test_college_progress_has_five_levels_and_manual_validation():
         "Non commencé", "En cours", "Parcouru", "Consolidé", "Validé",
     ]
     assert college_progress_level(40, manually_validated=True) == "Validé"
+
+
+def test_realistic_catalog_invariants_are_consistent_across_both_views(monkeypatch):
+    from backend.state.store import data_store
+    from frontend.pages.colleges_cockpit import build_pilotage_summary
+    from frontend.pages.items import build_item_rows
+
+    courses = [
+        Cours(
+            id="fiche-1a",
+            title="Premier",
+            item_number="1",
+            college=["Cardiologie"],
+            created_time=datetime(2026, 1, 1),
+        ),
+        Cours(
+            id="fiche-2a",
+            title="Deuxième",
+            item_number="2",
+            college=["Cardiologie"],
+            created_time=datetime(2026, 1, 1),
+        ),
+        Cours(
+            id="fiche-2b",
+            title="Deuxième",
+            item_number="2",
+            college=["Pédiatrie"],
+            created_time=datetime(2026, 1, 2),
+        ),
+    ]
+    monkeypatch.setattr(data_store, "cours", courses)
+
+    catalog = FakeCatalog()
+    item_rows = build_item_rows(catalog)
+    college_rows = [
+        {"name": "Cardiologie", "item_ids": {"item:1", "item:2"}, "total": 2},
+        {"name": "Pédiatrie", "item_ids": {"item:2", "item:3"}, "total": 2},
+    ]
+
+    assert len(item_rows) == len({row["item_number"] for row in item_rows})
+    assert build_pilotage_summary(college_rows)["total_items"] == len(item_rows)
+    assert len(item_rows[1]["colleges"]) == 2

@@ -66,6 +66,22 @@ def build_history_by_course(history) -> dict[str, set[str]]:
     return result
 
 
+def build_review_types_by_course(history) -> dict[str, set[str]]:
+    """Index completed review types by course for validation in one pass."""
+    result: dict[str, set[str]] = {}
+    for task_id, row in (history or {}).items():
+        try:
+            course_id = str(row["course_id"])
+            review_type = str(row["review_type"])
+            context = row["context"]
+            status = row["status"]
+        except (KeyError, IndexError, TypeError):
+            continue
+        if context == "college" and status == "done":
+            result.setdefault(course_id, set()).add(review_type)
+    return result
+
+
 def _sessions_across_item_fiches(sessions_map: dict) -> dict:
     """Rassemble les séances de travail des fiches décrivant le même item.
 
@@ -337,6 +353,19 @@ class ReviewService:
         if not tasks:
             return []
         return [min(tasks, key=lambda task: (task.due_date, -task.priority_score, task.id))]
+
+    def get_tasks_for_course(
+        self,
+        course_id: str,
+        context: ReviewContext = "college",
+    ) -> List[ReviewTask]:
+        """Return cached actionable tasks for one fiche, without rescanning UI data."""
+        target = str(course_id).strip()
+        return [
+            task
+            for task in self.generate_reviews(context=context)
+            if str(task.course_id) == target
+        ]
 
     def generate_all_reviews(
         self,

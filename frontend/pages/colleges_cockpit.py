@@ -33,6 +33,7 @@ from backend.core.reviews.local_store import (
 )
 from backend.core.reviews.validation import complete_review
 from backend.core.reviews.service import review_service
+from backend.core.reviews.mastery import get_item_mastery
 from frontend.components.study_task_row import due_info
 from frontend.components.mastery_indicator import _LEVEL_COLOR, _level_from_score
 from frontend.components.learning_metrics import build_advancement
@@ -189,10 +190,16 @@ def _college_item_rows(
     qcm_map = qcm_map or {}
     frequency_map = frequency_map or {}
     task_by_course: dict[str, object] = {}
+    task_by_item: dict[str, object] = {}
     for task in tasks:
         previous = task_by_course.get(task.course_id)
         if previous is None or task.due_date < previous.due_date:
             task_by_course[task.course_id] = task
+        item_number = str(getattr(task, "item_number", "") or "").strip()
+        if item_number:
+            previous_item = task_by_item.get(item_number)
+            if previous_item is None or task.due_date < previous_item.due_date:
+                task_by_item[item_number] = task
 
     def sort_key(course):
         raw = str(getattr(course, "item_number", "") or "")
@@ -203,7 +210,8 @@ def _college_item_rows(
 
     rows = []
     for course in sorted(courses, key=sort_key):
-        task = task_by_course.get(course.id)
+        item_number = str(getattr(course, "item_number", "") or "").strip()
+        task = task_by_course.get(course.id) or task_by_item.get(item_number)
         score, level = mastery_by_course.get(course.id, (None, None))
         semantics = _course_semantics(course, score, level, college_validated)
         item_number = str(getattr(course, "item_number", "") or "").strip().removeprefix("ITEM ")
@@ -279,8 +287,15 @@ def count_started(courses, active_course_ids: set[str]) -> int:
 
 def _pilotage_summary(rows: list[dict]) -> dict:
     """Agrégats légers pour le panneau de pilotage, sans nouvelle requête."""
-    total_courses = sum(r["total"] for r in rows)
-    started = sum(r["started"] for r in rows)
+    catalog_mode = any("item_ids" in row for row in rows)
+    all_item_ids: set[str] = set()
+    started_item_ids: set[str] = set()
+    if catalog_mode:
+        for row in rows:
+            all_item_ids.update(str(item_id) for item_id in row.get("item_ids", set()))
+            started_item_ids.update(str(item_id) for item_id in row.get("started_item_ids", set()))
+    total_courses = len(all_item_ids) if catalog_mode else sum(r["total"] for r in rows)
+    started = len(started_item_ids) if catalog_mode else sum(r["started"] for r in rows)
     status_counts: dict[str, int] = {}
     mastery_values: list[float] = []
     retention_values: list[float] = []
@@ -288,6 +303,13 @@ def _pilotage_summary(rows: list[dict]) -> dict:
     seen_retention_courses: set[str] = set()
     for row in rows:
         row_status_counts = row.get("status_counts", {})
+        if catalog_mode and row.get("status_by_item"):
+            row_status_counts = {
+                status: sum(1 for item_id, item_status in row["status_by_item"].items()
+                            if item_id not in seen_courses and item_status == status)
+                for status in set(row["status_by_item"].values())
+            }
+            seen_courses.update(row["status_by_item"])
         if not row_status_counts and "pct" in row:
             legacy_level = _level_from_score(
                 int(row["pct"] * 100) if row["total"] else None
@@ -387,16 +409,36 @@ def render_colleges_cockpit() -> None:
         urgent_ids = {t.course_id for t in review_service.get_urgent_tasks(all_tasks)}
         qcm_map = get_qcm_last_scores_by_course()
         frequency_map = local_store.get_all_ednpro_item_frequencies()
+        catalog = CatalogRepository()
+        catalog_item_rows = []
+        if catalog.is_populated():
+            from frontend.pages.items import build_item_rows
+            catalog_item_rows = build_item_rows(catalog)
 
         mastery_by_course: dict[str, tuple] = {}
         for t in all_tasks:
             mastery_by_course.setdefault(t.course_id, (t.mastery_score, t.mastery_level))
+        if catalog_item_rows:
+            for item_row in catalog_item_rows:
+                try:
+                    snapshot = get_item_mastery(item_row["item_number"])
+                except LookupError:
+                    continue
+                mastery_by_course[item_row["course"].id] = (snapshot.score, snapshot.level)
 
         rows = []
-        for name in data_store.get_colleges():
-            courses = data_store.get_cours_for_college(name)
-            ids = {c.id for c in courses}
-            total = len(courses)
+        college_names = catalog.list_colleges() if catalog_item_rows else data_store.get_colleges()
+        for name in college_names:
+            selected_item_rows = [row for row in catalog_item_rows if name in row["colleges"]]
+            courses = (
+                [row["course"] for row in selected_item_rows]
+                if catalog_item_rows
+                else data_store.get_cours_for_college(name)
+            )
+            ids = ({row["item_id"] for row in selected_item_rows}
+                   if catalog_item_rows else {c.id for c in courses})
+            total = len(ids)
+            course_ids = {c.id for c in courses}
             validation = assess_college_validation(
                 name,
                 courses,
@@ -413,30 +455,44 @@ def render_colleges_cockpit() -> None:
             )
             pct = (advancement["percent"] / 100) if advancement["percent"] is not None else 0.0
 
-            retard_count = sum(1 for cid in ids if cid in urgent_ids)
+            urgent_item_numbers = {
+                str(t.item_number).strip() for t in all_tasks
+                if t.course_id in urgent_ids and t.item_number
+            }
+            retard_count = (
+                sum(1 for row in selected_item_rows if str(row["item_number"]) in urgent_item_numbers)
+                if catalog_item_rows else sum(1 for cid in ids if cid in urgent_ids)
+            )
             fragile_count = sum(
-                1 for cid in ids
-                if mastery_by_course.get(cid, (None, None))[1] in ("fragile", "critique")
+                1 for course in courses
+                if mastery_by_course.get(course.id, (None, None))[1] in ("fragile", "critique")
             )
 
-            college_tasks = [t for t in all_tasks if t.course_id in ids]
+            college_tasks = [
+                t for t in all_tasks
+                if (t.item_number and any(str(t.item_number).strip() == str(row["item_number"]) for row in selected_item_rows))
+                or t.course_id in course_ids
+            ]
             next_task = min(college_tasks, key=lambda t: t.due_date) if college_tasks else None
 
             qcm_scores = [
-                qcm_map[cid]["last_score"] for cid in ids
+                qcm_map[cid]["last_score"] for cid in course_ids
                 if cid in qcm_map and qcm_map[cid].get("last_score") is not None
             ]
             qcm_avg = round(sum(qcm_scores) / len(qcm_scores)) if qcm_scores else None
 
             no_pdf = any(not getattr(c, "url_pdf", None) for c in courses)
             status_counts: dict[str, int] = {}
+            status_by_item: dict[str, str] = {}
             for course in courses:
                 score, level = mastery_by_course.get(course.id, (None, None))
                 status_key = str(_course_semantics(course, score, level, college_validated)["status_key"])
                 status_counts[status_key] = status_counts.get(status_key, 0) + 1
+                item_key = next((row["item_id"] for row in selected_item_rows if row["course"].id == course.id), course.id)
+                status_by_item[item_key] = status_key
             retention_by_course = {
-                cid: getattr(next((task for task in all_tasks if task.course_id == cid), None), "retention_score", None)
-                for cid in ids
+                cid: getattr(next((task for task in college_tasks if task.course_id == cid), None), "retention_score", None)
+                for cid in course_ids
             }
 
             rows.append({
@@ -452,6 +508,12 @@ def render_colleges_cockpit() -> None:
                 "qcm_map": qcm_map,
                 "frequency_map": frequency_map,
                 "validation": validation,
+                "item_ids": ids if catalog_item_rows else set(),
+                "started_item_ids": {
+                    row["item_id"] for row in selected_item_rows
+                    if row["course"].date_1ere_lecture or any(t.course_id in course_ids for t in college_tasks)
+                } if catalog_item_rows else set(),
+                "status_by_item": status_by_item,
             })
         return rows
 

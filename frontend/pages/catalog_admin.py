@@ -26,9 +26,9 @@ def render_catalog_admin() -> None:
             status = ui.label("Aucune opération en cours.").classes("se-uness-status")
 
         with ui.tabs().classes("w-full") as tabs:
-            ui.tab("Import / récupération", name="import")
-            ui.tab("Overrides", name="overrides")
-            ui.tab("Journal", name="audit")
+            ui.tab("import", label="Import / récupération")
+            ui.tab("overrides", label="Overrides")
+            ui.tab("audit", label="Journal")
         with ui.tab_panels(tabs, value="import").classes("w-full"):
             with ui.tab_panel("import"):
                 with ui.row().classes("items-center gap-2"):

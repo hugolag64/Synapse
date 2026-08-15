@@ -31,3 +31,11 @@ def test_apply_then_rollback_restores_catalog(tmp_path):
     assert service.repository.count_items() == 0
     assert service.repository.count_fiches() == 0
     assert service.repository.count_archived_courses() == 0
+
+
+def test_official_colleges_without_a_notion_alias_are_kept_locally(tmp_path):
+    service = CatalogImportService(db_path=tmp_path / "synapse.sqlite")
+    preview = service.preview(Path("data_cache.json"))
+    service.apply(Path("data_cache.json"), preview.id)
+
+    assert service.repository.list_colleges_for_item("item:8") == ["Humanités"]

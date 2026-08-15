@@ -140,8 +140,15 @@ class CatalogImportService:
             )
             for official in item.get("ecriture") or []:
                 acronym = str(official.get("acronym") or "")
-                college_name = college_mapping.get(acronym)
+                college_name = college_mapping.get(acronym) or str(official.get("name") or "").strip()
                 if college_name:
+                    # Keep official colleges even when the legacy Notion
+                    # consolidation has no local alias yet (e.g. Humanités).
+                    self.repository.upsert_college(
+                        college_id=f"college:official:{acronym or college_name}",
+                        name=college_name,
+                        source="official_referential",
+                    )
                     self.repository.add_official_college(
                         item_id=item_id,
                         college_name=college_name,

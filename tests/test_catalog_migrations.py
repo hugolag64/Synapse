@@ -21,6 +21,7 @@ def test_catalog_migration_creates_versioned_item_and_fiche_tables(tmp_path):
         "catalog_colleges",
         "catalog_fiches",
         "catalog_fiche_colleges",
+        "catalog_archived_courses",
     } <= names
 
 

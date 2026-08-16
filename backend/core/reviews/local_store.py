@@ -651,6 +651,7 @@ def init_db() -> None:
     _migrate_uness_correction_failures()
     _migrate_notion_sync_queue()
     _migrate_uness_scanned_catalog()
+    _migrate_uness_rank_jobs()
     _migrate_flash_zero_ai_questions()
     from backend.state.catalog_migrations import run_catalog_migrations
     run_catalog_migrations(DB_PATH)
@@ -2462,6 +2463,464 @@ def _migrate_uness_scanned_catalog() -> None:
         con.execute(
             "CREATE INDEX IF NOT EXISTS idx_uness_scanned_faculte ON uness_scanned_catalog(faculte)"
         )
+
+
+def _migrate_uness_rank_jobs() -> None:
+    """Persistent, question-level queue for missing UNESS rank metadata."""
+    with _conn() as con:
+        con.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS uness_rank_inference_jobs (
+                id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                question_id         INTEGER NOT NULL UNIQUE
+                                    REFERENCES ai_practice_questions(id) ON DELETE CASCADE,
+                session_id          INTEGER NOT NULL
+                                    REFERENCES ai_practice_sessions(id) ON DELETE CASCADE,
+                annale_id           INTEGER NOT NULL
+                                    REFERENCES uness_annales(id) ON DELETE CASCADE,
+                question_external_id TEXT NOT NULL DEFAULT '',
+                item_number         TEXT NOT NULL DEFAULT '',
+                status              TEXT NOT NULL DEFAULT 'pending',
+                attempts            INTEGER NOT NULL DEFAULT 0,
+                next_retry_at       TEXT NOT NULL,
+                locked_at           TEXT,
+                worker_id           TEXT,
+                gemini_rank         TEXT NOT NULL DEFAULT '',
+                gemini_confidence   REAL,
+                gemini_ambiguous    INTEGER NOT NULL DEFAULT 0,
+                gemini_oic_codes_json TEXT NOT NULL DEFAULT '[]',
+                gemini_rationale    TEXT NOT NULL DEFAULT '',
+                gemini_raw_response TEXT NOT NULL DEFAULT '',
+                admin_rank          TEXT NOT NULL DEFAULT '',
+                admin_reason        TEXT NOT NULL DEFAULT '',
+                decided_by          TEXT NOT NULL DEFAULT '',
+                last_error          TEXT NOT NULL DEFAULT '',
+                created_at          TEXT NOT NULL,
+                updated_at          TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_uness_rank_jobs_status
+                ON uness_rank_inference_jobs(status, next_retry_at);
+            CREATE INDEX IF NOT EXISTS idx_uness_rank_jobs_item
+                ON uness_rank_inference_jobs(item_number, status);
+            CREATE TABLE IF NOT EXISTS uness_rank_inference_events (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                job_id      INTEGER NOT NULL
+                            REFERENCES uness_rank_inference_jobs(id) ON DELETE CASCADE,
+                from_status TEXT,
+                status      TEXT NOT NULL,
+                payload_json TEXT NOT NULL DEFAULT '{}',
+                created_at  TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_uness_rank_events_job
+                ON uness_rank_inference_events(job_id, id);
+            """
+        )
+
+
+_UNESS_RANK_RETRY_DELAYS_SECONDS = (30, 120, 600)
+_UNESS_RANK_STATUSES = {
+    "pending", "running", "retry_wait", "needs_oic", "needs_admin",
+    "approved", "rejected", "failed",
+}
+
+
+def _rank_job_event(
+    con,
+    *,
+    job_id: int,
+    from_status: str | None,
+    status: str,
+    payload: dict | None = None,
+) -> None:
+    con.execute(
+        """INSERT INTO uness_rank_inference_events
+           (job_id, from_status, status, payload_json, created_at)
+           VALUES (?, ?, ?, ?, ?)""",
+        (
+            int(job_id),
+            from_status,
+            status,
+            json.dumps(payload or {}, ensure_ascii=False),
+            _now(),
+        ),
+    )
+
+
+def _rank_job_question_payload(con, question_id: int) -> tuple[dict, dict]:
+    row = con.execute(
+        "SELECT import_metadata_json, prompt, answer, explanation FROM ai_practice_questions WHERE id = ?",
+        (int(question_id),),
+    ).fetchone()
+    if row is None:
+        raise ValueError("Question de rang introuvable")
+    try:
+        metadata = json.loads(row["import_metadata_json"] or "{}")
+    except (TypeError, json.JSONDecodeError):
+        metadata = {}
+    if not isinstance(metadata, dict):
+        metadata = {}
+    return metadata, dict(row)
+
+
+def _apply_rank_metadata(
+    con,
+    *,
+    question_id: int,
+    rank: str,
+    source: str,
+    confidence: float | None,
+    evidence: list[str] | tuple[str, ...],
+    rationale: str,
+    alternatives: list[dict] | tuple[dict, ...] = (),
+) -> dict:
+    normalized_rank = str(rank or "").strip().upper()
+    if normalized_rank not in {"A", "B"}:
+        raise ValueError("Le rang doit être A ou B")
+    metadata, question_row = _rank_job_question_payload(con, question_id)
+    uness = metadata.setdefault("uness", {})
+    question = uness.setdefault("question", {})
+    previous = {
+        "rank": question.get("rank", ""),
+        "rank_source": question.get("rank_source", "unknown"),
+        "rank_confidence": question.get("rank_confidence"),
+        "rank_evidence": list(question.get("rank_evidence") or []),
+        "rank_rationale": question.get("rank_rationale", ""),
+        "rank_status": question.get("rank_status", "unknown"),
+        "rank_alternatives": list(question.get("rank_alternatives") or []),
+    }
+    if previous["rank"] in {"A", "B"} and previous["rank_source"] == "official":
+        raise ValueError("Un rang officiel ne peut pas être écrasé")
+    question.update(
+        {
+            "rank": normalized_rank,
+            "rank_source": str(source or "unknown"),
+            "rank_confidence": confidence,
+            "rank_evidence": [str(item).strip() for item in evidence if str(item).strip()],
+            "rank_rationale": str(rationale or "").strip()[:500],
+            "rank_status": "resolved",
+            "rank_alternatives": list(alternatives),
+        }
+    )
+    con.execute(
+        "UPDATE ai_practice_questions SET import_metadata_json = ? WHERE id = ?",
+        (json.dumps(metadata, ensure_ascii=False), int(question_id)),
+    )
+    return {"previous": previous, "current": dict(question)}
+
+
+def scan_uness_rank_jobs() -> list[dict]:
+    """Create one pending job for each imported UNESS question lacking a rank."""
+    now = _now()
+    created_ids: list[int] = []
+    with _conn() as con:
+        rows = con.execute(
+            """SELECT q.id AS question_id, s.id AS session_id, s.annale_id,
+                      q.import_metadata_json, q.item_number, q.created_at,
+                      COALESCE((SELECT qi.item_number
+                                FROM ai_practice_question_items qi
+                                WHERE qi.question_id = q.id
+                                ORDER BY qi.item_number LIMIT 1), q.item_number) AS resolved_item
+               FROM ai_practice_questions q
+               JOIN ai_practice_session_questions sq ON sq.question_id = q.id
+               JOIN ai_practice_sessions s ON s.id = sq.session_id
+               WHERE s.annale_id IS NOT NULL"""
+        ).fetchall()
+        for row in rows:
+            try:
+                metadata = json.loads(row["import_metadata_json"] or "{}")
+            except (TypeError, json.JSONDecodeError):
+                metadata = {}
+            uness = metadata.get("uness") if isinstance(metadata, dict) else {}
+            question = uness.get("question") if isinstance(uness, dict) else {}
+            question = question if isinstance(question, dict) else {}
+            rank = str(question.get("rank") or "").strip().upper()
+            if rank in {"A", "B"}:
+                continue
+            question_external_id = str(question.get("id") or row["question_id"]).strip()
+            item_number = str(
+                row["resolved_item"]
+                or next(iter(question.get("item_numbers") or ()), "")
+            ).strip().removeprefix("ITEM ")
+            if not item_number:
+                continue
+            cur = con.execute(
+                """INSERT OR IGNORE INTO uness_rank_inference_jobs
+                   (question_id, session_id, annale_id, question_external_id,
+                    item_number, next_retry_at, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    int(row["question_id"]), int(row["session_id"]), int(row["annale_id"]),
+                    question_external_id, item_number, now, now, now,
+                ),
+            )
+            if cur.rowcount:
+                job_id = int(cur.lastrowid)
+                created_ids.append(job_id)
+                _rank_job_event(con, job_id=job_id, from_status=None, status="pending")
+        if not created_ids:
+            return []
+    return [job for job in list_uness_rank_jobs(limit=len(created_ids)) if job["id"] in created_ids]
+
+
+def list_uness_rank_jobs(
+    *, status: str = "", item_number: str = "", limit: int = 100, offset: int = 0
+) -> list[dict]:
+    clauses = []
+    params: list = []
+    if status.strip():
+        if status not in _UNESS_RANK_STATUSES:
+            raise ValueError("Statut de job de rang inconnu")
+        clauses.append("j.status = ?")
+        params.append(status.strip())
+    if item_number.strip():
+        clauses.append("j.item_number = ?")
+        params.append(item_number.strip().removeprefix("ITEM "))
+    where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    params.extend((max(1, int(limit)), max(0, int(offset))))
+    with _conn() as con:
+        rows = con.execute(
+            f"""SELECT j.*, q.prompt, q.choices_json, q.import_metadata_json,
+                       a.titre AS annale_title
+                FROM uness_rank_inference_jobs j
+                JOIN ai_practice_questions q ON q.id = j.question_id
+                LEFT JOIN uness_annales a ON a.id = j.annale_id
+                {where}
+                ORDER BY CASE j.status WHEN 'pending' THEN 0 WHEN 'needs_admin' THEN 1
+                         WHEN 'needs_oic' THEN 2 ELSE 3 END, j.updated_at ASC, j.id ASC
+                LIMIT ? OFFSET ?""",
+            params,
+        ).fetchall()
+    result = []
+    for row in rows:
+        value = dict(row)
+        try:
+            value["choices"] = json.loads(value.pop("choices_json") or "[]")
+        except (TypeError, json.JSONDecodeError):
+            value["choices"] = []
+        try:
+            value["import_metadata"] = json.loads(value.pop("import_metadata_json") or "{}")
+        except (TypeError, json.JSONDecodeError):
+            value["import_metadata"] = {}
+        try:
+            value["gemini_oic_codes"] = json.loads(value.pop("gemini_oic_codes_json") or "[]")
+        except (TypeError, json.JSONDecodeError):
+            value["gemini_oic_codes"] = []
+        result.append(value)
+    return result
+
+
+def get_uness_rank_job(job_id: int) -> dict | None:
+    with _conn() as con:
+        row = con.execute("SELECT id FROM uness_rank_inference_jobs WHERE id = ?", (int(job_id),)).fetchone()
+    if row is None:
+        return None
+    for job in list_uness_rank_jobs(limit=100000):
+        if int(job["id"]) == int(job_id):
+            return job
+    return None
+
+
+def claim_uness_rank_jobs(*, limit: int = 10, worker_id: str = "rank-worker", lease_seconds: int = 900) -> list[dict]:
+    now = _now()
+    expired = (datetime.datetime.now().astimezone() - datetime.timedelta(seconds=max(1, lease_seconds))).isoformat(timespec="seconds")
+    claimed_ids: list[int] = []
+    with _conn() as con:
+        rows = con.execute(
+            """SELECT * FROM uness_rank_inference_jobs
+               WHERE status IN ('pending', 'retry_wait', 'running')
+                 AND next_retry_at <= ?
+                 AND (locked_at IS NULL OR locked_at <= ?)
+               ORDER BY updated_at ASC, id ASC LIMIT ?""",
+            (now, expired, max(1, int(limit))),
+        ).fetchall()
+        for row in rows:
+            con.execute(
+                """UPDATE uness_rank_inference_jobs
+                   SET status = 'running', attempts = attempts + 1,
+                       locked_at = ?, worker_id = ?, updated_at = ?
+                   WHERE id = ?""",
+                (now, worker_id, now, int(row["id"])),
+            )
+            _rank_job_event(con, job_id=int(row["id"]), from_status=row["status"], status="running")
+            claimed_ids.append(int(row["id"]))
+    return [job for job in list_uness_rank_jobs(limit=len(claimed_ids) or 1) if job["id"] in claimed_ids]
+
+
+def record_uness_rank_result(
+    job_id: int,
+    *,
+    rank: str = "",
+    confidence: float | None = None,
+    ambiguous: bool = False,
+    oic_codes: list[str] | tuple[str, ...] = (),
+    rationale: str = "",
+    raw_response: str = "",
+    status: str = "needs_admin",
+) -> dict:
+    if status not in {"needs_admin", "approved"}:
+        raise ValueError("Statut de résultat de rang invalide")
+    with _conn() as con:
+        row = con.execute("SELECT * FROM uness_rank_inference_jobs WHERE id = ?", (int(job_id),)).fetchone()
+        if row is None:
+            raise ValueError("Job de rang introuvable")
+        now = _now()
+        con.execute(
+            """UPDATE uness_rank_inference_jobs
+               SET status = ?, locked_at = NULL, worker_id = NULL,
+                   gemini_rank = ?, gemini_confidence = ?, gemini_ambiguous = ?,
+                   gemini_oic_codes_json = ?, gemini_rationale = ?,
+                   gemini_raw_response = ?, last_error = '', updated_at = ?
+               WHERE id = ?""",
+            (
+                status, str(rank or "").strip().upper(), confidence, int(bool(ambiguous)),
+                json.dumps(list(oic_codes), ensure_ascii=False), str(rationale or "").strip()[:500],
+                str(raw_response or "")[:20000], now, int(job_id),
+            ),
+        )
+        _rank_job_event(
+            con, job_id=int(job_id), from_status=row["status"], status=status,
+            payload={"rank": rank, "confidence": confidence, "ambiguous": bool(ambiguous)},
+        )
+    return get_uness_rank_job(job_id)
+
+
+def mark_uness_rank_job_needs_oic(job_id: int, *, reason: str = "OIC indisponibles") -> dict:
+    with _conn() as con:
+        row = con.execute("SELECT status FROM uness_rank_inference_jobs WHERE id = ?", (int(job_id),)).fetchone()
+        if row is None:
+            raise ValueError("Job de rang introuvable")
+        now = _now()
+        con.execute(
+            """UPDATE uness_rank_inference_jobs
+               SET status = 'needs_oic', locked_at = NULL, worker_id = NULL,
+                   last_error = ?, updated_at = ? WHERE id = ?""",
+            (str(reason or "OIC indisponibles")[:500], now, int(job_id)),
+        )
+        _rank_job_event(con, job_id=int(job_id), from_status=row["status"], status="needs_oic", payload={"reason": reason})
+    return get_uness_rank_job(job_id)
+
+
+def record_uness_rank_failure(job_id: int, *, error: str) -> dict:
+    with _conn() as con:
+        row = con.execute("SELECT status, attempts FROM uness_rank_inference_jobs WHERE id = ?", (int(job_id),)).fetchone()
+        if row is None:
+            raise ValueError("Job de rang introuvable")
+        attempts = int(row["attempts"])
+        exhausted = attempts >= len(_UNESS_RANK_RETRY_DELAYS_SECONDS)
+        status = "failed" if exhausted else "retry_wait"
+        delay = _UNESS_RANK_RETRY_DELAYS_SECONDS[min(max(attempts - 1, 0), len(_UNESS_RANK_RETRY_DELAYS_SECONDS) - 1)]
+        next_retry = (datetime.datetime.now().astimezone() + datetime.timedelta(seconds=delay)).isoformat(timespec="seconds")
+        now = _now()
+        con.execute(
+            """UPDATE uness_rank_inference_jobs
+               SET status = ?, next_retry_at = ?, locked_at = NULL, worker_id = NULL,
+                   last_error = ?, updated_at = ? WHERE id = ?""",
+            (status, next_retry, str(error or "Erreur Gemini")[:500], now, int(job_id)),
+        )
+        _rank_job_event(con, job_id=int(job_id), from_status=row["status"], status=status, payload={"error": str(error or "")[:500]})
+    return get_uness_rank_job(job_id)
+
+
+def accept_uness_rank_job(job_id: int) -> dict:
+    with _conn() as con:
+        row = con.execute("SELECT * FROM uness_rank_inference_jobs WHERE id = ?", (int(job_id),)).fetchone()
+        if row is None:
+            raise ValueError("Job de rang introuvable")
+        if str(row["gemini_rank"] or "").upper() not in {"A", "B"}:
+            raise ValueError("Aucune inférence Gemini acceptée")
+        if row["gemini_ambiguous"] or row["gemini_confidence"] is None or float(row["gemini_confidence"]) < 0.85:
+            raise ValueError("L'inférence Gemini est incertaine")
+        metadata_change = _apply_rank_metadata(
+            con,
+            question_id=row["question_id"],
+            rank=row["gemini_rank"],
+            source="gemini",
+            confidence=row["gemini_confidence"],
+            evidence=json.loads(row["gemini_oic_codes_json"] or "[]"),
+            rationale=row["gemini_rationale"],
+        )
+        now = _now()
+        con.execute(
+            "UPDATE uness_rank_inference_jobs SET status = 'approved', locked_at = NULL, worker_id = NULL, updated_at = ? WHERE id = ?",
+            (now, int(job_id)),
+        )
+        _rank_job_event(con, job_id=int(job_id), from_status=row["status"], status="approved", payload=metadata_change)
+    return get_uness_rank_job(job_id)
+
+
+def decide_uness_rank_job(job_id: int, *, rank: str, reason: str, decided_by: str = "admin") -> dict:
+    normalized = str(rank or "").strip().upper()
+    if normalized not in {"A", "B"}:
+        raise ValueError("Le rang manuel doit être A ou B")
+    if not str(reason or "").strip():
+        raise ValueError("Une raison admin est obligatoire")
+    with _conn() as con:
+        row = con.execute("SELECT * FROM uness_rank_inference_jobs WHERE id = ?", (int(job_id),)).fetchone()
+        if row is None:
+            raise ValueError("Job de rang introuvable")
+        metadata_change = _apply_rank_metadata(
+            con,
+            question_id=row["question_id"],
+            rank=normalized,
+            source="admin",
+            confidence=1.0,
+            evidence=json.loads(row["gemini_oic_codes_json"] or "[]"),
+            rationale=str(reason).strip(),
+            alternatives=(
+                [{"rank": row["gemini_rank"], "source": "gemini", "confidence": row["gemini_confidence"]}]
+                if row["gemini_rank"] in {"A", "B"} and row["gemini_rank"] != normalized else []
+            ),
+        )
+        now = _now()
+        con.execute(
+            """UPDATE uness_rank_inference_jobs
+               SET status = 'approved', admin_rank = ?, admin_reason = ?, decided_by = ?,
+                   locked_at = NULL, worker_id = NULL, updated_at = ? WHERE id = ?""",
+            (normalized, str(reason).strip()[:500], str(decided_by or "admin")[:100], now, int(job_id)),
+        )
+        _rank_job_event(con, job_id=int(job_id), from_status=row["status"], status="approved", payload=metadata_change)
+    return get_uness_rank_job(job_id)
+
+
+def reject_uness_rank_job(job_id: int, *, reason: str = "") -> dict:
+    with _conn() as con:
+        row = con.execute("SELECT status FROM uness_rank_inference_jobs WHERE id = ?", (int(job_id),)).fetchone()
+        if row is None:
+            raise ValueError("Job de rang introuvable")
+        now = _now()
+        con.execute(
+            "UPDATE uness_rank_inference_jobs SET status = 'rejected', locked_at = NULL, worker_id = NULL, last_error = ?, updated_at = ? WHERE id = ?",
+            (str(reason or "").strip()[:500], now, int(job_id)),
+        )
+        _rank_job_event(con, job_id=int(job_id), from_status=row["status"], status="rejected", payload={"reason": reason})
+    return get_uness_rank_job(job_id)
+
+
+def retry_uness_rank_job(job_id: int) -> dict:
+    with _conn() as con:
+        row = con.execute("SELECT status FROM uness_rank_inference_jobs WHERE id = ?", (int(job_id),)).fetchone()
+        if row is None:
+            raise ValueError("Job de rang introuvable")
+        now = _now()
+        con.execute(
+            """UPDATE uness_rank_inference_jobs
+               SET status = 'pending', attempts = 0, next_retry_at = ?, locked_at = NULL,
+                   worker_id = NULL, last_error = '', updated_at = ? WHERE id = ?""",
+            (now, now, int(job_id)),
+        )
+        _rank_job_event(con, job_id=int(job_id), from_status=row["status"], status="pending", payload={"manual_retry": True})
+    return get_uness_rank_job(job_id)
+
+
+def list_uness_rank_events(job_id: int) -> list[dict]:
+    with _conn() as con:
+        return [
+            dict(row)
+            for row in con.execute(
+                "SELECT * FROM uness_rank_inference_events WHERE job_id = ? ORDER BY id",
+                (int(job_id),),
+            ).fetchall()
+        ]
 
 
 def upsert_scanned_catalog_annale(

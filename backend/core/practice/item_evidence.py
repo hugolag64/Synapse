@@ -11,7 +11,8 @@ def get_session_item_evidence(session_id: int) -> dict[str, dict]:
     """Aggregate the latest scored attempts by explicit question-item links."""
     with local_store._conn() as con:
         rows = con.execute(
-            """SELECT qi.item_number, qi.confidence, sq.question_id, attempt.score_percent
+            """SELECT qi.item_number, qi.confidence, sq.question_id, attempt.score_percent,
+                      COUNT(*) OVER (PARTITION BY qi.question_id) AS link_count
                FROM ai_practice_session_questions sq
                JOIN ai_practice_question_items qi
                  ON qi.question_id = sq.question_id
@@ -39,19 +40,23 @@ def get_session_item_evidence(session_id: int) -> dict[str, dict]:
             confidence = max(0.0, float(row["confidence"] or 0.0))
         except (TypeError, ValueError):
             confidence = 1.0
-        scores[item_number].append((float(row["score_percent"]), confidence))
+        try:
+            link_count = max(1, int(row["link_count"] or 1))
+        except (TypeError, ValueError):
+            link_count = 1
+        scores[item_number].append((float(row["score_percent"]), confidence / link_count))
         question_ids[item_number].append(int(row["question_id"]))
 
     return {
         item_number: {
             "score_percent": round(
                 sum(score * confidence for score, confidence in values)
-                / max(sum(confidence for _, confidence in values), 1.0),
+                / max(sum(confidence for _, confidence in values), 1e-9),
                 2,
             ),
-            "total_questions": len(values),
-            "correct_answers": sum(score == 100.0 for score, _ in values),
-            "wrong_answers": sum(score < 100.0 for score, _ in values),
+            "total_questions": round(sum(confidence for _, confidence in values), 2),
+            "correct_answers": round(sum(confidence for score, confidence in values if score == 100.0), 2),
+            "wrong_answers": round(sum(confidence for score, confidence in values if score < 100.0), 2),
             "question_ids": question_ids[item_number],
         }
         for item_number, values in scores.items()

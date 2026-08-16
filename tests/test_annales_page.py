@@ -163,7 +163,7 @@ def test_annales_rows_stretch_to_the_catalog_width() -> None:
     assert ".ans-list { display:flex; flex-direction:column; gap:0; width:100%; align-items:stretch; }" in source
 
 
-def test_displayable_annales_excludes_empty_group_rows():
+def test_displayable_annales_keeps_empty_groups_for_recovery():
     from frontend.pages.annales import _displayable_annales
 
     rows = [
@@ -171,7 +171,7 @@ def test_displayable_annales_excludes_empty_group_rows():
         {"id": 2, "titre": "Épreuve importée", "total_parts": 8},
     ]
 
-    assert [row["id"] for row in _displayable_annales(rows)] == [2]
+    assert [row["id"] for row in _displayable_annales(rows)] == [1, 2]
 
 
 def test_annales_are_grouped_into_edn_and_subject_families():

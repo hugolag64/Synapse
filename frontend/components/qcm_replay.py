@@ -93,7 +93,9 @@ def build_question_result(question: dict, latest_attempt: dict | None) -> dict:
     if not is_open and raw_response.lstrip().startswith("["):
         response = ", ".join(deserialize_closed_response(raw_response, choices))
     explicit_status = None if latest_attempt is None else latest_attempt.get("is_correct")
-    if latest_attempt is None or not _has_response(raw_response):
+    if latest_attempt is not None and str(latest_attempt.get("score_mode") or "") == "not_noted":
+        status = "not_noted"
+    elif latest_attempt is None or not _has_response(raw_response):
         status = "unanswered"
     elif explicit_status is not None:
         status = "correct" if bool(explicit_status) else "incorrect"

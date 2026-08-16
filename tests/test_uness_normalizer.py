@@ -128,6 +128,20 @@ def test_extract_review_content_sets_unknown_official_answer_when_no_correction_
     assert questions[0].propositions[0].reponse_uness is None
 
 
+def test_extract_review_content_preserves_explicit_question_rank():
+    questions = extract_review_content(
+        """
+        <article class='review-question' data-question-id='q-ranked' data-question-type='QRU' data-rank='A'>
+          <p class='question-text'>Question classée</p>
+          <ul class='answers'><li class='answer correct'><span class='answer-label'>A.</span><span class='answer-text'>Proposition</span></li></ul>
+        </article>
+        """
+    )
+
+    assert questions[0].rank == "A"
+    assert questions[0].rank_source == "official"
+
+
 def test_normalize_artifact_rejects_a_metadata_url_that_does_not_match_the_capture() -> None:
     """Catches an artifact being attributed to a different user-confirmed source URL."""
     artifact = RawUnessArtifact(

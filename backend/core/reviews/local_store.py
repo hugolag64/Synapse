@@ -2990,7 +2990,10 @@ def finalize_ai_practice_session(session_id: int) -> dict | None:
                  SELECT question_id, MAX(id) AS max_id
                  FROM ai_practice_attempts
                  WHERE session_id = ?
-                   AND TRIM(COALESCE(response, '')) NOT IN ('', '[]')
+                   AND (
+                       TRIM(COALESCE(response, '')) NOT IN ('', '[]')
+                       OR score_mode = 'timed_out'
+                   )
                  GROUP BY question_id
                ) latest ON latest.max_id = a.id
                WHERE a.session_id = ?""",
@@ -3008,17 +3011,23 @@ def finalize_ai_practice_session(session_id: int) -> dict | None:
             if question["question_id"] not in latest_by_question
             or latest_by_question[question["question_id"]]["score_percent"] is None
         ]
-        scored = [row["score_percent"] for row in latest if row["score_percent"] is not None]
+        scored = [
+            row["score_percent"]
+            for row in latest
+            if row["score_percent"] is not None and str(row["score_mode"] or "") != "not_noted"
+        ]
         state = str(session["completion_state"] or "draft")
         if missing_positions or state in {"scored", "recorded"}:
             updated = session
         else:
-            score = round(sum(scored) / len(scored), 2)
+            score = round(sum(scored) / len(scored), 2) if scored else None
             attempt_modes = {str(row["score_mode"] or "") for row in latest}
-            score_mode = "edn" if attempt_modes == {"edn"} else "training"
+            score_mode = "not_noted" if not scored else ("edn" if attempt_modes <= {"edn", "not_noted"} else "training")
             score_reason = next(
                 (str(row["score_reason"] or "") for row in latest if row["score_reason"]),
-                "" if score_mode == "edn" else "Score d'entraînement non calibré EDN.",
+                "Correction officielle insuffisante."
+                if score_mode == "not_noted"
+                else ("" if score_mode == "edn" else "Score d'entraînement non calibré EDN."),
             )
             con.execute(
                 """UPDATE ai_practice_sessions

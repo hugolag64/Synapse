@@ -53,6 +53,72 @@ def test_tcs_question_type_is_valid() -> None:
     assert exam.questions[0].type_question == "TCS"
 
 
+def test_unknown_source_type_is_preserved_as_non_scoring_canonical_type() -> None:
+    exam = UnessExam.from_dict(
+        _valid_exam_payload(
+            questions=[{"id": "q-unknown", "type_question": "QCM_SPECIAL", "enonce": "Question"}]
+        )
+    )
+
+    question = exam.questions[0]
+    assert question.type_question == "UNKNOWN"
+    assert question.type_question_raw == "QCM_SPECIAL"
+    assert question.to_dict()["type_question_raw"] == "QCM_SPECIAL"
+
+
+def test_source_rank_is_trusted_and_marked_official() -> None:
+    exam = UnessExam.from_dict(
+        _valid_exam_payload(
+            questions=[{"id": "q-ranked", "type_question": "QRU", "rang": "A", "enonce": "Question"}]
+        )
+    )
+
+    assert exam.questions[0].rank == "A"
+    assert exam.questions[0].rank_source == "official"
+
+
+def test_qroc_official_answer_bands_are_preserved() -> None:
+    exam = UnessExam.from_dict(
+        _valid_exam_payload(
+            questions=[
+                {
+                    "id": "q-qroc",
+                    "type_question": "QROC",
+                    "enonce": "Quel diagnostic ?",
+                    "qroc_exact_answers": ["Diagnostic exact"],
+                    "qroc_acceptable_answers": ["Formulation acceptable"],
+                }
+            ]
+        )
+    )
+
+    question = exam.questions[0]
+    assert question.qroc_exact_answers == ("Diagnostic exact",)
+    assert question.qroc_acceptable_answers == ("Formulation acceptable",)
+
+
+def test_qrp_official_constraints_are_preserved() -> None:
+    exam = UnessExam.from_dict(
+        _valid_exam_payload(
+            questions=[
+                {
+                    "id": "q-qrp",
+                    "type_question": "QRP",
+                    "enonce": "Quelles réponses ?",
+                    "indispensable_choices": ["A"],
+                    "inacceptable_choices": ["B"],
+                    "expected_choice_count": 3,
+                }
+            ]
+        )
+    )
+
+    question = exam.questions[0]
+    assert question.indispensable_choices == ("A",)
+    assert question.inacceptable_choices == ("B",)
+    assert question.expected_choice_count == 3
+
+
 def test_exam_round_trip_preserves_uness_correction_ai_verdict_and_visual_context(tmp_path) -> None:
     """Catches a serializer that drops metadata or conflates official and IA answers."""
     payload = {
@@ -115,8 +181,11 @@ def test_exam_round_trip_preserves_uness_correction_ai_verdict_and_visual_contex
     assert load_exam(target).to_dict() == persisted
 
 
-@pytest.mark.parametrize("type_question", ["QRM", "QRU", "QRP/L", "DP", "KFP", "QROC"])
-def test_exam_accepts_every_supported_question_type(type_question: str) -> None:
+@pytest.mark.parametrize(
+    ("type_question", "expected_type"),
+    [("QRM", "QRM"), ("QRU", "QRU"), ("QRP/L", "QRP_LONG"), ("DP", "DP"), ("KFP", "KFP"), ("QROC", "QROC")],
+)
+def test_exam_accepts_every_supported_question_type(type_question: str, expected_type: str) -> None:
     """Catches validation that rejects one of the supported UNESS question kinds."""
     exam = UnessExam.from_dict(
         _valid_exam_payload(
@@ -124,10 +193,11 @@ def test_exam_accepts_every_supported_question_type(type_question: str) -> None:
         )
     )
 
-    assert exam.questions[0].type_question == type_question
+    assert exam.questions[0].type_question == expected_type
+    assert exam.questions[0].type_question_raw == type_question
 
 
-def test_exam_rejects_unknown_status_and_question_type() -> None:
+def test_exam_rejects_unknown_status_but_preserves_unknown_question_type() -> None:
     """Catches imports that silently accept values downstream consumers cannot interpret."""
     with pytest.raises(ValueError, match="statut"):
         UnessExam.from_dict(
@@ -143,12 +213,12 @@ def test_exam_rejects_unknown_status_and_question_type() -> None:
             )
         )
 
-    with pytest.raises(ValueError, match="type_question"):
-        UnessExam.from_dict(
-            _valid_exam_payload(
-                questions=[{"id": "q1", "type_question": "QCM", "enonce": "Question"}]
-            )
+    exam = UnessExam.from_dict(
+        _valid_exam_payload(
+            questions=[{"id": "q1", "type_question": "QCM", "enonce": "Question"}]
         )
+    )
+    assert exam.questions[0].type_question == "UNKNOWN"
 
 
 @pytest.mark.parametrize(

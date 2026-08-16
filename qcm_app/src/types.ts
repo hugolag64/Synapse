@@ -23,8 +23,13 @@ export type UnessQuestionMetadata = {
   question?: {
     id?: string
     type_question?: string
+    type_question_raw?: string
+    rank?: 'A' | 'B' | ''
+    rank_source?: 'ednpro' | 'official' | 'gemini' | 'admin' | 'unknown' | string
+    rank_confidence?: number | null
+    rank_evidence?: string[]
     support_visuel_seul?: boolean
-    verification_status?: 'unverified' | 'verified' | 'unsupported' | string
+    verification_status?: 'unverified' | 'verified' | 'unsupported' | 'pending_visual_review' | string
     dp_context?: Record<string, unknown>
     images?: UnessImage[]
   }
@@ -79,6 +84,7 @@ export type Session = {
   completed_at?: string | null
   score_mode?: string
   score_reason?: string
+  duration_seconds?: number | null
 }
 
 export type SessionPayload = {
@@ -89,7 +95,7 @@ export type SessionPayload = {
 
 export type CorrectionRow = {
   position: number
-  status: 'correct' | 'incorrect' | 'unanswered' | null
+  status: 'correct' | 'incorrect' | 'unanswered' | 'not_noted' | null
   response: string
   correct_answer: string
   explanation: string

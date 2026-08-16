@@ -113,7 +113,7 @@ describe('UNESS replay disclosure', () => {
       createElement(Correction as any, { payload, onReplay: () => undefined }),
     )
 
-    expect(markup).toContain('Barème EDN propositionnel')
+    expect(markup).toContain('Barème EDN R2C')
     expect(markup).toContain('A')
     expect(markup).toContain('omission')
     expect(markup).toContain('Rang A')

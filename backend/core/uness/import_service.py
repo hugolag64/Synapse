@@ -426,8 +426,16 @@ def _source_refs(question: UnessQuestion, exam: UnessExam) -> list[str]:
 
 def _question_metadata(question: UnessQuestion, exam: UnessExam) -> dict[str, Any]:
     source_label = str(exam.provenance.get("source", "UNESS")).strip() or "UNESS"
-    primary_answer = _choice_answers(question, official=False)
-    official_answer = _choice_answers(question, official=True)
+    primary_answer = (
+        list(question.qroc_exact_answers)
+        if question.type_question == "QROC"
+        else _choice_answers(question, official=False)
+    )
+    official_answer = (
+        list(question.qroc_exact_answers)
+        if question.type_question == "QROC"
+        else _choice_answers(question, official=True)
+    )
     disagreement_comments = [
         proposition.commentaire_desaccord
         for proposition in question.propositions
@@ -449,14 +457,24 @@ def _question_metadata(question: UnessQuestion, exam: UnessExam) -> dict[str, An
                 "title": exam.title,
                 "dp_context": dict(exam.dp_context),
             },
-                "question": {
+            "question": {
                 "id": question.id,
                 "type_question": question.type_question,
+                "type_question_raw": question.type_question_raw,
+                "rank": question.rank,
+                "rank_source": question.rank_source,
+                "rank_confidence": question.rank_confidence,
+                "rank_evidence": list(question.rank_evidence),
+                "qroc_exact_answers": list(question.qroc_exact_answers),
+                "qroc_acceptable_answers": list(question.qroc_acceptable_answers),
+                "indispensable_choices": list(question.indispensable_choices),
+                "inacceptable_choices": list(question.inacceptable_choices),
+                "expected_choice_count": question.expected_choice_count,
                 "support_visuel_seul": question.support_visuel_seul,
                 "verification_status": question.verification_status,
                 "dp_context": dict(question.dp_context),
-                    "images": [image.to_dict() for image in question.images],
-                    "item_numbers": list(question.item_numbers),
+                "images": [image.to_dict() for image in question.images],
+                "item_numbers": list(question.item_numbers),
             },
             "propositions": [proposition.to_dict() for proposition in question.propositions],
         },
@@ -470,8 +488,12 @@ def _question_metadata(question: UnessQuestion, exam: UnessExam) -> dict[str, An
                 "source": source_label,
                 "official": source_label.upper() == "UNESS",
                 "answer": official_answer,
-                "available": bool(question.propositions) and all(
-                    proposition.reponse_uness is not None for proposition in question.propositions
+                "available": (
+                    bool(question.qroc_exact_answers or question.qroc_acceptable_answers)
+                    if question.type_question == "QROC"
+                    else bool(question.propositions) and all(
+                        proposition.reponse_uness is not None for proposition in question.propositions
+                    )
                 ),
             },
             "disagreement": {
@@ -500,11 +522,13 @@ def _session_value(exam: UnessExam, name: str) -> str:
 
 
 def _to_practice_question(question: UnessQuestion, exam: UnessExam) -> dict[str, Any]:
-    kind = QuestionKind.CLOSED if len(question.propositions) >= 2 else QuestionKind.OPEN
+    kind = QuestionKind.OPEN if question.type_question == "QROC" else (
+        QuestionKind.CLOSED if len(question.propositions) >= 2 else QuestionKind.OPEN
+    )
     choices = [proposition.texte for proposition in question.propositions]
     metadata = _question_metadata(question, exam)
     primary = metadata["correction"]["primary"]
-    answer = primary["answer"]
+    answer = list(question.qroc_exact_answers) if question.type_question == "QROC" else primary["answer"]
     return {
         "kind": kind,
         "prompt": question.enonce,
@@ -529,7 +553,7 @@ def assert_verified_exam(exam: UnessExam) -> None:
     question would throw away every other question that WAS properly
     verified, which is worse than importing with one weaker question."""
     for question in exam.questions:
-        if question.verification_status == "unsupported":
+        if question.verification_status in {"unsupported", "pending_visual_review"}:
             if question.propositions and any(
                 proposition.reponse_uness is None for proposition in question.propositions
             ):

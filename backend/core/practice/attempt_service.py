@@ -8,22 +8,61 @@ from typing import Any
 from loguru import logger
 
 from backend.core.edn.error_profile import map_discordance_to_error_category
-from backend.core.practice.scoring import ScoredAttempt, score_closed_attempt
+from backend.core.practice.scoring import (
+    ScoredAttempt,
+    score_closed_attempt,
+    score_qroc_response,
+    score_tcs_attempt,
+)
 from backend.core.reviews import local_store
 
 
 def _question_kind(question: dict[str, Any]) -> str:
-    raw = str(question.get("question_kind") or question.get("kind") or "QRM").upper()
-    return "QRU" if raw in {"QRU", "SINGLE"} else "QRM"
+    uness = question.get("uness")
+    nested_question = uness.get("question") if isinstance(uness, dict) else None
+    raw = (
+        question.get("question_kind")
+        or question.get("type_question")
+        or (nested_question.get("type_question") if isinstance(nested_question, dict) else None)
+        or (uness.get("type_question") if isinstance(uness, dict) else None)
+        or question.get("kind")
+        or "QRM"
+    )
+    normalized = str(raw).strip().upper()
+    return "QRU" if normalized in {"QRU", "SINGLE"} else normalized
 
 
 def _question_constraint(question: dict[str, Any], name: str) -> list[str]:
     values = question.get(name)
     if values is None and isinstance(question.get("uness"), dict):
         values = question["uness"].get(name)
+        if values is None and isinstance(question["uness"].get("question"), dict):
+            values = question["uness"]["question"].get(name)
     if isinstance(values, str):
         return [values]
     return [str(value) for value in (values or [])]
+
+
+def _question_expected_count(question: dict[str, Any]) -> int | None:
+    values = question.get("expected_choice_count")
+    uness = question.get("uness")
+    if values is None and isinstance(uness, dict):
+        values = uness.get("expected_choice_count")
+        if values is None and isinstance(uness.get("question"), dict):
+            values = uness["question"].get("expected_choice_count")
+    try:
+        return int(values) if values is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _question_uness_metadata(question: dict[str, Any]) -> dict[str, Any]:
+    uness = question.get("uness") or (question.get("import_metadata") or {}).get("uness") or {}
+    return uness.get("question") if isinstance(uness.get("question"), dict) else {}
+
+
+def _visual_attempt_is_not_noted(question: dict[str, Any]) -> bool:
+    return str(_question_uness_metadata(question).get("verification_status") or "").strip().lower() == "unsupported"
 
 
 def score_and_record_closed_attempt(
@@ -32,6 +71,7 @@ def score_and_record_closed_attempt(
     question_id: int,
     question: dict[str, Any],
     response: str,
+    duration_seconds: int | None = None,
     finalize_session: bool = False,
 ) -> tuple[int, ScoredAttempt]:
     """Score a closed answer once and persist its official correction payload."""
@@ -40,14 +80,23 @@ def score_and_record_closed_attempt(
         or question.get("choices")
         or []
     )
-    scored = score_closed_attempt(
-        response,
-        choices,
-        str(question.get("answer") or ""),
-        question_kind=_question_kind(question),
-        indispensable_choices=_question_constraint(question, "indispensable_choices"),
-        inacceptable_choices=_question_constraint(question, "inacceptable_choices"),
-    )
+    kind = _question_kind(question)
+    if _visual_attempt_is_not_noted(question):
+        scored = ScoredAttempt(0.0, "not_noted", "support_visuel_manquant", [])
+    else:
+        scored = (
+            score_tcs_attempt(response, choices)
+            if kind == "TCS"
+            else score_closed_attempt(
+                response,
+                choices,
+                str(question.get("answer") or ""),
+                question_kind=kind,
+                indispensable_choices=_question_constraint(question, "indispensable_choices"),
+                inacceptable_choices=_question_constraint(question, "inacceptable_choices"),
+                expected_choice_count=_question_expected_count(question),
+            )
+        )
     attempt_id = local_store.record_ai_practice_attempt(
         session_id=session_id,
         question_id=question_id,
@@ -56,9 +105,10 @@ def score_and_record_closed_attempt(
         score_percent=scored.score_percent,
         score_mode=scored.score_mode,
         score_reason=scored.score_reason,
+        duration_seconds=duration_seconds,
         finalize_session=finalize_session,
     )
-    if attempt_id is not None:
+    if attempt_id is not None and scored.score_mode != "not_noted":
         local_store.replace_ai_practice_attempt_propositions(attempt_id, scored.propositions)
         record_error_signals_for_attempt(
             attempt_id=attempt_id,
@@ -67,6 +117,39 @@ def score_and_record_closed_attempt(
             propositions=scored.propositions,
             session_id=session_id,
         )
+    return attempt_id, scored
+
+
+def score_and_record_open_attempt(
+    *,
+    session_id: int,
+    question_id: int,
+    question: dict[str, Any],
+    response: str,
+    duration_seconds: int | None = None,
+) -> tuple[int, ScoredAttempt]:
+    """Score a QROC from official exact/acceptable answer bands."""
+    metadata = _question_uness_metadata(question)
+    scored = (
+        ScoredAttempt(0.0, "not_noted", "support_visuel_manquant", [])
+        if _visual_attempt_is_not_noted(question)
+        else score_qroc_response(
+            response,
+            exact_answers=metadata.get("qroc_exact_answers") or (),
+            acceptable_answers=metadata.get("qroc_acceptable_answers") or (),
+        )
+    )
+    attempt_id = local_store.record_ai_practice_attempt(
+        session_id=session_id,
+        question_id=question_id,
+        response=response,
+        is_correct=(scored.score_percent == 100.0) if scored.score_mode != "not_noted" else None,
+        score_percent=scored.score_percent,
+        score_mode=scored.score_mode,
+        score_reason=scored.score_reason,
+        duration_seconds=duration_seconds,
+        finalize_session=False,
+    )
     return attempt_id, scored
 
 

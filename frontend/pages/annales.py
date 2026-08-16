@@ -69,8 +69,8 @@ def _distinct_values(rows: list[dict], key: str) -> list[str]:
 
 
 def _displayable_annales(rows: list[dict]) -> list[dict]:
-    """Keep only annale groups with at least one imported sub-part."""
-    return [row for row in rows if int(row.get("total_parts") or 0) > 0]
+    """Keep the complete catalogue, including groups awaiting collection."""
+    return list(rows)
 
 
 def _annale_family(row: dict) -> str:
@@ -684,6 +684,8 @@ def annales_page() -> None:
                                 with ui.element("div").classes("ans-exam-progress"):
                                     if is_exam_mode:
                                         ui.label("Masquée en mode examen").classes("ans-exam-progress-label")
+                                    elif total == 0:
+                                        ui.label("Non importée · collecte à relancer").classes("ans-exam-progress-label")
                                     else:
                                         ui.label(f"{completed}/{total} sous-parties").classes("ans-exam-progress-label")
                                         with ui.element("div").classes("ans-exam-track"):

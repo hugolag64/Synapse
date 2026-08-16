@@ -130,3 +130,52 @@ def test_low_confidence_item_link_has_less_weight_in_item_score(practice_db):
     evidence = _get_evidence(session_id)
 
     assert evidence["115"]["score_percent"] == 80.0
+
+
+def test_qcm_mastery_does_not_require_course_id(practice_db, monkeypatch):
+    session_id = local_store.create_ai_practice_session(
+        spec=PracticeSessionSpec(
+            practice_kind=PracticeKind.QCM,
+            total_questions=1,
+            open_questions=0,
+            closed_questions=1,
+            item_numbers=("115",),
+            course_id="",
+            course_title="Annale UNESS",
+        ),
+        questions=[
+            {"prompt": "Q1", "kind": QuestionKind.CLOSED, "choices": ["A", "B"], "answer": "A", "explanation": "E1"}
+        ],
+        model="test-model",
+    )
+    question = local_store.get_ai_practice_session(session_id)[0]
+    _link(question["id"], "115")
+    local_store.record_ai_practice_attempt(
+        session_id=session_id, question_id=question["id"], response="A",
+        is_correct=True, score_percent=100, finalize_session=False,
+    )
+    calls = []
+    monkeypatch.setattr(mastery, "record_evaluation", lambda evaluation: calls.append(evaluation) or SimpleNamespace(persisted_id=1))
+
+    assert mastery.record_ai_practice_mastery(session_id) is not None
+    assert calls[0].item_number == "115"
+
+
+def test_multi_item_question_has_proportional_evidence_weight(practice_db):
+    session_id, questions = _session(item_numbers=("115", "221"))
+    _link(questions[0]["id"], "115")
+    _link(questions[0]["id"], "221")
+    _link(questions[1]["id"], "115")
+    local_store.record_ai_practice_attempt(
+        session_id=session_id, question_id=questions[0]["id"], response="A",
+        is_correct=True, score_percent=100, finalize_session=False,
+    )
+    local_store.record_ai_practice_attempt(
+        session_id=session_id, question_id=questions[1]["id"], response="A",
+        is_correct=False, score_percent=0, finalize_session=False,
+    )
+
+    evidence = _get_evidence(session_id)
+
+    assert evidence["115"]["score_percent"] == 33.33
+    assert evidence["221"]["score_percent"] == 100.0

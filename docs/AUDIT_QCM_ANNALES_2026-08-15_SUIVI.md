@@ -63,23 +63,35 @@ Référence docimologique : [règles CNG/COSUI R2C](https://www.cng.sante.fr/sit
 - Les anciennes routes NiceGUI de correction redirigent vers le lecteur React
   canonique avec le mode correction conservé.
 
+### Inférence Gemini des rangs manquants
+
+- Les questions UNESS sans rang officiel sont détectées par un scan idempotent et
+  placées dans une file SQLite persistante, question par question.
+- Le worker de fond regroupe les questions par item, injecte les OIC LiSA
+  disponibles et appelle Gemini sur un lot borné. Une question sans OIC passe en
+  `needs_oic` sans appel IA.
+- Les réponses sous le seuil de confiance `0,85`, ambiguës ou mal formées sont
+  conservées pour validation admin ; elles ne modifient pas le rang courant.
+- Les inférences fiables sont appliquées avec leur provenance, confiance, OIC et
+  justification ; le rang officiel ne peut jamais être écrasé.
+- La file est relançable après erreur et conserve les transitions dans un journal
+  d’événements redacted.
+- Le cockpit Paramètres expose les compteurs, filtres, preuves OIC et actions
+  Accepter Gemini / Choisir A / Choisir B / Rejeter / Relancer.
+
 ## Reste explicitement à brancher
 
 Ces éléments ne sont pas prétendus livrés dans cette branche :
 
-1. Déclencher automatiquement l'inférence Gemini des rangs manquants pour les
-   annales UNESS, avec OIC injectés, exécution asynchrone relançable et file
-   d'administration question par question. Le contrat de résolution est prêt,
-   mais l'orchestration et l'écran admin restent à connecter.
-2. Versionner en base les résultats initial / final après arrivée tardive d'un rang
+1. Versionner en base les résultats initial / final après arrivée tardive d'un rang
    ou d'une donnée officielle, au lieu d'ajouter seulement les métadonnées au
    résultat courant.
-3. Composer une épreuve officielle complète à partir de blocs DP dans un parcours
+2. Composer une épreuve officielle complète à partir de blocs DP dans un parcours
    `/qcm` refondu, avec sélection gelée par seed et anti-biais limité à
    l'entraînement généré.
-4. Ajouter les sauvegardes locales chiffrées, la copie sur second volume et le
+3. Ajouter les sauvegardes locales chiffrées, la copie sur second volume et le
    test mensuel de restauration.
-5. Brancher les cinq indicateurs opérationnels de l'audit (sécurisation Rang A,
+4. Brancher les cinq indicateurs opérationnels de l'audit (sécurisation Rang A,
    discordance omission/excès, rythme par format, couverture × fréquence,
    courbe de reprise) à des décisions visibles dans le cockpit.
 
@@ -87,6 +99,8 @@ Ces éléments ne sont pas prétendus livrés dans cette branche :
 
 - Backend ciblé : tests de scoring, import UNESS, images, API timeout/QROC et
   maîtrise passent.
+- Inférence de rang : contrat, persistance, worker, boucle de fond, API admin et
+  panneau de validation testés séparément.
 - Frontend : `npm test -- --run` et `npm run build` passent.
 - La suite complète doit être relue en séparant les échecs de données de référence
   déjà présents avant cette branche des éventuelles régressions introduites.

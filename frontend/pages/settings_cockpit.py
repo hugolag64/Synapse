@@ -30,23 +30,24 @@ en page déduite du seul texte README §13.
 """
 from __future__ import annotations
 
-import os
 import asyncio
+import os
 import sys
 from datetime import date
 from pathlib import Path
 
 from nicegui import ui
 
-from backend.state.store import data_store
 from backend.config.settings import settings
-from backend.core.uness import import_service
 from backend.core.lisa import item_service
-from frontend.components.uness_diagnostic_panel import render as render_uness_diagnostics
-from frontend.components.dp_coverage_panel import render as render_dp_coverage
-from frontend.components.uness_rank_admin import render_uness_rank_admin
+from backend.core.uness import import_service
+from backend.state.store import data_store
 from frontend.components.calendar_sources_panel import render as render_calendar_sources
+from frontend.components.dp_coverage_panel import render as render_dp_coverage
+from frontend.components.uness_diagnostic_panel import render as render_uness_diagnostics
+from frontend.components.uness_rank_admin import render_uness_rank_admin
 from frontend.pages.catalog_admin import render_catalog_admin
+
 
 def toggle_dark_mode(value: bool | None = None) -> bool:
     dark = ui.dark_mode()

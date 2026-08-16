@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
-from typing import Literal
 
 from backend.core.practice.attempt_service import (
     record_error_signals_for_attempt,

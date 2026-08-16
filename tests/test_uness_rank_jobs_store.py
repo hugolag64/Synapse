@@ -1,4 +1,5 @@
-import datetime as dt
+from datetime import UTC, datetime, timedelta
+
 import pytest
 
 from backend.core.practice.models import PracticeKind, PracticeSessionSpec
@@ -92,7 +93,7 @@ def test_claim_recovers_expired_lease(isolated_db):
     assert len(claimed) == 1
     assert isolated_db.claim_uness_rank_jobs(limit=1, worker_id="worker-b") == []
 
-    old = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=1)).isoformat()
+    old = (datetime.now(UTC) - timedelta(hours=1)).isoformat()
     with isolated_db._conn() as con:
         con.execute(
             "UPDATE uness_rank_inference_jobs SET locked_at = ? WHERE id = ?",
@@ -107,7 +108,7 @@ def test_claim_recovers_expired_lease(isolated_db):
 def test_result_and_admin_decision_update_only_rank_metadata(isolated_db):
     annale_id = _annale(isolated_db)
     session_id = _session(isolated_db, annale_id, "q-result")
-    job = isolated_db.scan_uness_rank_jobs()[0]
+    isolated_db.scan_uness_rank_jobs()
     claimed = isolated_db.claim_uness_rank_jobs(limit=1, worker_id="worker-a")[0]
 
     isolated_db.record_uness_rank_result(

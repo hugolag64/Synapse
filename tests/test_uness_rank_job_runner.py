@@ -2,8 +2,8 @@ from unittest.mock import Mock
 
 import pytest
 
-from backend.core.practice.models import PracticeKind, PracticeSessionSpec
 from backend.core.ai.routing import AIModel, AIResponse
+from backend.core.practice.models import PracticeKind, PracticeSessionSpec
 
 
 @pytest.fixture(autouse=True)

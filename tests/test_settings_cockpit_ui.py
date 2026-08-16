@@ -13,7 +13,7 @@ def test_diagnostics_expansions_share_one_themed_style():
     source = Path("frontend/pages/settings_cockpit.py").read_text(encoding="utf-8")
 
     assert ".se-diag-expansion {" in source
-    assert source.count('"w-full se-diag-expansion"') == 2
+    assert source.count('"w-full se-diag-expansion"') == 3
 
 
 def test_telemetry_panel_uses_design_tokens_instead_of_frozen_slate():

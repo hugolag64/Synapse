@@ -107,13 +107,21 @@ Référence docimologique : [règles CNG/COSUI R2C](https://www.cng.sante.fr/sit
 - Un verrou `flock`, un manifeste SHA-256 et un test mensuel systemd de restauration
   vérifient qu’une sauvegarde est exploitable, jusqu’à `PRAGMA integrity_check`.
 
+### Indicateurs opérationnels du cockpit
+
+- Le cockpit QCM affiche désormais les cinq indicateurs de l’audit : sécurisation
+  Rang A officiel, profil omission/excès, rythme par format, couverture × fréquence
+  et courbe de reprise.
+- Chaque carte indique la donnée utilisée, gère explicitement l’absence de signal
+  et formule la décision associée ; les rangs inférés par Gemini restent exclus du
+  verdict de sécurité Rang A.
+
 ## Reste explicitement à brancher
 
 Ces éléments ne sont pas prétendus livrés dans cette branche :
 
-1. Brancher les cinq indicateurs opérationnels de l’audit (sécurisation Rang A,
-   discordance omission/excès, rythme par format, couverture × fréquence,
-   courbe de reprise) à des décisions visibles dans le cockpit.
+Il n’y a plus d’élément de ce lot explicitement en attente. La validation distante
+reste à faire dès que le home server `192.168.1.5` redevient joignable.
 
 ## Vérifications effectuées
 

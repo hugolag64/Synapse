@@ -30,9 +30,12 @@ from frontend.components.ai_practice_panel import (
     render_dp_tutor_action,
     trusted_dossier_context,
 )
+from frontend.components.course_quick_actions import _open_quick_qcm_dialog
+from frontend.components.ednpro_capture_panel import open_ednpro_capture_dialog
 from frontend.components.mastery_indicator import _LEVEL_COLOR, _level_from_score
 from frontend.components.practice_import_panel import open_practice_import_dialog
 from frontend.components.practice_session_card import open_node_qcm, render_session_actions
+from frontend.components.qcm_operational_dashboard import render_operational_dashboard
 from frontend.components.qcm_replay import (
     open_chained_dialog,
     open_qcm_correction,
@@ -40,10 +43,8 @@ from frontend.components.qcm_replay import (
     replay_qcm_session,
 )
 from frontend.components.qcm_replay import (
-    session_action_keys as _session_action_keys,
+    session_action_keys as _session_action_keys,  # noqa: F401 - compatibility export
 )
-from frontend.components.course_quick_actions import _open_quick_qcm_dialog
-from frontend.components.ednpro_capture_panel import open_ednpro_capture_dialog
 
 QCM_ENTRY_LABEL = "Saisir un résultat"
 
@@ -83,9 +84,8 @@ def _compute_groups(rows: list) -> list[dict]:
 
         g = groups_dict[c_id]
         g["sessions"].append(r)
-        if score is not None:
-            if score < 50:
-                g["fail_count"] += 1
+        if score is not None and score < 50:
+            g["fail_count"] += 1
 
     for g in groups_dict.values():
         g["session_count"] = len(g["sessions"])
@@ -354,6 +354,9 @@ def render_qcm_cockpit() -> None:
             ui.label("PAR COURS").classes("qc-label")
             head = ui.element("div").classes("qc-head")
             list_col = ui.column().classes("w-full gap-0")
+        operational_dashboard = ui.element("section").classes(
+            "qc-section mt-5 p-4"
+        )
         pending_col = ui.column().classes("w-full gap-0 qc-pending")
         with ui.element("div").classes("qc-workspace"):
             with ui.element("section").classes("qc-history"):
@@ -679,6 +682,7 @@ def render_qcm_cockpit() -> None:
         _draw_summary(rows, groups)
         _draw_head()
         _draw_list(groups)
+        render_operational_dashboard(operational_dashboard)
         _render_workspace()
 
     history_search.on_value_change(lambda _event: _render_workspace())

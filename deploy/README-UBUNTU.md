@@ -127,11 +127,50 @@ sans contrôle d’accès.
 Un statut Anki déconnecté n’empêche pas Synapse de démarrer ; il signifie simplement que
 les actions de révision Anki doivent rester indisponibles jusqu’à rétablissement du lien.
 
-## 7. Sauvegardes récurrentes
+## 7. Sauvegardes chiffrées et test de restauration
 
-Sauvegarder régulièrement le volume `synapse-data`, le volume `synapse-logs` si besoin,
-et le vault Obsidian selon son propre mécanisme de synchronisation. Conserver au moins
-une copie hors du serveur avant toute mise à jour de l’image.
+Le script `deploy/synapse-backup.sh` crée un snapshot SQLite cohérent, archive le volume
+`synapse-data`, chiffre l'archive avec AES-256-CBC/PBKDF2, puis écrit le même artefact sur
+deux volumes distincts. Le manifeste SHA-256 détecte une copie corrompue. La clé ne doit
+jamais être dans le dépôt ni dans un volume Docker.
+
+Préparer un second volume réellement monté (par exemple `/dev/sdb1` dans `/srv/backups`
+et un autre volume dans `/srv/backups/synapse-secondary`), puis vérifier que les sources
+de montage diffèrent :
+
+```bash
+sudo install -d -m 700 /srv/backups/synapse /srv/backups/synapse-secondary /etc/synapse
+sudo openssl rand -base64 48 | sudo tee /etc/synapse/backup.pass >/dev/null
+sudo chmod 600 /etc/synapse/backup.pass
+findmnt -T /srv/backups/synapse
+findmnt -T /srv/backups/synapse-secondary
+```
+
+Installer les scripts et les timers :
+
+```bash
+sudo install -m 755 deploy/synapse-backup.sh deploy/synapse-restore-test.sh /srv/docker/stacks/synapse/deploy/
+sudo install -m 644 deploy/synapse-backup.service deploy/synapse-backup.timer \
+  deploy/synapse-restore-test.service deploy/synapse-restore-test.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now synapse-backup.timer synapse-restore-test.timer
+```
+
+Lancer une première sauvegarde et son test avant de considérer le dispositif opérationnel :
+
+```bash
+sudo systemctl start synapse-backup.service
+sudo systemctl start synapse-restore-test.service
+sudo journalctl -u synapse-backup.service -u synapse-restore-test.service --since today
+```
+
+Le timer de sauvegarde s'exécute chaque jour à 03:30 avec une conservation de 14 copies.
+Le timer de restauration s'exécute le premier dimanche de chaque mois à 05:00 et vérifie
+le SHA-256, le déchiffrement, l'extraction et `PRAGMA integrity_check` de SQLite. Les deux
+timers sont `Persistent`, donc une machine arrêtée rattrape l'exécution manquée.
+
+Les volumes `synapse-logs` et le vault Obsidian peuvent avoir leur propre stratégie de
+sauvegarde ; ils ne remplacent pas la sauvegarde chiffrée de `synapse-data`.
 
 ## 8. Sécurité immédiate
 

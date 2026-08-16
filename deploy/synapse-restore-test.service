@@ -1,0 +1,10 @@
+[Unit]
+Description=Test de restauration mensuel Synapse
+
+[Service]
+Type=oneshot
+User=root
+UMask=0077
+WorkingDirectory=/srv/docker/stacks/synapse
+ExecStart=/srv/docker/stacks/synapse/deploy/synapse-restore-test.sh
+TimeoutStartSec=15min

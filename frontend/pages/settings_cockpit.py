@@ -30,22 +30,24 @@ en page déduite du seul texte README §13.
 """
 from __future__ import annotations
 
-import os
 import asyncio
+import os
 import sys
 from datetime import date
 from pathlib import Path
 
 from nicegui import ui
 
-from backend.state.store import data_store
 from backend.config.settings import settings
-from backend.core.uness import import_service
 from backend.core.lisa import item_service
-from frontend.components.uness_diagnostic_panel import render as render_uness_diagnostics
-from frontend.components.dp_coverage_panel import render as render_dp_coverage
+from backend.core.uness import import_service
+from backend.state.store import data_store
 from frontend.components.calendar_sources_panel import render as render_calendar_sources
+from frontend.components.dp_coverage_panel import render as render_dp_coverage
+from frontend.components.uness_diagnostic_panel import render as render_uness_diagnostics
+from frontend.components.uness_rank_admin import render_uness_rank_admin
 from frontend.pages.catalog_admin import render_catalog_admin
+
 
 def toggle_dark_mode(value: bool | None = None) -> bool:
     dark = ui.dark_mode()
@@ -479,6 +481,11 @@ def render_settings_cockpit() -> None:
         render_catalog_admin()
 
         with _settings_domain("DIAGNOSTICS ET TÉLÉMÉTRIE", "Couverture et consommation", "analytics"):
+            with ui.expansion("RANGS UNESS — VALIDATION", icon="verified").classes(
+                "w-full se-diag-expansion"
+            ):
+                render_uness_rank_admin(ui.column().classes("w-full p-4"))
+
             with ui.expansion("COUVERTURE DP PAR ITEM", icon="assignment").classes(
                 "w-full se-diag-expansion"
             ):

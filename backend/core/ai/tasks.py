@@ -72,6 +72,15 @@ def generate_uness_correction(
     )
 
 
+def infer_uness_ranks(prompt: str, *, service: AIService | None = None) -> AIResponse:
+    """Infer missing UNESS ranks using the cheap JSON Gemini route."""
+    return (service or _default_service()).generate(
+        AITask.UNESS_RANK,
+        prompt,
+        response_format="json",
+    )
+
+
 @dataclass(frozen=True)
 class UnessCorrectionResult:
     response: AIResponse

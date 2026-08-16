@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from backend.core.practice.attempt_service import (
     record_error_signals_for_attempt,
@@ -44,6 +46,15 @@ class CompletePayload(BaseModel):
 class UnessImportPayload(BaseModel):
     path: str
     verify: bool = True
+
+
+class RankDecisionPayload(BaseModel):
+    rank: Literal["A", "B"]
+    reason: str = Field(min_length=1)
+
+
+class RankRejectPayload(BaseModel):
+    reason: str = ""
 
 
 def _record_error_signals(attempt_id: int, question_id: int, propositions: list[dict]) -> None:
@@ -119,6 +130,77 @@ def import_uness(payload: UnessImportPayload) -> dict:
         "questions": len(exam.questions),
         "disagreements": count_disagreements(exam),
     }
+
+
+@router.get("/admin/rank-jobs")
+def list_rank_jobs(
+    status: str = "",
+    item_number: str = "",
+    limit: int = 100,
+    offset: int = 0,
+) -> dict:
+    try:
+        jobs = local_store.list_uness_rank_jobs(
+            status=status,
+            item_number=item_number,
+            limit=limit,
+            offset=offset,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"jobs": jobs, "count": len(jobs)}
+
+
+@router.post("/admin/rank-jobs/scan")
+def scan_rank_jobs() -> dict:
+    jobs = local_store.scan_uness_rank_jobs()
+    return {"created": len(jobs), "jobs": jobs}
+
+
+def _rank_job_action(action, job_id: int) -> dict:
+    try:
+        job = action(job_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job de rang introuvable")
+    return job
+
+
+@router.post("/admin/rank-jobs/{job_id}/retry")
+def retry_rank_job(job_id: int) -> dict:
+    return _rank_job_action(local_store.retry_uness_rank_job, job_id)
+
+
+@router.post("/admin/rank-jobs/{job_id}/accept")
+def accept_rank_job(job_id: int) -> dict:
+    return _rank_job_action(local_store.accept_uness_rank_job, job_id)
+
+
+@router.post("/admin/rank-jobs/{job_id}/decide")
+def decide_rank_job(job_id: int, payload: RankDecisionPayload) -> dict:
+    try:
+        job = local_store.decide_uness_rank_job(
+            job_id,
+            rank=payload.rank,
+            reason=payload.reason,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job de rang introuvable")
+    return job
+
+
+@router.post("/admin/rank-jobs/{job_id}/reject")
+def reject_rank_job(job_id: int, payload: RankRejectPayload | None = None) -> dict:
+    try:
+        job = local_store.reject_uness_rank_job(job_id, reason=(payload.reason if payload else ""))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job de rang introuvable")
+    return job
 
 
 def _correction_payload(session_id: int, summary: dict) -> dict:

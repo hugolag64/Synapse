@@ -1,0 +1,10 @@
+[Unit]
+Description=Planification du test mensuel de restauration Synapse
+
+[Timer]
+OnCalendar=Sun *-*-01..07 05:00:00
+Persistent=true
+Unit=synapse-restore-test.service
+
+[Install]
+WantedBy=timers.target

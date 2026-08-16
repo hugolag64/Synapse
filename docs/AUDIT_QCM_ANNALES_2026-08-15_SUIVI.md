@@ -100,13 +100,18 @@ Référence docimologique : [règles CNG/COSUI R2C](https://www.cng.sante.fr/sit
 - La page de configuration ouvre le lecteur React actif avec la durée du format
   et le mode examen ; le serveur refuse les tentatives hors ordre.
 
+### Sauvegardes chiffrées
+
+- Le script Ubuntu crée un snapshot SQLite cohérent, chiffre l’archive du volume
+  `synapse-data`, la copie sur un second volume et conserve une rétention bornée.
+- Un verrou `flock`, un manifeste SHA-256 et un test mensuel systemd de restauration
+  vérifient qu’une sauvegarde est exploitable, jusqu’à `PRAGMA integrity_check`.
+
 ## Reste explicitement à brancher
 
 Ces éléments ne sont pas prétendus livrés dans cette branche :
 
-1. Ajouter les sauvegardes locales chiffrées, la copie sur second volume et le
-   test mensuel de restauration.
-2. Brancher les cinq indicateurs opérationnels de l'audit (sécurisation Rang A,
+1. Brancher les cinq indicateurs opérationnels de l’audit (sécurisation Rang A,
    discordance omission/excès, rythme par format, couverture × fréquence,
    courbe de reprise) à des décisions visibles dans le cockpit.
 

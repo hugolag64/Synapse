@@ -648,6 +648,7 @@ def init_db() -> None:
     _migrate_oic_anythingllm_validation()
     _migrate_ai_practice_v1()
     _migrate_reliable_practice_loop()
+    _migrate_exam_sessions()
     _migrate_uness_annales()
     _migrate_uness_correction_failures()
     _migrate_notion_sync_queue()
@@ -1192,6 +1193,39 @@ def _migrate_reliable_practice_loop() -> None:
             SET score_mode = 'training'
             WHERE score_percent IS NOT NULL AND (score_mode IS NULL OR score_mode = '')
         """)
+
+
+def _migrate_exam_sessions() -> None:
+    """Ajoute les métadonnées et la composition figée des épreuves."""
+    with _conn() as con:
+        columns = {row["name"] for row in con.execute("PRAGMA table_info(ai_practice_sessions)").fetchall()}
+        for column, statement in (
+            ("exam_mode", "ALTER TABLE ai_practice_sessions ADD COLUMN exam_mode INTEGER NOT NULL DEFAULT 0"),
+            ("exam_format", "ALTER TABLE ai_practice_sessions ADD COLUMN exam_format TEXT NOT NULL DEFAULT ''"),
+            ("exam_seed", "ALTER TABLE ai_practice_sessions ADD COLUMN exam_seed TEXT NOT NULL DEFAULT ''"),
+            ("duration_seconds", "ALTER TABLE ai_practice_sessions ADD COLUMN duration_seconds INTEGER"),
+        ):
+            if column not in columns:
+                con.execute(statement)
+        con.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS exam_compositions (
+                id                INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id        INTEGER NOT NULL UNIQUE,
+                format            TEXT NOT NULL CHECK (format IN ('dp', 'series', 'mixed')),
+                seed              TEXT NOT NULL,
+                duration_seconds  INTEGER NOT NULL,
+                subject           TEXT NOT NULL DEFAULT '',
+                question_ids_json TEXT NOT NULL DEFAULT '[]',
+                source_session_ids_json TEXT NOT NULL DEFAULT '[]',
+                selection_policy  TEXT NOT NULL DEFAULT 'frequency_error_recency_v1',
+                created_at        TEXT NOT NULL,
+                FOREIGN KEY (session_id) REFERENCES ai_practice_sessions(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS idx_exam_compositions_created
+                ON exam_compositions(created_at DESC);
+            """
+        )
 
 
 def _migrate_uness_annales() -> None:
@@ -2203,7 +2237,16 @@ def _ai_question_hash(question: dict) -> str:
     ).hexdigest()
 
 
-def create_ai_practice_session(*, spec, questions: list[dict], model: str) -> int:
+def create_ai_practice_session(
+    *,
+    spec,
+    questions: list[dict],
+    model: str,
+    exam_mode: bool = False,
+    exam_format: str = "",
+    exam_seed: str = "",
+    duration_seconds: int | None = None,
+) -> int:
     """Crée une session et conserve chaque question comme version immuable."""
     import json as _json
     now = _now()
@@ -2211,12 +2254,14 @@ def create_ai_practice_session(*, spec, questions: list[dict], model: str) -> in
         cur = con.execute(
             """INSERT INTO ai_practice_sessions
                (course_id, course_title, item_number, objective_code, practice_kind,
-               total_questions, open_questions, closed_questions, difficulty, model, created_at)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+               total_questions, open_questions, closed_questions, difficulty, model,
+               exam_mode, exam_format, exam_seed, duration_seconds, created_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 spec.course_id, spec.course_title, spec.item_number, spec.objective_code,
                 spec.practice_kind.value, spec.total_questions, spec.open_questions,
-                spec.closed_questions, spec.difficulty.value, model, now,
+                spec.closed_questions, spec.difficulty.value, model, int(exam_mode),
+                exam_format, exam_seed, duration_seconds, now,
             ),
         )
         session_id = int(cur.lastrowid)
@@ -2273,6 +2318,137 @@ def create_ai_practice_session(*, spec, questions: list[dict], model: str) -> in
                 (session_id, item_number),
             )
     return session_id
+
+
+def save_exam_composition(
+    session_id: int,
+    *,
+    format: str,
+    seed: str,
+    duration_seconds: int,
+    question_ids: list[int],
+    source_session_ids: list[int] | None = None,
+    subject: str = "",
+    selection_policy: str = "frequency_error_recency_v1",
+) -> int:
+    """Persiste l'ordre exact d'une composition avant son ouverture."""
+    import json as _json
+
+    if format not in {"dp", "series", "mixed"}:
+        raise ValueError(f"Format d'épreuve inconnu: {format}")
+    if not str(seed).strip():
+        raise ValueError("Le seed de composition est obligatoire")
+    if int(duration_seconds) <= 0:
+        raise ValueError("La durée de l'épreuve doit être positive")
+    with _conn() as con:
+        if con.execute("SELECT 1 FROM ai_practice_sessions WHERE id = ?", (session_id,)).fetchone() is None:
+            raise ValueError(f"Session d'épreuve introuvable: {session_id}")
+        cur = con.execute(
+            """INSERT INTO exam_compositions
+               (session_id, format, seed, duration_seconds, subject,
+                question_ids_json, source_session_ids_json, selection_policy, created_at)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
+            (
+                session_id, format, str(seed), int(duration_seconds), str(subject or ""),
+                _json.dumps([int(value) for value in question_ids]),
+                _json.dumps([int(value) for value in (source_session_ids or [])]),
+                str(selection_policy), _now(),
+            ),
+        )
+        return int(cur.lastrowid)
+
+
+def get_exam_composition(session_id: int) -> dict | None:
+    """Retourne la composition figée avec ses identifiants décodés."""
+    import json as _json
+
+    with _conn() as con:
+        row = con.execute(
+            "SELECT * FROM exam_compositions WHERE session_id = ?", (session_id,)
+        ).fetchone()
+    if row is None:
+        return None
+    result = dict(row)
+    for field in ("question_ids_json", "source_session_ids_json"):
+        try:
+            result[field.removesuffix("_json")] = _json.loads(result[field] or "[]")
+        except (TypeError, ValueError, _json.JSONDecodeError):
+            result[field.removesuffix("_json")] = []
+        result.pop(field, None)
+    return result
+
+
+def list_uness_exam_candidates(*, subject: str | None = None) -> list[dict]:
+    """Retourne les questions UNESS importées avec leurs facteurs locaux de sélection."""
+    with _conn() as con:
+        params: list[object] = []
+        subject_clause = ""
+        if subject and str(subject).strip():
+            subject_clause = " AND LOWER(COALESCE(ua.matiere, '')) = LOWER(?)"
+            params.append(str(subject).strip())
+        rows = con.execute(
+            f"""SELECT q.*, sq.session_id AS source_session_id, sq.position AS source_position,
+                       s.item_number AS session_item_number, s.course_title AS session_title,
+                       s.created_at AS source_created_at, ua.matiere AS subject
+                FROM ai_practice_questions q
+                JOIN ai_practice_session_questions sq ON sq.question_id = q.id
+                JOIN ai_practice_sessions s ON s.id = sq.session_id
+                JOIN uness_annales ua ON ua.id = s.annale_id
+                WHERE s.annale_id IS NOT NULL{subject_clause}
+                ORDER BY sq.session_id, sq.position""",
+            params,
+        ).fetchall()
+        frequency = {
+            str(row["item_number"]): dict(row)
+            for row in con.execute("SELECT * FROM ednpro_item_frequency").fetchall()
+            if str(row["item_number"] or "").strip()
+        }
+        errors = {
+            str(row["item_number"]): int(row["count"])
+            for row in con.execute(
+                "SELECT item_number, COUNT(*) AS count FROM error_signals GROUP BY item_number"
+            ).fetchall()
+        }
+        last_practice = {
+            str(row["item_number"]): row["last_date"]
+            for row in con.execute(
+                """SELECT item_number, MAX(session_date) AS last_date
+                   FROM qcm_sessions WHERE score_percent IS NOT NULL GROUP BY item_number"""
+            ).fetchall()
+        }
+
+    result = []
+    for row in rows:
+        try:
+            choices = json.loads(row["choices_json"] or "[]")
+            source_refs = json.loads(row["source_refs_json"] or "[]")
+            metadata = json.loads(row["import_metadata_json"] or "{}")
+        except (TypeError, ValueError, json.JSONDecodeError):
+            continue
+        item_number = str(row["item_number"] or row["session_item_number"] or "").strip()
+        frequency_row = frequency.get(item_number, {})
+        result.append(
+            {
+                "question_id": int(row["id"]),
+                "source_session_id": int(row["source_session_id"]),
+                "source_position": int(row["source_position"]),
+                "prompt": row["prompt"],
+                "choices": choices if isinstance(choices, list) else [],
+                "answer": row["answer"],
+                "explanation": row["explanation"],
+                "question_kind": row["question_kind"],
+                "source_refs": source_refs if isinstance(source_refs, list) else [],
+                "import_metadata": metadata if isinstance(metadata, dict) else {},
+                "item_numbers": (item_number,) if item_number else (),
+                "subject": str(row["subject"] or ""),
+                "source_created_at": row["source_created_at"],
+                "frequency_question_count": int(frequency_row.get("question_count") or 0),
+                "error_count": int(errors.get(item_number, 0)),
+                "last_practice_date": last_practice.get(item_number),
+                "session_title": row["session_title"],
+            }
+        )
+    return result
 
 
 def _normalize_uness_source_url(source_url: str) -> str:
@@ -3281,7 +3457,7 @@ def get_ai_practice_sessions_history(
                        COALESCE(SUM(CASE WHEN latest.is_correct = 1 THEN 1 ELSE 0 END), 0) AS correct_count,
                        COALESCE(SUM(CASE WHEN latest.is_correct = 0 THEN 1 ELSE 0 END), 0) AS incorrect_count,
                        MAX(0, s.total_questions - COUNT(latest.question_id)) AS unanswered_count,
-                       SUM(latest.duration_seconds) AS duration_seconds,
+                       SUM(latest.duration_seconds) AS attempt_duration_seconds,
                        EXISTS (
                            SELECT 1
                            FROM ai_practice_session_questions sq
@@ -3296,7 +3472,14 @@ def get_ai_practice_sessions_history(
                 LIMIT ?""",
             params,
         ).fetchall()
-    return [dict(row) for row in rows]
+    result = []
+    for row in rows:
+        value = dict(row)
+        if value.get("attempt_duration_seconds") is not None:
+            value["duration_seconds"] = value["attempt_duration_seconds"]
+        value.pop("attempt_duration_seconds", None)
+        result.append(value)
+    return result
 
 
 def get_ai_practice_failure_streak(session_id: int, threshold: float = 70.0) -> int:
@@ -3348,6 +3531,25 @@ def record_ai_practice_attempt(
     """Enregistre une réponse sans modifier l'énoncé ni sa correction."""
     now = _now()
     with _conn() as con:
+        session = con.execute(
+            "SELECT exam_mode FROM ai_practice_sessions WHERE id = ?", (session_id,)
+        ).fetchone()
+        if session is None:
+            raise ValueError(f"Session IA introuvable: {session_id}")
+        if int(session["exam_mode"] or 0) and score_mode != "timed_out":
+            next_question = con.execute(
+                """SELECT sq.question_id
+                   FROM ai_practice_session_questions sq
+                   WHERE sq.session_id = ?
+                     AND NOT EXISTS (
+                         SELECT 1 FROM ai_practice_attempts a
+                         WHERE a.session_id = sq.session_id AND a.question_id = sq.question_id
+                     )
+                   ORDER BY sq.position LIMIT 1""",
+                (session_id,),
+            ).fetchone()
+            if next_question is None or int(next_question["question_id"]) != int(question_id):
+                raise ValueError("Les questions d'une épreuve doivent être traitées dans l'ordre")
         cur = con.execute(
             """INSERT INTO ai_practice_attempts
                (session_id, question_id, response, is_correct, score_percent,

@@ -293,37 +293,46 @@ def save_attempt(session_id: int, payload: AttemptPayload) -> dict:
     scored = None
     is_qroc = str(((question.get("uness") or {}).get("question") or {}).get("type_question") or "").upper() == "QROC"
     if not is_open:
-        _, scored = score_and_record_closed_attempt(
-            session_id=session_id,
-            question_id=payload.question_id,
-            question=question,
-            response=payload.response,
-            duration_seconds=payload.duration_seconds,
-            finalize_session=False,
-        )
+        try:
+            _, scored = score_and_record_closed_attempt(
+                session_id=session_id,
+                question_id=payload.question_id,
+                question=question,
+                response=payload.response,
+                duration_seconds=payload.duration_seconds,
+                finalize_session=False,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         return {"ok": True, "score_mode": scored.score_mode}
 
     if is_qroc:
-        _, scored = score_and_record_open_attempt(
-            session_id=session_id,
-            question_id=payload.question_id,
-            question=question,
-            response=payload.response,
-            duration_seconds=payload.duration_seconds,
-        )
+        try:
+            _, scored = score_and_record_open_attempt(
+                session_id=session_id,
+                question_id=payload.question_id,
+                question=question,
+                response=payload.response,
+                duration_seconds=payload.duration_seconds,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         return {"ok": True, "score_mode": scored.score_mode}
 
-    local_store.record_ai_practice_attempt(
-        session_id=session_id,
-        question_id=payload.question_id,
-        response=payload.response,
-        is_correct=None,
-        score_percent=None,
-        score_mode="",
-        score_reason="",
-        duration_seconds=payload.duration_seconds,
-        finalize_session=False,
-    )
+    try:
+        local_store.record_ai_practice_attempt(
+            session_id=session_id,
+            question_id=payload.question_id,
+            response=payload.response,
+            is_correct=None,
+            score_percent=None,
+            score_mode="",
+            score_reason="",
+            duration_seconds=payload.duration_seconds,
+            finalize_session=False,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"ok": True, "score_mode": ""}
 
 

@@ -149,6 +149,7 @@ async def run_background_tasks():
 
             # ── 8. Retry des corrections UNESS en échec (borné, silencieux) ───────
             await _retry_pending_uness_corrections()
+            await _run_pending_uness_rank_jobs()
             _refresh_edn_recommendations()
 
             # ── 9. Retry des écritures Notion persistées après échec ───────────────
@@ -434,6 +435,25 @@ async def _fetch_ednpro_background() -> None:
 
     except Exception as exc:
         logger.warning(f"EDN Pro fetch arrière-plan : {exc}")
+
+
+async def _run_pending_uness_rank_jobs() -> None:
+    """Run a small rank-inference batch without blocking the sync loop."""
+    try:
+        from backend.core.uness.rank_job_runner import run_uness_rank_cycle
+
+        result = await asyncio.to_thread(run_uness_rank_cycle, limit=10)
+        if result.get("claimed"):
+            logger.info(
+                "Rangs UNESS : {} traitées, {} résolues, {} à valider, {} sans OIC, {} en échec",
+                result.get("claimed", 0),
+                result.get("resolved", 0),
+                result.get("needs_admin", 0),
+                result.get("needs_oic", 0),
+                result.get("failed", 0),
+            )
+    except Exception as exc:
+        logger.warning(f"Inférence de rangs UNESS ignorée : {exc}")
 
 
 async def _retry_pending_uness_corrections() -> None:

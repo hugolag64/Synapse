@@ -2679,7 +2679,7 @@ def list_uness_rank_jobs(
     params.extend((max(1, int(limit)), max(0, int(offset))))
     with _conn() as con:
         rows = con.execute(
-            f"""SELECT j.*, q.prompt, q.choices_json, q.import_metadata_json,
+            f"""SELECT j.*, q.prompt, q.answer, q.explanation, q.choices_json, q.import_metadata_json,
                        a.titre AS annale_title
                 FROM uness_rank_inference_jobs j
                 JOIN ai_practice_questions q ON q.id = j.question_id

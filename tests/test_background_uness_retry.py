@@ -85,3 +85,17 @@ def test_refresh_edn_recommendations_is_not_dependent_on_ui_page(monkeypatch):
 
     assert len(calls) == 1
     assert calls[0][0] == 30
+
+
+def test_background_runs_uness_rank_worker_outside_event_loop(monkeypatch):
+    calls = []
+
+    async def fake_to_thread(function, *args, **kwargs):
+        calls.append((function.__name__, args, kwargs))
+        return {"claimed": 2, "resolved": 2}
+
+    monkeypatch.setattr(background.asyncio, "to_thread", fake_to_thread)
+
+    asyncio.run(background._run_pending_uness_rank_jobs())
+
+    assert calls == [("run_uness_rank_cycle", (), {"limit": 10})]

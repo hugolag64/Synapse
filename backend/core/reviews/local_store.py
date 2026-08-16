@@ -3457,7 +3457,7 @@ def get_ai_practice_sessions_history(
                        COALESCE(SUM(CASE WHEN latest.is_correct = 1 THEN 1 ELSE 0 END), 0) AS correct_count,
                        COALESCE(SUM(CASE WHEN latest.is_correct = 0 THEN 1 ELSE 0 END), 0) AS incorrect_count,
                        MAX(0, s.total_questions - COUNT(latest.question_id)) AS unanswered_count,
-                       SUM(latest.duration_seconds) AS duration_seconds,
+                       SUM(latest.duration_seconds) AS attempt_duration_seconds,
                        EXISTS (
                            SELECT 1
                            FROM ai_practice_session_questions sq
@@ -3472,7 +3472,14 @@ def get_ai_practice_sessions_history(
                 LIMIT ?""",
             params,
         ).fetchall()
-    return [dict(row) for row in rows]
+    result = []
+    for row in rows:
+        value = dict(row)
+        if value.get("attempt_duration_seconds") is not None:
+            value["duration_seconds"] = value["attempt_duration_seconds"]
+        value.pop("attempt_duration_seconds", None)
+        result.append(value)
+    return result
 
 
 def get_ai_practice_failure_streak(session_id: int, threshold: float = 70.0) -> int:

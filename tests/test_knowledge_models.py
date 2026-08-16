@@ -45,13 +45,14 @@ def test_sans_preuve_la_graine_est_le_score():
     assert blend(seed=70, computed=40, n_evidence=0) == 70
 
 
-def test_une_preuve_donne_moitie_moitie():
-    assert blend(seed=70, computed=40, n_evidence=1) == 55
-
-
-def test_trois_preuves_diluent_la_graine_au_quart():
+def test_une_preuve_rend_la_graine_secondaire():
     # 0.25 * 70 + 0.75 * 40 = 47.5 → 48 (arrondi)
-    assert blend(seed=70, computed=40, n_evidence=3) == 48
+    assert blend(seed=70, computed=40, n_evidence=1) == 48
+
+
+def test_trois_preuves_diluent_presque_entierement_la_graine():
+    # 1/16 * 70 + 15/16 * 40 = 41.875 → 42 (arrondi)
+    assert blend(seed=70, computed=40, n_evidence=3) == 42
 
 
 def test_sans_graine_le_score_calcule_passe_tel_quel():

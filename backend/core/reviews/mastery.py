@@ -40,6 +40,7 @@ class CourseProgressSnapshot:
     score_rang_b: int | None = None        # Score de maîtrise Rang B (0-100)
     rang_a_referential: bool = False
     rang_a_evaluated: bool = False
+    rang_a_conclusive: bool = False
     anki_review_count: int = 0
     anki_knowledge_score: int | None = None
     retention_stability_days: float = 0.0
@@ -368,6 +369,7 @@ def get_course_mastery(
         "has_rang_a_badge": _has_rang_a_badge,
         "rang_a_referential": _has_rang_a_referential,
         "rang_a_evaluated": _has_rang_a_evaluated,
+        "rang_a_conclusive": _rang_a_conclusive,
     }
     _retention_defaults = {
         "retention_stability_days": 0.0,

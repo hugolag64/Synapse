@@ -100,6 +100,29 @@ def test_une_tentative_oic_compte_comme_une_preuve():
     assert ksv.get_seed_snapshot("course-1").n_evidence == 1
 
 
+def test_les_aliases_partagent_les_preuves_et_anki(monkeypatch):
+    """Une preuve portée par une fiche sœur doit diluer la même graine."""
+    from types import SimpleNamespace
+    from backend.state.store import data_store
+
+    first = SimpleNamespace(id="course-1", item_number="357")
+    second = SimpleNamespace(id="course-2", item_number="357")
+    monkeypatch.setattr(data_store, "cours", [first, second])
+    data_store._alias_map = None
+    data_store._alias_signature = -1
+    ks.set_item_state("course-1", "solide")
+    ls.add_study_session(course_id="course-2", activity_types=["révision"])
+    ls.record_anki_review(
+        card_id=1, note_id=2, item_numbers=("357",), rating="good",
+        reviewed_at=datetime.datetime.now(datetime.timezone.utc), interval=3,
+        source_review_id="review-1",
+    )
+
+    assert ksv.count_evidence("course-1") == 2
+    assert ksv.count_evidence("course-2") == 2
+    assert ksv.get_seed_snapshot("course-1").n_evidence == 2
+
+
 # ── Couverture OIC ────────────────────────────────────────────────────────────
 
 def test_couverture_oic_vide_pour_un_cours_sans_oic():

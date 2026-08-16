@@ -227,4 +227,5 @@ def build_report() -> dict[str, Any]:
         "annales": annale_reports,
         "pending": import_result["pending_tag"],
         "unattributed_errors": unattributed_errors,
+        "visual_validation": gemini_autocorrect.list_pending_visual_validations(),
     }

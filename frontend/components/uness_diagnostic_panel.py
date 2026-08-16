@@ -66,6 +66,8 @@ def render(container: ui.element) -> None:
                 _render_unattributed_errors(report.get("unattributed_errors") or [])
                 for pending in report["pending"]:
                     _render_pending(pending)
+                for visual in report.get("visual_validation", []):
+                    _render_visual_validation(visual)
 
         async def _retry(failure_id: int) -> None:
             local_store.reset_uness_correction_failure_attempts(failure_id)
@@ -145,6 +147,33 @@ def render(container: ui.element) -> None:
                     ui.label("en attente de matière").classes("se-diag-ratio partial")
                 ui.label(f"{len(pending['files'])} quiz corrigés, matière à qualifier sur /annales.").classes(
                     "se-diag-quiz-detail"
+                )
+
+        def _render_visual_validation(entry: dict) -> None:
+            with ui.element("div").classes("se-diag-annale"):
+                with ui.element("div").classes("se-diag-head"):
+                    ui.label(f"👁️ {entry['title']}").classes("se-diag-title")
+                    ui.label("validation visuelle requise").classes("se-diag-ratio partial")
+                if entry.get("error"):
+                    ui.label(entry["error"]).classes("se-diag-quiz-detail")
+                    return
+                ui.label(f"{entry.get('question_count', 0)} question(s) concernée(s)").classes(
+                    "se-diag-quiz-detail"
+                )
+
+                async def _approve(filename: str = entry["filename"]) -> None:
+                    result = await asyncio.to_thread(
+                        gemini_autocorrect.approve_visual_validation, filename
+                    )
+                    if result["success"]:
+                        await asyncio.to_thread(import_service.import_verified_directory)
+                        ui.notify("✅ Correction visuelle validée et publiée.", type="positive")
+                    else:
+                        ui.notify(f"❌ Validation impossible : {result['error']}", type="negative")
+                    _refresh()
+
+                ui.button("Valider et publier", on_click=_approve).props(
+                    "flat dense size=sm color=primary"
                 )
 
         _refresh()

@@ -9,6 +9,7 @@ collected twice)."""
 from __future__ import annotations
 
 import json
+import os
 import re
 from dataclasses import replace
 from pathlib import Path
@@ -23,6 +24,9 @@ from backend.core.uness import gemini_conversion, import_service
 from bs4 import BeautifulSoup
 
 _PROMPT_PATH = Path(__file__).resolve().parents[3] / "prompts" / "uness_correction_prompt.txt"
+PENDING_VALIDATION_DIR = Path(
+    os.environ.get("UNESS_PENDING_VALIDATION_DIR", import_service.UNESS_ROOT / "pending_validation")
+)
 _IMAGE_MIME_TYPES = {
     ".png": "image/png",
     ".jpg": "image/jpeg",
@@ -178,8 +182,8 @@ def _correct_one_quiz(
     folder: Path,
     service: AIService | None,
 ) -> tuple[str | None, str | None, int, int]:
-    """Corrige un seul quiz avec Gemini et écrit sa sortie canonique dans
-    import_service.VERIFIED_DIR.
+    """Corrige un seul quiz avec Gemini et écrit sa sortie canonique dans le
+    dossier publié ou, si une image impose une validation, dans la file admin.
 
     Retourne (written_filename, message, input_tokens, output_tokens) :
       - written_filename n'est pas None en cas de succès (message peut quand
@@ -235,10 +239,13 @@ def _correct_one_quiz(
                 response.output_tokens or 0,
             )
 
+        needs_validation = bool(response.requires_human_validation or missing)
+        output_dir = PENDING_VALIDATION_DIR if needs_validation else import_service.VERIFIED_DIR
+        output_dir.mkdir(parents=True, exist_ok=True)
         written = None
         for index, exam in enumerate(exams):
             suffix = f"-{index}" if len(exams) > 1 else ""
-            out_path = import_service.VERIFIED_DIR / f"{_slug(title)}-{bridge_path.stem}{suffix}.json"
+            out_path = output_dir / f"{_slug(title)}-{_slug(bridge_path.stem)}{suffix}.json"
             out_path.write_text(
                 json.dumps(exam.to_dict(), ensure_ascii=False) + "\n", encoding="utf-8"
             )
@@ -265,12 +272,61 @@ def _correct_one_quiz(
         return None, f"Erreur inattendue : {exc}", 0, 0
 
 
+def list_pending_visual_validations() -> list[dict]:
+    """Read the local admin queue without importing or mutating its entries."""
+    if not PENDING_VALIDATION_DIR.is_dir():
+        return []
+    entries: list[dict] = []
+    for path in sorted(PENDING_VALIDATION_DIR.glob("*.json")):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(payload, dict):
+                raise ValueError("format JSON inattendu")
+            entries.append({
+                "filename": path.name,
+                "title": str(payload.get("title", path.stem)),
+                "question_count": len(payload.get("questions", [])),
+                "payload": payload,
+            })
+        except (OSError, json.JSONDecodeError, ValueError) as exc:
+            entries.append({"filename": path.name, "title": path.stem, "error": str(exc)})
+    return entries
+
+
+def approve_visual_validation(filename: str) -> dict:
+    """Publish one human-approved visual correction into the normal inbox."""
+    safe_name = Path(str(filename)).name
+    if safe_name != str(filename) or not safe_name.endswith(".json"):
+        return {"success": False, "error": "Nom de fichier invalide"}
+    source = PENDING_VALIDATION_DIR / safe_name
+    if not source.is_file():
+        return {"success": False, "error": "Correction en attente introuvable"}
+    try:
+        payload = json.loads(source.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            raise ValueError("Correction invalide")
+        questions = payload.get("questions", [])
+        if not isinstance(questions, list) or any(not isinstance(question, dict) for question in questions):
+            raise ValueError("Questions invalides")
+        for question in questions:
+            if question.get("verification_status") == "pending_visual_review":
+                question["verification_status"] = "verified"
+        import_service.VERIFIED_DIR.mkdir(parents=True, exist_ok=True)
+        source.write_text(json.dumps(payload, ensure_ascii=False) + "\n", encoding="utf-8")
+        target = import_service.VERIFIED_DIR / safe_name
+        source.replace(target)
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
+        return {"success": False, "error": str(exc)}
+    return {"success": True, "filename": safe_name}
+
+
 def correct_directory(folder: Path, *, service: AIService | None = None) -> dict:
     """Call Gemini once per quiz for every bridge JSON directly in `folder`,
     converting each response with its own bridge on the spot and writing the
     already-canonical exam into UNESS/vérifiés/."""
     folder = Path(folder)
     corrected: list[str] = []
+    pending_validation: list[str] = []
     errors: list[dict[str, str]] = []
     input_tokens = 0
     output_tokens = 0
@@ -300,7 +356,10 @@ def correct_directory(folder: Path, *, service: AIService | None = None) -> dict
             input_tokens += in_tok
             output_tokens += out_tok
             if written:
-                corrected.append(written)
+                if (PENDING_VALIDATION_DIR / written).is_file():
+                    pending_validation.append(written)
+                else:
+                    corrected.append(written)
                 local_store.resolve_uness_correction_failure(title, collected_at)
                 logger.info(f"uness_correction: {title!r} corrigé -> {written}")
             else:
@@ -320,6 +379,7 @@ def correct_directory(folder: Path, *, service: AIService | None = None) -> dict
     )
     return {
         "corrected": corrected,
+        "pending_validation": pending_validation,
         "errors": errors,
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,

@@ -7,7 +7,7 @@ import json
 import pytest
 
 from backend.core.reviews import local_store
-from backend.core.uness import diagnostics, import_service
+from backend.core.uness import diagnostics, gemini_autocorrect, import_service
 
 
 @pytest.fixture(autouse=True)
@@ -27,13 +27,31 @@ def uness_dirs(tmp_path, monkeypatch):
     to_review = tmp_path / "à_vérifier"
     archives = tmp_path / "archives"
     verified = tmp_path / "vérifiés"
+    pending_validation = tmp_path / "pending_validation"
     to_review.mkdir()
     archives.mkdir()
     verified.mkdir()
+    pending_validation.mkdir()
     monkeypatch.setattr(import_service, "TO_REVIEW_DIR", to_review)
     monkeypatch.setattr(import_service, "ARCHIVE_DIR", archives)
     monkeypatch.setattr(import_service, "VERIFIED_DIR", verified)
-    return {"to_review": to_review, "archives": archives, "verified": verified}
+    monkeypatch.setattr(gemini_autocorrect, "PENDING_VALIDATION_DIR", pending_validation)
+    return {
+        "to_review": to_review, "archives": archives, "verified": verified,
+        "pending_validation": pending_validation,
+    }
+
+
+def test_build_report_exposes_visual_validation_queue(uness_dirs):
+    uness_dirs["pending_validation"].joinpath("dp1.json").write_text(
+        json.dumps({"title": "Cardio — DP1", "questions": [{"id": "q1"}]}),
+        encoding="utf-8",
+    )
+
+    report = diagnostics.build_report()
+
+    assert report["visual_validation"][0]["filename"] == "dp1.json"
+    assert report["visual_validation"][0]["question_count"] == 1
 
 
 def _bridge_file(path, *, source_url, collected_at, title):

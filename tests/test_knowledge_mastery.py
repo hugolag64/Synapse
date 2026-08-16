@@ -132,8 +132,8 @@ def test_une_preuve_reelle_dilue_la_graine_de_moitie():
     snap = get_course_mastery(course, sessions=sessions)
 
     # calculé : 50 - 5 (1 lecture) - 15 (confiance basse) = 30
-    # fusion  : 0.5 * 70 + 0.5 * 30 = 50
-    assert snap.score == 50
+    # fusion  : 0.25 * 70 + 0.75 * 30 = 40
+    assert snap.score == 40
 
 
 def test_sans_declaration_le_score_calcule_est_inchange():

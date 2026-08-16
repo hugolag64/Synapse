@@ -78,16 +78,18 @@ def blend(seed: int | None, computed: int | None, n_evidence: int) -> int | None
     """
     Fusionne la graine et le score calculé par mastery.py.
 
-    Le poids de la graine décroît avec le nombre de preuves réelles :
-        0 preuve → 100 %, 1 → 50 %, 2 → 33 %, 3 → 25 %.
-    La graine est diluée, jamais effacée brutalement.
+    Le poids de la graine décroît rapidement avec les preuves réelles :
+        0 preuve → 100 %, 1 → 25 %, 2 → 11 %, 3 → 6 %.
+    Une déclaration reste donc utile comme a priori, mais ne peut pas masquer
+    longtemps une mesure réelle, notamment quand les preuves sont réparties
+    entre plusieurs fiches d'un même item.
     """
     if seed is None:
         return computed
     if computed is None:
         return seed
 
-    w = 1.0 / (1.0 + max(0, n_evidence))
+    w = 1.0 / (1.0 + max(0, n_evidence)) ** 2
     return int(round(w * seed + (1.0 - w) * computed))
 
 

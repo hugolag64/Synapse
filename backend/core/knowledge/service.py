@@ -24,6 +24,44 @@ from backend.core.knowledge.models import (
 
 # ── Preuves réelles ───────────────────────────────────────────────────────────
 
+def _evidence_scope(course_ids: list[str] | tuple[str, ...] | str) -> tuple[str, ...]:
+    """Return the unique fiche ids belonging to the requested item(s).
+
+    ``course_id`` is still the public vocabulary of the legacy store, but a
+    single EDN item can have one fiche per college.  Resolving aliases here
+    keeps every seed consumer on the same item-level evidence perimeter.
+    """
+    if isinstance(course_ids, str):
+        requested = (course_ids,)
+    else:
+        requested = tuple(course_ids)
+
+    resolved: list[str] = []
+    try:
+        from backend.state.store import data_store
+
+        for course_id in requested:
+            resolved.extend(str(value) for value in data_store.alias_ids(str(course_id)))
+    except Exception:
+        resolved.extend(str(value) for value in requested)
+    return tuple(dict.fromkeys(value for value in resolved if value.strip()))
+
+
+def _item_numbers_for_courses(course_ids: tuple[str, ...]) -> tuple[str, ...]:
+    """Find EDN numbers for aliases so Anki evidence is item-level too."""
+    try:
+        from backend.state.store import data_store
+
+        numbers = {
+            str(getattr(course, "item_number", "") or "").strip()
+            for course in data_store.cours
+            if str(getattr(course, "id", "")) in course_ids
+        }
+        return tuple(sorted(value for value in numbers if value))
+    except Exception:
+        return ()
+
+
 def first_evidence_date(course_id: str) -> datetime.date | None:
     """
     Date de la première preuve réelle (session, QCM, tentative OIC), ou None.
@@ -31,21 +69,29 @@ def first_evidence_date(course_id: str) -> datetime.date | None:
     C'est la date à laquelle la dégradation de la graine s'arrête : au-delà,
     c'est l'évidence qui pilote le score, plus le temps.
     """
+    scope = _evidence_scope(course_id)
+    if not scope:
+        return None
+    placeholders = ",".join("?" for _ in scope)
+    item_numbers = _item_numbers_for_courses(scope)
     with _conn() as con:
         row = con.execute(
-            """
+            f"""
             SELECT MIN(d) AS first_d FROM (
-                SELECT MIN(session_date) AS d FROM study_sessions WHERE course_id = ?
+                SELECT MIN(session_date) AS d FROM study_sessions WHERE course_id IN ({placeholders})
                 UNION ALL
-                SELECT MIN(session_date) AS d FROM qcm_sessions   WHERE course_id = ?
+                SELECT MIN(session_date) AS d FROM qcm_sessions WHERE course_id IN ({placeholders})
                 UNION ALL
                 SELECT MIN(a.attempted_at) AS d
                     FROM oic_attempts a
                     JOIN lisa_oic o ON o.id = a.oic_id
-                   WHERE o.course_id = ?
+                   WHERE o.course_id IN ({placeholders})
+                UNION ALL
+                SELECT MIN(reviewed_at) AS d FROM anki_review_evidence
+                    WHERE item_number IN ({','.join('?' for _ in item_numbers)})
             )
             """,
-            (course_id, course_id, course_id),
+            (*scope, *scope, *scope, *item_numbers),
         ).fetchone()
 
     raw = row["first_d"] if row else None
@@ -55,21 +101,37 @@ def first_evidence_date(course_id: str) -> datetime.date | None:
     return datetime.date.fromisoformat(str(raw)[:10])
 
 
-def count_evidence(course_id: str) -> int:
-    """Nombre de preuves réelles : sessions + QCM + tentatives OIC."""
+def count_evidence_for_courses(course_ids: list[str] | tuple[str, ...]) -> int:
+    """Count unique item-level evidence across all requested fiche ids.
+
+    Anki rows are keyed by EDN item number rather than fiche id, so they are
+    counted once per item even when several aliases point to that number.
+    """
+    scope = _evidence_scope(course_ids)
+    if not scope:
+        return 0
+    placeholders = ",".join("?" for _ in scope)
+    item_numbers = _item_numbers_for_courses(scope)
     with _conn() as con:
         row = con.execute(
-            """
+            f"""
             SELECT
-                (SELECT COUNT(*) FROM study_sessions WHERE course_id = ?)
-              + (SELECT COUNT(*) FROM qcm_sessions   WHERE course_id = ?)
+                (SELECT COUNT(*) FROM study_sessions WHERE course_id IN ({placeholders}))
+              + (SELECT COUNT(*) FROM qcm_sessions WHERE course_id IN ({placeholders}))
               + (SELECT COUNT(*) FROM oic_attempts a
                     JOIN lisa_oic o ON o.id = a.oic_id
-                   WHERE o.course_id = ?) AS n
+                   WHERE o.course_id IN ({placeholders}))
+              + (SELECT COUNT(*) FROM anki_review_evidence
+                   WHERE item_number IN ({','.join('?' for _ in item_numbers)}) ) AS n
             """,
-            (course_id, course_id, course_id),
+            (*scope, *scope, *scope, *item_numbers),
         ).fetchone()
     return int(row["n"] or 0)
+
+
+def count_evidence(course_id: str) -> int:
+    """Nombre de preuves réelles au niveau item : sessions + QCM + OIC + Anki."""
+    return count_evidence_for_courses((course_id,))
 
 
 # ── Graine ────────────────────────────────────────────────────────────────────
@@ -121,7 +183,7 @@ def get_seed_snapshot_for_item(
     if state is None:
         return SeedSnapshot(declared_level=None, seed_score=None, n_evidence=0)
 
-    evidence_count = sum(count_evidence(candidate) for candidate in candidates)
+    evidence_count = count_evidence_for_courses(candidates)
     evidence_dates = [first_evidence_date(candidate) for candidate in candidates]
     until = min((value for value in evidence_dates if value is not None), default=today)
     return SeedSnapshot(

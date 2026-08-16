@@ -44,6 +44,7 @@ from frontend.components.flash_zero_cockpit import render_flash_zero_card, open_
 from frontend.components.edn_insights_panel import render_edn_insights_panel
 from backend.config.settings import business_today
 from backend.core.edn.trajectory import build_progress_snapshot, project_to_exam, rank_gain_potential
+from backend.core.practice.daily_queue import build_daily_question_queue, create_daily_queue_session
 from backend.core.reviews.reentry import filter_post_resume_signals, get_study_resume_date
 from backend.core.planning.sprint_countdown import SprintCountdownService
 
@@ -237,7 +238,7 @@ async def render_today_cockpit() -> None:
     state = DashboardState()
     sel: dict = {"task": None}
     drawer_state: dict = {"root": None}
-    _data: dict = {"urgent": [], "today": [], "load": {}, "qcm": {}, "lac": {}, "crit": 0, "target": {}, "flash_zero": None, "flash_zero_dismissed": False, "flash_zero_complete": False, "edn_status": None, "edn_projections": (), "gain_items": ()}
+    _data: dict = {"urgent": [], "today": [], "load": {}, "qcm": {}, "lac": {}, "crit": 0, "target": {}, "flash_zero": None, "flash_zero_dismissed": False, "flash_zero_complete": False, "edn_status": None, "edn_projections": (), "gain_items": (), "daily_queue": []}
 
     # ── Pipeline données (réplique de rebuild_all, partie data) ────────────────
     def _fetch() -> None:
@@ -308,14 +309,28 @@ async def render_today_cockpit() -> None:
             tasks=all_tasks,
             error_signals=error_signals,
         )
+        try:
+            daily_queue = build_daily_question_queue(limit=5)
+        except Exception:
+            logger.exception("Impossible de construire la file des 5 questions du jour")
+            daily_queue = []
 
-        _data.update(urgent=urgent, today=today, load=load, qcm=qcm, lac=lac, crit=crit, target=target, flash_zero=flash_zero, flash_zero_dismissed=flash_zero_dismissed, flash_zero_complete=flash_zero_complete, edn_status=edn_status, edn_projections=edn_projections, gain_items=gain_items)
+        _data.update(urgent=urgent, today=today, load=load, qcm=qcm, lac=lac, crit=crit, target=target, flash_zero=flash_zero, flash_zero_dismissed=flash_zero_dismissed, flash_zero_complete=flash_zero_complete, edn_status=edn_status, edn_projections=edn_projections, gain_items=gain_items, daily_queue=daily_queue)
 
     # ── Focus (réutilise open_focus_mode existant) ────────────────────────────
     def _open_focus(task: ReviewTask | None = None) -> None:
         if task is not None:
             state.focus_tasks = [task] + [t for t in state.focus_tasks if t.id != task.id]
         open_focus_mode(state)
+
+    def _open_daily_queue() -> None:
+        session_id = create_daily_queue_session(limit=5)
+        if session_id is None:
+            ui.notify("Aucune question existante disponible aujourd'hui.", type="info")
+            return
+        from frontend.components.ai_practice_panel import _open_answer_dialog
+        ui.notify("Les 5 questions du jour sont prêtes.", type="positive")
+        _open_answer_dialog(session_id, _full_rebuild)
 
     # ── Callbacks validation (copie fidèle de __init__.py) ────────────────────
     async def _on_done(task, card=None, activity_types=None, duration_minutes=None,
@@ -495,6 +510,22 @@ async def render_today_cockpit() -> None:
                     _data["gain_items"],
                     on_hide=_hide_sprint,
                 )
+
+            daily_queue = _data.get("daily_queue") or []
+            if daily_queue:
+                with ui.card().classes("w-full p-4 mb-4 border border-indigo-200 bg-indigo-50/40"):
+                    with ui.row().classes("w-full items-center justify-between gap-3"):
+                        with ui.column().classes("gap-1"):
+                            ui.label("Les 5 du jour").classes("text-base font-semibold text-indigo-900")
+                            items = ", ".join(
+                                f"ITEM {row['item_number']}" for row in daily_queue
+                            )
+                            ui.label(
+                                f"Questions déjà disponibles · {items or 'items non classés'}"
+                            ).classes("text-xs text-indigo-700")
+                        ui.button(
+                            "Ouvrir la file", icon="school", on_click=_open_daily_queue
+                        ).props("unelevated color=indigo")
 
             def _finish_flash_zero() -> None:
                 timezone_name = data_store.preferences.get("timezone", "Europe/Paris")

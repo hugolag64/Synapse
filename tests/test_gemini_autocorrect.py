@@ -15,6 +15,7 @@ from backend.core.uness import gemini_autocorrect, gemini_conversion, import_ser
 @pytest.fixture(autouse=True)
 def _isolated_verified_dir(tmp_path, monkeypatch):
     monkeypatch.setattr(import_service, "VERIFIED_DIR", tmp_path / "verifies")
+    monkeypatch.setattr(gemini_autocorrect, "PENDING_VALIDATION_DIR", tmp_path / "pending")
     return tmp_path / "verifies"
 
 
@@ -204,8 +205,10 @@ def test_correct_directory_publishes_visual_correction_as_pending_review(
 
     result = gemini_autocorrect.correct_directory(tmp_path, service=service)
 
-    assert len(result["corrected"]) == 1
-    written = json.loads(next(_isolated_verified_dir.glob("*.json")).read_text(encoding="utf-8"))
+    assert result["corrected"] == []
+    assert len(result["pending_validation"]) == 1
+    pending = gemini_autocorrect.PENDING_VALIDATION_DIR
+    written = json.loads(next(pending.glob("*.json")).read_text(encoding="utf-8"))
     assert written["questions"][0]["verification_status"] == "pending_visual_review"
 
 
@@ -229,10 +232,37 @@ def test_correct_directory_marks_missing_image_as_unsupported_but_preserves_corr
 
     result = gemini_autocorrect.correct_directory(tmp_path, service=service)
 
-    assert len(result["corrected"]) == 1
+    assert result["corrected"] == []
+    assert len(result["pending_validation"]) == 1
     assert any("missing.jpg" in error["error"] for error in result["errors"])
-    written = json.loads(next(_isolated_verified_dir.glob("*.json")).read_text(encoding="utf-8"))
+    written = json.loads(next(gemini_autocorrect.PENDING_VALIDATION_DIR.glob("*.json")).read_text(encoding="utf-8"))
     assert written["questions"][0]["verification_status"] == "unsupported"
+
+
+def test_visual_validation_queue_can_be_listed_and_approved(tmp_path, _isolated_verified_dir):
+    pending = gemini_autocorrect.PENDING_VALIDATION_DIR
+    pending.mkdir(parents=True)
+    filename = "dp1-test.json"
+    (pending / filename).write_text(
+        json.dumps({"title": "Cardio — DP1", "questions": [{"id": "q1"}]}),
+        encoding="utf-8",
+    )
+
+    queue = gemini_autocorrect.list_pending_visual_validations()
+    assert queue[0]["filename"] == filename
+    assert queue[0]["question_count"] == 1
+
+    result = gemini_autocorrect.approve_visual_validation(filename)
+
+    assert result["success"] is True
+    assert (tmp_path / "verifies" / filename).is_file()
+    assert not (pending / filename).exists()
+
+
+def test_visual_validation_approval_rejects_path_traversal(_isolated_verified_dir):
+    result = gemini_autocorrect.approve_visual_validation("../secret.json")
+
+    assert result == {"success": False, "error": "Nom de fichier invalide"}
 
 
 def test_correct_directory_records_error_for_invalid_json_response_without_aborting_others(

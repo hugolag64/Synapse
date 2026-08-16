@@ -100,6 +100,7 @@ _GEMINI_FLASH_PRICE_PER_M_OUTPUT = 3.00
 
 def _format_gemini_summary(result: dict) -> str:
     corrected = len(result["corrected"])
+    pending_validation = len(result.get("pending_validation", []))
     errors = len(result["errors"])
     input_tokens = result["input_tokens"]
     output_tokens = result["output_tokens"]
@@ -108,7 +109,8 @@ def _format_gemini_summary(result: dict) -> str:
         + output_tokens / 1_000_000 * _GEMINI_FLASH_PRICE_PER_M_OUTPUT
     )
     return (
-        f"{corrected} quiz corrigé(s), {errors} erreur(s) — "
+        f"{corrected} quiz corrigé(s), {pending_validation} en validation visuelle, "
+        f"{errors} erreur(s) — "
         f"~{input_tokens} tokens entrée / {output_tokens} sortie (≈ {cost:.4f} $)"
     )
 
@@ -466,9 +468,11 @@ def _open_import_dialog(refresh_fn) -> None:
                     result = await asyncio.to_thread(gemini_autocorrect.correct_directory, session_dir)
                     partial_failure = _gemini_partial_failure_message(result)
                     with client:
-                        if result["corrected"]:
+                        if result["corrected"] or result.get("pending_validation"):
                             if partial_failure:
                                 ui.notify(f"⚠️ Correction partielle : {partial_failure}", type="warning", duration=12)
+                            elif result.get("pending_validation"):
+                                ui.notify("👁️ Correction enregistrée : validation visuelle requise dans Paramètres.", type="warning", duration=10)
                             else:
                                 ui.notify("✨ Annale prête ! Veuillez qualifier la matière.", type="positive", duration=6)
                             _finalize_scan()
@@ -493,10 +497,10 @@ def _open_import_dialog(refresh_fn) -> None:
             result = await asyncio.to_thread(gemini_autocorrect.correct_directory, Path(raw_path))
             status_lbl.set_text(_format_gemini_summary(result))
             status_lbl.classes(
-                "text-positive" if result["corrected"] else "text-negative",
+                "text-positive" if result["corrected"] or result.get("pending_validation") else "text-negative",
                 remove="text-primary text-slate-500",
             )
-            if result["corrected"]:
+            if result["corrected"] or result.get("pending_validation"):
                 _finalize_scan()
 
         with ui.row().classes("w-full justify-between items-center mt-3"):

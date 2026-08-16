@@ -40,13 +40,13 @@ def record_ai_practice_mastery(session_id: int):
         )
     elif kind in {"qcm", "dp", "kfp"}:
         evidence = get_session_item_evidence(session_id)
-        if not evidence or not session.get("course_id"):
+        if not evidence:
             return None
         outcomes = []
         for item_number, item_evidence in sorted(evidence.items()):
             evaluation = EvaluationInput(
                 source="qcm",
-                course_id=session["course_id"],
+                course_id=str(session.get("course_id") or ""),
                 item_number=item_number,
                 course_title=session["course_title"],
                 score_percent=item_evidence["score_percent"],

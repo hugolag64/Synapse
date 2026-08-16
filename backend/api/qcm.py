@@ -2,17 +2,16 @@
 
 from __future__ import annotations
 
-import datetime
-
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from backend.core.practice.mastery import record_ai_practice_mastery
 from backend.core.practice.attempt_service import (
     record_error_signals_for_attempt,
     score_and_record_closed_attempt,
+    score_and_record_open_attempt,
 )
+from backend.core.practice.mastery import record_ai_practice_mastery
 from backend.core.practice.scoring import score_closed_attempt
 from backend.core.reviews import local_store
 from backend.core.uness import import_service
@@ -21,19 +20,25 @@ from backend.core.uness.import_service import (
     import_uness_exam,
     load_local_exam,
 )
-from frontend.components.qcm_replay import _same_closed_answer, build_correction_rows
+from frontend.components.qcm_replay import build_correction_rows
 
 router = APIRouter(prefix="/api/qcm", tags=["qcm"])
+__all__ = ["router", "score_closed_attempt"]
 
 
 class AttemptPayload(BaseModel):
     question_id: int
     response: str = ""
+    duration_seconds: int | None = None
 
 
 class FollowUpPayload(BaseModel):
     action: str
     question_id: int | None = None
+
+
+class CompletePayload(BaseModel):
+    timed_out: bool = False
 
 
 class UnessImportPayload(BaseModel):
@@ -204,13 +209,25 @@ def save_attempt(session_id: int, payload: AttemptPayload) -> dict:
         raise HTTPException(status_code=404, detail="Question QCM introuvable")
     is_open = str(question.get("question_kind", "")).lower() == "open"
     scored = None
+    is_qroc = str(((question.get("uness") or {}).get("question") or {}).get("type_question") or "").upper() == "QROC"
     if not is_open:
         _, scored = score_and_record_closed_attempt(
             session_id=session_id,
             question_id=payload.question_id,
             question=question,
             response=payload.response,
+            duration_seconds=payload.duration_seconds,
             finalize_session=False,
+        )
+        return {"ok": True, "score_mode": scored.score_mode}
+
+    if is_qroc:
+        _, scored = score_and_record_open_attempt(
+            session_id=session_id,
+            question_id=payload.question_id,
+            question=question,
+            response=payload.response,
+            duration_seconds=payload.duration_seconds,
         )
         return {"ok": True, "score_mode": scored.score_mode}
 
@@ -222,13 +239,30 @@ def save_attempt(session_id: int, payload: AttemptPayload) -> dict:
         score_percent=None,
         score_mode="",
         score_reason="",
+        duration_seconds=payload.duration_seconds,
         finalize_session=False,
     )
     return {"ok": True, "score_mode": ""}
 
 
 @router.post("/sessions/{session_id}/complete")
-def complete_session(session_id: int) -> dict:
+def complete_session(session_id: int, payload: CompletePayload | None = None) -> dict:
+    if payload and payload.timed_out:
+        for question in local_store.get_ai_practice_session(session_id):
+            attempts = question.get("attempts") or []
+            answered = any(str(attempt.get("response") or "").strip() not in {"", "[]"} for attempt in attempts)
+            if answered:
+                continue
+            local_store.record_ai_practice_attempt(
+                session_id=session_id,
+                question_id=int(question["id"]),
+                response="",
+                is_correct=False,
+                score_percent=0.0,
+                score_mode="timed_out",
+                score_reason="temps_expire",
+                finalize_session=False,
+            )
     summary = local_store.finalize_ai_practice_session(session_id)
     if summary is None:
         raise HTTPException(status_code=404, detail="Session QCM introuvable")

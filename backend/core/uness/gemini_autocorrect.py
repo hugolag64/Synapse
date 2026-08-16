@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import re
+from dataclasses import replace
 from pathlib import Path
 
 from loguru import logger
@@ -198,40 +199,32 @@ def _correct_one_quiz(
             f"{json.dumps({'title': quiz.get('title'), 'content': cleaned_content}, ensure_ascii=False)}"
         )
 
-        # Retry loop for rate limits (429) - Free Tier friendly
-        max_retries = 5
-        response = None
-        for attempt in range(max_retries):
-            try:
-                response = generate_uness_correction(
-                    message,
-                    images=images,
-                    context=title,
-                    service=service,
-                )
-                break
-            except AIServiceError as err:
-                if ("429" in str(err) or "Too Many Requests" in str(err)) and attempt < max_retries - 1:
-                    import time
-                    wait_time = 10 * (attempt + 1)  # 10s, 20s, 30s
-                    time.sleep(wait_time)
-                    continue
-                raise err
-
-        if response is None:
-            raise AIServiceError("Aucune réponse obtenue du service IA.")
-
-        if response.requires_human_validation:
-            return (
-                None,
-                "Correction visuelle générée : validation humaine requise avant import.",
-                response.input_tokens or 0,
-                response.output_tokens or 0,
-            )
+        # The Gemini client owns the bounded three-attempt network retry policy.
+        # Keeping a second loop here multiplied 3 client attempts by 5 outer
+        # attempts and could issue 15 calls for one quiz.
+        response = generate_uness_correction(
+            message,
+            images=images,
+            context=title,
+            service=service,
+        )
 
         payload = _parsed_response(response.text)
         quiz_objects = payload if isinstance(payload, list) else [payload]
         exams = gemini_conversion.convert_with_bridge(quiz_objects, bridge)
+
+        if response.requires_human_validation or missing:
+            visual_status = "unsupported" if missing else "pending_visual_review"
+            exams = [
+                replace(
+                    exam,
+                    questions=tuple(
+                        replace(question, verification_status=visual_status)
+                        for question in exam.questions
+                    ),
+                )
+                for exam in exams
+            ]
 
         got_questions = sum(len(exam.questions) for exam in exams)
         if expected_questions and got_questions < expected_questions:
@@ -251,7 +244,15 @@ def _correct_one_quiz(
             )
             written = out_path.name
 
-        warning = f"Images manquantes (ignorées) : {', '.join(missing)}" if missing else None
+        warning = (
+            f"Images manquantes : {', '.join(missing)} ; questions conservées non notées"
+            if missing
+            else (
+                "Correction visuelle publiée en attente de validation humaine."
+                if response.requires_human_validation
+                else None
+            )
+        )
         return written, warning, response.input_tokens or 0, response.output_tokens or 0
     except (AIServiceError, ValueError, KeyError, json.JSONDecodeError, OSError) as exc:
         return None, str(exc), 0, 0

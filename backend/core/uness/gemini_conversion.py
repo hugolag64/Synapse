@@ -190,9 +190,16 @@ def _question(raw: dict, bridge_images: list[dict]) -> dict:
     type_question = raw.get("type_question")
     if type_question not in _QUESTION_TYPES:
         type_question = _type_question(raw.get("type", ""), enonce, propositions)
+    rank = str(raw.get("rank") or "").strip().upper()
+    rank_source = str(raw.get("rank_source") or "").strip().lower()
+    if rank not in {"A", "B"} or rank_source != "html":
+        rank = ""
+        rank_source = "unknown"
     return {
         "id": raw["id"],
         "type_question": type_question,
+        "rank": rank,
+        "rank_source": rank_source,
         "enonce": enonce,
         "propositions": (
             _sanitize_unsupported_propositions([_proposition(p) for p in propositions])

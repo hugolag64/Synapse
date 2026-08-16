@@ -346,7 +346,7 @@ def annale_detail_page(annale_id: str) -> None:
             )
 
         def _show_correction(session_id: int) -> None:
-            if open_node_qcm(session_id):
+            if open_node_qcm(session_id, correction=True):
                 return
             open_qcm_correction(
                 session_id,

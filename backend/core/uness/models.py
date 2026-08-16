@@ -9,12 +9,25 @@ from typing import Any, ClassVar, Literal
 from urllib.parse import parse_qsl, unquote, urlparse
 
 UnessStatus = Literal["concordant", "desaccord", "incertain", "valide_manuellement"]
-UnessQuestionType = Literal["QRM", "QRU", "QRP/L", "DP", "KFP", "QROC", "TCS"]
-UnessVerificationStatus = Literal["unverified", "verified", "unsupported"]
+UnessQuestionType = Literal[
+    "QRM", "QRU", "QRP", "QRP_LONG", "QZP", "DP", "KFP", "QROC", "TCS", "UNKNOWN"
+]
+UnessVerificationStatus = Literal["unverified", "verified", "unsupported", "pending_visual_review"]
 
 _STATUTS = {"concordant", "desaccord", "incertain", "valide_manuellement"}
-_QUESTION_TYPES = {"QRM", "QRU", "QRP/L", "DP", "KFP", "QROC", "TCS"}
-_VERIFICATION_STATUSES = {"unverified", "verified", "unsupported"}
+_QUESTION_TYPES = {"QRM", "QRU", "QRP", "QRP_LONG", "QZP", "DP", "KFP", "QROC", "TCS", "UNKNOWN"}
+_TYPE_ALIASES = {
+    "QRP/L": "QRP_LONG",
+    "QRP LONG": "QRP_LONG",
+    "QRP_LONG": "QRP_LONG",
+}
+
+
+def canonical_question_type(raw_type: Any) -> UnessQuestionType:
+    normalized = str(raw_type or "").strip().upper()
+    normalized = _TYPE_ALIASES.get(normalized, normalized)
+    return normalized if normalized in _QUESTION_TYPES else "UNKNOWN"
+_VERIFICATION_STATUSES = {"unverified", "verified", "unsupported", "pending_visual_review"}
 UNSUPPORTED_VISUAL_EXPLANATION = (
     "Vérification IA indisponible : le support visuel requis n'a pas pu être "
     "fourni intégralement au modèle."
@@ -273,16 +286,34 @@ class UnessQuestion:
     id: str
     type_question: UnessQuestionType
     enonce: str
+    type_question_raw: str = ""
     propositions: tuple[UnessProposition, ...] = ()
     images: tuple[UnessImage, ...] = ()
     support_visuel_seul: bool = False
     verification_status: UnessVerificationStatus = "unverified"
     dp_context: dict[str, Any] = field(default_factory=dict)
     item_numbers: tuple[str, ...] = ()
+    rank: str = ""
+    rank_source: str = "unknown"
+    rank_confidence: float | None = None
+    rank_evidence: tuple[str, ...] = ()
+    qroc_exact_answers: tuple[str, ...] = ()
+    qroc_acceptable_answers: tuple[str, ...] = ()
+    indispensable_choices: tuple[str, ...] = ()
+    inacceptable_choices: tuple[str, ...] = ()
+    expected_choice_count: int | None = None
 
     def __post_init__(self) -> None:
+        raw_type = str(self.type_question or "").strip().upper()
+        if raw_type in _TYPE_ALIASES:
+            object.__setattr__(self, "type_question_raw", self.type_question_raw or raw_type)
+            object.__setattr__(self, "type_question", canonical_question_type(raw_type))
         if self.type_question not in _QUESTION_TYPES:
             raise ValueError(f"type_question inconnu: {self.type_question}")
+        if self.rank and self.rank.upper() not in {"A", "B"}:
+            raise ValueError("rank doit être A, B ou vide")
+        if self.rank_confidence is not None and not 0.0 <= float(self.rank_confidence) <= 1.0:
+            raise ValueError("rank_confidence doit être compris entre 0 et 1")
         if not isinstance(self.support_visuel_seul, bool):
             raise ValueError("support_visuel_seul doit être un booléen")
         if self.verification_status not in _VERIFICATION_STATUSES:
@@ -292,9 +323,15 @@ class UnessQuestion:
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> UnessQuestion:
+        raw_type = str(payload.get("type_question", payload.get("question_type", "")) or "").strip()
+        rank = str(payload.get("rank", payload.get("rang", "")) or "").strip().upper()
+        rank_source = str(payload.get("rank_source", "") or "").strip() or (
+            "official" if rank in {"A", "B"} else "unknown"
+        )
         return cls(
             id=str(payload.get("id", "")),
-            type_question=payload.get("type_question", payload.get("question_type", "")),
+            type_question=canonical_question_type(raw_type),
+            type_question_raw=raw_type,
             enonce=str(payload.get("enonce", payload.get("prompt", ""))),
             propositions=tuple(
                 UnessProposition.from_dict(item) for item in payload.get("propositions", [])
@@ -304,12 +341,22 @@ class UnessQuestion:
             verification_status=payload.get("verification_status", "unverified"),
             dp_context=dict(payload.get("dp_context", {})),
             item_numbers=tuple(dict.fromkeys(str(item).strip() for item in payload.get("item_numbers", []) if str(item).strip())),
+            rank=rank,
+            rank_source=rank_source,
+            rank_confidence=payload.get("rank_confidence"),
+            rank_evidence=tuple(str(item).strip() for item in payload.get("rank_evidence", []) if str(item).strip()),
+            qroc_exact_answers=tuple(str(item).strip() for item in payload.get("qroc_exact_answers", []) if str(item).strip()),
+            qroc_acceptable_answers=tuple(str(item).strip() for item in payload.get("qroc_acceptable_answers", []) if str(item).strip()),
+            indispensable_choices=tuple(str(item).strip() for item in payload.get("indispensable_choices", []) if str(item).strip()),
+            inacceptable_choices=tuple(str(item).strip() for item in payload.get("inacceptable_choices", []) if str(item).strip()),
+            expected_choice_count=payload.get("expected_choice_count"),
         )
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "type_question": self.type_question,
+            "type_question_raw": self.type_question_raw or self.type_question,
             "enonce": self.enonce,
             "propositions": [item.to_dict() for item in self.propositions],
             "images": [item.to_dict() for item in self.images],
@@ -317,6 +364,15 @@ class UnessQuestion:
             "verification_status": self.verification_status,
             "dp_context": self.dp_context,
             "item_numbers": list(self.item_numbers),
+            "rank": self.rank,
+            "rank_source": self.rank_source,
+            "rank_confidence": self.rank_confidence,
+            "rank_evidence": list(self.rank_evidence),
+            "qroc_exact_answers": list(self.qroc_exact_answers),
+            "qroc_acceptable_answers": list(self.qroc_acceptable_answers),
+            "indispensable_choices": list(self.indispensable_choices),
+            "inacceptable_choices": list(self.inacceptable_choices),
+            "expected_choice_count": self.expected_choice_count,
         }
 
 

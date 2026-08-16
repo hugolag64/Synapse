@@ -15,14 +15,17 @@ export const fetchSession = (id: number) => request<SessionPayload>(`/api/qcm/se
 export const fetchCorrection = (id: number) =>
   request<CorrectionPayload>(`/api/qcm/sessions/${id}/correction`)
 
-export const saveAttempt = (sessionId: number, questionId: number, response: string) =>
+export const saveAttempt = (sessionId: number, questionId: number, response: string, durationSeconds?: number) =>
   request(`/api/qcm/sessions/${sessionId}/attempts`, {
     method: 'POST',
-    body: JSON.stringify({ question_id: questionId, response }),
+    body: JSON.stringify({ question_id: questionId, response, duration_seconds: durationSeconds }),
   })
 
-export const completeSession = (id: number) =>
-  request<CorrectionPayload>(`/api/qcm/sessions/${id}/complete`, { method: 'POST' })
+export const completeSession = (id: number, timedOut = false) =>
+  request<CorrectionPayload>(`/api/qcm/sessions/${id}/complete`, {
+    method: 'POST',
+    body: timedOut ? JSON.stringify({ timed_out: true }) : undefined,
+  })
 
 export const replaySession = async (id: number) =>
   (await request<{ session_id: number }>(`/api/qcm/sessions/${id}/replay`, { method: 'POST' })).session_id

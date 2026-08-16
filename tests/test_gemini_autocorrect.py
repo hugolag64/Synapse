@@ -145,7 +145,15 @@ def test_correct_directory_sends_images_found_by_basename(tmp_path, _isolated_ve
         images=[{"question_id": "q1", "filename": "uness-stamp/images/dermato1.jpg"}],
     )
     service = Mock()
-    service.generate.return_value = _quiz_response()
+    service.generate.return_value = AIResponse(
+        text=json.dumps({
+            "quiz_title": "DP1\nTest",
+            "questions": [{"id": "q1", "type_question": "QRM", "enonce": "Question", "propositions": [{"id": "A", "texte": "A", "reponse_officielle": True, "verdict_ia": True, "explication": "Explication", "confiance_ia": 0.9}]}],
+        }),
+        model=AIModel.FLASH,
+        input_tokens=100,
+        output_tokens=20,
+    )
 
     gemini_autocorrect.correct_directory(tmp_path, service=service)
 
@@ -175,7 +183,7 @@ def test_correct_directory_uses_lite_model_without_images_and_flash_with_images(
     assert AITask.UNESS_CORRECTION in tasks_used
 
 
-def test_correct_directory_does_not_publish_visual_correction_without_human_validation(
+def test_correct_directory_publishes_visual_correction_as_pending_review(
     tmp_path, _isolated_verified_dir
 ):
     (tmp_path / "dermato1.jpg").write_bytes(b"fake-jpeg-bytes")
@@ -184,26 +192,47 @@ def test_correct_directory_does_not_publish_visual_correction_without_human_vali
         images=[{"question_id": "q1", "filename": "uness-stamp/images/dermato1.jpg"}],
     )
     service = Mock()
-    service.generate.return_value = _quiz_response()
+    service.generate.return_value = AIResponse(
+        text=json.dumps({
+            "quiz_title": "DP1\nTest",
+            "questions": [{"id": "q1", "type_question": "QRM", "enonce": "Question", "propositions": [{"id": "A", "texte": "A", "reponse_officielle": True, "verdict_ia": True, "explication": "Explication", "confiance_ia": 0.9}]}],
+        }),
+        model=AIModel.FLASH,
+        input_tokens=100,
+        output_tokens=20,
+    )
 
     result = gemini_autocorrect.correct_directory(tmp_path, service=service)
 
-    assert result["corrected"] == []
-    assert any("validation humaine" in error["error"] for error in result["errors"])
+    assert len(result["corrected"]) == 1
+    written = json.loads(next(_isolated_verified_dir.glob("*.json")).read_text(encoding="utf-8"))
+    assert written["questions"][0]["verification_status"] == "pending_visual_review"
 
 
-def test_correct_directory_reports_missing_image_but_still_writes_correction(tmp_path, _isolated_verified_dir):
+def test_correct_directory_marks_missing_image_as_unsupported_but_preserves_correction(
+    tmp_path, _isolated_verified_dir
+):
     _bridge_file(
         tmp_path,
         images=[{"question_id": "q1", "filename": "uness-stamp/images/missing.jpg"}],
     )
     service = Mock()
-    service.generate.return_value = _quiz_response()
+    service.generate.return_value = AIResponse(
+        text=json.dumps({
+            "quiz_title": "DP1\nTest",
+            "questions": [{"id": "q1", "type_question": "QRM", "enonce": "Question", "propositions": [{"id": "A", "texte": "A", "reponse_officielle": True, "verdict_ia": True, "explication": "Explication", "confiance_ia": 0.9}]}],
+        }),
+        model=AIModel.FLASH,
+        input_tokens=100,
+        output_tokens=20,
+    )
 
     result = gemini_autocorrect.correct_directory(tmp_path, service=service)
 
     assert len(result["corrected"]) == 1
     assert any("missing.jpg" in error["error"] for error in result["errors"])
+    written = json.loads(next(_isolated_verified_dir.glob("*.json")).read_text(encoding="utf-8"))
+    assert written["questions"][0]["verification_status"] == "unsupported"
 
 
 def test_correct_directory_records_error_for_invalid_json_response_without_aborting_others(

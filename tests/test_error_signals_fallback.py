@@ -109,3 +109,24 @@ def test_the_scoring_entry_point_passes_the_session(practice_db):
     source = inspect.getsource(attempt_service.score_and_record_closed_attempt)
 
     assert "session_id=session_id," in source
+
+
+def test_a_multi_item_question_writes_signal_for_each_item(practice_db):
+    session_id, question_id = _session("230")
+    with local_store._conn() as con:
+        con.execute(
+            """INSERT INTO ai_practice_question_items
+               (question_id, item_number, confidence, source, classifier_version)
+               VALUES (?, ?, ?, ?, ?)""",
+            (question_id, "231", 1.0, "manual", "test-v1"),
+        )
+
+    attempt_service.record_error_signals_for_attempt(
+        attempt_id=1,
+        question_id=question_id,
+        question={"prompt": "Question"},
+        propositions=[{"proposition_id": "A", "discordance": "omission"}],
+        session_id=session_id,
+    )
+
+    assert {row[0] for row in _signals()} == {"230", "231"}

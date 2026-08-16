@@ -46,6 +46,21 @@ def _question_type(node: Tag) -> str:
     return "QRM"
 
 
+def _question_rank(node: Tag) -> str:
+    raw = str(
+        node.get("data-rank")
+        or node.get("data-rang")
+        or node.get("rank")
+        or node.get("rang")
+        or ""
+    ).strip().upper()
+    if raw in {"A", "B"}:
+        return raw
+    visible = _text(_first(node, ".question-rank, .rank, .rang, [data-question-rank]"))
+    match = re.search(r"\brang\s*([AB])\b", visible, re.IGNORECASE)
+    return match.group(1).upper() if match else ""
+
+
 def _answer_value(node: Tag) -> bool | None:
     classes = {str(value).lower() for value in node.get("class", [])}
     if classes & _FALSE_CLASSES:
@@ -150,6 +165,8 @@ def extract_review_content(html: str) -> list[UnessQuestion]:
                 id=question_id,
                 type_question=_question_type(node),
                 enonce=prompt,
+                rank=_question_rank(node),
+                rank_source="official" if _question_rank(node) else "unknown",
                 propositions=_propositions(node),
                 images=_images(node),
                 support_visuel_seul=bool(

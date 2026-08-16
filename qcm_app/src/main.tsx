@@ -1,4 +1,4 @@
-import { Component, useEffect, useMemo, useState } from 'react'
+import { Component, useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { completeSession, fetchCorrection, fetchSession, followUpAction, replaySession, saveAttempt } from './api'
 import type { CorrectionPayload, CorrectionRow, Question, SessionPayload, UnessImage } from './types'
@@ -65,6 +65,16 @@ function visiblePropositionLabel(propositionId: string | undefined, index: numbe
   return /^[A-E]$/i.test(normalized) ? normalized.toUpperCase() : String.fromCharCode(65 + index)
 }
 
+export function RankBadge({ question, revealed = true }: { question: Question; revealed?: boolean }) {
+  const metadata = question.uness?.question
+  if (!revealed || !metadata?.rank) {
+    return revealed ? <span className="rank-badge rank-unknown">Rang inconnu</span> : null
+  }
+  const inferred = metadata.rank_source === 'gemini'
+  const source = inferred ? ' · inféré IA' : metadata.rank_source === 'admin' ? ' · validé admin' : ''
+  return <span className={`rank-badge rank-${metadata.rank.toLowerCase()}`} title={metadata.rank_evidence?.length ? `OIC : ${metadata.rank_evidence.join(', ')}` : undefined}>Rang {metadata.rank}{source}</span>
+}
+
 function imageSource(sessionId: number, questionId: number, index: number, image: UnessImage): string {
   if (image.local_path) return `/api/qcm/sessions/${sessionId}/questions/${questionId}/images/${index}`
   return image.source_url
@@ -91,7 +101,8 @@ function QuestionVisualContext({ question, sessionId }: { question: Question; se
   const hasProvenance = Boolean(question.uness?.provenance || question.uness?.exam)
   const visualVerificationUnsupported = question.uness?.question?.verification_status === 'unsupported'
     || images.some((image) => image.metadata?.verification_status === 'unsupported')
-  if (!contexts.length && !images.length && !question.uness?.question?.support_visuel_seul && !hasProvenance && !visualVerificationUnsupported) return null
+  const visualVerificationPending = question.uness?.question?.verification_status === 'pending_visual_review'
+  if (!contexts.length && !images.length && !question.uness?.question?.support_visuel_seul && !hasProvenance && !visualVerificationUnsupported && !visualVerificationPending) return null
   return <div className="uness-context">
     <UnessProvenance question={question} />
     {contexts.length > 0 && <section className="clinical-context"><strong>Contexte du dossier</strong>{contexts.map((context) => <p key={context}>{context}</p>)}</section>}
@@ -104,6 +115,7 @@ function QuestionVisualContext({ question, sessionId }: { question: Question; se
       />
     ))}</div>}
     {visualVerificationUnsupported && <div className="visual-warning" role="alert"><strong>Vérification IA visuelle indisponible</strong><span>Aucun verdict IA n’a été retenu pour cette question : un ou plusieurs supports visuels n’ont pas pu être fournis au modèle.</span></div>}
+    {visualVerificationPending && <div className="visual-warning" role="status"><strong>Explication visuelle en attente de validation</strong><span>La réponse officielle reste la référence ; l’explication IA est provisoire.</span></div>}
     {question.uness?.question?.support_visuel_seul && <div className="visual-warning" role="alert"><strong>Support visuel uniquement</strong><span>L’interaction UNESS originale n’est pas reconstruite ; utilise l’image comme support pédagogique.</span></div>}
   </div>
 }
@@ -114,26 +126,46 @@ export function Reader({ payload, onCorrection }: { payload: SessionPayload; onC
   const [busy, setBusy] = useState(false)
   const isExamParam = new URLSearchParams(window.location.search).get('exam') === '1'
   const [examMode, setExamMode] = useState(isExamParam)
-  
-  // Mode Concours / Chronomètre (ex: 2 min par question par défaut)
-  const totalSeconds = useMemo(() => payload.questions.length * 120, [payload.questions.length])
+  const configuredDuration = Number(new URLSearchParams(window.location.search).get('duration'))
+  const defaultExamDuration = configuredDuration > 0
+    ? configuredDuration
+    : (payload.session.duration_seconds || 3 * 60 * 60)
+  const totalSeconds = useMemo(() => examMode ? defaultExamDuration : 0, [defaultExamDuration, examMode])
   const [timeLeft, setTimeLeft] = useState(totalSeconds)
+  const [timedOut, setTimedOut] = useState(false)
+  const question = payload.questions[index]
+  const answersRef = useRef(answers)
+  useEffect(() => { answersRef.current = answers }, [answers])
 
   useEffect(() => {
-    if (!examMode) return
+    if (!examMode || timedOut || timeLeft <= 0) return
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timer)
+          setTimedOut(true)
           return 0
         }
         return prev - 1
       })
     }, 1000)
     return () => clearInterval(timer)
-  }, [examMode])
+  }, [examMode, timedOut])
 
-  const question = payload.questions[index]
+  useEffect(() => {
+    if (!timedOut) return
+    let cancelled = false
+    const submitTimedOut = async () => {
+      setBusy(true)
+      await saveAttempt(payload.session.id, question.id, answersRef.current[String(question.id)] || '', (examMode ? defaultExamDuration : totalSeconds) - timeLeft)
+      const correction = await completeSession(payload.session.id, true)
+      if (!cancelled) onCorrection(correction)
+      setBusy(false)
+    }
+    submitTimedOut().catch(() => setBusy(false))
+    return () => { cancelled = true }
+  }, [timedOut])
+
   if (!question) return <main className="state"><Header /><h1>QCM vide</h1><p>Cette session ne contient aucune question.</p></main>
 
   const isQroc = question.question_kind === 'open' || question.choices.length === 0 || question.uness?.question?.support_visuel_seul || question.uness?.question?.type_question === 'QROC'
@@ -160,7 +192,7 @@ export function Reader({ payload, onCorrection }: { payload: SessionPayload; onC
   async function next() {
     setBusy(true)
     const response = answers[String(question.id)] || ''
-    await saveAttempt(payload.session.id, question.id, response)
+    await saveAttempt(payload.session.id, question.id, response, examMode ? (defaultExamDuration - timeLeft) : undefined)
     if (index < payload.questions.length - 1) setIndex(index + 1)
     else onCorrection(await completeSession(payload.session.id))
     setBusy(false)
@@ -175,7 +207,7 @@ export function Reader({ payload, onCorrection }: { payload: SessionPayload; onC
   return <main className="reader-page">
     <Header onExit />
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '8px 0' }}>
-      {isExamParam ? (
+      {examMode ? (
         <span style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.08em', color: '#e5484d', textTransform: 'uppercase', background: '#ffeef0', padding: '4px 10px', borderRadius: '6px' }}>
           🔒 Mode Examen Blanc — Anti-Retour Actif
         </span>
@@ -184,7 +216,10 @@ export function Reader({ payload, onCorrection }: { payload: SessionPayload; onC
           <input
             type="checkbox"
             checked={examMode}
-            onChange={(e) => setExamMode(e.target.checked)}
+            onChange={(e) => {
+              setExamMode(e.target.checked)
+              if (e.target.checked && timeLeft <= 0) setTimeLeft(defaultExamDuration)
+            }}
           />
           <span>Activer le mode Concours Blanc (Chronomètre & épreuve fermée)</span>
         </label>
@@ -195,14 +230,16 @@ export function Reader({ payload, onCorrection }: { payload: SessionPayload; onC
           <span className={`timer-clock ${timeLeft < 180 ? 'warning' : ''}`}>{formatTimer(timeLeft)}</span>
         </div>
       )}
+      {timedOut && <div className="timer-expired" role="alert">Temps écoulé : réponses verrouillées et épreuve envoyée.</div>}
     </div>
-    <div className="reader-kicker">{isExamParam ? 'CONCOURS BLANC' : 'SESSION QCM'} · ITEM {payload.session.item_number || '—'}</div>
+    <div className="reader-kicker">{examMode ? 'CONCOURS BLANC' : 'SESSION QCM'} · ITEM {payload.session.item_number || '—'}</div>
     <h1>{payload.session.course_title || 'Session Examen'}</h1>
-    <p className="reader-subtitle">{isExamParam ? 'Réponds à chaque question dans l’ordre sans possibilité de retour en arrière.' : 'Réponds aux questions, puis consulte ta correction détaillée.'}</p>
+    <p className="reader-subtitle">{examMode ? 'Réponds à chaque question dans l’ordre sans possibilité de retour en arrière.' : 'Réponds aux questions, puis consulte ta correction détaillée.'}</p>
     <div className="progress-line"><span style={{ width: `${((index + 1) / payload.questions.length) * 100}%` }} /></div>
     <div className="reader-meta">Question {index + 1} sur {payload.questions.length}</div>
     <section className="question-card">
       <QuestionVisualContext question={question} sessionId={payload.session.id} />
+      <div className="question-badges"><span className="format-badge">{question.uness?.question?.type_question || 'QCM'}</span>{!examMode && <RankBadge question={question} />}</div>
       <h2 className="question-prompt">{question.prompt}</h2>
       
       {isQroc ? (
@@ -214,13 +251,14 @@ export function Reader({ payload, onCorrection }: { payload: SessionPayload; onC
             placeholder="Tape ta réponse ou désigne la structure anatomique/zone visuelle..."
             value={textAnswer}
             onChange={(e) => handleTextChange(e.target.value)}
+            disabled={timedOut || busy}
           />
         </div>
       ) : (
         <>
           <p className="answer-hint">Plusieurs réponses possibles</p>
           <div className="choices">
-            {question.choices.map((choice, choiceIndex) => <button className={`choice ${selected.includes(choice) ? 'selected' : ''}`} key={choice} onClick={() => toggle(choice)}>
+            {question.choices.map((choice, choiceIndex) => <button className={`choice ${selected.includes(choice) ? 'selected' : ''}`} key={choice} onClick={() => toggle(choice)} disabled={timedOut || busy}>
               <span className="choice-letter">{String.fromCharCode(65 + choiceIndex)}</span><span>{choice}</span><span className="choice-check">{selected.includes(choice) ? '✓' : ''}</span>
             </button>)}
           </div>
@@ -228,10 +266,10 @@ export function Reader({ payload, onCorrection }: { payload: SessionPayload; onC
       )}
     </section>
     <footer className="reader-actions">
-      {!isExamParam && (
+      {!examMode && (
         <button className="button secondary" onClick={() => index && setIndex(index - 1)} disabled={!index}>Précédente</button>
       )}
-      <button className="button primary" onClick={next} disabled={busy}>{index === payload.questions.length - 1 ? 'Valider et terminer l’épreuve' : 'Valider & Question suivante 🔒'}</button>
+      <button className="button primary" onClick={next} disabled={busy || timedOut}>{index === payload.questions.length - 1 ? 'Valider et terminer l’épreuve' : 'Valider & Question suivante 🔒'}</button>
     </footer>
   </main>
 }
@@ -240,24 +278,27 @@ export function Correction({ payload, onReplay }: { payload: CorrectionPayload; 
   const [errorsOnly, setErrorsOnly] = useState(false)
   const [followUp, setFollowUp] = useState(payload.follow_up)
   const rows = errorsOnly ? payload.rows.filter((row) => row.status !== 'correct') : payload.rows
-  const scorePercent = payload.session.score_percent == null ? 0 : payload.session.score_percent
-  const score20 = ((scorePercent / 100) * 20).toFixed(1)
+  const scorePercent = payload.session.score_percent
+  const score20 = scorePercent == null ? '—' : ((scorePercent / 100) * 20).toFixed(1)
+  const excludedCount = payload.rows.filter((row) => row.status === 'not_noted').length
+  const notedCount = payload.rows.length - excludedCount
 
   const followUpCard = followUp && <section className="follow-up"><div><strong>Plusieurs échecs sur ce contexte</strong><p>{followUp.failure_streak} sessions sous 70 %. Veux-tu transformer cette difficulté en support de révision ?</p></div><div className="follow-up-actions"><button className="button secondary" onClick={async () => { await followUpAction(payload.session.id, 'anchor', followUp.question_id); setFollowUp(null) }}>Ancrer la question</button><button className="button primary" onClick={async () => { await followUpAction(payload.session.id, 'lacune'); setFollowUp(null) }}>Créer une fiche lacune</button><button className="button quiet" onClick={async () => { await followUpAction(payload.session.id, 'ignore'); setFollowUp(null) }}>Ignorer</button></div></section>
   return <main className="correction-page">{followUpCard}
     <Header onExit />
     <div className="reader-kicker">CORRECTION TERMINÉE · {new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}</div>
     <h1>{payload.session.course_title || 'QCM'}</h1>
+    <div className="correction-note"><strong>Note officielle</strong><span>La correction UNESS est prioritaire pour le calcul. L’explication IA est pédagogique et peut être en attente de validation.</span></div>
     <p className="reader-subtitle">Tu peux parcourir les erreurs, relire les explications et relancer ce QCM quand tu veux.</p>
-    <div className="score-mode-banner"><strong>Barème EDN propositionnel — partiel</strong><span>Grille des discordances 1 / 0,5 / 0,2 / 0 uniquement. Les pénalités absolues du barème officiel (proposition indispensable omise, inacceptable cochée) ne s'appliquent pas : les annales importées ne portent pas cette information.</span></div>
+    <div className="score-mode-banner"><strong>Barème EDN R2C</strong><span>Les pénalités indispensables / inacceptables s'appliquent lorsqu'elles sont présentes dans la correction officielle. Les questions dont la correction est insuffisante restent affichées mais sont exclues de la note.</span></div>
     <section className="kpis">
       <div>
         <strong>{score20} / 20</strong>
-        <span>Note EDN</span>
+        <span>Note EDN · {notedCount}/{payload.rows.length} notées</span>
       </div>
-      <div><strong>{payload.session.correct_count || 0} / {payload.rows.length}</strong><span>bonnes réponses</span></div>
+      <div><strong>{payload.session.correct_count || 0} / {notedCount}</strong><span>bonnes réponses</span></div>
       <div><strong className="danger">{payload.session.incorrect_count || 0}</strong><span>à retravailler</span></div>
-      <div><strong>{scorePercent}%</strong><span>score global</span></div>
+      <div><strong>{scorePercent == null ? '—' : `${scorePercent}%`}</strong><span>{excludedCount ? `${excludedCount} exclues` : 'score global'}</span></div>
     </section>
     <div className="details-heading"><h2>Détail des réponses <span>· {payload.rows.length} questions</span></h2><button className={`filter ${errorsOnly ? 'active' : ''}`} onClick={() => setErrorsOnly(!errorsOnly)}>Afficher uniquement mes erreurs</button></div>
     <div className="correction-list">{rows.map((row) => <CorrectionCard key={row.position} row={row} sessionId={payload.session.id} />)}</div>
@@ -275,14 +316,16 @@ export function CorrectionCard({ row, sessionId }: { row: CorrectionRow; session
     : disagreements.map((proposition) => proposition.commentaire_desaccord || '').filter(Boolean)
   const hasDisagreement = correction?.disagreement?.present || disagreements.length > 0
   const official = correction?.official
-  return <article className={`correction-card ${correct ? 'is-correct' : 'is-error'}`}>
-    <button className="correction-summary" onClick={() => setOpen(!open)}><span className="question-number">{row.position}</span><strong>{row.question.prompt}</strong><span className="status">● {correct ? 'Correcte' : row.status === 'unanswered' ? 'Sans réponse' : 'Incorrecte'}{hasDisagreement && <span className="divergence-badge">⚠ Divergence UNESS</span>}</span><span>{open ? '⌃' : '›'}</span></button>
+  const notNoted = row.status === 'not_noted'
+  return <article className={`correction-card ${correct ? 'is-correct' : notNoted ? '' : 'is-error'}`}>
+    <button className="correction-summary" onClick={() => setOpen(!open)}><span className="question-number">{row.position}</span><strong>{row.question.prompt}</strong><span className="status">● {correct ? 'Correcte' : notNoted ? 'Non notée' : row.status === 'unanswered' ? 'Sans réponse' : 'Incorrecte'}{hasDisagreement && <span className="divergence-badge">⚠ Divergence UNESS</span>}</span><span>{open ? '⌃' : '›'}</span></button>
     {open && <div className="correction-detail">
       <QuestionVisualContext question={row.question} sessionId={sessionId} />
+      <div className="question-badges"><RankBadge question={row.question} /></div>
       {hasDisagreement && <div className="uness-warning" role="alert"><strong>Divergence avec la correction officielle UNESS</strong>{disagreementComments.map((comment) => <p key={comment}>{visibleCorrectionText(comment)}</p>)}</div>}
-      <div className="correction-body"><div className="answers"><div className="answer-label">Ta réponse</div><p className="answer-wrong">{visibleAnswerText(row.response) || 'Aucune réponse'}</p><div className="answer-label">Réponse correcte</div><p className="answer-right">{visibleAnswerText(row.correct_answer)}</p>
-        {official && <details className="official-correction"><summary>Correction officielle UNESS</summary><p>{official.answer.length ? official.answer.join(', ') : 'Non disponible'}{official.available ? '' : ' (partielle)'}</p></details>}
-      </div><aside><h3>POURQUOI ?</h3><p>{visibleCorrectionText(row.explanation)}</p></aside></div>
+      <div className="correction-body"><div className="answers"><div className="answer-label">Ta réponse</div><p className="answer-wrong">{visibleAnswerText(row.response) || 'Aucune réponse'}</p><div className="answer-label">{official?.available ? 'Correction officielle UNESS — réponse' : 'Réponse attendue'}</div><p className="answer-right">{official?.available ? (official.answer.length ? official.answer.join(', ') : 'Non disponible') : visibleAnswerText(row.correct_answer)}</p>
+        {official && !official.available && <details className="official-correction"><summary>Correction officielle UNESS</summary><p>Non disponible (données insuffisantes)</p></details>}
+      </div><aside><h3>EXPLICATION PÉDAGOGIQUE IA</h3><p>{visibleCorrectionText(row.explanation)}</p></aside></div>
       {row.propositions && row.propositions.length > 0 && <section className="proposition-correction" aria-label="Détail des propositions">
         <h3>Détail propositionnel EDN</h3>
         <div className="proposition-list" role="list">

@@ -91,6 +91,173 @@ def test_completed_closed_question_exposes_training_mode_and_propositions(client
     assert payload["rows"][0]["propositions"][0]["discordance"] == "correct"
 
 
+def test_attempt_api_persists_elapsed_duration(client, practice_db):
+    spec = PracticeSessionSpec(
+        practice_kind=PracticeKind.QCM,
+        total_questions=1,
+        open_questions=0,
+        closed_questions=1,
+        item_number="115",
+        course_id="course-115",
+        course_title="Insuffisance cardiaque",
+    )
+    session_id = local_store.create_ai_practice_session(
+        spec=spec,
+        questions=[{"prompt": "Q1", "kind": QuestionKind.CLOSED, "choices": ["A", "B"], "answer": "A", "explanation": "E1"}],
+        model="test-model",
+    )
+    question = local_store.get_ai_practice_session(session_id)[0]
+
+    response = client.post(
+        f"/api/qcm/sessions/{session_id}/attempts",
+        json={"question_id": question["id"], "response": "A", "duration_seconds": 37},
+    )
+
+    assert response.status_code == 200
+    attempt = local_store.get_ai_practice_session(session_id)[0]["attempts"][-1]
+    assert attempt["duration_seconds"] == 37
+
+
+def test_timeout_completion_records_unanswered_questions_and_finalizes(client, practice_db):
+    spec = PracticeSessionSpec(
+        practice_kind=PracticeKind.QCM,
+        total_questions=2,
+        open_questions=0,
+        closed_questions=2,
+        item_number="115",
+        course_id="course-115",
+        course_title="Insuffisance cardiaque",
+    )
+    session_id = local_store.create_ai_practice_session(
+        spec=spec,
+        questions=[
+            {"prompt": "Q1", "kind": QuestionKind.CLOSED, "choices": ["A", "B"], "answer": "A", "explanation": "E1"},
+            {"prompt": "Q2", "kind": QuestionKind.CLOSED, "choices": ["A", "B"], "answer": "B", "explanation": "E2"},
+        ],
+        model="test-model",
+    )
+
+    response = client.post(f"/api/qcm/sessions/{session_id}/complete", json={"timed_out": True})
+
+    assert response.status_code == 200
+    assert response.json()["session"]["completion_state"] == "scored"
+    assert len(response.json()["rows"]) == 2
+
+
+def test_completion_excludes_non_noted_question_from_session_score(client, practice_db):
+    spec = PracticeSessionSpec(
+        practice_kind=PracticeKind.QCM,
+        total_questions=2,
+        open_questions=0,
+        closed_questions=2,
+        item_number="115",
+        course_id="course-115",
+        course_title="Insuffisance cardiaque",
+    )
+    session_id = local_store.create_ai_practice_session(
+        spec=spec,
+        questions=[
+            {"prompt": "Q1", "kind": QuestionKind.CLOSED, "choices": [{"id": "A", "texte": "A", "reponse_uness": True}], "answer": "A", "explanation": "E1"},
+            {"prompt": "Q2", "kind": QuestionKind.CLOSED, "choices": [{"id": "A", "texte": "A", "reponse_uness": None}], "answer": "A", "explanation": "E2"},
+        ],
+        model="test-model",
+    )
+    questions = local_store.get_ai_practice_session(session_id)
+    for question in questions:
+        assert client.post(
+            f"/api/qcm/sessions/{session_id}/attempts",
+            json={"question_id": question["id"], "response": "A"},
+        ).status_code == 200
+
+    response = client.post(f"/api/qcm/sessions/{session_id}/complete")
+
+    assert response.status_code == 200
+    assert response.json()["session"]["score_percent"] == 100
+    assert response.json()["session"]["score_mode"] == "edn"
+
+
+def test_qroc_attempt_uses_official_exact_and_acceptable_answers(client, practice_db):
+    spec = PracticeSessionSpec(
+        practice_kind=PracticeKind.QCM,
+        total_questions=1,
+        open_questions=1,
+        closed_questions=0,
+        item_number="115",
+        course_id="course-115",
+        course_title="Insuffisance cardiaque",
+    )
+    session_id = local_store.create_ai_practice_session(
+        spec=spec,
+        questions=[{
+            "prompt": "Quel diagnostic ?",
+            "kind": QuestionKind.OPEN,
+            "choices": [],
+            "answer": "Diagnostic exact",
+            "explanation": "E1",
+            "import_metadata": {
+                "uness": {"question": {
+                    "type_question": "QROC",
+                    "qroc_exact_answers": ["Diagnostic exact"],
+                    "qroc_acceptable_answers": ["Formulation acceptable"],
+                }}
+            },
+        }],
+        model="test-model",
+    )
+    question = local_store.get_ai_practice_session(session_id)[0]
+
+    response = client.post(
+        f"/api/qcm/sessions/{session_id}/attempts",
+        json={"question_id": question["id"], "response": "Formulation acceptable"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["score_mode"] == "edn"
+    assert local_store.get_ai_practice_session(session_id)[0]["attempts"][-1]["score_percent"] == 50
+
+
+def test_unsupported_visual_question_is_preserved_but_not_noted(client, practice_db):
+    spec = PracticeSessionSpec(
+        practice_kind=PracticeKind.QCM,
+        total_questions=1,
+        open_questions=0,
+        closed_questions=1,
+        item_number="115",
+        course_id="course-115",
+        course_title="Insuffisance cardiaque",
+    )
+    session_id = local_store.create_ai_practice_session(
+        spec=spec,
+        questions=[{
+            "prompt": "Que montre l'image ?",
+            "kind": QuestionKind.CLOSED,
+            "choices": [{"id": "A", "texte": "Réponse", "reponse_uness": True}],
+            "answer": "A",
+            "explanation": "E1",
+            "import_metadata": {
+                "uness": {"question": {
+                    "type_question": "QRU",
+                    "verification_status": "unsupported",
+                }}
+            },
+        }],
+        model="test-model",
+    )
+    question = local_store.get_ai_practice_session(session_id)[0]
+
+    response = client.post(
+        f"/api/qcm/sessions/{session_id}/attempts",
+        json={"question_id": question["id"], "response": "A"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["score_mode"] == "not_noted"
+    assert client.post(f"/api/qcm/sessions/{session_id}/complete").status_code == 200
+    session = local_store.get_ai_practice_session_summary(session_id)
+    assert session["score_mode"] == "not_noted"
+    assert session["score_percent"] is None
+
+
 def _answered_session(client) -> int:
     spec = PracticeSessionSpec(
         practice_kind=PracticeKind.QCM,

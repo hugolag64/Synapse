@@ -14,6 +14,8 @@ de texte hors JSON.
     {
       "id": "<identifiant stable et unique, ex. l'id Moodle \"question-XXXX-N\" du HTML>",
       "type_question": "QRM" | "QRU" | "QRP/L" | "DP" | "KFP" | "QROC" | "TCS",
+      "rank": "A" | "B" | null,
+      "rank_source": "html" | null,
       "enonce": "<énoncé complet de la question>",
       "verification_status": "verified" | "unsupported",
       "propositions": [
@@ -62,6 +64,11 @@ Règles strictes :
   propositions sont correctes ; "DP" si la question appartient à un dossier
   progressif ; "KFP" si elle appartient à un Key Feature Problem ; "TCS" si la question
   est un Test de Concordance de Script (évaluation sur une échelle d'impact/probabilité suite à une hypothèse et information additionnelle).
+- "rank" ne peut être "A" ou "B" que si le HTML affiche explicitement un rang pour
+  cette question ou son item ; dans ce cas "rank_source" vaut "html". Sinon renvoie
+  "rank": null et "rank_source": null. N'infère jamais un rang sans contexte OIC
+  fourni séparément : une passe Gemini dédiée pourra le faire ultérieurement avec
+  un seuil de confiance contrôlé.
 - Chaque quiz a sa propre valeur "quiz_title" reprise mot pour mot de
   `contents[].title`. Ne fusionne jamais les questions de deux quiz différents
   dans un seul objet "questions" — un objet par quiz, même quand plusieurs

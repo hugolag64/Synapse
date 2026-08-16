@@ -15,8 +15,8 @@ from loguru import logger
 from backend.core.uness.exam_simulator import (
     compute_edn_score,
     list_available_subjects,
-    load_dps_by_subject,
 )
+from backend.core.uness.exam_composer import compose_exam_session
 from frontend.components.import_dp_dialog import open_import_dp_dialog
 
 _EXAM_CSS = """
@@ -49,7 +49,10 @@ def render_exam_simulator_page() -> None:
         "active_session": False,
         "finished": False,
         "selected_subject": "Toutes les spécialités",
+        "exam_format": "dp",
         "num_dps": 2,
+        "question_count": 20,
+        "exam_seed": datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
         "dps": [],
         "current_dp_idx": 0,
         "current_q_idx": 0,
@@ -96,6 +99,27 @@ def render_exam_simulator_page() -> None:
                     on_change=lambda e: state.update({"num_dps": e.value})
                 ).props("outlined dense").classes("w-64")
 
+                ui.select(
+                    label="Format d'épreuve",
+                    options={"dp": "DP ×3", "series": "Série isolée", "mixed": "Mixte"},
+                    value=state["exam_format"],
+                    on_change=lambda e: state.update({"exam_format": e.value}),
+                ).props("outlined dense").classes("w-48")
+
+                ui.select(
+                    label="Questions isolées",
+                    options={10: "10 questions", 20: "20 questions", 30: "30 questions"},
+                    value=state["question_count"],
+                    on_change=lambda e: state.update({"question_count": e.value}),
+                ).props("outlined dense").classes("w-48")
+
+            with ui.row().classes("w-full gap-6 items-center"):
+                ui.input(
+                    label="Seed de composition (rejouable)",
+                    value=state["exam_seed"],
+                    on_change=lambda e: state.update({"exam_seed": str(e.value or "")}),
+                ).props("outlined dense").classes("w-72")
+
             with ui.row().classes("w-full justify-between items-center pt-4 border-t border-zinc-200 dark:border-zinc-800"):
                 ui.button(
                     "Importer un DP (ChatGPT / Gemini)",
@@ -110,66 +134,22 @@ def render_exam_simulator_page() -> None:
                 ).props("unelevated color=primary size=md").classes("font-semibold px-6")
 
     def _start_exam():
-        import json
-        from backend.core.reviews.local_store import create_ai_practice_session
-        from backend.core.practice.models import PracticeSessionSpec, PracticeKind, PracticeDifficulty, QuestionKind
-
         subj = None if state["selected_subject"] == "Toutes les spécialités" else state["selected_subject"]
-        dps = load_dps_by_subject(subject=subj, max_dps=state["num_dps"])
-
-        if not dps:
-            ui.notify("Aucun DP disponible pour cette sélection.", type="warning")
+        seed = str(state["exam_seed"] or "").strip() or datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        try:
+            composition = compose_exam_session(
+                format=state["exam_format"],
+                subject=subj,
+                seed=seed,
+                dp_count=int(state["num_dps"]),
+                question_count=int(state["question_count"]),
+            )
+        except ValueError as exc:
+            ui.notify(str(exc), type="warning")
             return
-
-        all_questions = []
-        dp_titles = []
-
-        for dp in dps:
-            dp_title = dp.get("title", "DP Examen")
-            dp_titles.append(dp_title)
-            stem = dp.get("dp_context", {}).get("enonce_general", "")
-
-            for q in dp.get("questions", []):
-                choices = [p.get("texte", "") for p in q.get("propositions", [])]
-                correct_choices = [p.get("texte", "") for p in q.get("propositions", []) if p.get("reponse_uness")]
-                answer_str = json.dumps(correct_choices, ensure_ascii=False) if len(correct_choices) > 1 else (correct_choices[0] if correct_choices else "")
-                
-                exp = q.get("propositions", [{}])[0].get("explication_ia", "Correction selon le référentiel EDN.")
-
-                all_questions.append({
-                    "prompt": q.get("enonce", ""),
-                    "choices": choices,
-                    "answer": answer_str,
-                    "explanation": exp,
-                    "kind": QuestionKind.CLOSED if choices else QuestionKind.OPEN,
-                    "uness": {
-                        "exam": {
-                            "title": dp_title,
-                            "dp_context": {"CONTEXTE DU DOSSIER": stem}
-                        },
-                        "question": {
-                            "dp_context": {"CONTEXTE DU DOSSIER": stem}
-                        }
-                    }
-                })
-
-        title_summary = "Concours Blanc — " + (" & ".join(dp_titles[:2]))
-        if len(dp_titles) > 2:
-            title_summary += f" (+{len(dp_titles)-2} DP)"
-
-        spec = PracticeSessionSpec(
-            practice_kind=PracticeKind.DP,
-            total_questions=len(all_questions),
-            open_questions=0,
-            closed_questions=len(all_questions),
-            course_id="exam-blanc",
-            course_title=title_summary,
-            item_number="CONCOURS BLANC",
-            difficulty=PracticeDifficulty.EDN
+        ui.navigate.to(
+            f"/qcm-app/?session={composition['session_id']}&exam=1&duration={composition['duration_seconds']}"
         )
-
-        session_id = create_ai_practice_session(spec=spec, questions=all_questions, model="exam-simulator-node")
-        ui.navigate.to(f"/qcm-app/?session={session_id}&exam=1")
 
     def _render_exam_view():
         dp_idx = state["current_dp_idx"]

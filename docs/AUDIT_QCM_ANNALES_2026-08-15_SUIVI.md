@@ -90,16 +90,23 @@ Référence docimologique : [règles CNG/COSUI R2C](https://www.cng.sante.fr/sit
   écrans, tandis que l'historique complet est disponible via
   `list_qcm_result_versions()`.
 
+### Composition d’épreuve officielle
+
+- Le composeur serveur propose les formats DP ×3, série isolée et mixte, sans
+  appel IA pendant la sélection.
+- La sélection combine fréquence EDNpro, signaux d’erreur et ancienneté, puis
+  est tirée avec un seed persistant ; l’ordre et les identifiants sont figés
+  dans `exam_compositions`.
+- La page de configuration ouvre le lecteur React actif avec la durée du format
+  et le mode examen ; le serveur refuse les tentatives hors ordre.
+
 ## Reste explicitement à brancher
 
 Ces éléments ne sont pas prétendus livrés dans cette branche :
 
-1. Composer une épreuve officielle complète à partir de blocs DP dans un parcours
-   `/qcm` refondu, avec sélection gelée par seed et anti-biais limité à
-   l'entraînement généré.
-2. Ajouter les sauvegardes locales chiffrées, la copie sur second volume et le
+1. Ajouter les sauvegardes locales chiffrées, la copie sur second volume et le
    test mensuel de restauration.
-3. Brancher les cinq indicateurs opérationnels de l'audit (sécurisation Rang A,
+2. Brancher les cinq indicateurs opérationnels de l'audit (sécurisation Rang A,
    discordance omission/excès, rythme par format, couverture × fréquence,
    courbe de reprise) à des décisions visibles dans le cockpit.
 

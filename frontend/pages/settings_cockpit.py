@@ -44,6 +44,7 @@ from backend.core.uness import import_service
 from backend.core.lisa import item_service
 from frontend.components.uness_diagnostic_panel import render as render_uness_diagnostics
 from frontend.components.dp_coverage_panel import render as render_dp_coverage
+from frontend.components.uness_rank_admin import render_uness_rank_admin
 from frontend.components.calendar_sources_panel import render as render_calendar_sources
 from frontend.pages.catalog_admin import render_catalog_admin
 
@@ -479,6 +480,11 @@ def render_settings_cockpit() -> None:
         render_catalog_admin()
 
         with _settings_domain("DIAGNOSTICS ET TÉLÉMÉTRIE", "Couverture et consommation", "analytics"):
+            with ui.expansion("RANGS UNESS — VALIDATION", icon="verified").classes(
+                "w-full se-diag-expansion"
+            ):
+                render_uness_rank_admin(ui.column().classes("w-full p-4"))
+
             with ui.expansion("COUVERTURE DP PAR ITEM", icon="assignment").classes(
                 "w-full se-diag-expansion"
             ):

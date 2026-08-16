@@ -636,6 +636,7 @@ def init_db() -> None:
         """)
     migrate_study_sessions_v2()
     _migrate_qcm_sessions_v2()
+    _migrate_qcm_result_versions()
     _migrate_ednpro_qcm_rank_metadata()
     _migrate_weak_points_v2()
     _migrate_weak_points_from_sessions()
@@ -4003,6 +4004,50 @@ def _migrate_qcm_sessions_v2() -> None:
         """)
 
 
+def _migrate_qcm_result_versions() -> None:
+    """Ajoute l'historique append-only des résultats QCM."""
+    with _conn() as con:
+        con.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS qcm_result_versions (
+                id                     INTEGER PRIMARY KEY AUTOINCREMENT,
+                qcm_session_id         INTEGER NOT NULL,
+                phase                  TEXT NOT NULL CHECK (phase IN ('initial', 'final')),
+                revision               INTEGER NOT NULL,
+                platform               TEXT NOT NULL DEFAULT '',
+                session_date           TEXT NOT NULL DEFAULT '',
+                course_id              TEXT NOT NULL DEFAULT '',
+                course_title           TEXT NOT NULL DEFAULT '',
+                item_number            TEXT NOT NULL DEFAULT '',
+                session_type           TEXT NOT NULL DEFAULT 'QCM',
+                score                  REAL,
+                score_raw              TEXT,
+                score_percent          REAL,
+                total_questions        INTEGER,
+                correct_answers        INTEGER,
+                wrong_answers           INTEGER,
+                rank_a_questions       INTEGER,
+                rank_a_correct         INTEGER,
+                rank_b_questions       INTEGER,
+                rank_b_correct         INTEGER,
+                rank_unknown_questions INTEGER,
+                difficulty             TEXT,
+                error_types            TEXT NOT NULL DEFAULT '[]',
+                comments               TEXT,
+                source                 TEXT NOT NULL,
+                reason                 TEXT NOT NULL,
+                scoring_version        TEXT NOT NULL DEFAULT 'edn-r2c-v1',
+                metadata_json          TEXT NOT NULL DEFAULT '{}',
+                created_at             TEXT NOT NULL,
+                UNIQUE (qcm_session_id, phase, revision),
+                FOREIGN KEY (qcm_session_id) REFERENCES qcm_sessions(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS idx_qcm_result_versions_session
+                ON qcm_result_versions(qcm_session_id, phase, revision DESC);
+            """
+        )
+
+
 def _migrate_ednpro_qcm_rank_metadata() -> None:
     """Add provenance columns to imported EDNpro questions and attempts."""
     with _conn() as con:
@@ -4267,6 +4312,43 @@ QCM_PASS_THRESHOLD = 70.0    # % en dessous duquel c'est raté
 RECURRENCE_THRESHOLD = 2     # sessions min avec le même error_type sur un même item pour déclencher une proposition
 
 
+_QCM_RESULT_VERSION_COLUMNS = (
+    "platform", "session_date", "course_id", "course_title", "item_number",
+    "session_type", "score", "score_raw", "score_percent", "total_questions",
+    "correct_answers", "wrong_answers", "rank_a_questions", "rank_a_correct",
+    "rank_b_questions", "rank_b_correct", "rank_unknown_questions", "difficulty",
+    "error_types", "comments",
+)
+
+
+def _insert_qcm_result_version(
+    con: sqlite3.Connection,
+    *,
+    qcm_session_id: int,
+    phase: str,
+    revision: int,
+    values: dict,
+    source: str,
+    reason: str,
+    scoring_version: str = "edn-r2c-v1",
+    metadata_json: str = "{}",
+) -> int:
+    columns = (
+        "qcm_session_id", "phase", "revision", *_QCM_RESULT_VERSION_COLUMNS,
+        "source", "reason", "scoring_version", "metadata_json", "created_at",
+    )
+    placeholders = ",".join("?" for _ in columns)
+    cur = con.execute(
+        f"INSERT INTO qcm_result_versions ({','.join(columns)}) VALUES ({placeholders})",
+        (
+            qcm_session_id, phase, revision,
+            *(values.get(column) for column in _QCM_RESULT_VERSION_COLUMNS),
+            source, reason, scoring_version, metadata_json, _now(),
+        ),
+    )
+    return int(cur.lastrowid)
+
+
 def add_qcm_session_full(
     platform: str,
     session_date: str,
@@ -4315,6 +4397,36 @@ def add_qcm_session_full(
             comments, now, now,
         ))
         sid: int = cur.lastrowid
+        _insert_qcm_result_version(
+            con,
+            qcm_session_id=sid,
+            phase="initial",
+            revision=1,
+            values={
+                "platform": platform,
+                "session_date": session_date,
+                "course_id": course_id,
+                "course_title": course_title,
+                "item_number": item_number,
+                "session_type": session_type,
+                "score": score_percent,
+                "score_raw": score_raw,
+                "score_percent": score_percent,
+                "total_questions": total_questions,
+                "correct_answers": correct_answers,
+                "wrong_answers": wrong_answers,
+                "rank_a_questions": rank_a_questions,
+                "rank_a_correct": rank_a_correct,
+                "rank_b_questions": rank_b_questions,
+                "rank_b_correct": rank_b_correct,
+                "rank_unknown_questions": rank_unknown_questions,
+                "difficulty": difficulty,
+                "error_types": _json.dumps(error_types or [], ensure_ascii=False),
+                "comments": comments,
+            },
+            source="live_evaluation",
+            reason="Résultat initial enregistré",
+        )
 
     if error_types and item_number:
         try:
@@ -4329,6 +4441,113 @@ def add_qcm_session_full(
             logger.warning(f"check_and_propose_recurring_gaps (non-bloquant): {_gap_err}")
 
     return sid
+
+
+def record_qcm_result_final(
+    session_id: int,
+    *,
+    source: str,
+    reason: str,
+    score_raw: str | None = None,
+    score_percent: float | None = None,
+    total_questions: int | None = None,
+    correct_answers: int | None = None,
+    wrong_answers: int | None = None,
+    rank_a_questions: int | None = None,
+    rank_a_correct: int | None = None,
+    rank_b_questions: int | None = None,
+    rank_b_correct: int | None = None,
+    rank_unknown_questions: int | None = None,
+    difficulty: str | None = None,
+    error_types: list | None = None,
+    comments: str | None = None,
+    scoring_version: str = "edn-r2c-v1",
+    metadata: dict | None = None,
+) -> int:
+    """Ajoute une révision finale immuable et met à jour le résultat courant."""
+    source = str(source or "").strip()
+    reason = str(reason or "").strip()
+    if not source:
+        raise ValueError("La provenance du résultat final est obligatoire")
+    if not reason:
+        raise ValueError("Le motif du résultat final est obligatoire")
+
+    import json as _json
+
+    with _conn() as con:
+        current_row = con.execute(
+            "SELECT * FROM qcm_sessions WHERE id = ?", (session_id,)
+        ).fetchone()
+        if current_row is None:
+            raise ValueError(f"Session QCM introuvable: {session_id}")
+        current = dict(current_row)
+        values = {column: current.get(column) for column in _QCM_RESULT_VERSION_COLUMNS}
+        replacements = {
+            "score_raw": score_raw,
+            "score_percent": score_percent,
+            "total_questions": total_questions,
+            "correct_answers": correct_answers,
+            "wrong_answers": wrong_answers,
+            "rank_a_questions": rank_a_questions,
+            "rank_a_correct": rank_a_correct,
+            "rank_b_questions": rank_b_questions,
+            "rank_b_correct": rank_b_correct,
+            "rank_unknown_questions": rank_unknown_questions,
+            "difficulty": difficulty,
+            "comments": comments,
+        }
+        for column, value in replacements.items():
+            if value is not None:
+                values[column] = value
+        if score_percent is not None:
+            values["score"] = score_percent
+        if error_types is not None:
+            values["error_types"] = _json.dumps(error_types, ensure_ascii=False)
+
+        updated_at = _now()
+        con.execute(
+            """UPDATE qcm_sessions SET
+               score = ?, score_raw = ?, score_percent = ?, total_questions = ?,
+               correct_answers = ?, wrong_answers = ?, rank_a_questions = ?,
+               rank_a_correct = ?, rank_b_questions = ?, rank_b_correct = ?,
+               rank_unknown_questions = ?, difficulty = ?, error_types = ?,
+               comments = ?, updated_at = ? WHERE id = ?""",
+            (
+                values["score"], values["score_raw"], values["score_percent"],
+                values["total_questions"], values["correct_answers"], values["wrong_answers"],
+                values["rank_a_questions"], values["rank_a_correct"], values["rank_b_questions"],
+                values["rank_b_correct"], values["rank_unknown_questions"], values["difficulty"],
+                values["error_types"], values["comments"], updated_at, session_id,
+            ),
+        )
+        revision = con.execute(
+            """SELECT COALESCE(MAX(revision), 0) + 1
+               FROM qcm_result_versions WHERE qcm_session_id = ? AND phase = 'final'""",
+            (session_id,),
+        ).fetchone()[0]
+        return _insert_qcm_result_version(
+            con,
+            qcm_session_id=session_id,
+            phase="final",
+            revision=int(revision),
+            values=values,
+            source=source,
+            reason=reason,
+            scoring_version=scoring_version,
+            metadata_json=_json.dumps(metadata or {}, ensure_ascii=False),
+        )
+
+
+def list_qcm_result_versions(session_id: int) -> list[dict]:
+    """Retourne l'historique d'une évaluation, de l'initial vers les finales."""
+    with _conn() as con:
+        rows = con.execute(
+            """SELECT * FROM qcm_result_versions
+               WHERE qcm_session_id = ?
+               ORDER BY CASE phase WHEN 'initial' THEN 0 ELSE 1 END, revision""",
+            (session_id,),
+        ).fetchall()
+    return [dict(row) for row in rows]
 
 
 def get_qcm_sessions_all(

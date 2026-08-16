@@ -79,19 +79,27 @@ Référence docimologique : [règles CNG/COSUI R2C](https://www.cng.sante.fr/sit
 - Le cockpit Paramètres expose les compteurs, filtres, preuves OIC et actions
   Accepter Gemini / Choisir A / Choisir B / Rejeter / Relancer.
 
+### Versionnement des résultats
+
+- Chaque évaluation `qcm_sessions` reçoit un snapshot `initial` immuable au
+  moment de son enregistrement.
+- Une arrivée tardive de donnée officielle peut produire une ou plusieurs
+  révisions `final` append-only, avec provenance, motif, version du barème et
+  métriques de rang conservés.
+- Le résultat courant reste exposé par `qcm_sessions` pour la compatibilité des
+  écrans, tandis que l'historique complet est disponible via
+  `list_qcm_result_versions()`.
+
 ## Reste explicitement à brancher
 
 Ces éléments ne sont pas prétendus livrés dans cette branche :
 
-1. Versionner en base les résultats initial / final après arrivée tardive d'un rang
-   ou d'une donnée officielle, au lieu d'ajouter seulement les métadonnées au
-   résultat courant.
-2. Composer une épreuve officielle complète à partir de blocs DP dans un parcours
+1. Composer une épreuve officielle complète à partir de blocs DP dans un parcours
    `/qcm` refondu, avec sélection gelée par seed et anti-biais limité à
    l'entraînement généré.
-3. Ajouter les sauvegardes locales chiffrées, la copie sur second volume et le
+2. Ajouter les sauvegardes locales chiffrées, la copie sur second volume et le
    test mensuel de restauration.
-4. Brancher les cinq indicateurs opérationnels de l'audit (sécurisation Rang A,
+3. Brancher les cinq indicateurs opérationnels de l'audit (sécurisation Rang A,
    discordance omission/excès, rythme par format, couverture × fréquence,
    courbe de reprise) à des décisions visibles dans le cockpit.
 

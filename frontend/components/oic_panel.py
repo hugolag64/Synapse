@@ -10,9 +10,11 @@ from nicegui import ui
 
 from backend.config.settings import settings
 from backend.core.lisa import item_service
+from backend.core.practice.oic_micro import create_rang_a_micro_session
 from backend.core.lisa.scraper import LisaFetchError, scrape_oic
 from backend.core.reviews import local_store
 from frontend.components.oic_eval_dialog import open_oic_eval_dialog
+from frontend.components.practice_session_card import open_node_qcm
 
 
 _CSS = """
@@ -96,10 +98,22 @@ class OICPanelController:
         with self.progress_area:
             total = len(rows)
             mastered_total = sum(bool(row.get("mastered")) for row in rows)
+            try:
+                from backend.core.knowledge.service import oic_coverage_for_courses
+
+                coverage = oic_coverage_for_courses(tuple(self.course_ids))
+                measured = int(coverage.get("rang_a_attempted") or 0)
+                measured_label = f" · {measured}/{coverage.get('rang_a_total', 0)} Rang A testés"
+                if coverage.get("rang_a_conclusive"):
+                    measured_label += " · socle mesuré"
+            except Exception:
+                measured_label = ""
             with ui.element("div").classes("oic-panel-toolbar"):
                 with ui.column().classes("gap-0"):
                     ui.label("Objectifs d’apprentissage").classes("oic-panel-title")
-                    ui.label(f"{total} objectif{'s' if total != 1 else ''} · cache LiSA").classes("oic-panel-meta")
+                    ui.label(
+                        f"{total} objectif{'s' if total != 1 else ''} · cache LiSA{measured_label}"
+                    ).classes("oic-panel-meta")
                 ui.button("Actualiser", icon="refresh",
                            on_click=lambda: asyncio.ensure_future(self.load(True))).props(
                     "flat dense no-caps"
@@ -129,6 +143,26 @@ class OICPanelController:
         self.rows = rows
         self.render_progress(rows)
         self.content_area.clear()
+
+        async def _start_micro_question(row: dict) -> None:
+            try:
+                session_id = await asyncio.to_thread(
+                    create_rang_a_micro_session,
+                    course_id=str(getattr(self.course, "id", "") or ""),
+                    course_title=str(getattr(self.course, "title", "") or ""),
+                    item_number=self.item_number,
+                    course_ids=self.course_ids,
+                    target_code=str(row.get("oic_code") or ""),
+                )
+            except Exception as exc:
+                ui.notify(f"Impossible de préparer la micro-question : {exc}", type="negative")
+                return
+            if not open_node_qcm(session_id):
+                ui.notify(
+                    f"Micro-question #{session_id} créée. Le lecteur React est indisponible.",
+                    type="warning",
+                )
+
         with self.content_area:
             with ui.column().classes("oic-panel w-full"):
                 if not rows:
@@ -191,6 +225,15 @@ class OICPanelController:
                                                 course_ids=self.course_ids,
                                             ),
                                         ).tooltip("Évaluer cet OIC")
+                                        if rang == "A":
+                                            ui.button(icon="bolt").props(
+                                                "flat dense round size=sm color=indigo"
+                                            ).on(
+                                                "click",
+                                                lambda row=oic: asyncio.ensure_future(
+                                                    _start_micro_question(row)
+                                                ),
+                                            ).tooltip("Micro-question Rang A")
 
     async def load_cached(self) -> None:
         rows = await asyncio.to_thread(item_service.get_item_oics, self.course_ids)

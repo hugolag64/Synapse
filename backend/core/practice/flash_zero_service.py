@@ -11,7 +11,10 @@ import random
 import re
 from datetime import date
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
+
+from loguru import logger
 
 from backend.core.ai.routing import AITask
 from backend.core.reviews import local_store
@@ -59,6 +62,70 @@ class FlashZeroQuestion:
     category: str  # ex: "Contre-indication", "Urgence vitale", "Erreur de rang A"
     source: str = "canonical"  # "canonical" | "ai"
     review_reason: str = ""  # non vide => badge "Généré par IA" dans le wizard
+    source_ref: str = ""
+    revised_at: str = ""
+
+
+_FLASH_ZERO_BANK_PATH = Path(__file__).resolve().parents[3] / "data" / "flash_zero_bank.json"
+
+
+def _load_canonical_flash_bank() -> list[FlashZeroQuestion]:
+    """Charge la banque éditoriale versionnée hors du code Python."""
+    try:
+        rows = json.loads(_FLASH_ZERO_BANK_PATH.read_text(encoding="utf-8"))
+    except (OSError, TypeError, ValueError) as exc:
+        logger.error("Banque Flash-Zero indisponible: {}", exc)
+        return []
+    if not isinstance(rows, list):
+        logger.error("Banque Flash-Zero invalide: la racine doit être une liste")
+        return []
+
+    result: list[FlashZeroQuestion] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        try:
+            result.append(FlashZeroQuestion(
+                id=str(row["id"]),
+                item_number=str(row["item_number"]),
+                item_title=str(row["item_title"]),
+                question_text=str(row["question_text"]),
+                choices=tuple(str(choice) for choice in row["choices"]),
+                correct_idx=int(row["correct_idx"]),
+                explanation=str(row["explanation"]),
+                is_zero_eliminatoire=bool(row["is_zero_eliminatoire"]),
+                category=str(row["category"]),
+                source="canonical",
+                source_ref=str(row["source"]),
+                revised_at=str(row["revised_at"]),
+            ))
+        except (KeyError, TypeError, ValueError):
+            logger.warning("Question Flash-Zero ignorée dans la banque: {}", row.get("id"))
+    return result
+
+
+def _latest_flash_zero_attempts(rows: list[dict] | None) -> dict[str, dict]:
+    latest: dict[str, dict] = {}
+    for row in rows or []:
+        question_id = str(row.get("question_id") or "").strip()
+        if not question_id:
+            continue
+        current = latest.get(question_id)
+        if current is None or str(row.get("answered_at") or "") > str(current.get("answered_at") or ""):
+            latest[question_id] = row
+    return latest
+
+
+def _is_flash_zero_due(question: FlashZeroQuestion, attempt: dict | None, quiz_date: date) -> bool:
+    if attempt is None:
+        return True
+    try:
+        answered_date = date.fromisoformat(str(attempt.get("answered_at") or "")[:10])
+    except ValueError:
+        return True
+    elapsed_days = (quiz_date - answered_date).days
+    required_days = 3 if bool(attempt.get("is_correct")) else 1
+    return elapsed_days >= required_days
 
 
 def _flash_zero_prompt(item_number: str) -> str:
@@ -145,6 +212,31 @@ class FlashZeroService:
             ai_service = AIService(GeminiClient())
         self.ai_service = ai_service
 
+    def _priority_signals(self, item_number: str | None = None) -> list[dict]:
+        try:
+            signals = list(signals_since(item_number=item_number, days=30, store=self.store))
+        except Exception:
+            signals = []
+        try:
+            signals.extend(self.store.get_ai_practice_error_signals(
+                item_number=item_number, days=30, limit=200
+            ))
+        except (AttributeError, TypeError, RuntimeError):
+            pass
+        return filter_post_resume_signals(
+            signals,
+            get_study_resume_date(data_store.preferences),
+        )
+
+    def record_attempt(self, question: FlashZeroQuestion, is_correct: bool) -> int:
+        """Enregistre une réponse et laisse le store calculer la prochaine échéance."""
+        return self.store.record_flash_zero_attempt(
+            question_id=question.id,
+            item_number=question.item_number,
+            source=question.source,
+            is_correct=is_correct,
+        )
+
     def generate_daily_questions(self, *, count: int = 3, item_number: str | None = None) -> list[dict]:
         """
         Génère jusqu'à `count` nouvelles questions Flash-Zero ciblées sur les items
@@ -152,14 +244,7 @@ class FlashZeroService:
         chaque question invalide est écartée individuellement (best-effort, pas de lot
         tout-ou-rien).
         """
-        try:
-            signals = signals_since(item_number=item_number, days=30, store=self.store)
-        except Exception:
-            signals = []
-        signals = filter_post_resume_signals(
-            signals,
-            get_study_resume_date(data_store.preferences),
-        )
+        signals = self._priority_signals(item_number)
         priority = build_flash_zero_priority(signals)[:count]
         if not priority:
             return []
@@ -192,125 +277,7 @@ class FlashZeroService:
         1. Les lacunes / erreurs de Rang A récentes dans SQLite.
         2. Une banque de pièges et zéros éliminatoires prédéfinis EDN.
         """
-        try:
-            critical_history = self.store.get_item_pedagogical_history(limit=50)
-        except Exception:
-            critical_history = []
-        
-        # Banque de questions canoniques sur les zéros éliminatoires EDN
-        canonical_flash_bank: list[FlashZeroQuestion] = [
-            FlashZeroQuestion(
-                id="fz-001",
-                item_number="ITEM 340",
-                item_title="Insuffisance cardiaque",
-                question_text="Prescrire des AINS chez un patient en poussée d'insuffisance cardiaque aiguë congestive est :",
-                choices=("Une excellente alternative antalgique", "Une contre-indication absolue (Zéro Éliminatoire)", "Indiqué si associé à un diurétique", "Indifférent"),
-                correct_idx=1,
-                explanation="Les AINS induisent une rétention hydrosodée et une insuffisance rénale aiguë, aggravant mortellement la poussée ICA.",
-                is_zero_eliminatoire=True,
-                category="Contre-indication",
-            ),
-            FlashZeroQuestion(
-                id="fz-002",
-                item_number="ITEM 334",
-                item_title="Syndrome coronarien aigu",
-                question_text="En cas de SCA ST+ (STEMI) vu à H+1 du début de la douleur dans un centre sans salle de cathétérisme, la conduite immédiate est :",
-                choices=("Attendre 24h avant coronarographie", "Fibrinolyse en l'absence de contre-indication", "Donner un bétabloquant IV seul", "Reposer le patient avec des antalgiques simples"),
-                correct_idx=1,
-                explanation="À H+1 sans PCI accessible < 120 min, la fibrinolyse immédiate est l'indication de Rang A incontournable.",
-                is_zero_eliminatoire=True,
-                category="Urgence vitale",
-            ),
-            FlashZeroQuestion(
-                id="fz-003",
-                item_number="ITEM 221",
-                item_title="Méningite infectieuse",
-                question_text="Devant une suspicion de méningite à méningocoque avec Purpura Fulminans, la première action médicale prioritaire est :",
-                choices=("Faire un scanner cérébral", "Réaliser une ponction lombaire", "Injecter en urgence 2g de Cefotaxime/Ceftriaxone IV ou IM", "Prescrire un bilan sanguin d'hémostase"),
-                correct_idx=2,
-                explanation="Tout purpura fulminans impose l'injection immédiate d'antibiotique (C3G) AVANT TOUT EXAMEN (y compris avant la PL).",
-                is_zero_eliminatoire=True,
-                category="Urgence vitale",
-            ),
-            FlashZeroQuestion(
-                id="fz-004",
-                item_number="ITEM 135",
-                item_title="Anaphylaxie",
-                question_text="Le traitement de 1ère ligne absolu d'un choc anaphylactique est :",
-                choices=("Les corticoïdes IV", "Les antihistaminiques H1", "L'Adrénaline IM dans la face antéro-latérale de la cuisse", "Le remplissage vasculaire par Macromolécules"),
-                correct_idx=2,
-                explanation="L'adrénaline IM (0.5 mg chez l'adulte) est le seul traitement salvateur immédiat de l'anaphylaxie aiguë.",
-                is_zero_eliminatoire=True,
-                category="Urgence vitale",
-            ),
-            FlashZeroQuestion(
-                id="fz-005",
-                item_number="ITEM 362",
-                item_title="Asthme aigu grave",
-                question_text="Chez un patient en crise d'Asthme Aigu Grave avec silence auscultatoire, l'administration de sédatifs pour l'anxiété est :",
-                choices=("Recommandée pour calmer l'hyperventilation", "Formellement contre-indiquée (risque d'arrêt cardiorespiratoire)", "Utile si associée à de la Morphine", "Indiquée uniquement en IVD"),
-                correct_idx=1,
-                explanation="Les sédatifs/anxiolytiques coupent la commande ventilatoire chez l'asthmatique en épuisement : risque de décès rapide.",
-                is_zero_eliminatoire=True,
-                category="Contre-indication",
-            ),
-            FlashZeroQuestion(
-                id="fz-006",
-                item_number="ITEM 344",
-                item_title="Fibrillation atriale",
-                question_text="La prescription de Flécaïnide chez un patient ayant un antécédent d'infarctus du myocarde est :",
-                choices=("La référence absolue", "Contre-indiquée (effet pro-arythmique mortel sur cardiopathie structurale)", "Indiquée à demi-dose", "Sans danger"),
-                correct_idx=1,
-                explanation="Les anti-arythmiques de classe Ic (Flécaïnide) sont contre-indiqués sur cardiopathie ischémique ou altérée (Essai CAST).",
-                is_zero_eliminatoire=True,
-                category="Contre-indication",
-            ),
-            FlashZeroQuestion(
-                id="fz-007",
-                item_number="ITEM 197",
-                item_title="Transfusion sanguine",
-                question_text="Avant toute transfusion de culots globulaires rouges, la vérification ultime au lit du malade comprend obligatoirement :",
-                choices=("Le contrôle de l'identité et la comparaison Beth-Vincent du patient et de la poche", "Le bilan rénal du patient", "L'auscultation pulmonaire", "La prise de tension 2h après"),
-                correct_idx=0,
-                explanation="L'épreuve ultime au lit du malade (contrôle d'identité + compatibilité ABO Beth-Vincent) est un geste médico-légal obligatoire.",
-                is_zero_eliminatoire=True,
-                category="Sécurité / Règle A",
-            ),
-            FlashZeroQuestion(
-                id="fz-008",
-                item_number="ITEM 326",
-                item_title="Prescription médicamenteuse chez la femme enceinte",
-                question_text="La prescription d'un IEC ou ARA2 au 2ème et 3ème trimestre de la grossesse est :",
-                choices=("Indiquée pour prévenir la pré-éclampsie", "Formellement contre-indiquée (toxicité fœtale et oligoamnios grave)", "Indifférente", "Recommandée si HTA sévère"),
-                correct_idx=1,
-                explanation="Les IEC/ARA2 sont fœtotoxiques (insuffisance rénale fœtale, oligoamnios, anurie).",
-                is_zero_eliminatoire=True,
-                category="Contre-indication",
-            ),
-            FlashZeroQuestion(
-                id="fz-009",
-                item_number="ITEM 357",
-                item_title="Pneumothorax",
-                question_text="Devant un pneumothorax suffocant sous tension avec collapsus cardiovasculaire, la prise en charge immédiate est :",
-                choices=("Attendre le cliché de radiographie du thorax F+P", "Exsufflation à l'aiguille au 2e espace intercostal ligne médio-claviculaire", "Poser un drain pleural sous échographie en bloc", "Intubation orotrachéale immédiate sans exsufflation"),
-                correct_idx=1,
-                explanation="Le PNT sous tension menace le pronostic vital immédiat : l'exsufflation à l'aiguille se fait sans attendre la radio !",
-                is_zero_eliminatoire=True,
-                category="Urgence vitale",
-            ),
-            FlashZeroQuestion(
-                id="fz-010",
-                item_number="ITEM 354",
-                item_title="Dépistage du cancer du col de l'utérus",
-                question_text="Entre 25 et 30 ans, la modalité de dépistage du cancer du col de l'utérus est :",
-                choices=("Test HPV HP16/18 tous les 5 ans", "Examen cytologique tous les 3 ans (après 2 examens annuels normaux)", "Colposcopie systématique", "Echographie pelvienne"),
-                correct_idx=1,
-                explanation="Rang A EDN : 25-30 ans = Cytologie tous les 3 ans. 30-65 ans = Test HPV tous les 5 ans.",
-                is_zero_eliminatoire=False,
-                category="Erreur de rang A",
-            ),
-        ]
-
+        canonical_flash_bank = _load_canonical_flash_bank()
         ai_bank: list[FlashZeroQuestion] = []
         try:
             ai_rows = self.store.get_flash_zero_ai_questions()
@@ -330,20 +297,15 @@ class FlashZeroService:
                     category=row["category"],
                     source="ai",
                     review_reason=row["review_reason"] or "",
+                    source_ref="ai_generated",
+                    revised_at=str(row.get("generated_at") or ""),
                 ))
             except Exception:
                 continue
 
         full_bank = canonical_flash_bank + ai_bank
 
-        try:
-            signals = signals_since(item_number=item_number, days=30, store=self.store)
-        except Exception:
-            signals = []
-        signals = filter_post_resume_signals(
-            signals,
-            get_study_resume_date(data_store.preferences),
-        )
+        signals = self._priority_signals(item_number)
         priority = build_flash_zero_priority(signals)
         rank = {item: index for index, item in enumerate(priority)}
         targeted = [q for q in full_bank if q.item_number.removeprefix("ITEM ") in rank]
@@ -352,4 +314,17 @@ class FlashZeroService:
         effective_date = quiz_date or date.today()
         rng = random.Random(f"flash-zero:{effective_date.isoformat()}:{item_number or 'all'}")
         rng.shuffle(fallback)
-        return (targeted + fallback)[:count]
+        ordered = targeted + fallback
+        try:
+            attempts = self.store.get_flash_zero_attempts(
+                question_ids=[question.id for question in ordered], limit=2_000
+            )
+        except (AttributeError, TypeError, RuntimeError):
+            attempts = []
+        latest_attempts = _latest_flash_zero_attempts(attempts)
+        due = [
+            question for question in ordered
+            if _is_flash_zero_due(question, latest_attempts.get(question.id), effective_date)
+        ]
+        not_due = [question for question in ordered if question not in due]
+        return (due + not_due)[:count]

@@ -6527,7 +6527,7 @@ def get_item_pedagogical_history(item_number: str) -> list[dict]:
 
 
 def _migrate_flash_zero_ai_questions() -> None:
-    """Crée la table flash_zero_ai_questions si absente (idempotent)."""
+    """Crée les tables Flash-Zero (banque IA et suivi des réponses)."""
     with _conn() as con:
         con.executescript("""
             CREATE TABLE IF NOT EXISTS flash_zero_ai_questions (
@@ -6543,6 +6543,16 @@ def _migrate_flash_zero_ai_questions() -> None:
                 generated_at         TEXT    NOT NULL,
                 review_reason        TEXT    NOT NULL DEFAULT ''
             );
+            CREATE TABLE IF NOT EXISTS flash_zero_attempts (
+                id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                question_id    TEXT    NOT NULL,
+                item_number    TEXT    NOT NULL DEFAULT '',
+                source         TEXT    NOT NULL DEFAULT 'canonical',
+                is_correct     INTEGER NOT NULL,
+                answered_at    TEXT    NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_flash_zero_attempts_question
+                ON flash_zero_attempts(question_id, answered_at DESC);
         """)
 
 
@@ -6574,6 +6584,75 @@ def get_flash_zero_ai_questions(limit: int = 200) -> list[dict]:
             (limit,),
         ).fetchall()
     return [dict(row) for row in rows]
+
+
+def record_flash_zero_attempt(
+    *, question_id: str, item_number: str = "", source: str = "canonical",
+    is_correct: bool, answered_at: str | None = None,
+) -> int:
+    """Persiste une réponse Flash-Zero pour piloter la prochaine échéance."""
+    with _conn() as con:
+        cursor = con.execute(
+            """INSERT INTO flash_zero_attempts
+               (question_id, item_number, source, is_correct, answered_at)
+               VALUES (?, ?, ?, ?, ?)""",
+            (
+                str(question_id), str(item_number or ""), str(source or "canonical"),
+                int(bool(is_correct)), answered_at or _now(),
+            ),
+        )
+    return int(cursor.lastrowid)
+
+
+def get_flash_zero_attempts(
+    *, question_ids: list[str] | tuple[str, ...] | None = None, limit: int = 2_000,
+) -> list[dict]:
+    """Retourne les réponses Flash-Zero les plus récentes, par question si demandé."""
+    params: list[object] = []
+    query = "SELECT * FROM flash_zero_attempts"
+    normalized_ids = tuple(dict.fromkeys(str(value).strip() for value in (question_ids or ()) if str(value).strip()))
+    if normalized_ids:
+        placeholders = ",".join("?" for _ in normalized_ids)
+        query += f" WHERE question_id IN ({placeholders})"
+        params.extend(normalized_ids)
+    query += " ORDER BY answered_at DESC, id DESC LIMIT ?"
+    params.append(int(limit))
+    with _conn() as con:
+        return [dict(row) for row in con.execute(query, params).fetchall()]
+
+
+def get_ai_practice_error_signals(
+    *, days: int = 30, item_number: str | None = None, limit: int = 200,
+) -> list[dict]:
+    """Expose les items des réponses IA fausses comme signaux de priorité."""
+    params: list[object] = [f"-{max(1, int(days))} days"]
+    item_clause = ""
+    if item_number:
+        clean_item = str(item_number).strip().removeprefix("ITEM ")
+        item_clause = " AND REPLACE(qi.item_number, 'ITEM ', '') = ?"
+        params.append(clean_item)
+    params.append(int(limit))
+    with _conn() as con:
+        rows = con.execute(
+            f"""SELECT qi.item_number, a.answered_at AS occurred_at
+               FROM ai_practice_attempts a
+               JOIN ai_practice_question_items qi ON qi.question_id = a.question_id
+               WHERE a.answered_at >= datetime('now', ?)
+                 AND TRIM(COALESCE(a.response, '')) NOT IN ('', '[]')
+                 AND (a.is_correct = 0 OR (a.score_percent IS NOT NULL AND a.score_percent < 100))
+                 {item_clause}
+               ORDER BY a.answered_at DESC, a.id DESC
+               LIMIT ?""",
+            params,
+        ).fetchall()
+    return [
+        {
+            "item_number": str(row["item_number"] or ""),
+            "occurred_at": row["occurred_at"],
+            "category": "ai_practice_error",
+        }
+        for row in rows
+    ]
 
 
 # ── Auto-init à l'import ──────────────────────────────────────────────────────

@@ -117,6 +117,13 @@ def open_flash_zero_quiz(
                                 "is_correct": is_correct,
                                 "selected": selected,
                             })
+                            try:
+                                service.record_attempt(question, is_correct)
+                            except Exception as exc:
+                                ui.notify(
+                                    f"Réponse affichée mais non historisée : {exc}",
+                                    type="warning",
+                                )
                             state["phase"] = "correction"
                             draw()
 

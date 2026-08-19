@@ -19,6 +19,7 @@ from typing import List, Optional
 from loguru import logger
 
 from backend.core.reviews.models import ReviewTask, ReviewContext
+from backend.core.prep.store import list_learning_schedules
 from backend.core.reviews.local_store import (
     make_task_id, get_all_history, get_sessions_by_course, get_postpone_counts,
     get_qcm_done_course_ids, get_sm2_effective_date, get_all_review_data,
@@ -32,6 +33,7 @@ from backend.core.reviews.reentry import filter_active_review_tasks, get_study_r
 # ── Constantes ────────────────────────────────────────────────────────────────
 
 REVIEW_OFFSETS: dict[str, int] = {
+    "J1":  1,
     "J3":  3,
     "J7":  7,
     "J14": 14,
@@ -181,6 +183,10 @@ class ReviewService:
 
         # F2 — Batch SM-2 : charge TOUTES les dates en une seule requête
         sm2_map = get_all_sm2_effective_dates()
+        local_schedules = {
+            schedule.course_id: schedule
+            for schedule in list_learning_schedules("college")
+        }
 
         # F4 — Stage actif pour le boost de priorité
         active_stage = getattr(data_store, "active_stage", None)
@@ -195,8 +201,11 @@ class ReviewService:
             if c.id in historical_ids:
                 continue
 
+            local_schedule = local_schedules.get(str(c.id)) if context == "college" else None
             date_ref = (
-                c.date_1ere_lecture if context == "college" else c.date_1ere_lecture_ue
+                local_schedule.first_read_date
+                if local_schedule
+                else (c.date_1ere_lecture if context == "college" else c.date_1ere_lecture_ue)
             )
             if not date_ref:
                 continue
@@ -214,11 +223,14 @@ class ReviewService:
                 continue
 
             for review_type, offset in REVIEW_OFFSETS.items():
+                if review_type == "J1" and local_schedule is None:
+                    continue
                 # F2 — SM-2 : lookup dict au lieu d'une requête par cours
-                _notion_d = self._get_notion_date(c, context, review_type)
-                _sm2_d    = sm2_map.get((c.id, context, review_type)) if not _notion_d else None
-                theoretical = _notion_d or _sm2_d or (date_ref + timedelta(days=offset))
-                _date_src   = "notion" if _notion_d else ("sm2" if _sm2_d else "fixe")
+                local_d = getattr(local_schedule, f"{review_type.lower()}_date", None) if local_schedule else None
+                _notion_d = None if local_d else self._get_notion_date(c, context, review_type)
+                _sm2_d    = sm2_map.get((c.id, context, review_type)) if not (_notion_d or local_d) else None
+                theoretical = local_d or _notion_d or _sm2_d or (date_ref + timedelta(days=offset))
+                _date_src   = "local" if local_d else ("notion" if _notion_d else ("sm2" if _sm2_d else "fixe"))
 
                 task_id = make_task_id(c.id, context, review_type, theoretical)
 

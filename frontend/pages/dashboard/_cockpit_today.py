@@ -41,6 +41,7 @@ from frontend.components.responsive_drawer import (
 )
 from frontend.pages.dashboard._dialogs import open_session_feedback_dialog
 from frontend.components.flash_zero_cockpit import render_flash_zero_card, open_flash_zero_quiz
+from frontend.components.course_prep_task_row import course_prep_task_row
 from frontend.components.edn_insights_panel import render_edn_insights_panel
 from backend.config.settings import business_today
 from backend.core.edn.trajectory import build_progress_snapshot, project_to_exam, rank_gain_potential
@@ -238,11 +239,13 @@ async def render_today_cockpit() -> None:
     state = DashboardState()
     sel: dict = {"task": None}
     drawer_state: dict = {"root": None}
-    _data: dict = {"urgent": [], "today": [], "load": {}, "qcm": {}, "lac": {}, "crit": 0, "target": {}, "flash_zero": None, "flash_zero_dismissed": False, "flash_zero_complete": False, "edn_status": None, "edn_projections": (), "gain_items": (), "daily_queue": []}
+    _data: dict = {"urgent": [], "today": [], "prep_tasks": [], "load": {}, "qcm": {}, "lac": {}, "crit": 0, "target": {}, "flash_zero": None, "flash_zero_dismissed": False, "flash_zero_complete": False, "edn_status": None, "edn_projections": (), "gain_items": (), "daily_queue": []}
 
     # ── Pipeline données (réplique de rebuild_all, partie data) ────────────────
     def _fetch() -> None:
         history = local_store.get_all_history()
+        from backend.core.prep.store import list_prep_tasks
+        prep_tasks = list_prep_tasks(business_today())
         all_tasks = review_service.generate_reviews(
             context=state.review_context,
             history=history,
@@ -315,7 +318,7 @@ async def render_today_cockpit() -> None:
             logger.exception("Impossible de construire la file des 5 questions du jour")
             daily_queue = []
 
-        _data.update(urgent=urgent, today=today, load=load, qcm=qcm, lac=lac, crit=crit, target=target, flash_zero=flash_zero, flash_zero_dismissed=flash_zero_dismissed, flash_zero_complete=flash_zero_complete, edn_status=edn_status, edn_projections=edn_projections, gain_items=gain_items, daily_queue=daily_queue)
+        _data.update(urgent=urgent, today=today, prep_tasks=prep_tasks, load=load, qcm=qcm, lac=lac, crit=crit, target=target, flash_zero=flash_zero, flash_zero_dismissed=flash_zero_dismissed, flash_zero_complete=flash_zero_complete, edn_status=edn_status, edn_projections=edn_projections, gain_items=gain_items, daily_queue=daily_queue)
 
     # ── Focus (réutilise open_focus_mode existant) ────────────────────────────
     def _open_focus(task: ReviewTask | None = None) -> None:
@@ -408,6 +411,20 @@ async def render_today_cockpit() -> None:
 
     def _open_item_detail(task) -> None:
         ui.navigate.to(f"/cours/{task.course_id}")
+
+    def _open_prep_action(task) -> None:
+        from frontend.components.course_quick_actions import open_course_prep_action
+        open_course_prep_action(task, refresh_fn=_full_rebuild)
+
+    def _validate_prep(task) -> None:
+        from backend.core.prep.service import validate_prep_task
+        try:
+            validate_prep_task(task.id)
+        except (KeyError, ValueError) as exc:
+            ui.notify(str(exc), type="warning")
+            return
+        _full_rebuild()
+        ui.notify(f"Préparation validée : ITEM {task.item_number}", type="positive")
 
     # ── Layout : conteneurs ───────────────────────────────────────────────────
     with ui.element("div").classes("cockpit-today"):
@@ -526,6 +543,24 @@ async def render_today_cockpit() -> None:
                         ui.button(
                             "Ouvrir la file", icon="school", on_click=_open_daily_queue
                         ).props("unelevated color=indigo")
+
+            prep_tasks = _data.get("prep_tasks") or []
+            if prep_tasks:
+                with ui.card().classes("w-full p-4 mb-4 border border-amber-200 bg-amber-50/30"):
+                    with ui.row().classes("w-full items-center justify-between"):
+                        ui.label(f"Préparations FAC · {len(prep_tasks)}").classes(
+                            "text-base font-semibold text-amber-900"
+                        )
+                        ui.label("À faire avant les cours à venir").classes(
+                            "text-xs text-amber-700"
+                        )
+                    with ui.column().classes("w-full gap-2 mt-3"):
+                        for prep_task in prep_tasks:
+                            course_prep_task_row(
+                                prep_task,
+                                on_open=_open_prep_action,
+                                on_validate=_validate_prep,
+                            )
 
             def _finish_flash_zero() -> None:
                 timezone_name = data_store.preferences.get("timezone", "Europe/Paris")

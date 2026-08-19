@@ -17,6 +17,30 @@ from backend.core.reviews.local_store import (
 from backend.core.practice.flash_zero_service import FlashZeroService
 from backend.state.store import data_store
 
+
+async def _sync_fac_preparations(today: date) -> None:
+    """Synchronise le calendrier FAC sans bloquer la routine si Google échoue."""
+    try:
+        from backend.core.google.calendar_service import calendar_service
+        from backend.core.planning.calendar_sources import FAC_CALENDAR_ID
+        from backend.core.prep.service import sync_fac_events
+
+        events = []
+        for target in (today + timedelta(days=1), today + timedelta(days=2)):
+            events.extend(await calendar_service.get_events_for_day(target))
+        report = sync_fac_events(
+            events,
+            today,
+            source_calendar_id=FAC_CALENDAR_ID,
+        )
+        logger.info(
+            "Synchronisation FAC: {} événements, {} tâches créées",
+            report.events_processed,
+            report.tasks_created,
+        )
+    except Exception as exc:
+        logger.warning("Synchronisation FAC indisponible (routine conservée): {}", exc)
+
 # Set locale for French date formatting (if system supports it, otherwise fallback)
 try:
     locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
@@ -134,6 +158,7 @@ async def run_daily_routine():
     today = business_today()
     ensure_morning_flash_zero()
     ensure_daily_flash_zero_generation()
+    await _sync_fac_preparations(today)
     if data_store.preferences.get("_routine_date") == today.isoformat():
         logger.debug("Daily Routine déjà exécutée aujourd'hui — skip.")
         await _send_morning_notification()

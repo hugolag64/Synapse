@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 
+FAC_CALENDAR_ID = "kvj2875m68cng7oeiq6mbfh8k20ha1ru@import.calendar.google.com"
+FAC_CALENDAR_LABEL = "FAC"
+
+
 def list_calendar_sources(preferences: dict) -> list[dict]:
     """Lit planning_calendar_sources depuis les préférences, normalisé.
 

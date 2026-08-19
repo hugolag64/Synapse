@@ -1,1 +1,2 @@
-"""Preparation-provider catalogs and external resources."""
+"""Services de préparation locale des cours FAC."""
+

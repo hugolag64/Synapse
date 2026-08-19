@@ -79,6 +79,10 @@ class DataStore:
             'college_sort': 'newest',
             'agenda_open': True,  # État du panneau Agenda du Jour
             'planning_capacity_minutes': 360,
+            'planning_calendar_sources': [{
+                'id': 'kvj2875m68cng7oeiq6mbfh8k20ha1ru@import.calendar.google.com',
+                'label': 'FAC',
+            }],
             'planning_vacation': {'enabled': False},
             'timezone': 'Europe/Paris',
             'edn_target_date': '2026-10-15',

@@ -825,6 +825,26 @@ def open_pdf_wizard(c, context: str, refresh_fn, client) -> None:
 open_link_pdf_unified = open_pdf_wizard
 
 
+def open_course_prep_action(task, refresh_fn=None, client=None) -> None:
+    """Ouvre le raccourci d'une préparation FAC, sans la valider."""
+    course = next(
+        (candidate for candidate in data_store.cours if str(candidate.id) == str(task.course_id)),
+        None,
+    )
+    if course is None:
+        ui.notify(f"Cours introuvable pour l'item {task.item_number}", type="warning")
+        return
+    if task.task_type == "pdf":
+        open_pdf_wizard(course, "college", refresh_fn, client)
+    elif task.task_type == "obsidian":
+        if getattr(course, "obsidian_uri", None):
+            _open_obsidian_note_action(course)
+        else:
+            _open_link_note_dialog(course, refresh_fn)
+    else:
+        ui.navigate.to(f"/cours/{course.id}")
+
+
 async def _sync_calendar_events(
     course, context: str, date_ref: datetime.date, client
 ) -> None:

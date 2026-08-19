@@ -645,6 +645,7 @@ def init_db() -> None:
     _migrate_course_edges_table()
     _migrate_pending_gap_proposals()
     _migrate_routine_tables()
+    _migrate_course_prep_tables()
     _migrate_oic_anythingllm_validation()
     _migrate_ai_practice_v1()
     _migrate_reliable_practice_loop()
@@ -1494,8 +1495,8 @@ def get_all_review_data() -> tuple[dict, dict, dict, set]:
 
 # ── API publique — écriture ───────────────────────────────────────────────────
 
-_SM2_OFFSETS: dict[str, int] = {"J3": 3, "J7": 7, "J14": 14, "J30": 30}
-_PREV_REVIEW_TYPE: dict[str, str] = {"J7": "J3", "J14": "J7", "J30": "J14"}
+_SM2_OFFSETS: dict[str, int] = {"J1": 1, "J3": 3, "J7": 7, "J14": 14, "J30": 30}
+_PREV_REVIEW_TYPE: dict[str, str] = {"J3": "J1", "J7": "J3", "J14": "J7", "J30": "J14"}
 
 
 def mark_done(
@@ -5991,6 +5992,46 @@ def _migrate_routine_tables() -> None:
                 "INSERT OR IGNORE INTO routine_items (name, position) VALUES (?, ?)",
                 [('Révision', 0), ('QCM', 1), ('Sport', 2), ('Musique', 3), ('Anki', 4)],
             )
+
+
+def _migrate_course_prep_tables() -> None:
+    """Crée les tables SQLite de préparation des cours et de répétition."""
+    with _conn() as con:
+        con.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS course_prep_tasks (
+                id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+                course_id          TEXT NOT NULL,
+                item_number        TEXT NOT NULL DEFAULT '',
+                lecture_date       TEXT NOT NULL,
+                calendar_event_id  TEXT NOT NULL DEFAULT '',
+                calendar_title     TEXT NOT NULL DEFAULT '',
+                task_type          TEXT NOT NULL CHECK (task_type IN ('pdf', 'obsidian', 'resume', 'first_read')),
+                status             TEXT NOT NULL DEFAULT 'todo' CHECK (status IN ('todo', 'done', 'cancelled')),
+                created_at         TEXT NOT NULL,
+                updated_at         TEXT NOT NULL,
+                completed_at       TEXT,
+                UNIQUE(course_id, lecture_date, task_type)
+            );
+            CREATE INDEX IF NOT EXISTS idx_course_prep_tasks_day
+                ON course_prep_tasks(lecture_date, status);
+            CREATE INDEX IF NOT EXISTS idx_course_prep_tasks_event
+                ON course_prep_tasks(calendar_event_id);
+
+            CREATE TABLE IF NOT EXISTS course_learning_schedule (
+                course_id       TEXT NOT NULL,
+                context         TEXT NOT NULL DEFAULT 'college',
+                first_read_date TEXT NOT NULL,
+                j1_date         TEXT NOT NULL,
+                j3_date         TEXT NOT NULL,
+                j7_date         TEXT NOT NULL,
+                j14_date        TEXT NOT NULL,
+                j30_date        TEXT NOT NULL,
+                updated_at      TEXT NOT NULL,
+                PRIMARY KEY(course_id, context)
+            );
+            """
+        )
 
 
 def _migrate_oic_anythingllm_validation() -> None:

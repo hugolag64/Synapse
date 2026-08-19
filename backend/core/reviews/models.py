@@ -12,7 +12,7 @@ from datetime import date
 
 # ── Types ─────────────────────────────────────────────────────────────────────
 
-ReviewType   = Literal["J3", "J7", "J14", "J30", "bonus", "qcm_error", "manuel", "consolidation", "lacune"]
+ReviewType   = Literal["J1", "J3", "J7", "J14", "J30", "bonus", "qcm_error", "manuel", "consolidation", "lacune"]
 ReviewStatus = Literal["todo", "done", "postponed", "ignored", "cancelled"]
 ReviewContext = Literal["college", "ue"]
 
@@ -97,6 +97,7 @@ class ReviewTask(BaseModel):
     @property
     def type_color(self) -> str:
         return {
+            "J1":       "sky",
             "J3":       "blue",
             "J7":       "indigo",
             "J14":      "violet",

@@ -40,6 +40,7 @@ from nicegui import ui
 
 from backend.config.settings import settings
 from backend.core.lisa import item_service
+from backend.core.planning.policy import capacity_from_preferences, capacity_hours_to_minutes
 from backend.core.uness import import_service
 from backend.state.store import data_store
 from frontend.components.calendar_sources_panel import render as render_calendar_sources
@@ -244,6 +245,24 @@ def render_settings_cockpit() -> None:
                         label="Date",
                         value=data_store.preferences.get("study_resume_date", "2026-08-20"),
                     ).props("outlined dense type=date")
+
+                with ui.element("div").classes("se-appearance-row"):
+                    with ui.column().classes("gap-0"):
+                        ui.label("Capacité quotidienne").classes("se-appearance-label")
+                        ui.label(
+                            "Ta charge de référence, utilisée par Planning et la projection Sprint EDN."
+                        ).classes("se-appearance-sub")
+
+                    capacity_toggle = ui.toggle(
+                        {3: "3 h", 6: "6 h", 9: "9 h", 12: "12 h"},
+                        value=capacity_from_preferences(data_store.preferences) // 60,
+                    ).props("dense unelevated no-caps")
+
+                    def _set_capacity(e, toggle=capacity_toggle) -> None:
+                        data_store.set_preference("planning_capacity_minutes", capacity_hours_to_minutes(e.value))
+                        ui.notify("Capacité quotidienne mise à jour", type="positive")
+
+                    capacity_toggle.on_value_change(_set_capacity)
 
                 with ui.element("div").classes("se-appearance-row"):
                     with ui.column().classes("gap-0"):

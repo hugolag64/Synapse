@@ -145,3 +145,131 @@ def test_failed_calendar_sync_does_not_crash_and_stays_retryable(tmp_path, isola
     row = isolated_local_store.list_conferences()[0]
     assert row["google_event_id"] is None
     assert row["uness_slot_google_event_id"] is None
+
+
+def test_list_pending_uness_links_returns_matched_conferences_with_candidates(isolated_local_store):
+    from backend.core.conferences import service
+
+    _, conf = isolated_local_store.upsert_conference(
+        date=datetime.date(2026, 9, 1), theme_raw="HGE", match_status="matched",
+        college_name="Hépato-Gastro-entérologie 🧻", source_file="cal.xlsx",
+    )
+    annale_id = isolated_local_store.create_uness_annale(
+        source_url="https://uness.example/dossier-1",
+        collected_at="2026-09-01T18:45:00+00:00",
+        faculte="Fac", niveau="DFASM1", annee=2026,
+        matiere="HGE", titre="Dossier HGE", type_annale="DP",
+    )
+
+    pending = service.list_pending_uness_links()
+
+    assert len(pending) == 1
+    assert pending[0]["conference"]["id"] == conf["id"]
+    assert [c["id"] for c in pending[0]["candidates"]] == [annale_id]
+
+
+def test_list_pending_uness_links_excludes_conferences_without_candidates(isolated_local_store):
+    from backend.core.conferences import service
+
+    isolated_local_store.upsert_conference(
+        date=datetime.date(2026, 9, 1), theme_raw="HGE", match_status="matched",
+        college_name="Hépato-Gastro-entérologie 🧻", source_file="cal.xlsx",
+    )
+
+    assert service.list_pending_uness_links() == []
+
+
+def test_list_pending_uness_links_excludes_conferences_needing_validation(isolated_local_store):
+    from backend.core.conferences import service
+
+    isolated_local_store.upsert_conference(
+        date=datetime.date(2026, 9, 1), theme_raw="HGE", match_status="needs_validation",
+        college_name=None, source_file="cal.xlsx",
+    )
+    isolated_local_store.create_uness_annale(
+        source_url="https://uness.example/dossier-1",
+        collected_at="2026-09-01T18:45:00+00:00",
+        faculte="Fac", niveau="DFASM1", annee=2026,
+        matiere="HGE", titre="Dossier HGE", type_annale="DP",
+    )
+
+    assert service.list_pending_uness_links() == []
+
+
+def test_list_pending_uness_links_excludes_already_linked_conferences(isolated_local_store):
+    from backend.core.conferences import service
+
+    _, conf = isolated_local_store.upsert_conference(
+        date=datetime.date(2026, 9, 1), theme_raw="HGE", match_status="matched",
+        college_name="Hépato-Gastro-entérologie 🧻", source_file="cal.xlsx",
+    )
+    annale_id = isolated_local_store.create_uness_annale(
+        source_url="https://uness.example/dossier-1",
+        collected_at="2026-09-01T18:45:00+00:00",
+        faculte="Fac", niveau="DFASM1", annee=2026,
+        matiere="HGE", titre="Dossier HGE", type_annale="DP",
+    )
+    isolated_local_store.set_conference_uness_session(conf["id"], annale_id)
+
+    assert service.list_pending_uness_links() == []
+
+
+def test_list_pending_uness_links_gives_several_candidates_for_the_same_day(isolated_local_store):
+    from backend.core.conferences import service
+
+    isolated_local_store.upsert_conference(
+        date=datetime.date(2026, 9, 1), theme_raw="HGE", match_status="matched",
+        college_name="Hépato-Gastro-entérologie 🧻", source_file="cal.xlsx",
+    )
+    first_id = isolated_local_store.create_uness_annale(
+        source_url="https://uness.example/dossier-1",
+        collected_at="2026-09-01T17:45:00+00:00",
+        faculte="Fac", niveau="DFASM1", annee=2026,
+        matiere="HGE", titre="Dossier A", type_annale="DP",
+    )
+    second_id = isolated_local_store.create_uness_annale(
+        source_url="https://uness.example/dossier-2",
+        collected_at="2026-09-01T19:00:00+00:00",
+        faculte="Fac", niveau="DFASM1", annee=2026,
+        matiere="HGE", titre="Dossier B", type_annale="DP",
+    )
+
+    pending = service.list_pending_uness_links()
+
+    assert len(pending) == 1
+    assert [c["id"] for c in pending[0]["candidates"]] == [first_id, second_id]
+
+
+def test_link_conference_to_uness_session_writes_link_and_clears_pending_list(isolated_local_store):
+    from backend.core.conferences import service
+
+    _, conf = isolated_local_store.upsert_conference(
+        date=datetime.date(2026, 9, 1), theme_raw="HGE", match_status="matched",
+        college_name="Hépato-Gastro-entérologie 🧻", source_file="cal.xlsx",
+    )
+    annale_id = isolated_local_store.create_uness_annale(
+        source_url="https://uness.example/dossier-1",
+        collected_at="2026-09-01T18:45:00+00:00",
+        faculte="Fac", niveau="DFASM1", annee=2026,
+        matiere="HGE", titre="Dossier HGE", type_annale="DP",
+    )
+
+    updated = service.link_conference_to_uness_session(conf["id"], annale_id)
+
+    assert updated["uness_session_id"] == annale_id
+    assert service.list_pending_uness_links() == []
+
+
+def test_link_conference_to_uness_session_raises_on_unknown_dossier(isolated_local_store):
+    from backend.core.conferences import service
+
+    _, conf = isolated_local_store.upsert_conference(
+        date=datetime.date(2026, 9, 1), theme_raw="HGE", match_status="matched",
+        college_name="Hépato-Gastro-entérologie 🧻", source_file="cal.xlsx",
+    )
+
+    with pytest.raises(ValueError):
+        service.link_conference_to_uness_session(conf["id"], 9999)
+
+    reloaded = isolated_local_store.get_conference(conf["id"])
+    assert reloaded["uness_session_id"] is None

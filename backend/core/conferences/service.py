@@ -98,3 +98,22 @@ async def _sync_calendar_events(conference_row: dict) -> None:
             local_store.set_conference_google_event_ids(
                 conference_row["id"], uness_slot_google_event_id=event["id"]
             )
+
+
+def list_pending_uness_links() -> list[dict]:
+    """Conférences validées sans dossier UNESS lié, avec leurs candidats du jour."""
+    pending = []
+    for conf in local_store.list_conferences(match_status="matched"):
+        if conf["uness_session_id"] is not None:
+            continue
+        candidates = local_store.list_uness_annales_by_date(conf["date"])
+        if candidates:
+            pending.append({"conference": conf, "candidates": candidates})
+    return pending
+
+
+def link_conference_to_uness_session(conference_id: int, annale_id: int) -> dict:
+    """Confirme le rapprochement entre une conférence et le dossier UNESS choisi."""
+    if local_store.get_uness_annale(annale_id) is None:
+        raise ValueError(f"Dossier UNESS introuvable: {annale_id}")
+    return local_store.set_conference_uness_session(conference_id, annale_id)

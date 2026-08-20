@@ -656,6 +656,7 @@ def init_db() -> None:
     _migrate_uness_scanned_catalog()
     _migrate_uness_rank_jobs()
     _migrate_flash_zero_ai_questions()
+    _migrate_conferences_table()
     from backend.state.catalog_migrations import run_catalog_migrations
     run_catalog_migrations(DB_PATH)
     logger.info(f"SQLite initialisé : {DB_PATH}")
@@ -6713,6 +6714,166 @@ def get_ai_practice_error_signals(
         }
         for row in rows
     ]
+
+
+# ── Planning des conférences DFASM ────────────────────────────────────────────
+
+_CONFERENCE_MATCH_STATUSES = {"matched", "needs_validation", "skipped"}
+
+
+def _migrate_conferences_table() -> None:
+    with _conn() as con:
+        con.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS conferences (
+                id                          INTEGER PRIMARY KEY AUTOINCREMENT,
+                date                        TEXT NOT NULL UNIQUE,
+                theme_raw                   TEXT NOT NULL,
+                college_id                  TEXT,
+                match_status                TEXT NOT NULL DEFAULT 'needs_validation',
+                speaker_initials            TEXT NOT NULL DEFAULT '',
+                speaker_name                TEXT NOT NULL DEFAULT '',
+                uness_session_id            INTEGER,
+                google_event_id             TEXT,
+                uness_slot_google_event_id  TEXT,
+                source_file                 TEXT NOT NULL DEFAULT '',
+                created_at                  TEXT NOT NULL,
+                updated_at                  TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_conferences_match_status
+                ON conferences(match_status);
+            """
+        )
+
+
+def upsert_conference(
+    *,
+    date: datetime.date,
+    theme_raw: str,
+    speaker_initials: str = "",
+    speaker_name: str = "",
+    match_status: str,
+    college_name: str | None,
+    source_file: str,
+) -> tuple[str, dict]:
+    """Insert or update a conference keyed by date.
+
+    Returns (outcome, row) where outcome is "created", "updated" or "unchanged".
+    A row whose theme_raw is unchanged is left untouched on college_id/match_status
+    so a validated link (or a manually skipped entry) survives a re-import; only
+    speaker metadata is refreshed in that case. A changed theme_raw resets the
+    match to the freshly computed status/college so a stale link is never kept.
+    """
+    if match_status not in _CONFERENCE_MATCH_STATUSES:
+        raise ValueError(f"Statut de correspondance invalide: {match_status}")
+    date_iso = date.isoformat() if isinstance(date, datetime.date) else str(date)
+    now = _now()
+    with _conn() as con:
+        existing = con.execute(
+            "SELECT * FROM conferences WHERE date = ?", (date_iso,)
+        ).fetchone()
+        if existing is None:
+            con.execute(
+                """INSERT INTO conferences
+                   (date, theme_raw, college_id, match_status, speaker_initials,
+                    speaker_name, source_file, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (date_iso, theme_raw, college_name, match_status, speaker_initials,
+                 speaker_name, source_file, now, now),
+            )
+            row = con.execute("SELECT * FROM conferences WHERE date = ?", (date_iso,)).fetchone()
+            return "created", dict(row)
+
+        existing = dict(existing)
+        if existing["theme_raw"] == theme_raw:
+            if existing["speaker_initials"] == speaker_initials and existing["speaker_name"] == speaker_name:
+                return "unchanged", existing
+            con.execute(
+                """UPDATE conferences SET speaker_initials = ?, speaker_name = ?,
+                   source_file = ?, updated_at = ? WHERE id = ?""",
+                (speaker_initials, speaker_name, source_file, now, existing["id"]),
+            )
+        else:
+            con.execute(
+                """UPDATE conferences SET theme_raw = ?, college_id = ?, match_status = ?,
+                   speaker_initials = ?, speaker_name = ?, source_file = ?, updated_at = ?
+                   WHERE id = ?""",
+                (theme_raw, college_name, match_status, speaker_initials, speaker_name,
+                 source_file, now, existing["id"]),
+            )
+        row = con.execute("SELECT * FROM conferences WHERE id = ?", (existing["id"],)).fetchone()
+        return "updated", dict(row)
+
+
+def get_conference(conference_id: int) -> dict | None:
+    with _conn() as con:
+        row = con.execute(
+            "SELECT * FROM conferences WHERE id = ?", (int(conference_id),)
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def list_conferences(*, match_status: str = "") -> list[dict]:
+    query = "SELECT * FROM conferences"
+    params: list = []
+    if match_status:
+        if match_status not in _CONFERENCE_MATCH_STATUSES:
+            raise ValueError(f"Statut de correspondance invalide: {match_status}")
+        query += " WHERE match_status = ?"
+        params.append(match_status)
+    query += " ORDER BY date"
+    with _conn() as con:
+        rows = con.execute(query, params).fetchall()
+    return [dict(row) for row in rows]
+
+
+def set_conference_match(conference_id: int, *, match_status: str, college_name: str | None) -> dict:
+    if match_status not in _CONFERENCE_MATCH_STATUSES:
+        raise ValueError(f"Statut de correspondance invalide: {match_status}")
+    now = _now()
+    with _conn() as con:
+        con.execute(
+            "UPDATE conferences SET match_status = ?, college_id = ?, updated_at = ? WHERE id = ?",
+            (match_status, college_name, now, int(conference_id)),
+        )
+        row = con.execute(
+            "SELECT * FROM conferences WHERE id = ?", (int(conference_id),)
+        ).fetchone()
+    if row is None:
+        raise ValueError(f"Conférence introuvable: {conference_id}")
+    return dict(row)
+
+
+def set_conference_google_event_ids(
+    conference_id: int,
+    *,
+    google_event_id: str | None = None,
+    uness_slot_google_event_id: str | None = None,
+) -> dict:
+    updates: list[str] = []
+    params: list = []
+    if google_event_id is not None:
+        updates.append("google_event_id = ?")
+        params.append(google_event_id)
+    if uness_slot_google_event_id is not None:
+        updates.append("uness_slot_google_event_id = ?")
+        params.append(uness_slot_google_event_id)
+    if not updates:
+        row = get_conference(conference_id)
+        if row is None:
+            raise ValueError(f"Conférence introuvable: {conference_id}")
+        return row
+    updates.append("updated_at = ?")
+    params.append(_now())
+    params.append(int(conference_id))
+    with _conn() as con:
+        con.execute(f"UPDATE conferences SET {', '.join(updates)} WHERE id = ?", params)
+        row = con.execute(
+            "SELECT * FROM conferences WHERE id = ?", (int(conference_id),)
+        ).fetchone()
+    if row is None:
+        raise ValueError(f"Conférence introuvable: {conference_id}")
+    return dict(row)
 
 
 # ── Auto-init à l'import ──────────────────────────────────────────────────────

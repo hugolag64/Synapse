@@ -37,10 +37,16 @@ def test_item_detail_keeps_full_review_generation_for_manual_access():
     assert "active_only=True" not in source
 
 
-def test_consolidation_reads_the_reentry_boundary():
+def test_consolidation_tasks_are_not_hidden_by_the_reentry_boundary():
+    """`get_due_consolidation_tasks` amorce (bootstrap) sa propre due_date à la
+    volée : elle peut retomber avant la date de reprise dès la création de la
+    tâche, sans rapport avec du passif accumulé pendant une pause. Appliquer le
+    filtre de reprise ici la cachait des vues liste alors que la fiche détail
+    (`get_due_consolidation_task_for_course`) l'affichait — la même tâche
+    existait ou non selon la vue."""
     source = Path("backend/core/reviews/consolidation.py").read_text(encoding="utf-8")
-    assert "filter_active_review_tasks" in source
-    assert "get_study_resume_date" in source
+    assert "filter_active_review_tasks" not in source
+    assert "get_study_resume_date" not in source
 
 
 def test_generate_reviews_hides_completed_reviews_even_without_an_explicit_history():

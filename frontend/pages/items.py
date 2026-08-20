@@ -381,6 +381,12 @@ def items_page(request: Request) -> None:
         all_tasks = filter_active_review_tasks(generated, resume_date)
         _meta["resume_date"] = resume_date
         _meta["hidden_tasks"] = len(generated) - len(all_tasks)
+        # Les tâches de consolidation (items déjà connus, hors cycle J
+        # classique) vivent dans un système séparé (`consolidation.py`) : sans
+        # ce rattachement, RETARD/PROCHAINE ne les voyaient jamais sur cette
+        # liste — seule la fiche détail individuelle les interrogeait.
+        from backend.core.reviews.consolidation import get_due_consolidation_tasks
+        all_tasks = all_tasks + get_due_consolidation_tasks(context="college")
         urgent_tasks = review_service.get_urgent_tasks(all_tasks)
         urgent_fiche_ids = {t.course_id for t in urgent_tasks}
         urgent_items = {

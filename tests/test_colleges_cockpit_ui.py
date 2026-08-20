@@ -180,6 +180,13 @@ def test_unread_course_is_not_presented_as_mastered():
     assert rows[0]["status_key"] == "à lire"
 
 
+def test_colleges_view_merges_consolidation_tasks_too():
+    source = open("frontend/pages/colleges_cockpit.py", encoding="utf-8").read()
+
+    assert "from backend.core.reviews.consolidation import get_due_consolidation_tasks" in source
+    assert "all_tasks + get_due_consolidation_tasks(context=\"college\")" in source
+
+
 def test_a_known_item_in_the_deplie_view_gets_planifier_instead_of_commencer():
     source = open("frontend/pages/colleges_cockpit.py", encoding="utf-8").read()
 

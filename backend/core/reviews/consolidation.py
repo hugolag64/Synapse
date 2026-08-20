@@ -21,7 +21,6 @@ from backend.core.reviews.models import ReviewTask
 from backend.core.reviews.mastery import get_course_mastery
 from backend.core.evaluation.models import EvaluationInput
 from backend.core.evaluation.service import record_evaluation
-from backend.core.reviews.reentry import filter_active_review_tasks, get_study_resume_date
 
 # Intervalle initial (jours) selon le niveau de maîtrise au moment de l'amorçage.
 INITIAL_INTERVAL_BY_LEVEL: dict[str, int] = {
@@ -188,11 +187,15 @@ def get_due_consolidation_tasks(
         if task is not None:
             tasks.append(task)
 
-    active_tasks = filter_active_review_tasks(
-        tasks,
-        get_study_resume_date(data_store.preferences),
-    )
-    return active_tasks
+    # Contrairement au cycle J classique, une tâche de consolidation est
+    # amorcée à la volée (`_bootstrap_at_date`) : sa due_date peut retomber
+    # dans le passé dès sa création si l'item est déjà connu depuis
+    # longtemps. Ce n'est pas du passif accumulé avant une reprise — c'est le
+    # signal même qu'il faut réviser maintenant. `get_due_consolidation_task_for_course`
+    # (fiche détail) ne filtrait déjà pas sur la date de reprise ; appliquer
+    # le filtre ici cachait ces tâches des vues liste tout en les laissant
+    # visibles sur la fiche individuelle.
+    return tasks
 
 
 def get_due_consolidation_task_for_course(

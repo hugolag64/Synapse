@@ -476,6 +476,12 @@ def render_colleges_cockpit(open_college: str | None = None) -> None:
         all_tasks = filter_active_review_tasks(generated, resume_date)
         _meta["resume_date"] = resume_date
         _meta["hidden_tasks"] = len(generated) - len(all_tasks)
+        # Les tâches de consolidation (items déjà connus, hors cycle J
+        # classique) vivent dans un système séparé (`consolidation.py`) : sans
+        # ce rattachement, RETARD/PROCHAINE et le KPI « en retard » ne les
+        # voyaient jamais — seule la fiche détail individuelle les interrogeait.
+        from backend.core.reviews.consolidation import get_due_consolidation_tasks
+        all_tasks = all_tasks + get_due_consolidation_tasks(context="college")
         planned_ids = scheduled_course_ids()
         tasks_by_course: dict[str, list] = {}
         for task in all_tasks:

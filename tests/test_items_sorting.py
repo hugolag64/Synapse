@@ -153,6 +153,18 @@ def test_college_sort_exposes_visible_groups_without_duplicate_items():
     assert sum(len(group) for _, group in groups) == len(rows)
 
 
+def test_consolidation_tasks_are_merged_into_the_list_view():
+    """`get_due_consolidation_tasks` vit dans un système séparé du moteur
+    classique : sans ce rattachement, RETARD/PROCHAINE ne voyaient jamais une
+    tâche de consolidation due, seule la fiche détail l'interrogeait."""
+    from pathlib import Path
+
+    source = Path("frontend/pages/items.py").read_text(encoding="utf-8")
+
+    assert "from backend.core.reviews.consolidation import get_due_consolidation_tasks" in source
+    assert "all_tasks + get_due_consolidation_tasks(context=\"college\")" in source
+
+
 def test_a_known_item_gets_planifier_instead_of_commencer():
     """Un item avec un score (déclaré ou mesuré) est déjà connu :
     « Commencer » mentirait en prétendant une première lecture aujourd'hui."""

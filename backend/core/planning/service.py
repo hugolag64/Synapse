@@ -176,33 +176,38 @@ class PlanningService:
         active_lacunes: list,
         calendar_events: list | None = None,
         max_urgent: int = 8,
-        max_today:  int = 5,
         max_lacunes: int = 3,
         target_minutes: int | None = None,
-        target_items: int | None = None,
+        prep_slots: list | None = None,
+        consolidation_tasks: list | None = None,
+        consolidation_today: datetime.date | None = None,
     ) -> DailyPlan:
         """
-        Génère le planning d'une journée.
+        Génère le planning d'une journée en deux voies :
 
-        Ordre de priorité :
-          1. Tâches urgentes (overdue), triées par retard décroissant
-          2. Tâches du jour, triées par priority_score
-          3. Lacunes actives, triées par sévérité décroissante
+          1. Lecture  : urgentes (retard) + du jour + lacunes + prépa fac (prep_slots),
+                        triées par priorité, consomment `target_minutes` en premier.
+                        Les tâches en retard ne sont jamais coupées (mais comptent bien
+                        dans le total consommé).
+          2. Consolidation : ce qu'il reste de `target_minutes` après la voie Lecture,
+                        sélectionnée par urgence avec le plafond diversité-par-collège
+                        existant (consolidation.select_daily/daily_caps).
 
-        Les lacunes sont filtrées aux statuts actifs/à revoir/récurrents.
+        Tout item écarté (Lecture par le budget, Consolidation par le budget ou le
+        plafond diversité) est renvoyé dans `skipped` plutôt que silencieusement perdu.
         """
         durations = self.get_durations()
-        slots: list[PlannedSlot] = []
+        lecture_slots: list[PlannedSlot] = []
 
-        # ── 1. Urgentes ───────────────────────────────────────────────────────
+        # ── Lecture : urgentes ────────────────────────────────────────────────
         for t in sorted(urgent_tasks, key=lambda x: -x.days_overdue)[:max_urgent]:
-            slots.append(self._slot_from_task(t, "urgent"))
+            lecture_slots.append(self._slot_from_task(t, "urgent"))
 
-        # ── 2. Du jour ────────────────────────────────────────────────────────
-        for t in sorted(today_tasks, key=lambda x: -x.priority_score)[:max_today]:
-            slots.append(self._slot_from_task(t, "today"))
+        # ── Lecture : du jour ─────────────────────────────────────────────────
+        for t in sorted(today_tasks, key=lambda x: -x.priority_score):
+            lecture_slots.append(self._slot_from_task(t, "today"))
 
-        # ── 3. Lacunes ────────────────────────────────────────────────────────
+        # ── Lecture : lacunes ─────────────────────────────────────────────────
         active_statuses = {"active", "à revoir", "récurrente"}
         lacunes_filtered = [
             lc for lc in active_lacunes
@@ -210,32 +215,64 @@ class PlanningService:
         ]
         lacunes_filtered.sort(key=lambda x: -(x["severity"] or 0))
         for lc in lacunes_filtered[:max_lacunes]:
-            slots.append(self._slot_from_lacune(lc, durations))
+            lecture_slots.append(self._slot_from_lacune(lc, durations))
 
-        # ── Totaux ────────────────────────────────────────────────────────────
+        # ── Lecture : prépa fac ───────────────────────────────────────────────
+        lecture_slots.extend(prep_slots or [])
+
+        # ── Trim Lecture par le budget (les urgentes ne sont jamais coupées) ──
         skipped: list[PlannedSlot] = []
-        if target_minutes is not None or target_items is not None:
+        lecture_min = 0
+        if target_minutes is not None:
             kept: list[PlannedSlot] = []
-            used_minutes = 0
-            used_items = 0
-            for slot in slots:
-                over_minutes = target_minutes is not None and used_minutes + slot.duration_min > target_minutes
-                over_items = target_items is not None and used_items >= target_items
-                if slot.is_urgent or (not over_minutes and not over_items):
+            used = 0
+            for slot in lecture_slots:
+                if slot.is_urgent or used + slot.duration_min <= target_minutes:
                     kept.append(slot)
-                    used_minutes += slot.duration_min
-                    used_items += 1
+                    used += slot.duration_min
                 else:
                     skipped.append(slot)
-            slots = kept
+            lecture_slots = kept
+            lecture_min = used
+        else:
+            lecture_min = sum(s.duration_min for s in lecture_slots)
 
+        # ── Consolidation : ce qu'il reste du budget ─────────────────────────
+        consolidation_slots: list[PlannedSlot] = []
+        if consolidation_tasks:
+            from backend.core.reviews import consolidation
+            from backend.state.store import data_store
+
+            weekend_light = bool(data_store.preferences.get("weekend_light_consolidation", False))
+            max_items, max_per_college = consolidation.daily_caps(
+                today=consolidation_today, weekend_light=weekend_light,
+            )
+            diversity_selected, diversity_skipped = consolidation.select_daily(
+                consolidation_tasks, max_items=max_items, max_per_college=max_per_college,
+            )
+
+            remaining = None if target_minutes is None else max(0, target_minutes - lecture_min)
+            cons_skipped_tasks = list(diversity_skipped)
+            used = 0
+            for t in diversity_selected:
+                slot = self._slot_from_task(t, "consolidation")
+                if remaining is None or used + slot.duration_min <= remaining:
+                    consolidation_slots.append(slot)
+                    used += slot.duration_min
+                else:
+                    cons_skipped_tasks.append(t)
+
+            skipped.extend(self._slot_from_task(t, "consolidation") for t in cons_skipped_tasks)
+
+        slots = lecture_slots + consolidation_slots
         total_min = sum(s.duration_min for s in slots)
         cal_busy  = self._calendar_busy_min(calendar_events)
         free_min  = max(0, DEFAULT_STUDY_DAY_MIN - cal_busy)
 
         logger.debug(
             f"PlanningService.plan_day : {len(slots)} slots, "
-            f"{total_min} min estimé, {cal_busy} min Calendar occupé"
+            f"{total_min} min estimé, {cal_busy} min Calendar occupé, "
+            f"{len(skipped)} en attente"
         )
 
         return DailyPlan(

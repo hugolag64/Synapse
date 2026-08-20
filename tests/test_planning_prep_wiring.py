@@ -39,3 +39,9 @@ def test_prep_block_opens_a_dialog_instead_of_navigating():
     source = _source()
     assert "open_course_prep_action" in source
     assert "validate_prep_task" in source
+
+
+def test_week_load_fetches_calendar_events_once_per_week():
+    source = _source()
+    assert "get_events_for_range(" in source
+    assert "get_events_for_day(" not in source

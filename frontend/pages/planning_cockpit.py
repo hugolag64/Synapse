@@ -834,15 +834,12 @@ async def render_planning_cockpit(focus: str | None = None) -> None:
             plan.date = d
             plans.append(plan)
 
-        # Séquentiel, jamais en parallèle : le client Google Calendar n'est pas
-        # thread-safe entre appels concurrents (cf. calendar_service.get_events_for_day
-        # et todo.py::_load_week_ajoute — même contrainte déjà documentée ailleurs).
+        try:
+            events_by_day = await calendar_service.get_events_for_range(week[0], week[-1])
+        except Exception:
+            events_by_day = {}
         for idx, (d, plan) in enumerate(zip(week, plans)):
-            try:
-                events = await calendar_service.get_events_for_day(d)
-            except Exception:
-                events = []
-            _draw_day(idx, d, plan, events or [])
+            _draw_day(idx, d, plan, events_by_day.get(d, []))
 
         total_min = sum(p.total_min for p in plans)
         free_days = sum(1 for p in plans if p.total_min <= 0)

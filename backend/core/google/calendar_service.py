@@ -72,7 +72,7 @@ class GoogleCalendarService:
         self.service = build("calendar", "v3", credentials=creds)
         logger.success("Google Calendar Service built successfully.")
 
-    async def create_event(self, summary, start_time_iso, duration_minutes=60, description="", color_id=None, reminders=None):
+    async def create_event(self, summary, start_time_iso, duration_minutes=60, description="", color_id=None, reminders=None, all_day=False):
         """Creates an event in the primary calendar. Thread-safe."""
         if not self.service:
             try:
@@ -89,21 +89,30 @@ class GoogleCalendarService:
         else:
             start = start_time_iso
 
-        end = start + datetime.timedelta(minutes=duration_minutes)
+        if all_day:
+            start_date = start.date() if isinstance(start, datetime.datetime) else start
+            end_date = start_date + datetime.timedelta(days=1)
+            event = {
+                "summary": summary,
+                "description": description,
+                "start": {"date": start_date.isoformat()},
+                "end": {"date": end_date.isoformat()},
+            }
+        else:
+            end = start + datetime.timedelta(minutes=duration_minutes)
+            event = {
+                "summary": summary,
+                "description": description,
+                "start": {
+                    "dateTime": start.isoformat(),
+                    "timeZone": get_app_timezone().key,
+                },
+                "end": {
+                    "dateTime": end.isoformat(),
+                    "timeZone": get_app_timezone().key,
+                },
+            }
 
-        event = {
-            "summary": summary,
-            "description": description,
-            "start": {
-                "dateTime": start.isoformat(),
-                "timeZone": get_app_timezone().key,
-            },
-            "end": {
-                "dateTime": end.isoformat(),
-                "timeZone": get_app_timezone().key,
-            },
-        }
-        
         if color_id:
             event["colorId"] = color_id
             

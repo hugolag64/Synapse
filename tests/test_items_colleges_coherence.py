@@ -66,6 +66,62 @@ def _catalog_row(item_ids: set[str]) -> dict:
     }
 
 
+def test_adjacent_items_follow_the_same_order_as_items_page(monkeypatch):
+    """La fiche détail n'avait aucun moyen de circuler entre items sans
+    repasser par `/items` (§7.3, 4.5)."""
+    from backend.state.store import data_store
+    from frontend.pages.items import get_adjacent_items
+
+    courses = [
+        Cours(id="fiche-1a", title="Premier", item_number="1", college=["Cardiologie"], created_time=datetime(2026, 1, 1)),
+        Cours(id="fiche-2a", title="Deuxième", item_number="2", college=["Cardiologie"], created_time=datetime(2026, 1, 1)),
+        Cours(id="fiche-2b", title="Deuxième", item_number="2", college=["Pédiatrie"], created_time=datetime(2026, 1, 2)),
+    ]
+    monkeypatch.setattr(data_store, "cours", courses)
+
+    previous, following = get_adjacent_items("2", repository=FakeCatalog())
+
+    assert previous["course"].item_number == "1"
+    assert following["course"].item_number == "3"
+
+
+def test_adjacent_items_stay_inside_the_filtered_college(monkeypatch):
+    """Item 3 (Pédiatrie seule) ne doit pas apparaître comme le suivant de
+    l'item 1 quand on navigue filtré sur Cardiologie."""
+    from backend.state.store import data_store
+    from frontend.pages.items import get_adjacent_items
+
+    courses = [
+        Cours(id="fiche-1a", title="Premier", item_number="1", college=["Cardiologie"], created_time=datetime(2026, 1, 1)),
+        Cours(id="fiche-2a", title="Deuxième", item_number="2", college=["Cardiologie"], created_time=datetime(2026, 1, 1)),
+        Cours(id="fiche-2b", title="Deuxième", item_number="2", college=["Pédiatrie"], created_time=datetime(2026, 1, 2)),
+    ]
+    monkeypatch.setattr(data_store, "cours", courses)
+
+    previous, following = get_adjacent_items("1", college="Cardiologie", repository=FakeCatalog())
+
+    assert previous is None
+    assert following["course"].item_number == "2"
+
+
+def test_adjacent_items_are_none_for_an_unknown_item(monkeypatch):
+    from backend.state.store import data_store
+    from frontend.pages.items import get_adjacent_items
+
+    monkeypatch.setattr(data_store, "cours", [])
+
+    assert get_adjacent_items("999", repository=FakeCatalog()) == (None, None)
+
+
+def test_course_detail_wires_the_adjacent_items_navigation():
+    from pathlib import Path
+
+    source = Path("frontend/pages/course_detail_cockpit.py").read_text(encoding="utf-8")
+
+    assert "from frontend.pages.items import get_adjacent_items" in source
+    assert "ci-adjacent" in source
+
+
 def test_college_global_total_deduplicates_multi_college_items():
     """`build_pilotage_summary` n'était appelée par aucune page — `_compute()`
     construit ses propres lignes et les résume avec `_pilotage_summary` (N21) :

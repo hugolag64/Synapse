@@ -270,6 +270,28 @@ def group_item_rows(
     return list(groups.items())
 
 
+def get_adjacent_items(
+    item_number: str, college: str | None = None, repository: CatalogRepository | None = None,
+) -> tuple[dict | None, dict | None]:
+    """Item précédent/suivant dans le même ordre que `/items` (par numéro),
+    filtré sur le même collège si la fiche a été ouverte depuis une liste
+    filtrée — la fiche détail n'avait aucun moyen de circuler entre items
+    sans repasser par la liste (§7.3, 4.5)."""
+    rows = build_item_rows(repository)
+    if college:
+        rows = [row for row in rows if college in (row["colleges"] or [])]
+    rows = _sort_item_rows(rows, "item")
+    current = str(item_number).strip()
+    index = next(
+        (i for i, row in enumerate(rows) if str(row["course"].item_number) == current), None,
+    )
+    if index is None:
+        return None, None
+    previous = rows[index - 1] if index > 0 else None
+    following = rows[index + 1] if index + 1 < len(rows) else None
+    return previous, following
+
+
 def visible_item_rows(rows: list[dict], filt: dict) -> list[dict]:
     """
     Lignes réellement rendues : filtre courant puis tri courant.

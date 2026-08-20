@@ -749,7 +749,7 @@ Les lots sont livrables indépendamment ; l'ordre est celui de l'utilité décro
 
 **Critères d'acceptation — vérifiés.** `/colleges` n'affiche aucune ligne à 0 item (`list_colleges_with_items()` testée sur données synthétiques et sur la base réelle). Aucune ligne de `/items` ni de la vue dépliée `/colleges` ne peut plus mener à « Item introuvable » (source-testé). Un item fragile dans deux collèges compte une fois au panneau, pas deux (`test_the_pilotage_panel_does_not_double_count_a_fragile_item_across_colleges`). Suite complète : 1710 tests passent, 1 échec antérieur et sans rapport.
 
-### Lot 4 — Interface et navigation · **N16 N17 N18** + § 7.3 · ✅ livré le 20 août (« précédent/suivant » excepté, hors constat noté)
+### Lot 4 — Interface et navigation · **N16 N17 N18** + § 7.3 · ✅ livré le 20 août
 
 | # | Action | État |
 |---|---|---|
@@ -757,7 +757,7 @@ Les lots sont livrables indépendamment ; l'ordre est celui de l'utilité décro
 | 4.2 | Tri « Collège » sous un filtre actif : un seul groupe, celui filtré, plutôt qu'un collège principal trompeur | ✅ |
 | 4.3 | Colonne COLLÈGE : « Endocrinologie +2 » avec tooltip, au lieu d'une troncature silencieuse | ✅ |
 | 4.4 | Ligne collège : nom + barre + un seul sous-libellé ; preuves et cycle J au dépliage | ✅ |
-| 4.5 | Colonne COLLÈGE cliquable vers `/colleges` ; « précédent / suivant » dans `/cours` | ✅ (colonne cliquable) ; non fait (précédent/suivant) |
+| 4.5 | Colonne COLLÈGE cliquable vers `/colleges` ; « précédent / suivant » dans `/cours` | ✅ |
 
 **Correctifs appliqués.**
 
@@ -765,11 +765,10 @@ Les lots sont livrables indépendamment ; l'ordre est celui de l'utilité décro
 - **N17.** `group_item_rows` prenait le collège *principal* (premier par ordre alphabétique) de chaque item pour construire les groupes du tri « Collège » — sous un filtre collège actif, un item multi-collèges dont ce n'est pas le collège principal apparaissait quand même, sous la mauvaise étiquette. Sous un filtre actif, un seul groupe est désormais construit, portant le nom du collège filtré. Vérifié sur la base réelle : filtrer sur Cardiovasculaire et trier par collège donne exactement un groupe « Cardiovasculaire ❤️ » de 30 items.
 - **N18.** La colonne COLLÈGE de `/items` affichait tous les collèges d'un item séparés par « · », tronqués sans indication au-delà de deux lignes (50 items concernés). Elle affiche maintenant le premier collège suivi d'un compteur (« Endocrinologie +2 ») avec la liste complète au survol.
 - **4.4 (densité de la ligne collège).** La ligne repliée empilait trois sous-libellés (lecture, statut de validation, preuves/consolidation) — dense sur 44 lignes visibles simultanément, sans qu'aucune des trois ne soit inutile, juste pas toutes au même niveau de priorité. Un seul sous-libellé reste dans la ligne repliée (`X/Y lus · Z restants`) ; le statut et le détail preuves/consolidation ne s'affichent plus qu'au dépliage, dans un nouveau bloc `.cg-validation-detail`.
-- **4.5 (colonne COLLÈGE cliquable, partiel).** La colonne COLLÈGE de `/items` ouvre maintenant `/colleges?open=<collège>` (collège principal de l'item), qui déplie directement cette ligne (`render_colleges_cockpit(open_college=...)`) — fermant la boucle de navigation dans l'autre sens par rapport au clic « retard » déjà cliquable de `/colleges` vers `/items`. Le second volet (« précédent / suivant » entre items dans `/cours`) n'est pas fait — voir §9 ci-dessous.
+- **4.5 (colonne COLLÈGE cliquable).** La colonne COLLÈGE de `/items` ouvre maintenant `/colleges?open=<collège>` (collège principal de l'item), qui déplie directement cette ligne (`render_colleges_cockpit(open_college=...)`) — fermant la boucle de navigation dans l'autre sens par rapport au clic « retard » déjà cliquable de `/colleges` vers `/items`.
+- **4.5 (précédent / suivant dans `/cours`).** `get_adjacent_items()` (`frontend/pages/items.py`) calcule l'item précédent/suivant dans le même ordre que `/items`, filtré sur le même collège si la fiche a été ouverte depuis une liste filtrée ; le fil d'Ariane de `/cours/{id}` affiche désormais ces deux liens. Vérifié sur la base réelle : sans filtre, l'item 44 donne 43/45 (séquentiel) ; filtré sur Gynécologie médicale, le suivant saute directement à 58 (les items d'autres collèges sont exclus).
 
-**Non fait (« précédent/suivant » dans `/cours`)** — nécessite de déterminer un ordre d'items dépendant du contexte de navigation (collège filtré, tri actif) et de le faire transiter jusqu'à la fiche détail ; reporté faute de défaut S1-S3 mesuré derrière (§7.3 est une cible d'architecture, pas un constat noté).
-
-**Critères d'acceptation — vérifiés.** Suite complète : 1718 tests passent, 1 échec antérieur et sans rapport.
+**Critères d'acceptation — vérifiés.** `test_adjacent_items_follow_the_same_order_as_items_page`, `test_adjacent_items_stay_inside_the_filtered_college`. Suite complète : 1722 tests passent, 1 échec antérieur et sans rapport — **les 21 constats de l'audit et les cinq points de §7.3 sont maintenant tous traités** (N15 excepté, retracté : ce n'était pas un défaut).
 
 ### Lot 5 — Performance et tests · **N19 N20 N21** · ✅ livré le 20 août
 

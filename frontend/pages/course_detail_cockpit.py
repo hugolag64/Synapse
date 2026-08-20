@@ -115,6 +115,10 @@ _CSS = """
   height:34px; flex-wrap:wrap; }
 .ci-crumb a { color:var(--text-dim); text-decoration:none; }
 .ci-crumb a:hover { color:var(--text-muted); text-decoration:underline; }
+.ci-adjacent { display:flex; align-items:center; gap:10px; margin-left:auto; font-size:12px; }
+.ci-adjacent a { color:var(--text-dim); text-decoration:none; max-width:180px; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; }
+.ci-adjacent a:hover { color:var(--text-muted); text-decoration:underline; }
 
 .ci-head { display:flex; flex-wrap:wrap; align-items:baseline; gap:12px; }
 .ci-head-id { font-family:var(--font-mono); font-size:12.5px; color:var(--text-muted); }
@@ -446,6 +450,8 @@ def render_item_cockpit(course_id: str, college: str | None = None) -> None:
         panel = ui.element("aside").classes("ci-panel")
 
     with center:
+        from urllib.parse import quote
+
         # Fil d'ariane
         with ui.element("div").classes("ci-crumb"):
             ui.link("Aujourd'hui", "/")
@@ -453,7 +459,6 @@ def render_item_cockpit(course_id: str, college: str | None = None) -> None:
             if displayed_college:
                 # Vers la liste filtrée sur ce collège, pas l'index générique :
                 # c'est ce qui permet de circuler entre les items d'un même collège.
-                from urllib.parse import quote
                 # Legacy contract retained in the source while the actual
                 # target is URL-encoded for colleges containing accents/spaces:
                 # Legacy contract retained in the source:
@@ -461,6 +466,38 @@ def render_item_cockpit(course_id: str, college: str | None = None) -> None:
                 ui.link(displayed_college, f"/items?college={quote(displayed_college)}")
                 ui.label("›")
             ui.label(f"Item {item_label}")
+
+            # Précédent/suivant dans le même ordre que la liste d'où l'item a
+            # été ouvert — la fiche détail n'avait aucun moyen de circuler
+            # entre items sans repasser par `/items` (§7.3, 4.5).
+            try:
+                from frontend.pages.items import get_adjacent_items
+
+                previous_row, next_row = get_adjacent_items(
+                    course.item_number or "", college=displayed_college,
+                )
+            except Exception as exc:
+                logger.warning(f"navigation précédent/suivant indisponible pour {course_id}: {exc}")
+                previous_row, next_row = None, None
+            if previous_row or next_row:
+                college_suffix = f"?college={quote(displayed_college)}" if displayed_college else ""
+                with ui.element("div").classes("ci-adjacent"):
+                    if previous_row:
+                        prev_course = previous_row["course"]
+                        ui.link(
+                            f"‹ {prev_course.item_number} · {prev_course.title}",
+                            f"/cours/{prev_course.id}{college_suffix}",
+                        ).tooltip(f"Item {prev_course.item_number} · {prev_course.title}")
+                    else:
+                        ui.label("‹").style("color:var(--text-dim); opacity:0.4")
+                    if next_row:
+                        next_course = next_row["course"]
+                        ui.link(
+                            f"{next_course.item_number} · {next_course.title} ›",
+                            f"/cours/{next_course.id}{college_suffix}",
+                        ).tooltip(f"Item {next_course.item_number} · {next_course.title}")
+                    else:
+                        ui.label("›").style("color:var(--text-dim); opacity:0.4")
 
         # En-tête synthétique
         with ui.element("div").classes("ci-head"):

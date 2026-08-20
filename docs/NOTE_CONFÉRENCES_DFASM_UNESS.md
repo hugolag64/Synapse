@@ -72,8 +72,8 @@ La fiche de route détaillée est dans
 - [x] Importer les dates exactes des conférences DFASM1 (mardi), depuis le XLS de la fac.
 - [ ] Importer les dates des conférences DFASM2 (jeudi) — hors périmètre actuel (utilisateur DFASM1).
 - [x] Renseigner les thèmes et matières/collèges (auto-matching + file de validation manuelle).
-- [ ] Associer chaque dossier UNESS à la conférence correspondante — le créneau 17 h 30–19 h est
-      créé automatiquement dans Calendar, mais aucun flux ne relie encore un dossier UNESS
-      réellement réalisé à la conférence (`uness_session_id` existe en base, jamais rempli).
+- [x] Associer chaque dossier UNESS à la conférence correspondante — suggestion automatique par
+      date dans Réglages → PLANNING CONFÉRENCES (section « Dossier UNESS à confirmer »),
+      confirmation manuelle obligatoire. `uness_session_id` référence `uness_annales.id`.
 - [ ] Définir le format de stockage des enregistrements et transcriptions.
 - [ ] Vérifier le flux d’aspiration UNESS et la persistance des questions dans la BDD QCM.

@@ -32,11 +32,16 @@ def render_conferences_admin(container=None) -> None:
         def _render_body() -> None:
             body.clear()
             pending = local_store.list_conferences(match_status="needs_validation")
+            pending_links = service.list_pending_uness_links()
             with body:
                 if not pending:
                     ui.label("Aucune conférence à valider.").classes("text-sm text-slate-500")
                 for conf in pending:
                     _render_pending(conf)
+                if pending_links:
+                    ui.label("Dossier UNESS à confirmer").classes("se-label mt-4")
+                    for entry in pending_links:
+                        _render_pending_uness_link(entry)
 
         def _render_pending(conf: dict) -> None:
             with ui.row().classes("w-full items-center gap-2"):
@@ -60,6 +65,31 @@ def render_conferences_admin(container=None) -> None:
 
                 ui.button("Valider", on_click=_validate).props("unelevated color=teal size=sm")
                 ui.button("Non applicable", on_click=_skip).props("flat size=sm")
+
+        def _render_pending_uness_link(entry: dict) -> None:
+            conf = entry["conference"]
+            candidates = entry["candidates"]
+            options = {c["id"]: f"{c['titre']} — {c['matiere']}" for c in candidates}
+            with ui.row().classes("w-full items-center gap-2"):
+                ui.label(f"{conf['date']} — {conf['theme_raw']}").classes("text-sm flex-1")
+                dossier_select = ui.select(
+                    options, label="Dossier UNESS"
+                ).props("outlined dense").classes("w-64")
+
+                async def _link(conf_id=conf["id"], select=dossier_select) -> None:
+                    if not select.value:
+                        ui.notify("Choisis un dossier avant de lier.", type="warning")
+                        return
+                    try:
+                        service.link_conference_to_uness_session(conf_id, select.value)
+                    except ValueError as exc:
+                        ui.notify(str(exc), type="negative")
+                        _render_body()
+                        return
+                    ui.notify("Dossier UNESS lié à la conférence.", type="positive")
+                    _render_body()
+
+                ui.button("Lier", on_click=_link).props("unelevated color=teal size=sm")
 
         async def _run_import() -> None:
             path_text = path_input.value.strip()

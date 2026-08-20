@@ -21,6 +21,7 @@ from backend.core.reviews import local_store
 from backend.core.reviews.service import review_service, next_postpone_date
 from backend.core.reviews.models import ReviewTask
 from backend.core.reviews.validation import complete_review
+from backend.core.planning.policy import capacity_from_preferences
 from backend.core.reviews.recommendation_service import (
     compute_daily_load, apply_daily_budget, get_next_action,
 )
@@ -265,7 +266,7 @@ async def render_today_cockpit() -> None:
 
         targets = data_store.preferences.get("planning_targets", {})
         target = targets.get(datetime.date.today().isoformat(), {}) if isinstance(targets, dict) else {}
-        budget = target.get("value", 0) if target.get("mode") == "minutes" else data_store.preferences.get("daily_budget_min", 0)
+        budget = target.get("value", 0) if target.get("mode") == "minutes" else 0
         load = compute_daily_load(urgent, today, heavy_threshold_min=budget if budget > 0 else 120)
         urgent, today, _overflow = apply_daily_budget(urgent, today, budget)
         if target.get("mode") == "items":
@@ -296,7 +297,7 @@ async def render_today_cockpit() -> None:
         edn_projections = project_to_exam(
             progress,
             target_date=edn_status.target_date,
-            daily_capacity_minutes=int(data_store.preferences.get("daily_budget_min", 60) or 60),
+            daily_capacity_minutes=capacity_from_preferences(data_store.preferences),
             today=business_today(),
         )
         try:

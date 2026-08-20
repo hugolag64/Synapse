@@ -137,9 +137,13 @@ _CSS = """
 .pl-focus-action { font-size:10px; color:var(--accent); white-space:nowrap; }
 @media (max-width: 820px) { .pl-focus { grid-template-columns:1fr; } }
 .pl-block-sub { font-size:10px; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pl-group-label { font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-dim);
+  font-weight:600; margin:6px 0 2px; }
+.pl-group-label:first-child { margin-top:0; }
+.pl-day-overflow { color:var(--text-dim); font-weight:600; margin-left:6px; }
 .pl-day-empty { padding:10px 4px; color:var(--text-dim); font-size:11px; font-style:italic; }
 .pl-day-foot { padding:7px 10px; border-top:1px solid var(--border); font-family:var(--font-mono); font-size:11px;
-  color:var(--text-muted); text-align:center; }
+  color:var(--text-muted); text-align:center; display:flex; align-items:center; justify-content:center; gap:6px; }
 .pl-day.today .pl-day-foot { border-top-color:var(--accent); color:var(--accent); font-weight:600; }
 .pl-legend { display:flex; gap:22px; margin-top:14px; flex-wrap:wrap; }
 .pl-legend-item { display:flex; align-items:center; gap:7px; font-size:11.5px; color:var(--text-muted); }
@@ -443,8 +447,56 @@ async def render_planning_cockpit(focus: str | None = None) -> None:
                     body = ui.column().classes("pl-day-body gap-1.5 w-full")
                     with body:
                         ui.label("Chargement…").classes("pl-day-empty")
-                    foot = ui.label("").classes("pl-day-foot")
+                    foot = ui.element("div").classes("pl-day-foot")
                 day_refs.append({"body": body, "foot": foot})
+
+    def _open_prep_dialog(slot) -> None:
+        from backend.core.prep.store import list_prep_tasks
+        from backend.core.prep.service import validate_prep_task
+        from frontend.components.course_prep_task_row import course_prep_task_row
+        from frontend.components.course_quick_actions import open_course_prep_action
+
+        tasks = [t for t in list_prep_tasks(statuses=("todo", "done")) if t.course_id == slot.course_id]
+        with ui.dialog() as dialog, ui.card().classes("w-full max-w-md p-4 gap-2"):
+            ui.label(slot.label).classes("text-base font-semibold")
+
+            def _validate(task) -> None:
+                try:
+                    validate_prep_task(task.id)
+                except (KeyError, ValueError) as exc:
+                    ui.notify(str(exc), type="warning")
+                    return
+                dialog.close()
+                asyncio.create_task(_load_and_render())
+                ui.notify(f"Préparation validée : ITEM {task.item_number}", type="positive")
+
+            def _open(task) -> None:
+                open_course_prep_action(task, refresh_fn=lambda: asyncio.create_task(_load_and_render()))
+
+            for task in tasks:
+                if task.status == "todo":
+                    course_prep_task_row(task, on_open=_open, on_validate=_validate)
+            ui.button("Fermer", on_click=dialog.close).props("flat no-caps color=slate").classes("self-end mt-2")
+        dialog.open()
+
+    def _draw_slot_block(slot) -> None:
+        slot_classes = "pl-block pl-block-task"
+        if slot.slot_type == "consolidation":
+            slot_classes += " pl-block-consolidation"
+        if slot.slot_type == "prep":
+            block = ui.element("div").classes(slot_classes + " pl-block-clickable").tooltip(slot.label)
+            block.on("click", lambda s=slot: _open_prep_dialog(s))
+        else:
+            target = block_target(slot.slot_type, getattr(slot, "course_id", None))
+            if target:
+                slot_classes += " pl-block-clickable"
+            block = ui.element("div").classes(slot_classes).tooltip(slot.label)
+            if target:
+                block.on("click", lambda route=target: ui.navigate.to(route))
+        with block:
+            ui.label(slot.label).classes("pl-block-title")
+            if slot.subtitle:
+                ui.label(f"{slot.subtitle} · {slot.duration_min} min").classes("pl-block-sub")
 
     def _draw_day(idx: int, d: datetime.date, plan, events: list) -> None:
         ref = day_refs[idx]
@@ -454,20 +506,19 @@ async def render_planning_cockpit(focus: str | None = None) -> None:
             manual_entries = _manual_entries_by_day.get(d.isoformat(), [])
             if not plan.slots and not events and not manual_entries:
                 ui.label("Rien de prévu").classes("pl-day-empty")
-            for slot in plan.slots:
-                slot_classes = "pl-block pl-block-task"
-                if slot.slot_type == "consolidation":
-                    slot_classes += " pl-block-consolidation"
-                target = block_target(slot.slot_type, getattr(slot, "course_id", None))
-                if target:
-                    slot_classes += " pl-block-clickable"
-                block = ui.element("div").classes(slot_classes).tooltip(slot.label)
-                if target:
-                    block.on("click", lambda route=target: ui.navigate.to(route))
-                with block:
-                    ui.label(slot.label).classes("pl-block-title")
-                    if slot.subtitle:
-                        ui.label(f"{slot.subtitle} · {slot.duration_min} min").classes("pl-block-sub")
+
+            lecture_slots = [s for s in plan.slots if s.slot_type != "consolidation"]
+            consolidation_slots = [s for s in plan.slots if s.slot_type == "consolidation"]
+
+            if lecture_slots:
+                ui.label("LECTURE").classes("pl-group-label")
+                for slot in lecture_slots:
+                    _draw_slot_block(slot)
+            if consolidation_slots:
+                ui.label("CONSOLIDATION").classes("pl-group-label")
+                for slot in consolidation_slots:
+                    _draw_slot_block(slot)
+
             for entry in manual_entries:
                 target = block_target("manual", entry["course_id"])
                 classes = "pl-block pl-block-task" + (" pl-block-clickable" if target else "")
@@ -487,7 +538,11 @@ async def render_planning_cockpit(focus: str | None = None) -> None:
                         h, m = divmod(dur, 60)
                         ui.label(f"{h}h{m:02d}" if h else f"{dur} min").classes("pl-block-sub")
         manual_total = sum(entry["duration_minutes"] for entry in _manual_entries_by_day.get(d.isoformat(), []))
-        ref["foot"].set_text(_load_label(plan.total_min + manual_total))
+        ref["foot"].clear()
+        with ref["foot"]:
+            ui.label(_load_label(plan.total_min + manual_total))
+            if plan.skipped:
+                ui.label(f"+{len(plan.skipped)} en attente").classes("pl-day-overflow")
 
     def _open_day_actions(day: datetime.date) -> None:
         with ui.dialog() as dialog:

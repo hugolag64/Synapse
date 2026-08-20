@@ -354,9 +354,10 @@ def declare_college_items(
     Valider un collège (`set_college_status`) n'écrivait jamais `item_state` :
     aucun de ses items ne devenait éligible au score (`mastery.score` restait
     `None`) ni à la consolidation automatique, qui exige justement un score.
-    Mesuré sur la base réelle le 20 août 2026 : 9 collèges validés, 138 items,
-    aucun avec `item_state`. Un item déjà déclaré (Triage, séance de
-    consolidation) n'est jamais écrasé. Retourne le nombre d'items déclarés.
+    Mesuré sur la base réelle le 20 août 2026 : 9 collèges validés, 138 items
+    reliés, dont 34 réellement sans `item_state` (les 104 autres l'étaient
+    déjà via Triage). Un item déjà déclaré n'est jamais écrasé. Retourne le
+    nombre d'items déclarés.
     """
     declared = 0
     for course_id in course_ids:
@@ -366,6 +367,43 @@ def declare_college_items(
         ks.set_item_state(cid, level, context=context, source="college_valide")
         declared += 1
     return declared
+
+
+def confirm_college_validation(
+    college: str, level: str = "correct", repository=None,
+) -> int:
+    """Point d'entrée unique pour « ce collège est validé » : statut *et*
+    cascade `item_state`, dans la même fonction.
+
+    `declare_college_items()` existait déjà quand ce constat est apparu, mais
+    elle demandait à chaque appelant de résoudre lui-même les items du
+    collège et de se souvenir de l'appeler après `set_college_status` — un
+    contrat facile à oublier. `deploy/reprise_historique_consolidation.py`
+    en est la preuve : il appelle `set_college_status` directement, avec sa
+    propre logique de déclaration dupliquée en parallèle. N'importe quel
+    futur appelant qui ferait de même réintroduirait le même défaut. Cette
+    fonction rend l'erreur impossible : valider un collège *sans* passer par
+    elle redevient un choix explicite, pas un oubli. Retourne le nombre
+    d'items nouvellement déclarés.
+    """
+    if repository is None:
+        from backend.state.catalog_repository import CatalogRepository
+
+        repository = CatalogRepository()
+
+    ks.set_college_status(college, "valide")
+
+    if not repository.is_populated():
+        return 0
+    # Deux requêtes globales plutôt qu'une par item (N19) : mêmes méthodes
+    # que `build_item_rows`.
+    colleges_by_item = repository.list_colleges_by_item()
+    target_items = {item_id for item_id, names in colleges_by_item.items() if college in names}
+    fiche_ids = [
+        str(fiche.id) for fiche in repository.list_all_fiches()
+        if fiche.item_id in target_items
+    ]
+    return declare_college_items(fiche_ids, level=level, context="college")
 
 
 def get_historically_completed_course_ids(

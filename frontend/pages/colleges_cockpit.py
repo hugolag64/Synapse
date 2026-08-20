@@ -700,24 +700,14 @@ def render_colleges_cockpit(open_college: str | None = None) -> None:
         _render(recompute=True)
 
     def _confirm_college(college: str) -> None:
-        knowledge_store.set_college_status(college, "valide")
-        # Sans ce rattachement, aucun item d'un collège validé n'était
-        # éligible au score ni à la consolidation automatique (0/138 sur la
-        # base réelle, 20 août 2026) : valider un collège n'écrivait que sa
-        # propre table, jamais `item_state`. Un item déjà situé (Triage,
-        # séance) n'est jamais réécrasé.
-        from backend.core.knowledge.service import declare_college_items
+        # Point d'entrée unique : `confirm_college_validation` pose le statut
+        # ET déclare `item_state` pour ses items dans la même fonction — sans
+        # ça, aucun item d'un collège validé ne devenait éligible au score ni
+        # à la consolidation automatique (34/138 manquaient sur la base
+        # réelle, 20 août 2026). Un item déjà situé n'est jamais réécrasé.
+        from backend.core.knowledge.service import confirm_college_validation
 
-        confirm_catalog = CatalogRepository()
-        if confirm_catalog.is_populated():
-            from frontend.pages.items import build_item_rows
-            item_ids = [
-                str(row["course"].id) for row in build_item_rows(confirm_catalog)
-                if college in (row["colleges"] or []) and not row["missing_fiche"]
-            ]
-        else:
-            item_ids = [str(c.id) for c in data_store.get_cours_for_college(college)]
-        declared = declare_college_items(item_ids, level="correct", context="college")
+        declared = confirm_college_validation(college, level="correct")
 
         if declared:
             ui.notify(
@@ -1054,6 +1044,23 @@ def render_colleges_cockpit(open_college: str | None = None) -> None:
                                 )
                             elif item["planned"]:
                                 ui.label("—").classes("cg-item-cell cg-item-muted cg-item-action")
+                            elif item["score"] is not None:
+                                # Un score existe déjà (déclaré ou mesuré) :
+                                # « Commencer » mentirait en prétendant une
+                                # première lecture aujourd'hui. Même action,
+                                # libellé honnête pour une consolidation.
+                                plan_button = ui.button("Planifier", icon="event_repeat").props(
+                                    "outline dense size=sm color=primary"
+                                ).classes("cg-item-action")
+                                plan_button.tooltip(
+                                    "Planifie une révision de consolidation J1 → J30 pour cet "
+                                    "item déjà connu — ne compte pas comme une première lecture"
+                                )
+                                plan_button.on(
+                                    "click",
+                                    lambda cid=course.id, t=course.title: _start_item(cid, t),
+                                    js_handler=_STOP_PROPAGATION_JS,
+                                )
                             else:
                                 start_button = ui.button("Commencer", icon="play_arrow").props(
                                     "outline dense size=sm color=primary"

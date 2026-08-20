@@ -638,6 +638,24 @@ def items_page(request: Request) -> None:
                     ui.label("à jour")
                 elif r.get("missing_fiche"):
                     ui.label("—").classes("it-unplanned")
+                elif r.get("mastery_score") is not None:
+                    # Un score existe déjà (déclaré ou mesuré) : l'item est
+                    # connu, « Commencer » mentirait en prétendant une
+                    # première lecture aujourd'hui. Même action
+                    # (anchor_first_read pose le cycle J1→J30), juste un
+                    # libellé honnête pour un item de consolidation.
+                    plan = ui.element("div").classes("it-start")
+                    with plan:
+                        ui.label("Planifier")
+                    plan.tooltip(
+                        "Planifie une révision de consolidation J1→J30 pour cet "
+                        "item déjà connu — ne compte pas comme une première lecture"
+                    )
+                    plan.on(
+                        "click",
+                        lambda cid=c.id, title=c.title: _start_item(cid, title),
+                        js_handler=_STOP_PROPAGATION_JS,
+                    )
                 else:
                     start = ui.element("div").classes("it-start")
                     with start:

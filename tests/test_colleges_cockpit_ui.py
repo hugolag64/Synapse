@@ -180,12 +180,20 @@ def test_unread_course_is_not_presented_as_mastered():
     assert rows[0]["status_key"] == "à lire"
 
 
+def test_a_known_item_in_the_deplie_view_gets_planifier_instead_of_commencer():
+    source = open("frontend/pages/colleges_cockpit.py", encoding="utf-8").read()
+
+    assert 'item["score"] is not None' in source
+    assert '"Planifier"' in source
+    assert "ne compte pas comme une première lecture" in source
+
+
 def test_confirming_a_college_declares_its_undeclared_items():
     """Valider un collège n'écrivait jamais `item_state` : ses items ne
     devenaient éligibles ni au score ni à la consolidation automatique."""
     source = open("frontend/pages/colleges_cockpit.py", encoding="utf-8").read()
 
-    assert "declare_college_items(item_ids, level=\"correct\"" in source
+    assert "confirm_college_validation(college, level=\"correct\")" in source
     assert 'f"/triage/{quote(name)}"' in source
 
 

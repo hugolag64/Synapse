@@ -153,6 +153,18 @@ def test_college_sort_exposes_visible_groups_without_duplicate_items():
     assert sum(len(group) for _, group in groups) == len(rows)
 
 
+def test_a_known_item_gets_planifier_instead_of_commencer():
+    """Un item avec un score (déclaré ou mesuré) est déjà connu :
+    « Commencer » mentirait en prétendant une première lecture aujourd'hui."""
+    from pathlib import Path
+
+    source = Path("frontend/pages/items.py").read_text(encoding="utf-8")
+
+    assert 'r.get("mastery_score") is not None' in source
+    assert "Planifier" in source
+    assert "ne compte pas comme une première lecture" in source
+
+
 def test_college_column_navigates_to_the_colleges_view():
     """La colonne COLLÈGE était du texte mort ; elle ouvre maintenant
     `/colleges` sur le collège principal de l'item, déplié (4.5)."""

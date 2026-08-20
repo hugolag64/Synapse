@@ -551,10 +551,16 @@ def render_item_cockpit(course_id: str, college: str | None = None) -> None:
                 # Ancrage local : le chemin Notion « Démarrer le suivi » exige un
                 # PDF lié et une resynchronisation, et ne posait donc de cycle
                 # sur presque aucun item. Il reste accessible en second rideau.
+                # Un score déjà présent (déclaré ou mesuré) : l'item est
+                # connu, « Commencer » mentirait en prétendant une première
+                # lecture aujourd'hui — même action, libellé honnête.
                 _start = ui.element("div").classes("ci-btn primary")
                 with _start:
-                    ui.label("Commencer l'étude")
+                    ui.label("Planifier une révision" if score is not None else "Commencer l'étude")
                 _start.tooltip(
+                    "Planifie une révision de consolidation J1 → J30 pour cet item déjà "
+                    "connu — ne compte pas comme une première lecture"
+                    if score is not None else
                     "Pose la première lecture aujourd'hui et planifie J1, J3, J7, J14 et J30"
                 )
                 _start.on("click", lambda cid=course.id: _anchor_cycle(cid))

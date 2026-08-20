@@ -213,6 +213,48 @@ def test_declare_college_items_is_idempotent():
     assert ksv.declare_college_items(["course-1"], level="correct") == 0
 
 
+def test_confirm_college_validation_is_the_single_entry_point(tmp_path):
+    """`set_college_status` seule ne suffisait pas : n'importe quel appelant
+    qui l'utilisait directement (le script de reprise historique, par
+    exemple) oubliait la cascade `item_state`. Cette fonction pose le statut
+    et la cascade ensemble, pour qu'il n'y ait plus qu'un seul chemin."""
+    from backend.state.catalog_repository import CatalogRepository
+
+    repository = CatalogRepository(tmp_path / "catalog.sqlite")
+    repository.upsert_college(college_id="college:cardio", name="Cardiologie", source="test")
+    repository.upsert_item(item_id="item:1", item_number=1, title="Item 1", provenance="test")
+    repository.upsert_fiche(
+        fiche_id="fiche:1", item_id="item:1", external_notion_id="notion:1",
+        title="Item 1", payload={"id": "fiche:1", "title": "Item 1"},
+    )
+    repository.link_fiche_college(fiche_id="fiche:1", college_name="Cardiologie", source="test")
+
+    declared = ksv.confirm_college_validation("Cardiologie", level="correct", repository=repository)
+
+    assert declared == 1
+    assert ks.get_all_college_statuses()["Cardiologie"] == "valide"
+    assert ks.get_item_state("fiche:1", "college").declared_level == "correct"
+
+
+def test_confirm_college_validation_does_not_overwrite_an_existing_declaration(tmp_path):
+    from backend.state.catalog_repository import CatalogRepository
+
+    repository = CatalogRepository(tmp_path / "catalog.sqlite")
+    repository.upsert_college(college_id="college:cardio", name="Cardiologie", source="test")
+    repository.upsert_item(item_id="item:1", item_number=1, title="Item 1", provenance="test")
+    repository.upsert_fiche(
+        fiche_id="fiche:1", item_id="item:1", external_notion_id="notion:1",
+        title="Item 1", payload={"id": "fiche:1", "title": "Item 1"},
+    )
+    repository.link_fiche_college(fiche_id="fiche:1", college_name="Cardiologie", source="test")
+    ks.set_item_state("fiche:1", "solide", context="college", source="triage")
+
+    declared = ksv.confirm_college_validation("Cardiologie", repository=repository)
+
+    assert declared == 0
+    assert ks.get_item_state("fiche:1", "college").declared_level == "solide"
+
+
 def test_avancement_du_triage():
     ks.set_item_state("course-1", "solide")
     ks.set_item_state("course-2", "flou")

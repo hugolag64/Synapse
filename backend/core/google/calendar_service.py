@@ -225,7 +225,86 @@ class GoogleCalendarService:
             
         # Re-sort combined list by start time
         all_events.sort(key=lambda x: x['start'].get('dateTime', x['start'].get('date')))
-        
+
         return all_events
+
+    async def get_events_for_range(self, start_date: datetime.date, end_date: datetime.date) -> dict:
+        """Comme get_events_for_day, mais sur toute une plage en un seul passage par
+        calendrier (au lieu d'un appel par jour) — évite N requêtes réseau séquentielles
+        quand l'appelant a besoin d'une semaine entière (cf. planning_cockpit.py)."""
+        logger.info(f"Fetching calendar events for {start_date}..{end_date}...")
+        if not self.service:
+            logger.info("Service not initialized, authenticating...")
+            try:
+                await asyncio.to_thread(self.authenticate)
+            except Exception as e:
+                logger.error(f"Authentication failed: {e}")
+                raise GoogleCalendarAuthError(f"Authentification Google Calendar échouée : {e}") from e
+
+        app_timezone = get_app_timezone()
+        start_dt = datetime.datetime.combine(start_date, datetime.time.min, tzinfo=app_timezone)
+        end_dt = datetime.datetime.combine(end_date, datetime.time.max, tzinfo=app_timezone)
+        time_min = start_dt.isoformat()
+        time_max = end_dt.isoformat()
+
+        from backend.config.settings import settings as _cfg
+        from backend.state.store import data_store as _store
+        from backend.core.planning.calendar_sources import (
+            FAC_CALENDAR_ID,
+            FAC_CALENDAR_LABEL,
+            list_calendar_sources as _list_calendar_sources,
+        )
+
+        configured_ids = _cfg.get_calendar_ids()
+        preference_sources = _list_calendar_sources(_store.preferences)
+        source_labels: dict[str, str] = {FAC_CALENDAR_ID: FAC_CALENDAR_LABEL}
+        source_labels.update({s["id"]: s["label"] for s in preference_sources if s["label"]})
+
+        seen_ids: set[str] = set()
+        calendar_ids: list[str] = []
+        for cid in ["primary", FAC_CALENDAR_ID] + configured_ids + [s["id"] for s in preference_sources]:
+            if cid not in seen_ids:
+                seen_ids.add(cid)
+                calendar_ids.append(cid)
+
+        all_events: list[dict] = []
+
+        async def fetch_calendar(cal_id):
+            try:
+                events_result = await asyncio.to_thread(
+                    lambda: self.service.events().list(
+                        calendarId=cal_id,
+                        timeMin=time_min,
+                        timeMax=time_max,
+                        singleEvents=True,
+                        orderBy='startTime',
+                    ).execute()
+                )
+                items = events_result.get('items', [])
+                label = source_labels.get(cal_id, "")
+                for event in items:
+                    event["_synapse_source_label"] = label
+                    event["_synapse_calendar_id"] = cal_id
+                return items
+            except Exception as e:
+                logger.error(f"Error fetching calendar {cal_id}: {e}")
+                return []
+
+        # Même contrainte que get_events_for_day : séquentiel entre calendriers.
+        for cid in calendar_ids:
+            all_events.extend(await fetch_calendar(cid))
+
+        from backend.core.prep.calendar_parser import event_start_date
+
+        events_by_day: dict[datetime.date, list[dict]] = {
+            start_date + datetime.timedelta(days=i): []
+            for i in range((end_date - start_date).days + 1)
+        }
+        for event in all_events:
+            day = event_start_date(event, app_timezone)
+            if day in events_by_day:
+                events_by_day[day].append(event)
+
+        return events_by_day
 
 calendar_service = GoogleCalendarService()

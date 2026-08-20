@@ -50,6 +50,10 @@ MASTERY_WEIGHT: dict[str, float] = {
 MAX_PER_COLLEGE_PER_DAY = 2
 MAX_ITEMS_PER_DAY = 6
 
+# Charge allégée le week-end (préférence "weekend_light_consolidation", défaut désactivé).
+WEEKEND_MAX_PER_COLLEGE_PER_DAY = 1
+WEEKEND_MAX_ITEMS_PER_DAY = 2
+
 _HIDDEN_STATUSES = {"done", "ignored", "cancelled"}
 
 
@@ -270,6 +274,22 @@ def select_daily(
             skipped.append(t)
 
     return selected, skipped
+
+
+def daily_caps(
+    today: Optional[datetime.date] = None,
+    weekend_light: bool = False,
+) -> tuple[int, int]:
+    """(max_items, max_per_college) du jour pour select_daily.
+
+    Réduits le samedi/dimanche si weekend_light est activé (préférence
+    "weekend_light_consolidation") — le cycle J n'est pas concerné, seule
+    la boucle de consolidation ralentit le week-end.
+    """
+    today = today or datetime.date.today()
+    if weekend_light and today.weekday() >= 5:  # samedi=5, dimanche=6
+        return WEEKEND_MAX_ITEMS_PER_DAY, WEEKEND_MAX_PER_COLLEGE_PER_DAY
+    return MAX_ITEMS_PER_DAY, MAX_PER_COLLEGE_PER_DAY
 
 
 def get_or_bootstrap_task(course_id: str, context: str = "college") -> Optional[ReviewTask]:

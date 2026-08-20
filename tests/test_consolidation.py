@@ -580,6 +580,33 @@ def test_select_daily_priorise_niveau_critique(mock_data_store):
     assert selected[0].course_id == "crit"
 
 
+# ── daily_caps : charge allégée le week-end ─────────────────────────────────
+
+def test_daily_caps_weekday_ignore_le_mode_leger():
+    from backend.core.reviews import consolidation
+
+    lundi = date(2026, 8, 17)
+    assert lundi.weekday() == 0
+    assert consolidation.daily_caps(today=lundi, weekend_light=True) == (6, 2)
+
+
+def test_daily_caps_weekend_normal_si_mode_desactive():
+    from backend.core.reviews import consolidation
+
+    samedi = date(2026, 8, 22)
+    assert samedi.weekday() == 5
+    assert consolidation.daily_caps(today=samedi, weekend_light=False) == (6, 2)
+
+
+def test_daily_caps_weekend_leger_si_active():
+    from backend.core.reviews import consolidation
+
+    samedi = date(2026, 8, 22)
+    dimanche = date(2026, 8, 23)
+    assert consolidation.daily_caps(today=samedi, weekend_light=True) == (2, 1)
+    assert consolidation.daily_caps(today=dimanche, weekend_light=True) == (2, 1)
+
+
 # ── get_or_bootstrap_task (ajout manuel d'un cours) ─────────────────────────
 
 @patch('backend.state.store.data_store')
@@ -658,6 +685,61 @@ def test_plan_consolidation_retourne_selection_et_surplus(mock_data_store):
     )
     assert len(selected) == 1
     assert skipped == []
+
+
+def _declared_courses_same_college(prefix: str, count: int, college: str):
+    """3 cours du même collège, déclarés il y a 60j -> immédiatement dus en consolidation."""
+    import backend.core.knowledge.store as ks
+
+    cours = []
+    for i in range(count):
+        cid = f"{prefix}-{i}"
+        ks.set_item_state(cid, "flou", context="college", source="triage")
+        with ls._conn() as con:
+            con.execute(
+                "UPDATE item_state SET declared_at = ? WHERE course_id = ? AND context = ?",
+                ((date.today() - datetime.timedelta(days=60)).isoformat(), cid, "college"),
+            )
+        cours.append(_mock_cours(cid, f"Cours {cid}", [college]))
+    return cours
+
+
+@patch('backend.state.store.data_store')
+def test_plan_consolidation_utilise_le_plafond_leger_le_we_si_active(mock_data_store):
+    from backend.core.planning.service import planning_service
+
+    mock_data_store.preferences = {
+        "semestre_actuel": "Semestre 7",
+        "study_resume_date": (date.today() - datetime.timedelta(days=365)).isoformat(),
+        "weekend_light_consolidation": True,
+    }
+    mock_data_store.cours = _declared_courses_same_college(
+        "we-on", 3, "Cardiovasculaire ❤️",
+    )
+
+    samedi = date(2026, 8, 22)
+    selected, skipped = planning_service.plan_consolidation(today=samedi)
+    assert len(selected) == 1  # plafond week-end : 1 par collège
+    assert len(skipped) == 2
+
+
+@patch('backend.state.store.data_store')
+def test_plan_consolidation_defaut_inchange_si_preference_absente(mock_data_store):
+    from backend.core.planning.service import planning_service
+
+    mock_data_store.preferences = {
+        "semestre_actuel": "Semestre 7",
+        "study_resume_date": (date.today() - datetime.timedelta(days=365)).isoformat(),
+        # pas de weekend_light_consolidation -> comportement inchangé, même le week-end
+    }
+    mock_data_store.cours = _declared_courses_same_college(
+        "we-off", 3, "Cardiovasculaire ❤️",
+    )
+
+    samedi = date(2026, 8, 22)
+    selected, skipped = planning_service.plan_consolidation(today=samedi)
+    assert len(selected) == 2  # plafond normal : 2 par collège
+    assert len(skipped) == 1
 
 
 # ── complete_consolidation_task ──────────────────────────────────────────────

@@ -258,15 +258,29 @@ class PlanningService:
 
     def plan_consolidation(
         self,
-        max_items: int = 6,
-        max_per_college: int = 2,
+        max_items: int | None = None,
+        max_per_college: int | None = None,
+        today: datetime.date | None = None,
     ):
         """
         Sélection du jour pour le flux de consolidation long terme (items
         ayant fini leur cycle J3-J30, ou déclarés flou/correct/solide sans
         avoir jamais été suivis dans l'app). Retourne (selected, skipped).
+
+        Sans max_items/max_per_college explicites, les plafonds sont dérivés
+        de consolidation.daily_caps() + la préférence "weekend_light_consolidation"
+        — réduits le week-end si activée, inchangés sinon (défaut désactivé).
         """
         from backend.core.reviews import consolidation
+        from backend.state.store import data_store
+
+        if max_items is None or max_per_college is None:
+            weekend_light = bool(data_store.preferences.get("weekend_light_consolidation", False))
+            default_items, default_per_college = consolidation.daily_caps(
+                today=today, weekend_light=weekend_light,
+            )
+            max_items = max_items if max_items is not None else default_items
+            max_per_college = max_per_college if max_per_college is not None else default_per_college
 
         tasks = consolidation.get_due_consolidation_tasks()
         return consolidation.select_daily(

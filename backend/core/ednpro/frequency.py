@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import re
-import statistics
 import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -65,7 +64,12 @@ def _priority(value: Any) -> str:
 
 
 def _priority_from_session_count(session_count: int) -> str:
-    """Repli à seuils fixes pour un lot trop petit pour des quartiles."""
+    """Reproduit la classification officielle d'EDNpro (page /training-v2,
+    bloc « Priorité d'après les annales ») : indispensable à partir de 3
+    sessions, important à 2, basique à 1, jamais tombé à 0. Vérifié en
+    direct sur le site le 20 août 2026 — mêmes seuils, même répartition
+    (205/57/67/38 sur 367 items). Ce n'est pas un seuil local à corriger :
+    c'est la règle qu'EDNpro applique elle-même."""
     if session_count >= 3:
         return "indispensable"
     if session_count == 2:
@@ -73,46 +77,6 @@ def _priority_from_session_count(session_count: int) -> str:
     if session_count == 1:
         return "basique"
     return "jamais_tombe"
-
-
-_MIN_ITEMS_FOR_QUARTILES = 8
-"""En dessous de ce nombre d'items à fréquence non nulle, un quartile n'a pas
-de sens statistique — on retombe sur les seuils fixes."""
-
-
-def _priorities_by_quartile(scores: dict[str, tuple[int, int]]) -> dict[str, str]:
-    """Classe chaque item par quartile de `session_count × question_count`.
-
-    Sur un référentiel réel, `session_count >= 3` classait 205 items sur 367
-    en « indispensable » (56 %) : le seuil fixe ne s'adapte pas au volume du
-    corpus. Le score nul reste « jamais_tombé » — les quartiles n'ont de sens
-    qu'entre items déjà rencontrés aux annales (Q3).
-    """
-    positive = sorted(
-        session_count * question_count
-        for session_count, question_count in scores.values()
-        if session_count * question_count > 0
-    )
-    boundaries: tuple[float, float, float] | None = None
-    if len(positive) >= _MIN_ITEMS_FOR_QUARTILES:
-        boundaries = tuple(statistics.quantiles(positive, n=4))
-
-    result: dict[str, str] = {}
-    for item_number, (session_count, question_count) in scores.items():
-        score = session_count * question_count
-        if score <= 0:
-            result[item_number] = "jamais_tombe"
-        elif boundaries is None:
-            result[item_number] = _priority_from_session_count(session_count)
-        elif score >= boundaries[2]:
-            result[item_number] = "indispensable"
-        elif score >= boundaries[1]:
-            result[item_number] = "important"
-        elif score >= boundaries[0]:
-            result[item_number] = "basique"
-        else:
-            result[item_number] = "jamais_tombe"
-    return result
 
 
 def _looks_like_item_row(value: object) -> bool:
@@ -143,10 +107,6 @@ def normalize_training_payload(
     """Convert EDNpro's changing card/API shapes into one stable item snapshot."""
     del raw_payload_json  # Kept in the public signature for callers retaining the raw artifact.
     merged: dict[str, dict] = {}
-    # Items sans priorité explicite dans le payload : classés par quartile une
-    # fois tous les items du lot connus, pas ligne par ligne (Q3) — un seuil
-    # fixe par ligne ne peut pas s'adapter au volume du corpus.
-    needs_priority: set[str] = set()
     for row in _walk_rows(payload):
         item_number = _item_number(_value(
             row, "item_number", "itemNumber", "item", "numero_item", "item_id", "numero", "number"
@@ -160,10 +120,9 @@ def normalize_training_payload(
         priority_value = _value(
             row, "priority", "category", "status", "priorite", "importance", "priority_category"
         )
-        explicit_priority = _priority(priority_value) if priority_value is not None else None
         candidate = {
             "item_number": item_number,
-            "priority": explicit_priority,
+            "priority": _priority(priority_value) if priority_value is not None else _priority_from_session_count(session_count),
             "session_count": session_count,
             "question_count": _integer(_value(
                 row, "question_count", "nb_questions", "questions", "qcm_count", "qcm", "question_total"
@@ -177,27 +136,12 @@ def normalize_training_payload(
         current = merged.get(item_number)
         if current is None:
             merged[item_number] = candidate
-            if explicit_priority is None:
-                needs_priority.add(item_number)
             continue
         current["session_count"] = max(current["session_count"], candidate["session_count"])
         current["question_count"] = max(current["question_count"], candidate["question_count"])
         current["years"] = sorted(set(current["years"]) | set(candidate["years"]))
-        if explicit_priority is not None and (
-            current["priority"] is None
-            or PRIORITIES.index(explicit_priority) < PRIORITIES.index(current["priority"])
-        ):
-            current["priority"] = explicit_priority
-            needs_priority.discard(item_number)
-
-    if needs_priority:
-        scores = {
-            item_number: (merged[item_number]["session_count"], merged[item_number]["question_count"])
-            for item_number in needs_priority
-        }
-        for item_number, priority in _priorities_by_quartile(scores).items():
-            merged[item_number]["priority"] = priority
-
+        if PRIORITIES.index(candidate["priority"]) < PRIORITIES.index(current["priority"]):
+            current["priority"] = candidate["priority"]
     return [merged[key] for key in sorted(merged, key=lambda value: (len(value), value))]
 
 

@@ -101,6 +101,21 @@ def college_full(abbr: str) -> str:
     return _ABBR_TO_NOTION.get(abbr) or ""
 
 
+def all_college_names() -> list[str]:
+    """Liste dédupliquée des noms Notion complets connus (avec emoji)."""
+    return sorted(set(_ABBR_TO_NOTION.values()))
+
+
+@lru_cache(maxsize=1)
+def _abbr_lookup_ci() -> dict[str, str]:
+    return {k.lower(): v for k, v in _ABBR_TO_NOTION.items()}
+
+
+def abbreviation_to_college(abbr: str) -> str | None:
+    """Résout une abréviation (insensible à la casse) vers le nom Notion complet, ou None."""
+    return _abbr_lookup_ci().get(str(abbr or "").strip().lower())
+
+
 def _normalize_college_name(value: str) -> str:
     """Clé tolérante pour les noms des collèges du référentiel UNESS."""
     text = unicodedata.normalize("NFKD", str(value or ""))

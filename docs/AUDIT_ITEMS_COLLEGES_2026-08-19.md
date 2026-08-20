@@ -625,7 +625,7 @@ Passer `history=` active `explicit_data` et **désactive la mise en cache** ([se
 | N15 | 56 % d'items « indispensables » | S3 | Algorithmes | ❌ pas un défaut — c'est la règle d'EDNpro elle-même, vérifiée sur site |
 | N16 | Provenance absente des agrégats | S3 | Interface | ✅ |
 | N17 | Tri « Collège » : un item n'apparaît que sous un collège | S3 | Interface | ✅ |
-| N18 | Densité de la ligne collège, colonne Collège tronquée (50 items) | S4 | Interface | ✅ (colonne ; densité de la ligne non faite) |
+| N18 | Densité de la ligne collège, colonne Collège tronquée (50 items) | S4 | Interface | ✅ |
 | N19 | `build_item_rows` : 734 requêtes, 0,93 s, sur les deux pages | S3 | Performance | ✅ |
 | N20 | `/items` contourne le cache du moteur | S3 | Performance | ✅ |
 | N21 | Le test de cohérence porte sur des fonctions non utilisées | S3 | Tests | ✅ |
@@ -749,23 +749,27 @@ Les lots sont livrables indépendamment ; l'ordre est celui de l'utilité décro
 
 **Critères d'acceptation — vérifiés.** `/colleges` n'affiche aucune ligne à 0 item (`list_colleges_with_items()` testée sur données synthétiques et sur la base réelle). Aucune ligne de `/items` ni de la vue dépliée `/colleges` ne peut plus mener à « Item introuvable » (source-testé). Un item fragile dans deux collèges compte une fois au panneau, pas deux (`test_the_pilotage_panel_does_not_double_count_a_fragile_item_across_colleges`). Suite complète : 1710 tests passent, 1 échec antérieur et sans rapport.
 
-### Lot 4 — Interface et navigation · **N16 N17 N18** + § 7.3 · partiellement livré le 20 août
+### Lot 4 — Interface et navigation · **N16 N17 N18** + § 7.3 · ✅ livré le 20 août (« précédent/suivant » excepté, hors constat noté)
 
 | # | Action | État |
 |---|---|---|
 | 4.1 | Provenance sur les agrégats (« 38 % · 132 déclarés / 1 mesuré ») | ✅ |
 | 4.2 | Tri « Collège » sous un filtre actif : un seul groupe, celui filtré, plutôt qu'un collège principal trompeur | ✅ |
 | 4.3 | Colonne COLLÈGE : « Endocrinologie +2 » avec tooltip, au lieu d'une troncature silencieuse | ✅ |
-| 4.4 | Ligne collège : nom + barre + un seul sous-libellé ; preuves et cycle J au dépliage | non fait |
-| 4.5 | Colonne COLLÈGE cliquable vers `/colleges` ; « précédent / suivant » dans `/cours` | non fait |
+| 4.4 | Ligne collège : nom + barre + un seul sous-libellé ; preuves et cycle J au dépliage | ✅ |
+| 4.5 | Colonne COLLÈGE cliquable vers `/colleges` ; « précédent / suivant » dans `/cours` | ✅ (colonne cliquable) ; non fait (précédent/suivant) |
 
 **Correctifs appliqués.**
 
 - **N16.** Le panneau Pilotage affiche désormais « X déclaré(s) · Y mesuré(s) » sous le pourcentage de « maîtrise moyenne » (`_pilotage_summary` expose `mastery_declared`/`mastery_measured`, dédupliqués par fiche comme le reste du panneau). Le filtre « scores mesurés » proposé en option n'a pas été construit — l'information est visible, le filtre est un ajout séparé, pas encore fait.
 - **N17.** `group_item_rows` prenait le collège *principal* (premier par ordre alphabétique) de chaque item pour construire les groupes du tri « Collège » — sous un filtre collège actif, un item multi-collèges dont ce n'est pas le collège principal apparaissait quand même, sous la mauvaise étiquette. Sous un filtre actif, un seul groupe est désormais construit, portant le nom du collège filtré. Vérifié sur la base réelle : filtrer sur Cardiovasculaire et trier par collège donne exactement un groupe « Cardiovasculaire ❤️ » de 30 items.
 - **N18.** La colonne COLLÈGE de `/items` affichait tous les collèges d'un item séparés par « · », tronqués sans indication au-delà de deux lignes (50 items concernés). Elle affiche maintenant le premier collège suivi d'un compteur (« Endocrinologie +2 ») avec la liste complète au survol.
+- **4.4 (densité de la ligne collège).** La ligne repliée empilait trois sous-libellés (lecture, statut de validation, preuves/consolidation) — dense sur 44 lignes visibles simultanément, sans qu'aucune des trois ne soit inutile, juste pas toutes au même niveau de priorité. Un seul sous-libellé reste dans la ligne repliée (`X/Y lus · Z restants`) ; le statut et le détail preuves/consolidation ne s'affichent plus qu'au dépliage, dans un nouveau bloc `.cg-validation-detail`.
+- **4.5 (colonne COLLÈGE cliquable, partiel).** La colonne COLLÈGE de `/items` ouvre maintenant `/colleges?open=<collège>` (collège principal de l'item), qui déplie directement cette ligne (`render_colleges_cockpit(open_college=...)`) — fermant la boucle de navigation dans l'autre sens par rapport au clic « retard » déjà cliquable de `/colleges` vers `/items`. Le second volet (« précédent / suivant » entre items dans `/cours`) n'est pas fait — voir §9 ci-dessous.
 
-**Non fait (4.4, 4.5)** — la densité de la ligne collège et la navigation croisée (collège cliquable depuis `/items`, précédent/suivant dans `/cours`) demandent de faire transiter un état entre pages (query params, pré-expansion) ; reporté faute de défaut S1-S3 mesuré derrière (§7.3 est une cible d'architecture, pas un constat noté).
+**Non fait (« précédent/suivant » dans `/cours`)** — nécessite de déterminer un ordre d'items dépendant du contexte de navigation (collège filtré, tri actif) et de le faire transiter jusqu'à la fiche détail ; reporté faute de défaut S1-S3 mesuré derrière (§7.3 est une cible d'architecture, pas un constat noté).
+
+**Critères d'acceptation — vérifiés.** Suite complète : 1718 tests passent, 1 échec antérieur et sans rapport.
 
 ### Lot 5 — Performance et tests · **N19 N20 N21** · ✅ livré le 20 août
 

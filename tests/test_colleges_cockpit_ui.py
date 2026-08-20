@@ -180,6 +180,30 @@ def test_unread_course_is_not_presented_as_mastered():
     assert rows[0]["status_key"] == "à lire"
 
 
+def test_colleges_page_can_arrive_pre_expanded_on_one_college():
+    """`/colleges?open=<nom>` (déclenché par le clic sur la colonne COLLÈGE de
+    `/items`, 4.5) doit déplier directement cette ligne."""
+    source = open("frontend/pages/colleges_cockpit.py", encoding="utf-8").read()
+
+    assert "def render_colleges_cockpit(open_college: str | None = None) -> None:" in source
+    assert "expanded: set[str] = {open_college} if open_college else set()" in source
+
+
+def test_collapsed_college_row_has_a_single_sub_label():
+    """La ligne repliée empilait trois sous-libellés (lecture, statut,
+    preuves/consolidation) — 44 lignes à l'écran en même temps rendaient ça
+    dense sans information supplémentaire utile au premier coup d'œil
+    (N18/4.4). Le détail de validation ne s'affiche plus qu'au dépliage."""
+    source = open("frontend/pages/colleges_cockpit.py", encoding="utf-8").read()
+
+    row_start = source.index('def _draw_row(r: dict) -> None:')
+    row_end = source.index('with ui.element("div").classes("cg-bar-cell"):', row_start)
+    collapsed_block = source[row_start:row_end]
+
+    assert collapsed_block.count('.classes("cg-name-sub")') == 1
+    assert "cg-validation-detail" in source
+
+
 def test_college_deplie_view_does_not_navigate_for_a_missing_fiche():
     source = open("frontend/pages/colleges_cockpit.py", encoding="utf-8").read()
 

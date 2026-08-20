@@ -153,6 +153,17 @@ def test_college_sort_exposes_visible_groups_without_duplicate_items():
     assert sum(len(group) for _, group in groups) == len(rows)
 
 
+def test_college_column_navigates_to_the_colleges_view():
+    """La colonne COLLÈGE était du texte mort ; elle ouvre maintenant
+    `/colleges` sur le collège principal de l'item, déplié (4.5)."""
+    from pathlib import Path
+
+    source = Path("frontend/pages/items.py").read_text(encoding="utf-8")
+
+    assert 'f"/colleges?open={quote(name)}"' in source
+    assert "it-college-link" in source
+
+
 def test_college_column_shows_a_count_and_tooltip_instead_of_truncating():
     """50 items dépassent 60 caractères de libellés de collèges, tronqués
     sans indication par le line-clamp CSS (N18)."""

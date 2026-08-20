@@ -88,6 +88,8 @@ _CSS = """
 .it-frequency { min-width:0; display:flex; align-items:center; justify-content:center; text-align:center; }
 .it-college { min-width:0; font-size:12px; color:var(--text-muted); white-space:nowrap; overflow:hidden;
   text-overflow:ellipsis; text-align:center; }
+.it-college-link { cursor:pointer; }
+.it-college-link:hover { color:var(--accent); text-decoration:underline; }
 .it-last { min-width:0; display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); }
 .it-last-dot { width:6px; height:6px; border-radius:50%; flex:0 0 6px; }
 .it-type { font-family:var(--font-mono); font-size:10px; letter-spacing:.03em; color:var(--text-muted);
@@ -572,9 +574,18 @@ def items_page(request: Request) -> None:
                     label_text = college_names[0]
                     if len(college_names) > 1:
                         label_text += f" +{len(college_names) - 1}"
-                    college_label = ui.label(label_text).classes("it-college")
+                    college_label = ui.label(label_text).classes("it-college it-college-link")
                     if len(college_names) > 1:
                         college_label.tooltip(" · ".join(college_names))
+                    # La colonne était du texte mort ; elle ouvre maintenant
+                    # `/colleges` sur la ligne du collège principal, dépliée
+                    # (4.5). `stopPropagation` retient le clic : la ligne
+                    # entière navigue déjà vers la fiche.
+                    college_label.on(
+                        "click",
+                        lambda name=college_names[0]: ui.navigate.to(f"/colleges?open={quote(name)}"),
+                        js_handler=_STOP_PROPAGATION_JS,
+                    )
                 else:
                     ui.label("—").classes("it-college")
             else:

@@ -337,9 +337,9 @@ def cours(course_id: str, request: Request):
 
 
 @ui.page('/colleges')
-def colleges():
+def colleges(request: Request):
     with frame('Collèges'):
-        colleges_page()
+        colleges_page(open_college=request.query_params.get("open"))
 
 
 @ui.page('/semestres')

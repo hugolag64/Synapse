@@ -7,12 +7,12 @@ from frontend.theme import frame
 
 
 
-def colleges_page():
+def colleges_page(open_college: str | None = None):
     if not data_store.is_loaded:
         ui.label("Chargement des données…").classes("text-slate-500")
         return
 
     # ── Vue cockpit ───────────────────────────────────────────────────────────
     from frontend.pages.colleges_cockpit import render_colleges_cockpit
-    render_colleges_cockpit()
+    render_colleges_cockpit(open_college=open_college)
     return

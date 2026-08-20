@@ -140,6 +140,8 @@ _CSS = """
 .cg-qcm { flex:0 0 52px; text-align:right; font-family:var(--font-mono); font-size:12px; font-weight:600; }
 .cg-empty { padding:32px 10px; text-align:center; color:var(--text-dim); font-size:13px; }
 .cg-items { padding:8px 12px 12px 34px; background:var(--surface); border-bottom:1px solid var(--border); overflow-x:auto; }
+.cg-validation-detail { display:flex; align-items:center; gap:12px; padding:2px 0 10px;
+  font-size:11px; color:var(--text-dim); }
 @keyframes cgItemsEnter {
   0% { opacity: 0; transform: translateY(-8px); }
   100% { opacity: 1; transform: translateY(0); }
@@ -432,13 +434,16 @@ def _pilotage_summary(rows: list[dict]) -> dict:
     }
 
 
-def render_colleges_cockpit() -> None:
+def render_colleges_cockpit(open_college: str | None = None) -> None:
     ui.add_head_html(f"<style>{_CSS}</style>", shared=True)
     _drawer_styles()
 
     filt = {"unread": False, "overdue": False, "no_pdf": False}
     _meta: dict = {}
-    expanded: set[str] = set()
+    # Arrivée depuis la colonne COLLÈGE de `/items`, cliquable désormais
+    # (N16-N18 traitent la ligne collège ; ceci ferme la boucle de navigation
+    # dans l'autre sens, § 7.3/4.5).
+    expanded: set[str] = {open_college} if open_college else set()
     drawer_state: dict = {"root": None}
 
     with ui.column().classes("cg-wrap gap-0"):
@@ -823,19 +828,12 @@ def render_colleges_cockpit() -> None:
         with row_el:
             with ui.element("div").classes("cg-name-cell"):
                 ui.label(r["name"]).classes("cg-name")
+                # Un seul sous-libellé dans la ligne repliée : l'état de
+                # validation et le détail preuves/consolidation ne s'affichent
+                # qu'au dépliage, pour ne pas empiler trois lignes par
+                # collège quand 44 lignes sont visibles à l'écran (N18/4.4).
                 ui.label(f"{r['started']}/{r['total']} lus · {restants} restants").classes("cg-name-sub")
                 validation = r["validation"]
-                ui.label(validation.state_label).classes("cg-name-sub")
-                evidence_count = validation.total_items - len(validation.missing_evidence_ids)
-                cycle_count = len(validation.completed_j_cycle_ids)
-                # « cycle J X/Y » se lisait comme un échec permanent — la
-                # spirale J3/J7/J14/J30 littérale n'est presque jamais suivie
-                # telle quelle (0/44 collèges) alors que la consolidation
-                # réelle (annales, IA) existe et compte désormais (Q2).
-                ui.label(
-                    f"Preuves {evidence_count}/{validation.total_items} · "
-                    f"consolidation {cycle_count}/{validation.total_items}"
-                ).classes("cg-name-sub")
                 if validation.manual_status != "valide":
                     action_label = "Confirmer" if validation.automatic_ready else "Valider manuellement"
                     confirm_button = ui.button(action_label, icon="check").props(
@@ -902,6 +900,20 @@ def render_colleges_cockpit() -> None:
 
         if r["name"] in expanded:
             with ui.element("div").classes("cg-items cg-items-enter"):
+                validation = r["validation"]
+                evidence_count = validation.total_items - len(validation.missing_evidence_ids)
+                cycle_count = len(validation.completed_j_cycle_ids)
+                with ui.element("div").classes("cg-validation-detail"):
+                    ui.label(validation.state_label)
+                    # « cycle J X/Y » se lisait comme un échec permanent — la
+                    # spirale J3/J7/J14/J30 littérale n'est presque jamais
+                    # suivie telle quelle (0/44 collèges) alors que la
+                    # consolidation réelle (annales, IA) existe et compte
+                    # désormais (Q2).
+                    ui.label(
+                        f"Preuves {evidence_count}/{validation.total_items} · "
+                        f"consolidation {cycle_count}/{validation.total_items}"
+                    )
                 with ui.element("div").classes("cg-items-grid"):
                     with ui.element("div").classes("cg-item-head"):
                         for label in _COLLEGE_ITEM_GRID.labels:

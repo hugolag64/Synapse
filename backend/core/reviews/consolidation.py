@@ -352,6 +352,7 @@ def complete_consolidation_task(
         item_number=task.item_number or "",
         confidence=confidence or 3,
         difficulty=difficulty,
+        mastery_level=task.mastery_level,
     )
     record_evaluation(EvaluationInput(
         source="auto_eval",

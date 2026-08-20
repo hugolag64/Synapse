@@ -19,7 +19,7 @@ def isolated_db(tmp_path, monkeypatch):
     monkeypatch.setattr(local_store, "_DB", None)
 
 
-def _task(review_type="J7", task_id="task-1"):
+def _task(review_type="J7", task_id="task-1", mastery_level=None):
     due = datetime.date(2026, 7, 27)
     return ReviewTask(
         id=task_id,
@@ -30,6 +30,7 @@ def _task(review_type="J7", task_id="task-1"):
         theoretical_due_date=due,
         due_date=due,
         review_type=review_type,
+        mastery_level=mastery_level,
     )
 
 
@@ -213,6 +214,22 @@ def test_complete_consolidation_uses_consolidation_state_and_session():
     assert history["status"] == "done"
     assert history["review_type"] == "consolidation"
     assert len(_sessions("course-1")) == 1
+
+
+def test_complete_consolidation_caps_interval_from_task_mastery_level():
+    local_store.bootstrap_consolidation(
+        "course-1", "college", "Cardiologie", "75",
+        initial_interval_days=21, at_date=datetime.date(2026, 7, 6),
+    )
+    complete_review(
+        _task(
+            "consolidation", "course-1_college_consolidation_2026-07-27",
+            mastery_level="critique",
+        ),
+        confidence=5,
+    )
+    state = local_store.get_last_consolidation_state("course-1", "college")
+    assert state["next_interval_days"] == 10  # plafond 'critique', pas 55 (valeur SM-2 brute)
 
 
 def test_complete_lacune_resolves_point_and_records_session():

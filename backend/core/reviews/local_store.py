@@ -1789,6 +1789,16 @@ def get_consolidation_due_date(course_id: str, context: str) -> datetime.date | 
     return completed + datetime.timedelta(days=row["next_interval_days"])
 
 
+CONSOLIDATION_INTERVAL_CAP_BY_LEVEL: dict[str, int] = {
+    "critique":          10,
+    "fragile":           14,
+    "en construction":   21,
+    "à consolider":      30,
+    "à entraîner":       45,
+    # "maîtrisé" absent volontairement : pas de plafond.
+}
+
+
 def mark_consolidation_done(
     course_id: str,
     context: str,
@@ -1798,6 +1808,7 @@ def mark_consolidation_done(
     confidence: int = 3,
     difficulty: str | None = None,
     notes: str | None = None,
+    mastery_level: str | None = None,
 ) -> int:
     """
     Valide une occurrence 'consolidation' et fait progresser la chaîne SM-2.
@@ -1806,6 +1817,11 @@ def mark_consolidation_done(
     courante, qui n'existe pas encore en base tant qu'elle n'a pas de
     completed_at) — sinon l'ease factor et le repetition_count repartiraient
     de zéro à chaque validation, ce qui casserait la croissance des intervalles.
+
+    mastery_level (déjà calculé sur la ReviewTask affichée, pas recalculé ici)
+    plafonne l'intervalle obtenu : un item 'critique'/'fragile' ne peut pas
+    partir sur un intervalle long juste parce que l'autoéval déclarée est
+    haute. Le plafond ne raccourcit jamais l'autre sens (min() seulement).
 
     Retourne le nouvel intervalle (jours), utile pour les tests/logs.
     """
@@ -1822,6 +1838,9 @@ def mark_consolidation_done(
         easiness_factor=prev_ef,
         repetition=prev_rep,
     )
+    cap = CONSOLIDATION_INTERVAL_CAP_BY_LEVEL.get(mastery_level or "")
+    if cap is not None:
+        next_interval = min(next_interval, cap)
     new_rep = prev_rep + 1
 
     task_id = make_task_id(course_id, context, "consolidation", theoretical_due_date)

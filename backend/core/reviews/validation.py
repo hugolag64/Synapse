@@ -69,6 +69,7 @@ def complete_review(
                 item_number=task.item_number or "",
                 confidence=confidence or 3,
                 difficulty=difficulty,
+                mastery_level=task.mastery_level,
             )
         elif task.review_type == "lacune":
             try:

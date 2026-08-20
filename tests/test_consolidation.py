@@ -252,6 +252,66 @@ def test_mark_consolidation_done_progresse_sur_plusieurs_occurrences():
     assert i2 >= i1  # confiance haute répétée -> l'intervalle continue de croître ou se stabilise
 
 
+# ── mark_consolidation_done — plafond de maîtrise ────────────────────────────
+
+def test_mark_consolidation_done_plafonne_un_intervalle_critique():
+    """Sans plafond, confidence=5 depuis un bootstrap à 21j donne un intervalle
+    de 55j (cf. test_mark_consolidation_done_croit_des_la_premiere_repetition).
+    Avec mastery_level='critique' (plafond 10j), l'intervalle retenu doit
+    être ramené à 10j malgré une autoéval haute."""
+    ls.bootstrap_consolidation(
+        "course-1", "college", "Mon cours", "42",
+        initial_interval_days=21, at_date=datetime.date(2026, 6, 1),
+    )
+    i1 = ls.mark_consolidation_done(
+        "course-1", "college", datetime.date(2026, 6, 22), confidence=5,
+        mastery_level="critique",
+    )
+    assert i1 == 10
+
+
+def test_mark_consolidation_done_ne_plafonne_pas_maitrise():
+    """'maîtrisé' est volontairement absent de la table des plafonds : aucune
+    limite, l'intervalle SM-2 brut est conservé."""
+    ls.bootstrap_consolidation(
+        "course-1", "college", "Mon cours", "42",
+        initial_interval_days=21, at_date=datetime.date(2026, 6, 1),
+    )
+    i1 = ls.mark_consolidation_done(
+        "course-1", "college", datetime.date(2026, 6, 22), confidence=5,
+        mastery_level="maîtrisé",
+    )
+    assert i1 == 55
+
+
+def test_mark_consolidation_done_sans_mastery_level_inchange():
+    """Non-régression : mastery_level omis (None, valeur par défaut) doit
+    laisser le comportement identique à avant l'ajout du plafond."""
+    ls.bootstrap_consolidation(
+        "course-1", "college", "Mon cours", "42",
+        initial_interval_days=21, at_date=datetime.date(2026, 6, 1),
+    )
+    i1 = ls.mark_consolidation_done(
+        "course-1", "college", datetime.date(2026, 6, 22), confidence=5,
+    )
+    assert i1 == 55
+
+
+def test_mark_consolidation_done_plafond_n_allonge_jamais():
+    """Un échec (confidence=1) donne un intervalle court (3j) indépendamment
+    du niveau de maîtrise. Le plafond ne doit jamais RAMENER un intervalle
+    court vers le haut, même avec un plafond large ('à entraîner' = 45j)."""
+    ls.bootstrap_consolidation(
+        "course-1", "college", "Mon cours", "42",
+        initial_interval_days=21, at_date=datetime.date(2026, 6, 1),
+    )
+    i1 = ls.mark_consolidation_done(
+        "course-1", "college", datetime.date(2026, 6, 22), confidence=1,
+        mastery_level="à entraîner",
+    )
+    assert i1 == 3
+
+
 # ── ReviewTask accepts review_type="consolidation" + semestre ─────────────────
 
 def test_review_task_accepte_consolidation_et_semestre():
@@ -604,6 +664,7 @@ def test_plan_consolidation_retourne_selection_et_surplus(mock_data_store):
 
 def _make_consolidation_task(
     course_id="course-1", context="college", due=datetime.date(2026, 1, 1),
+    mastery_level=None,
 ):
     from backend.core.reviews.models import ReviewTask
     return ReviewTask(
@@ -617,6 +678,7 @@ def _make_consolidation_task(
         due_date=due,
         review_type="consolidation",
         status="todo",
+        mastery_level=mastery_level,
     )
 
 
@@ -651,3 +713,22 @@ def test_complete_consolidation_task_defaut_confiance_3_si_absente():
     assert state["repetition_count"] == 1
     sessions = ls.get_recent_study_sessions(limit=5)
     assert sessions[0]["activity_types"] == '["révision"]'
+
+
+def test_complete_consolidation_task_transmet_mastery_level():
+    """La tâche affichée à l'utilisateur porte déjà son mastery_level (calculé
+    à la construction de la liste du jour) — complete_consolidation_task doit
+    le transmettre à mark_consolidation_done sans le recalculer."""
+    from backend.core.reviews.consolidation import complete_consolidation_task
+
+    ls.bootstrap_consolidation(
+        "course-1", "college", "Cardiopathies", "234",
+        initial_interval_days=30, at_date=datetime.date(2026, 6, 1),
+    )
+    due = datetime.date(2026, 6, 1) + datetime.timedelta(days=30)
+    task = _make_consolidation_task(due=due, mastery_level="critique")
+
+    complete_consolidation_task(task, confidence=5)
+
+    state = ls.get_last_consolidation_state("course-1", "college")
+    assert state["next_interval_days"] == 10  # plafond 'critique', pas la valeur SM-2 brute (78)

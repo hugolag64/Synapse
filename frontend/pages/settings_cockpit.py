@@ -43,6 +43,7 @@ from backend.core.lisa import item_service
 from backend.core.uness import import_service
 from backend.state.store import data_store
 from frontend.components.calendar_sources_panel import render as render_calendar_sources
+from frontend.components.conferences_admin import render_conferences_admin
 from frontend.components.dp_coverage_panel import render as render_dp_coverage
 from frontend.components.uness_diagnostic_panel import render as render_uness_diagnostics
 from frontend.components.uness_rank_admin import render_uness_rank_admin
@@ -243,6 +244,35 @@ def render_settings_cockpit() -> None:
                         label="Date",
                         value=data_store.preferences.get("study_resume_date", "2026-08-20"),
                     ).props("outlined dense type=date")
+
+                with ui.element("div").classes("se-appearance-row"):
+                    with ui.column().classes("gap-0"):
+                        ui.label("Charge allégée le week-end").classes("se-appearance-label")
+                        ui.label(
+                            "Samedi et dimanche : moins d'items à consolider. "
+                            "Les lectures J1→J30 restent inchangées."
+                        ).classes("se-appearance-sub")
+
+                    is_weekend_light = bool(data_store.preferences.get("weekend_light_consolidation", False))
+                    weekend_switch = ui.element("div").classes(
+                        "se-switch on" if is_weekend_light else "se-switch"
+                    )
+                    with weekend_switch:
+                        ui.element("div").classes("se-switch-knob")
+
+                    def _toggle_weekend_light(sw=weekend_switch):
+                        new_val = not bool(data_store.preferences.get("weekend_light_consolidation", False))
+                        data_store.set_preference("weekend_light_consolidation", new_val)
+                        if new_val:
+                            sw.classes(add="on")
+                        else:
+                            sw.classes(remove="on")
+                        ui.notify(
+                            "Charge week-end allégée" if new_val else "Charge week-end normale",
+                            type="positive",
+                        )
+
+                    weekend_switch.on("click", _toggle_weekend_light)
 
                 planning_status = ui.label().classes("se-planning-status")
                 with ui.element("div").classes("se-planning-actions"):
@@ -477,6 +507,9 @@ def render_settings_cockpit() -> None:
                     icon="refresh",
                 ).props("outline color=violet size=sm rounded").classes("mt-3")
                 oic_button.on("click", lambda: asyncio.ensure_future(_refresh_all_oic(oic_button)))
+
+        with _settings_domain("PLANNING CONFÉRENCES", "Import du calendrier DFASM (XLS)", "event"):
+            render_conferences_admin(ui.column().classes("w-full p-4"))
 
         render_catalog_admin()
 

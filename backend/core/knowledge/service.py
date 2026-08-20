@@ -344,6 +344,30 @@ def college_triage_progress(
     return situes, len(course_ids)
 
 
+def declare_college_items(
+    course_ids: list[str] | tuple[str, ...],
+    level: str = "correct",
+    context: str = "college",
+) -> int:
+    """Déclare `level` pour chaque item qui n'a pas déjà de niveau connu.
+
+    Valider un collège (`set_college_status`) n'écrivait jamais `item_state` :
+    aucun de ses items ne devenait éligible au score (`mastery.score` restait
+    `None`) ni à la consolidation automatique, qui exige justement un score.
+    Mesuré sur la base réelle le 20 août 2026 : 9 collèges validés, 138 items,
+    aucun avec `item_state`. Un item déjà déclaré (Triage, séance de
+    consolidation) n'est jamais écrasé. Retourne le nombre d'items déclarés.
+    """
+    declared = 0
+    for course_id in course_ids:
+        cid = str(course_id)
+        if ks.get_item_state(cid, context) is not None:
+            continue
+        ks.set_item_state(cid, level, context=context, source="college_valide")
+        declared += 1
+    return declared
+
+
 def get_historically_completed_course_ids(
     courses: list,
     context: str = "college",

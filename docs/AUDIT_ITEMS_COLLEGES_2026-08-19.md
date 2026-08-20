@@ -903,4 +903,28 @@ print(orphan_report()); print(reattach_orphan_evidence(apply=False))
 
 ---
 
-*Audit réalisé sur `main@8124646`, le 19 août 2026. Toutes les mesures reflètent l'état de `data/synapse_local.db` à cette date. Les cinq défauts S1 (N00 à N03, N08, N10) ont été corrigés le jour même ; suite complète : 1 695 tests passent, 1 échec antérieur et sans rapport.*
+## 11. Défaut post-audit — un collège validé n'entrait jamais en consolidation (20 août)
+
+Découvert en usage réel (capture d'écran de `/items` : des items visiblement déjà connus affichaient « Commencer »), pas par relecture de code — hors périmètre des 21 constats mais dans le prolongement direct de N14/Q2 et traité le même jour.
+
+**Constat.** `set_college_status(college, "valide")` (confirmer un collège) n'écrit que sa propre table. Le système de consolidation à long terme (`backend/core/reviews/consolidation.py`, chaînage SM-2 auto-étirable, conçu le 17 juillet pour exactement ce cas : « items déclarés pré-app ») exige `mastery.score is not None`, qui exige `item_state` — jamais alimenté par la validation d'un collège. Un item de collège validé ne devenait donc jamais consolidable : ni `date_1ère_lecture`, ni score, ni tâche.
+
+Les deux portes de sortie prévues pour situer ces items étaient toutes deux mortes :
+- **Triage groupé** (`/triage/{collège}`, `frontend/pages/triage.py`) — fonctionnel, mais lié nulle part dans l'interface (atteignable seulement en tapant l'URL).
+- **Triage progressif** (fenêtre de fin de séance, `is_to_situate`) — ne se déclenche que si une tâche de révision existe déjà pour l'item ; sans `item_state`, aucune tâche n'est jamais générée. Blocage circulaire.
+
+**Mesure sur la base réelle** (avant correctif) : 9 collèges validés, 138 items reliés, dont **34 réellement sans `item_state`** — la mesure initiale annoncée à l'utilisateur (« 138 items, 0 déclaré ») était fausse : elle interrogeait `item_state` avec l'identifiant catalogue au lieu de l'identifiant de fiche, donc toujours `None` par construction. Corrigé avant d'écrire quoi que ce soit — les 104 items déjà situés via Triage n'ont pas été touchés.
+
+**Correctifs appliqués.**
+- `backend/core/knowledge/service.py::declare_college_items()` — déclare un niveau (« correct » par défaut) pour chaque item qui n'a pas déjà de niveau connu, sans jamais écraser une déclaration existante.
+- `_confirm_college` (`frontend/pages/colleges_cockpit.py`) appelle cette fonction à chaque confirmation de collège — désormais automatique, plus besoin d'action manuelle.
+- Un lien **« Trier → »** apparaît sur la ligne d'un collège déjà validé, vers `/triage/{collège}` — pour affiner en Solide/Flou au lieu du « Correct » par défaut.
+- **Rattrapage appliqué à la base réelle** : les 34 items réellement non déclarés des 9 collèges déjà validés ont reçu « correct ». Vérifié : un item auparavant bloqué (item 152, Cardiovasculaire) a maintenant un score (50, « fragile ») et une tâche de consolidation réelle (échéance 2026-08-03).
+
+**Ce qui reste ouvert.** Le bouton « Commencer » lui-même (sur `/items`, `/colleges` déplié, `/cours`) continue d'afficher « Pose la première lecture aujourd'hui » pour un item déjà commencé au sens large (`is_item_started`) mais sans cycle réel — resterait trompeur pour tout item qui entre dans ce cas via un autre chemin que la validation de collège (ex. déclaré en Triage individuellement, hors collège validé). Non traité ici.
+
+**Critères d'acceptation — vérifiés.** `test_declare_college_items_declares_only_the_undeclared`, `test_declare_college_items_is_idempotent`, `test_confirming_a_college_declares_its_undeclared_items`. Suite complète : 1725 tests passent, 1 échec antérieur et sans rapport.
+
+---
+
+*Audit réalisé sur `main@8124646`, le 19 août 2026. Toutes les mesures reflètent l'état de `data/synapse_local.db` à cette date. Les cinq défauts S1 (N00 à N03, N08, N10) ont été corrigés le jour même ; les Lots 2 à 5, N14/N15 (Q2/Q3) et le défaut post-audit de consolidation ont été traités le 20 août. Les 21 constats de l'audit sont clos (N15 retracté — ce n'était pas un défaut). Suite finale : 1725 tests passent, 1 échec antérieur et sans rapport.*

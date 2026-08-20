@@ -194,6 +194,25 @@ def test_un_item_dun_college_non_valide_nest_pas_a_situer():
     assert ksv.is_to_situate("course-1", ["Cardiovasculaire ❤️"]) is False
 
 
+def test_declare_college_items_declares_only_the_undeclared():
+    """Valider un collège n'écrivait jamais `item_state` : aucun de ses items
+    ne devenait éligible au score ni à la consolidation automatique."""
+    ks.set_item_state("course-2", "solide")
+
+    declared = ksv.declare_college_items(["course-1", "course-2", "course-3"], level="correct")
+
+    assert declared == 2
+    assert ks.get_item_state("course-1").declared_level == "correct"
+    assert ks.get_item_state("course-2").declared_level == "solide"  # inchangé
+    assert ks.get_item_state("course-3").declared_level == "correct"
+
+
+def test_declare_college_items_is_idempotent():
+    ksv.declare_college_items(["course-1"], level="correct")
+
+    assert ksv.declare_college_items(["course-1"], level="correct") == 0
+
+
 def test_avancement_du_triage():
     ks.set_item_state("course-1", "solide")
     ks.set_item_state("course-2", "flou")

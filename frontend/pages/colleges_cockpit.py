@@ -122,6 +122,8 @@ _CSS = """
 .cg-name-cell { flex:0 0 200px; min-width:0; }
 .cg-name { font-size:13.5px; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .cg-name-sub { font-size:11px; color:var(--text-dim); margin-top:2px; }
+.cg-triage-link { font-size:11px; color:var(--accent); cursor:pointer; margin-top:2px; display:inline-block; }
+.cg-triage-link:hover { text-decoration:underline; }
 .cg-bar-cell { flex:1 1 auto; }
 .cg-bar-track { height:5px; border-radius:3px; background:var(--surface-hover); overflow:hidden; }
 .cg-bar-fill { height:100%; border-radius:3px; transition: width var(--duration-base) var(--ease-standard); }
@@ -699,7 +701,31 @@ def render_colleges_cockpit(open_college: str | None = None) -> None:
 
     def _confirm_college(college: str) -> None:
         knowledge_store.set_college_status(college, "valide")
-        ui.notify(f"Collège confirmé : {college}", type="positive")
+        # Sans ce rattachement, aucun item d'un collège validé n'était
+        # éligible au score ni à la consolidation automatique (0/138 sur la
+        # base réelle, 20 août 2026) : valider un collège n'écrivait que sa
+        # propre table, jamais `item_state`. Un item déjà situé (Triage,
+        # séance) n'est jamais réécrasé.
+        from backend.core.knowledge.service import declare_college_items
+
+        confirm_catalog = CatalogRepository()
+        if confirm_catalog.is_populated():
+            from frontend.pages.items import build_item_rows
+            item_ids = [
+                str(row["course"].id) for row in build_item_rows(confirm_catalog)
+                if college in (row["colleges"] or []) and not row["missing_fiche"]
+            ]
+        else:
+            item_ids = [str(c.id) for c in data_store.get_cours_for_college(college)]
+        declared = declare_college_items(item_ids, level="correct", context="college")
+
+        if declared:
+            ui.notify(
+                f"Collège confirmé : {college} · {declared} item(s) déclaré(s) « correct »",
+                type="positive",
+            )
+        else:
+            ui.notify(f"Collège confirmé : {college}", type="positive")
         _render(recompute=True)
 
     def _draw_topbar(n_total: int) -> None:
@@ -842,6 +868,17 @@ def render_colleges_cockpit(open_college: str | None = None) -> None:
                     confirm_button.on(
                         "click",
                         lambda name=r["name"]: _confirm_college(name),
+                        js_handler=_STOP_PROPAGATION_JS,
+                    )
+                else:
+                    # Un collège validé n'a de sens que si ses items sont
+                    # réellement situés (item_state) : `/triage/{collège}` le
+                    # permet déjà, mais n'était lié nulle part dans
+                    # l'interface — atteignable seulement en tapant l'URL.
+                    triage_label = ui.label("Trier →").classes("cg-triage-link")
+                    triage_label.on(
+                        "click",
+                        lambda name=r["name"]: ui.navigate.to(f"/triage/{quote(name)}"),
                         js_handler=_STOP_PROPAGATION_JS,
                     )
 

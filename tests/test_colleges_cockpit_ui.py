@@ -180,6 +180,15 @@ def test_unread_course_is_not_presented_as_mastered():
     assert rows[0]["status_key"] == "à lire"
 
 
+def test_confirming_a_college_declares_its_undeclared_items():
+    """Valider un collège n'écrivait jamais `item_state` : ses items ne
+    devenaient éligibles ni au score ni à la consolidation automatique."""
+    source = open("frontend/pages/colleges_cockpit.py", encoding="utf-8").read()
+
+    assert "declare_college_items(item_ids, level=\"correct\"" in source
+    assert 'f"/triage/{quote(name)}"' in source
+
+
 def test_colleges_page_can_arrive_pre_expanded_on_one_college():
     """`/colleges?open=<nom>` (déclenché par le clic sur la colonne COLLÈGE de
     `/items`, 4.5) doit déplier directement cette ligne."""

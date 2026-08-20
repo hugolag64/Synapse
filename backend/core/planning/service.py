@@ -36,7 +36,13 @@ _DUR_KEYS = {
     "obsidian":    ("dur_obsidian",    20),
     "lacune":      ("dur_lacune",      15),
     "fiche_edn":   ("dur_fiche_edn",   20),
+    "prep_pdf":    ("dur_prep_pdf",    5),
+    "prep_resume": ("dur_prep_resume", 20),
 }
+
+_PREP_DURATION_KEY = {"pdf": "prep_pdf", "obsidian": "obsidian", "resume": "prep_resume", "first_read": "lecture"}
+_PREP_LABEL = {"pdf": "PDF", "obsidian": "Fiche Obsidian", "resume": "Résumé", "first_read": "1ère lecture"}
+_PREP_TYPE_ORDER = ("pdf", "obsidian", "resume", "first_read")
 
 # Seuil "journée chargée"
 HEAVY_THRESHOLD_MIN = 120   # 2 h
@@ -119,6 +125,28 @@ class PlanningService:
             course_title=course_title,
             item_number=item_nb,
             source_ref="lacune",
+        )
+
+    # ── Conversion tâches de prépa fac → PlannedSlot ──────────────────────────
+
+    def _slot_from_prep_tasks(self, course_tasks: list, durations: dict) -> PlannedSlot:
+        """Un seul bloc par cours, agrégeant ses tâches de prépa fac 'todo' du jour."""
+        first = course_tasks[0]
+        by_type = {t.task_type: t for t in course_tasks}
+        ordered_types = [t for t in _PREP_TYPE_ORDER if t in by_type]
+        total = sum(self._dur(_PREP_DURATION_KEY[t], durations) for t in ordered_types)
+        subtitle = " · ".join(_PREP_LABEL[t] for t in ordered_types)
+        return PlannedSlot(
+            slot_type="prep",
+            label=f"ITEM {first.item_number} – Préparer",
+            subtitle=subtitle,
+            duration_min=total,
+            color="amber",
+            icon="assignment",
+            course_id=first.course_id,
+            course_title=None,
+            item_number=first.item_number,
+            source_ref="prep",
         )
 
     # ── Calendar busy time ────────────────────────────────────────────────────

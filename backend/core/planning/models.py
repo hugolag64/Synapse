@@ -28,6 +28,7 @@ SLOT_META: dict[str, dict] = {
     "obsidian":     {"color": "purple", "icon": "edit_note"},
     "fiche_edn":    {"color": "slate",  "icon": "description"},
     "lecture":      {"color": "green",  "icon": "auto_stories"},
+    "prep":         {"color": "amber",  "icon": "assignment"},
 }
 
 

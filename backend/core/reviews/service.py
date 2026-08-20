@@ -175,7 +175,11 @@ class ReviewService:
                 else cached
             )
 
-        history      = history      or {}
+        # Les séances et les reports se chargent seuls quand l'appelant ne les
+        # fournit pas ; l'historique, lui, retombait sur {} — donc aucune
+        # révision terminée n'était masquée. Une vue qui n'a pas pensé à passer
+        # `history=` reproposait des révisions déjà validées.
+        history      = history if history is not None else get_all_history()
         sessions_map = sessions_map or get_sessions_by_course()
         sessions_map = _sessions_across_item_fiches(sessions_map)
         postpone_map = postpone_map or get_postpone_counts()

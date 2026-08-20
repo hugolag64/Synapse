@@ -56,6 +56,22 @@ def test_manual_validation_is_kept_even_when_proof_is_incomplete():
     assert report.automatic_ready is False
 
 
+def test_consolidation_evidence_can_replace_the_literal_j_cycle():
+    """Le cycle J3/J7/J14/J30 littéral n'était jamais atteint sur données
+    réelles (0/44 collèges) : les annales et sessions IA sont des preuves de
+    consolidation réelles qui ne l'alimentent jamais. Autant de preuves que
+    le cycle a d'étapes (4) suffit désormais, quelle que soit leur nature
+    (Q2)."""
+    courses = [_course("c1", date(2026, 1, 1)), _course("c2", date(2026, 1, 1))]
+
+    report = assess_college_validation(
+        "Cardio", courses, {}, {}, consolidation_counts={"c1": 4, "c2": 2},
+    )
+
+    assert report.missing_j_cycle_ids == ("c2",)
+    assert "c1" in report.completed_j_cycle_ids
+
+
 def test_report_accepts_sqlite_rows_from_review_history():
     connection = sqlite3.connect(":memory:")
     connection.row_factory = sqlite3.Row

@@ -151,3 +151,31 @@ def test_college_sort_exposes_visible_groups_without_duplicate_items():
         ["Deux"],
     ]
     assert sum(len(group) for _, group in groups) == len(rows)
+
+
+def test_college_column_shows_a_count_and_tooltip_instead_of_truncating():
+    """50 items dépassent 60 caractères de libellés de collèges, tronqués
+    sans indication par le line-clamp CSS (N18)."""
+    from pathlib import Path
+
+    source = Path("frontend/pages/items.py").read_text(encoding="utf-8")
+
+    assert 'label_text += f" +{len(college_names) - 1}"' in source
+    assert "college_label.tooltip(" in source
+
+
+def test_college_sort_under_an_active_filter_labels_the_group_with_the_filtered_college():
+    """Item 3 est multi-collèges (Cardiologie, Pneumologie) : son collège
+    *principal* (premier alphabétique) est Cardiologie. Filtré sur
+    Pneumologie et trié par collège, il apparaissait quand même sous le
+    groupe « Cardiologie » — une étiquette qui ne correspond pas au filtre
+    actif (N17)."""
+    rows = [
+        _full_row("2", "Deux", ["Pneumologie"]),
+        _full_row("3", "Trois", ["Cardiologie", "Pneumologie"]),
+    ]
+
+    groups = group_item_rows(rows, "Pneumologie")
+
+    assert [name for name, _ in groups] == ["Pneumologie"]
+    assert [r["course"].title for r in groups[0][1]] == ["Deux", "Trois"]

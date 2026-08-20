@@ -99,7 +99,7 @@ _LEVEL_HEX: dict[str, str] = {
     for level, color in PROGRESSION_COLORS.items()
 }
 _LEVEL_ORDER = [
-    "à préparer", "à lire", "en construction", "à consolider",
+    "à préparer", "à lire", "non évalué", "en construction", "à consolider",
     "à entraîner", "fragile", "critique", "maîtrisé",
 ]
 

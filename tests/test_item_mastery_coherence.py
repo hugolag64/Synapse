@@ -130,6 +130,39 @@ def test_item_tasks_are_unique_across_fiches(monkeypatch):
     assert result[0].item_number == "255"
 
 
+def test_item_mastery_aggregates_postpones_across_fiches(monkeypatch):
+    """`get_item_mastery` ne transmettait jamais `total_postpone` à
+    `get_course_mastery` : un item reporté plusieurs fois n'en subissait
+    jamais la pénalité (N12), qu'il ait été reporté depuis une fiche ou
+    l'autre du même item."""
+    first = _course("fiche-255-a", college="Endocrinologie")
+    second = _course("fiche-255-b", college="Pédiatrie")
+    from backend.state.store import data_store
+
+    monkeypatch.setattr(data_store, "cours", [first, second])
+    data_store._alias_map = None
+    data_store._alias_signature = -1
+
+    baseline = mastery.get_item_mastery(first.id)
+
+    local_store.add_study_session(course_id="fiche-255-a", activity_types=["révision"])
+    now = local_store._now()
+    with local_store._conn() as con:
+        con.execute(
+            "INSERT INTO review_history (task_id, course_id, context, review_type, status, "
+            "theoretical_due_date, effective_due_date, postponed_count, created_at, updated_at) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?)",
+            ("task-postponed", "fiche-255-b", "college", "J3", "pending",
+             "2026-01-01", "2026-01-05", 2, now, now),
+        )
+
+    reported = mastery.get_item_mastery(first.id)
+
+    assert reported.score is not None
+    assert reported.score < baseline.score
+    assert "report" in " ".join(reported.reasons)
+
+
 def test_oic_without_attempt_is_not_zero_percent():
     local_store.upsert_lisa_oic("unmeasured-oic-item", [
         {"oic_code": "OIC-255-A", "intitule": "Objectif", "rang": "A"},

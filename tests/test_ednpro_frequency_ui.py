@@ -44,7 +44,7 @@ def test_items_page_renders_frequency_badge_and_wrapped_title():
     assert ".it-head > * { text-align:center; }" in source
     assert ".it-id {" in source and "text-align:center" in source
     assert ".it-frequency {" in source and "justify-content:center" in source
-    assert ".it-college { min-width:0; font-size:12px; color:var(--text-muted); white-space:normal;" in source
+    assert ".it-college { min-width:0; font-size:12px; color:var(--text-muted); white-space:nowrap;" in source
     assert "text-align:center;" in source[source.index(".it-college {"):source.index(".it-last {")]
     assert ".it-mastery { min-width:0; display:flex; align-items:center; justify-content:center; text-align:center; }" in source
     assert ".it-next { min-width:0; display:flex; align-items:center; justify-content:center;" in source

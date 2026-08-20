@@ -29,13 +29,20 @@ from backend.core.knowledge import store as knowledge_store
 from backend.core.knowledge.college_validation import assess_college_validation
 from backend.core.reviews import local_store
 from backend.core.reviews.local_store import (
-    get_active_course_ids,
     get_all_history,
     get_qcm_last_scores_by_course,
 )
 from backend.core.reviews.validation import complete_review
 from backend.core.reviews.service import build_review_types_by_course, review_service
+from backend.core.reviews.reentry import filter_active_review_tasks, get_study_resume_date
+from backend.core.prep.service import anchor_first_read
 from backend.core.reviews.mastery import get_course_mastery, get_item_mastery
+from backend.core.knowledge.item_progress import (
+    is_item_started,
+    scheduled_course_ids,
+    validated_college_names,
+    worked_course_ids,
+)
 from frontend.components.study_task_row import due_info
 from frontend.components.mastery_indicator import (
     _LEVEL_COLOR,
@@ -69,6 +76,7 @@ _CSS = """
 .cg-kpi { padding:10px; border:1px solid var(--border); border-radius:8px; background:var(--bg); }
 .cg-kpi-value { font-family:var(--font-mono); font-size:18px; font-weight:600; color:var(--text); }
 .cg-kpi-label { font-size:10px; color:var(--text-muted); margin-top:2px; }
+.cg-kpi-sub { font-size:9.5px; color:var(--text-dim); margin-top:1px; }
 .cg-progress-track { height:6px; border-radius:3px; background:var(--surface-hover); overflow:hidden; }
 .cg-progress-fill { height:100%; border-radius:3px; background:var(--accent); }
 .cg-priority { display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--border); cursor:pointer; }
@@ -122,6 +130,8 @@ _CSS = """
   padding:3px 8px; border-radius:6px; cursor:pointer; font-size:11.5px; }
 .cg-retard.late { background:rgba(229,72,77,0.08); color:var(--danger-text); font-weight:500; }
 .cg-retard.ok { color:var(--text-dim); }
+.cg-unplanned { font-style:italic; }
+.cg-resume { color:var(--warning-text); }
 .cg-retard:hover { filter:brightness(0.97); }
 .cg-fragile { flex:0 0 90px; display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--text-muted); }
 .cg-fragile-dot { width:6px; height:6px; border-radius:50%; flex:0 0 6px; }
@@ -212,13 +222,21 @@ def _college_item_rows(
     urgent_ids: set[str] | None = None,
     qcm_map: dict[str, dict] | None = None,
     frequency_map: dict[str, dict] | None = None,
-    college_validated: bool = False,
+    started_ids: set[str] | None = None,
+    planned_ids: set[str] | None = None,
+    missing_fiche_ids: set[str] | None = None,
 ) -> list[dict]:
-    """Construit la vue simplifiée d'un collège, triée par numéro d'item."""
+    """Construit la vue simplifiée d'un collège, triée par numéro d'item.
+
+    `started_ids` porte la réponse item par item : le fait qu'un item soit
+    commencé ne dépend pas du collège déplié, sans quoi le même item s'affiche
+    « critique » dans un collège et « À lire » dans un autre.
+    """
     mastery_by_course = mastery_by_course or {}
     urgent_ids = urgent_ids or set()
     qcm_map = qcm_map or {}
     frequency_map = frequency_map or {}
+    missing_fiche_ids = missing_fiche_ids or set()
     task_by_course: dict[str, object] = {}
     task_by_item: dict[str, object] = {}
     for task in tasks:
@@ -246,7 +264,10 @@ def _college_item_rows(
         score = mastery_values[0] if mastery_values else None
         level = mastery_values[1] if len(mastery_values) > 1 else None
         evidence_count = mastery_values[2] if len(mastery_values) > 2 else 0
-        semantics = _course_semantics(course, score, level, college_validated)
+        semantics = _course_semantics(
+            course, score, level,
+            started=None if started_ids is None else str(course.id) in started_ids,
+        )
         item_number = str(getattr(course, "item_number", "") or "").strip().removeprefix("ITEM ")
         rows.append({
             "course": course,
@@ -255,10 +276,15 @@ def _college_item_rows(
             "score": score,
             "evidence_count": evidence_count,
             **semantics,
+            "missing_fiche": str(course.id) in missing_fiche_ids,
             "urgent": course.id in urgent_ids,
             "next_task": task,
             "qcm_score": qcm_map.get(course.id, {}).get("last_score"),
             "ednpro_frequency": frequency_map.get(item_number),
+            "planned": bool(
+                getattr(course, "date_1ere_lecture", None)
+                or str(course.id) in (planned_ids or set())
+            ),
         })
     return rows
 
@@ -267,55 +293,51 @@ def _course_semantics(
     course: object,
     score: int | None,
     level: str | None,
-    college_validated: bool = False,
+    started: bool | None = None,
 ) -> dict[str, object]:
-    advancement = build_advancement(
-        1 if getattr(course, "date_1ere_lecture", None) else 0,
-        1,
-        college_validated=college_validated,
-    )
-    read = advancement["percent"] == 100
-    if not read:
-        return {
-            "reading_pct": advancement["percent"] or 0,
-            "lecture_label": "Non lu",
-            "mastery_score": score,
-            "level": "non_commence",
-            "status_key": "a_lire",
-            "status_text": "À lire",
-        }
-    if score is None:
-        return {
-            "reading_pct": advancement["percent"] or 0,
-            "lecture_label": "Lu",
-            "mastery_score": None,
-            "level": None,
-            "status_key": "lu_sans_preuve",
-            "status_text": "Lu · maîtrise non évaluée",
-        }
-    status_key = level or "en construction"
+    """Statut affiché d'un item. `started` est une propriété de l'item.
+
+    Le statut vient intégralement de `level`, calculé une fois par
+    `get_item_mastery` (mastery.py) : cette fonction ne fait plus que
+    l'habiller pour la grille (libellé de lecture, pourcentage). Elle
+    recalculait auparavant un statut indépendant à partir de `started` et de
+    `score is None` — deux vocabulaires pour le même état, dont l'un dépendait
+    du collège d'où l'item était regardé (72 items sur 175 changeaient de
+    statut d'une ligne à l'autre, N10/N11).
+    """
+    if started is None:
+        started = bool(getattr(course, "date_1ere_lecture", None))
+    advancement = build_advancement(1 if started else 0, 1)
+    status_key = level or "à préparer"
     return {
         "reading_pct": advancement["percent"] or 0,
-        "lecture_label": "Lu",
+        "lecture_label": "Lu" if started else "Non lu",
         "mastery_score": score,
         "level": level,
         "status_key": status_key,
-        "status_text": status_label(level),
+        "status_text": status_label(status_key),
     }
 
 
-def count_started(courses, active_course_ids: set[str]) -> int:
-    """Nombre de cours réellement entrés dans le travail.
+def count_started(
+    courses,
+    active_course_ids: set[str],
+    validated_colleges: set[str] | None = None,
+) -> int:
+    """Nombre d'items réellement entrés dans le travail.
 
-    Le compte ne retenait que `date_1ere_lecture`, renseignée sur 8 cours sur 707,
-    alors que 250 révisions avaient été effectuées — dont 80 % par des chemins
-    (consolidation, bonus, annales) qui ne renseignent jamais ce champ. La
-    progression affichait donc une inactivité qui n'existait pas.
+    Le compte ne retenait que `date_1ere_lecture`, renseignée sur 8 fiches sur
+    582, alors que 380 révisions avaient été effectuées — dont la plupart par
+    des chemins (consolidation, bonus, annales) qui ne renseignent jamais ce
+    champ. La progression affichait donc une inactivité qui n'existait pas.
+
+    La règle vit désormais dans `is_item_started`, partagée avec le panneau de
+    pilotage et la validation de collège : les trois comptaient différemment.
     """
     return sum(
         1
         for course in courses
-        if getattr(course, "date_1ere_lecture", None) or course.id in active_course_ids
+        if is_item_started(course, active_course_ids, validated_colleges)
     )
 
 
@@ -333,6 +355,14 @@ def _pilotage_summary(rows: list[dict]) -> dict:
     status_counts: dict[str, int] = {}
     mastery_values: list[float] = []
     retention_values: list[float] = []
+    # 132 des 133 scores affichés viennent d'une déclaration qui décroît avec
+    # le temps, pas d'une mesure réelle (N04) : la moyenne agrégée doit dire
+    # d'où elle vient, comme le fait déjà chaque ligne via `evidence_count`.
+    mastery_declared = 0
+    mastery_measured = 0
+    # Deux espaces d'identifiants distincts : les statuts sont dédoublonnés par
+    # item, les scores par fiche. Les mélanger faisait disparaître des statuts.
+    seen_items: set[str] = set()
     seen_courses: set[str] = set()
     seen_retention_courses: set[str] = set()
     for row in rows:
@@ -340,16 +370,10 @@ def _pilotage_summary(rows: list[dict]) -> dict:
         if catalog_mode and row.get("status_by_item"):
             row_status_counts = {
                 status: sum(1 for item_id, item_status in row["status_by_item"].items()
-                            if item_id not in seen_courses and item_status == status)
+                            if item_id not in seen_items and item_status == status)
                 for status in set(row["status_by_item"].values())
             }
-            seen_courses.update(row["status_by_item"])
-        if not row_status_counts and "pct" in row:
-            legacy_level = _level_from_score(
-                int(row["pct"] * 100) if row["total"] else None
-            )
-            legacy_key = legacy_level if legacy_level in {"solide", "correct", "fragile"} else "non_commence"
-            row_status_counts = {legacy_key: 1}
+            seen_items.update(row["status_by_item"])
         for key, count in row_status_counts.items():
             status_counts[key] = status_counts.get(key, 0) + int(count)
         for course_id, value in row.get("mastery_by_course", {}).items():
@@ -359,6 +383,11 @@ def _pilotage_summary(rows: list[dict]) -> dict:
             score = value[0] if isinstance(value, tuple) else None
             if score is not None:
                 mastery_values.append(float(score))
+                evidence_count = value[2] if isinstance(value, tuple) and len(value) > 2 else 0
+                if int(evidence_count or 0) > 0:
+                    mastery_measured += 1
+                else:
+                    mastery_declared += 1
         for course_id, value in row.get("retention_by_course", {}).items():
             if course_id in seen_retention_courses:
                 continue
@@ -367,51 +396,39 @@ def _pilotage_summary(rows: list[dict]) -> dict:
                 retention_values.append(float(value))
     advancement = build_advancement(started, total_courses)
     no_pdf_course_ids: set[str] = set()
+    # Un item multi-collèges comptait son retard/sa fragilité une fois par
+    # collège où il apparaît (175 items concernés) : le panneau sommait donc
+    # jusqu'à 246 « fragiles » pour 132 items réellement fragiles (N09). Comme
+    # `no_pdf_course_ids` déjà déduplique par fiche, ces deux KPI dédupliquent
+    # maintenant par item quand la ligne fournit l'ensemble ; à défaut (tests
+    # historiques sans ces clés), on retombe sur la somme par collège.
+    fragile_item_ids: set[str] = set()
+    overdue_item_ids: set[str] = set()
     for row in rows:
         no_pdf_course_ids.update(str(course_id) for course_id in row.get("no_pdf_course_ids", set()))
+        fragile_item_ids.update(str(item_id) for item_id in row.get("fragile_item_ids", set()))
+        overdue_item_ids.update(str(item_id) for item_id in row.get("overdue_item_ids", set()))
     no_pdf_total = (
         len(no_pdf_course_ids)
         if no_pdf_course_ids
         else sum(int(r.get("no_pdf_count", r.get("no_pdf", False))) for r in rows)
     )
+    fragile_total = len(fragile_item_ids) if fragile_item_ids else sum(r["fragile"] for r in rows)
+    overdue_total = len(overdue_item_ids) if overdue_item_ids else sum(r["retard"] for r in rows)
     return {
         "total_courses": total_courses,
         "started": started,
         "pct": (advancement["percent"] / 100) if advancement["percent"] is not None else 0.0,
         "mastery_avg": round(sum(mastery_values) / len(mastery_values)) if mastery_values else None,
+        "mastery_declared": mastery_declared,
+        "mastery_measured": mastery_measured,
         "retention_avg": round(sum(retention_values) / len(retention_values)) if retention_values else None,
-        "overdue": sum(r["retard"] for r in rows),
-        "fragile": sum(r["fragile"] for r in rows),
+        "overdue": overdue_total,
+        "fragile": fragile_total,
         "no_pdf": no_pdf_total,
         "status_counts": status_counts,
         "level_counts": status_counts,
         "estimated_minutes": max(0, total_courses - started) * 20,
-    }
-
-
-def build_college_rows(repository: CatalogRepository | None = None) -> list[dict]:
-    """Build catalogue-level college rows, including empty colleges."""
-    repository = repository or CatalogRepository()
-    if not hasattr(repository, "list_colleges"):
-        return []
-    rows = []
-    for name in repository.list_colleges():
-        item_ids = set(repository.list_item_ids_for_college(name))
-        rows.append({"name": name, "item_ids": item_ids, "total": len(item_ids)})
-    return rows
-
-
-def build_pilotage_summary(rows: list[dict]) -> dict:
-    """Deduplicate item totals while retaining college-item relation counts."""
-    item_ids = set()
-    relations = 0
-    for row in rows:
-        current = set(row.get("item_ids") or ())
-        item_ids.update(current)
-        relations += int(row.get("total", len(current)) or 0)
-    return {
-        "total_items": len(item_ids),
-        "total_college_relations": relations,
     }
 
 
@@ -420,6 +437,7 @@ def render_colleges_cockpit() -> None:
     _drawer_styles()
 
     filt = {"unread": False, "overdue": False, "no_pdf": False}
+    _meta: dict = {}
     expanded: set[str] = set()
     drawer_state: dict = {"root": None}
 
@@ -440,10 +458,18 @@ def render_colleges_cockpit() -> None:
 
     def _compute() -> list[dict]:
         history = get_all_history()
-        active_course_ids = get_active_course_ids()
         college_statuses = knowledge_store.get_all_college_statuses()
+        # Une seule lecture des deux signaux qui décident si un item est
+        # commencé : la ligne, le panneau et la validation partagent la réponse.
+        worked_ids = worked_course_ids()
+        validated_colleges = validated_college_names(college_statuses)
         item_states = knowledge_store.get_all_item_states("college")
-        all_tasks = review_service.generate_reviews(context="college", active_only=True)
+        generated = review_service.generate_reviews(context="college", active_only=False)
+        resume_date = get_study_resume_date(data_store.preferences)
+        all_tasks = filter_active_review_tasks(generated, resume_date)
+        _meta["resume_date"] = resume_date
+        _meta["hidden_tasks"] = len(generated) - len(all_tasks)
+        planned_ids = scheduled_course_ids()
         tasks_by_course: dict[str, list] = {}
         for task in all_tasks:
             tasks_by_course.setdefault(str(task.course_id), []).append(task)
@@ -461,6 +487,12 @@ def render_colleges_cockpit() -> None:
         if catalog.is_populated():
             from frontend.pages.items import build_item_rows
             catalog_item_rows = build_item_rows(catalog)
+        # Items sans fiche (8, 10) : la ligne dépliée les affichait cliquables
+        # vers `/cours/{id}` — une page morte, l'identifiant étant celui du
+        # catalogue et non d'une fiche (N07).
+        _meta["missing_fiche_ids"] = {
+            str(row["item_id"]) for row in catalog_item_rows if row["missing_fiche"]
+        }
 
         mastery_by_course: dict[str, tuple] = {}
         if catalog_item_rows:
@@ -488,8 +520,23 @@ def render_colleges_cockpit() -> None:
                     snapshot.score, snapshot.level, snapshot.evidence_count
                 )
 
+        # Preuve de consolidation au niveau item, annales et sessions IA
+        # comprises — le même compte que `mastery.py` utilise pour son score
+        # (N04). Sert à assouplir l'exigence de validation de collège (Q2) :
+        # le cycle J3/J7/J14/J30 littéral n'était jamais atteint (0/44).
+        consolidation_counts = {
+            course_id: (value[2] if isinstance(value, tuple) and len(value) > 2 else 0)
+            for course_id, value in mastery_by_course.items()
+        }
+
         rows = []
-        college_names = catalog.list_colleges() if catalog_item_rows else data_store.get_colleges()
+        # `list_colleges_with_items()` exclut les collèges sans aucune relation
+        # (un acronyme mal résolu à l'import crée une ligne fantôme — ex.
+        # « Rhumatologie 🤝 », doublon vide de « Rhumatologie 🤲 », N05) : sans
+        # ce filtre, `/colleges` affichait une ligne « 0/0 · À compléter ».
+        college_names = (
+            catalog.list_colleges_with_items() if catalog_item_rows else data_store.get_colleges()
+        )
         for name in college_names:
             selected_item_rows = [row for row in catalog_item_rows if name in row["colleges"]]
             courses = (
@@ -508,24 +555,42 @@ def render_colleges_cockpit() -> None:
                 history,
                 manual_status=college_statuses.get(name, "non_etudie"),
                 history_by_course=history_by_course,
+                consolidation_counts=consolidation_counts,
             )
-            college_validated = validation.manual_status == "valide"
-            started = total if college_validated else count_started(courses, active_course_ids)
-            advancement = build_advancement(
-                started,
-                total,
-                college_validated=college_validated,
-            )
+            # « Commencé » se décide item par item, avec la même règle que le
+            # panneau : la ligne annonçait 257 items lus quand le panneau en
+            # comptait 8.
+            started_course_ids = {
+                str(course.id) for course in courses
+                if is_item_started(course, worked_ids, validated_colleges)
+            }
+            item_id_by_course = {
+                str(row["course"].id): row["item_id"] for row in selected_item_rows
+            }
+            started_ids = {
+                item_id_by_course.get(course_id, course_id)
+                for course_id in started_course_ids
+            }
+            started = len(started_ids)
+            advancement = build_advancement(started, total)
             pct = (advancement["percent"] / 100) if advancement["percent"] is not None else 0.0
 
-            retard_count = (
-                sum(1 for row in selected_item_rows if str(row["item_number"]) in urgent_item_numbers)
-                if catalog_item_rows else sum(1 for cid in ids if cid in urgent_ids)
+            # Ensembles d'identifiants d'item, pas seulement des compteurs : un
+            # item multi-collèges doit se dédupliquer au niveau du panneau
+            # (N09), la ligne collège garde le compte local pour son propre
+            # affichage.
+            overdue_item_ids = (
+                {str(row["item_id"]) for row in selected_item_rows
+                 if str(row["item_number"]) in urgent_item_numbers}
+                if catalog_item_rows else {cid for cid in ids if cid in urgent_ids}
             )
-            fragile_count = sum(
-                1 for course in courses
+            retard_count = len(overdue_item_ids)
+            fragile_item_ids = {
+                item_id_by_course.get(str(course.id), str(course.id))
+                for course in courses
                 if mastery_by_course.get(course.id, (None, None))[1] in ("fragile", "critique")
-            )
+            }
+            fragile_count = len(fragile_item_ids)
 
             selected_item_numbers = {
                 str(row["item_number"]).strip() for row in selected_item_rows
@@ -548,10 +613,12 @@ def render_colleges_cockpit() -> None:
             status_counts: dict[str, int] = {}
             status_by_item: dict[str, str] = {}
             for course in courses:
-                score, level = mastery_by_course.get(course.id, (None, None))
-                status_key = str(_course_semantics(course, score, level, college_validated)["status_key"])
+                score, level = mastery_by_course.get(course.id, (None, None))[:2]
+                status_key = str(_course_semantics(
+                    course, score, level, started=str(course.id) in started_course_ids
+                )["status_key"])
                 status_counts[status_key] = status_counts.get(status_key, 0) + 1
-                item_key = next((row["item_id"] for row in selected_item_rows if row["course"].id == course.id), course.id)
+                item_key = item_id_by_course.get(str(course.id), course.id)
                 status_by_item[item_key] = status_key
             retention_by_course = {
                 cid: next(
@@ -568,9 +635,19 @@ def render_colleges_cockpit() -> None:
             rows.append({
                 "name": name, "total": total, "started": started, "pct": pct,
                 "retard": retard_count, "fragile": fragile_count,
+                "overdue_item_ids": overdue_item_ids,
+                "fragile_item_ids": fragile_item_ids,
                 "next_task": next_task, "qcm_avg": qcm_avg, "unread": started == 0,
                 "no_pdf": no_pdf,
                 "no_pdf_count": no_pdf_count,
+                "planned": sum(
+                    1 for course in courses
+                    if course.date_1ere_lecture or str(course.id) in planned_ids
+                ),
+                "planned_course_ids": {
+                    str(course.id) for course in courses
+                    if course.date_1ere_lecture or str(course.id) in planned_ids
+                },
                 "no_pdf_course_ids": {
                     str(course.id) for course in courses
                     if not getattr(course, "url_pdf", None)
@@ -585,10 +662,8 @@ def render_colleges_cockpit() -> None:
                 "frequency_map": frequency_map,
                 "validation": validation,
                 "item_ids": ids if catalog_item_rows else set(),
-                "started_item_ids": {
-                    row["item_id"] for row in selected_item_rows
-                    if row["course"].date_1ere_lecture or any(t.course_id in course_ids for t in college_tasks)
-                } if catalog_item_rows else set(),
+                "started_item_ids": started_ids if catalog_item_rows else set(),
+                "started_course_ids": started_course_ids,
                 "status_by_item": status_by_item,
             })
         return rows
@@ -607,6 +682,16 @@ def render_colleges_cockpit() -> None:
         from urllib.parse import quote
         ui.navigate.to(f"/items?college={quote(college)}")
 
+    def _start_item(course_id: str, title: str) -> None:
+        """Ancre le cycle J1→J30 d'un item depuis la vue dépliée."""
+        try:
+            anchor_first_read(course_id)
+        except Exception as exc:
+            ui.notify(f"Planification impossible : {exc}", type="negative")
+            return
+        ui.notify(f"Cycle planifié · {title}", type="positive")
+        _render(recompute=True)
+
     def _confirm_college(college: str) -> None:
         knowledge_store.set_college_status(college, "valide")
         ui.notify(f"Collège confirmé : {college}", type="positive")
@@ -618,6 +703,12 @@ def render_colleges_cockpit() -> None:
             with ui.column().classes("gap-0"):
                 ui.label("Collèges").classes("cg-title")
                 ui.label(f"{n_total} collèges · Avancement par matière").classes("cg-subtitle")
+                hidden = int(_meta.get("hidden_tasks") or 0)
+                if hidden:
+                    resume = _meta.get("resume_date")
+                    ui.label(
+                        f"Reprise le {resume:%d/%m} · {hidden} révision(s) antérieure(s) masquée(s)"
+                    ).classes("cg-subtitle cg-resume")
             with ui.element("div").classes("cg-chips"):
                 def _chip(label: str, key: str) -> None:
                     el = ui.element("div").classes("cg-chip active" if filt[key] else "cg-chip")
@@ -648,18 +739,28 @@ def render_colleges_cockpit() -> None:
                         f"width:{int(summary['pct'] * 100)}%"
                     )
 
+            mastery_sub = None
+            if summary["mastery_avg"] is not None:
+                # 132 des 133 scores affichés viennent d'une déclaration, pas
+                # d'une mesure (N04, N16) : la moyenne seule le cachait.
+                mastery_sub = (
+                    f"{summary['mastery_declared']} déclaré(s) · "
+                    f"{summary['mastery_measured']} mesuré(s)"
+                )
             with ui.element("div").classes("cg-kpis cg-panel-section"):
-                for value, label in [
-                    (summary["overdue"], "révisions en retard"),
-                    (summary["fragile"], "collèges fragiles"),
-            (summary["no_pdf"], "fiches sans PDF"),
-                    (f"{summary['estimated_minutes'] // 60} h", "charge estimée"),
-                    (f"{summary['mastery_avg']}%" if summary["mastery_avg"] is not None else "—", "maîtrise moyenne"),
-                    (f"{summary['retention_avg']}%" if summary["retention_avg"] is not None else "—", "rétention"),
+                for value, label, sub in [
+                    (summary["overdue"], "révisions en retard", None),
+                    (summary["fragile"], "items fragiles", None),
+                    (summary["no_pdf"], "fiches sans PDF", None),
+                    (f"{summary['estimated_minutes'] // 60} h", "charge estimée", None),
+                    (f"{summary['mastery_avg']}%" if summary["mastery_avg"] is not None else "—", "maîtrise moyenne", mastery_sub),
+                    (f"{summary['retention_avg']}%" if summary["retention_avg"] is not None else "—", "rétention", None),
                 ]:
                     with ui.element("div").classes("cg-kpi"):
                         ui.label(str(value)).classes("cg-kpi-value")
                         ui.label(label).classes("cg-kpi-label")
+                        if sub:
+                            ui.label(sub).classes("cg-kpi-sub")
 
             with ui.element("div").classes("cg-panel-section"):
                 ui.label("Répartition des statuts").classes("cg-panel-section-title")
@@ -727,9 +828,13 @@ def render_colleges_cockpit() -> None:
                 ui.label(validation.state_label).classes("cg-name-sub")
                 evidence_count = validation.total_items - len(validation.missing_evidence_ids)
                 cycle_count = len(validation.completed_j_cycle_ids)
+                # « cycle J X/Y » se lisait comme un échec permanent — la
+                # spirale J3/J7/J14/J30 littérale n'est presque jamais suivie
+                # telle quelle (0/44 collèges) alors que la consolidation
+                # réelle (annales, IA) existe et compte désormais (Q2).
                 ui.label(
                     f"Preuves {evidence_count}/{validation.total_items} · "
-                    f"cycle J {cycle_count}/{validation.total_items}"
+                    f"consolidation {cycle_count}/{validation.total_items}"
                 ).classes("cg-name-sub")
                 if validation.manual_status != "valide":
                     action_label = "Confirmer" if validation.automatic_ready else "Valider manuellement"
@@ -759,7 +864,14 @@ def render_colleges_cockpit() -> None:
             retard_cls = "cg-retard late" if r["retard"] > 0 else "cg-retard ok"
             retard_el = ui.element("div").classes(retard_cls)
             with retard_el:
-                ui.label(f"{r['retard']} en retard" if r["retard"] > 0 else "à jour")
+                if r["retard"] > 0:
+                    ui.label(f"{r['retard']} en retard")
+                elif r.get("planned"):
+                    ui.label("à jour")
+                else:
+                    # Aucune échéance parce qu'aucun cycle n'est posé : ce n'est
+                    # pas la même chose qu'un collège à jour.
+                    ui.label("non planifié").classes("cg-unplanned")
                 ui.label("›")
             retard_el.on(
                 "click",
@@ -797,7 +909,9 @@ def render_colleges_cockpit() -> None:
                     item_rows = _college_item_rows(
                         r["courses"], r["tasks"], r["mastery_by_course"],
                         r["urgent_ids"], r["qcm_map"], r["frequency_map"],
-                        college_validated=r["validation"].manual_status == "valide",
+                        started_ids=r.get("started_course_ids") or set(),
+                        planned_ids=r.get("planned_course_ids") or set(),
+                        missing_fiche_ids=_meta.get("missing_fiche_ids") or set(),
                     )
                     if not item_rows:
                         ui.label("Aucun item dans ce collège.").classes("cg-item-empty")
@@ -806,13 +920,29 @@ def render_colleges_cockpit() -> None:
                         task = item["task"]
                         with ui.element("div").classes("cg-item") as item_el:
                             number = getattr(course, "item_number", None) or "—"
-                            title_el = ui.label(f"Item {number} · {course.title}").classes("cg-item-title")
-                            title_el.on(
-                                "click",
-                                lambda cid=course.id, name=r["name"]: ui.navigate.to(
-                                    f"/cours/{cid}?college={quote(name)}"
-                                ),
-                            )
+                            title_text = f"Item {number} · {course.title}"
+                            if item.get("missing_fiche"):
+                                title_text += " · Fiche manquante"
+                            title_el = ui.label(title_text).classes("cg-item-title")
+                            if item.get("missing_fiche"):
+                                # Pas de fiche dans le catalogue pour cet item :
+                                # naviguer menait à une page « Item introuvable »
+                                # (N07). Créer une fiche est une tâche de
+                                # contenu, pas de code (Q5).
+                                title_el.on(
+                                    "click",
+                                    lambda: ui.notify(
+                                        "Aucune fiche pour cet item : à créer dans le catalogue.",
+                                        type="warning",
+                                    ),
+                                )
+                            else:
+                                title_el.on(
+                                    "click",
+                                    lambda cid=course.id, name=r["name"]: ui.navigate.to(
+                                        f"/cours/{cid}?college={quote(name)}"
+                                    ),
+                                )
                             ui.label(item["lecture_label"]).classes(
                                 "cg-item-cell cg-item-lecture "
                                 + ("text-emerald-400" if item["lecture_label"] == "Lu" else "cg-item-muted")
@@ -873,8 +1003,20 @@ def render_colleges_cockpit() -> None:
                                     lambda t=task, el=item_el: _open_feedback(t, el),
                                     js_handler=_STOP_PROPAGATION_JS,
                                 )
-                            else:
+                            elif item["planned"]:
                                 ui.label("—").classes("cg-item-cell cg-item-muted cg-item-action")
+                            else:
+                                start_button = ui.button("Commencer", icon="play_arrow").props(
+                                    "outline dense size=sm color=primary"
+                                ).classes("cg-item-action")
+                                start_button.tooltip(
+                                    "Pose la première lecture aujourd'hui et planifie J1 → J30"
+                                )
+                                start_button.on(
+                                    "click",
+                                    lambda cid=course.id, t=course.title: _start_item(cid, t),
+                                    js_handler=_STOP_PROPAGATION_JS,
+                                )
 
     async def _validate(task, _card=None, activity_types=None, duration_minutes=None,
                         confidence=None, difficulty=None, qcm_result=None,

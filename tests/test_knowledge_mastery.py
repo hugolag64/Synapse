@@ -500,3 +500,64 @@ def test_recent_low_qcm_prioritizes_error_correction():
 
     assert "QCM récent faible (25% sur 20 questions)" in snapshot.reasons
     assert snapshot.next_action == "Corriger les erreurs"
+
+
+# ── Q4 bis : un item fraîchement commencé n'est pas une fausse alerte ─────────
+
+def test_freshly_anchored_item_is_non_evalue_not_fragile():
+    """Avant ce correctif, le score de base (50) faisait basculer directement
+    un item tout juste ancré en « fragile ». Le score reste calculé — c'est
+    lui qui rend l'item planifiable par `generate_reviews`, qui écarte tout
+    score `None` — seul le niveau affiché devient neutre."""
+    course = _course(first_read=datetime.date.today(), nb_lectures=0)
+
+    snap = get_course_mastery(course)
+
+    assert snap.level == "non évalué"
+    assert snap.score is not None
+
+
+def test_a_single_lecture_already_leaves_non_evalue():
+    """Dès qu'une seule lecture ou preuve existe, l'état neutre ne s'applique
+    plus : le calcul normal reprend la main."""
+    course = _course(first_read=datetime.date.today(), nb_lectures=1)
+
+    snap = get_course_mastery(course)
+
+    assert snap.level != "non évalué"
+
+
+# ── N04 : les annales UNESS comptent comme preuve, y compris pour la graine ──
+
+def test_annale_session_dilutes_a_declared_seed():
+    """Une session d'annale ne renseignait jamais `count_evidence_for_courses`
+    (N04) : elle ne pouvait ni diluer une graine déclarée ni faire sortir un
+    item du court-circuit qui le laisse purement déclaratif."""
+    import backend.core.reviews.local_store as ls
+    from backend.core.practice.models import PracticeKind, PracticeSessionSpec, QuestionKind
+
+    ks.set_item_state("course-1", "solide")  # graine 70, aucune preuve classique
+    course = _course(first_read=datetime.date.today(), nb_lectures=1)
+    course.item_number = "1"
+
+    before = get_course_mastery(course)
+    assert before.evidence_count == 0
+    assert before.score == 70  # court-circuit : la graine seule fait le score
+
+    ls.create_ai_practice_session(
+        spec=PracticeSessionSpec(
+            practice_kind=PracticeKind.DP, total_questions=1, open_questions=0,
+            closed_questions=1, item_number="1", course_id="course-1",
+            course_title="Item test",
+        ),
+        questions=[{
+            "prompt": "Q1", "kind": QuestionKind.CLOSED,
+            "choices": ["A", "B"], "answer": "A", "explanation": "E1",
+        }],
+        model="test-model",
+    )
+
+    after = get_course_mastery(course)
+
+    assert after.evidence_count == 1
+    assert after.score != 70  # la graine se dilue désormais

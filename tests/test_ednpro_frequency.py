@@ -58,6 +58,45 @@ def test_normalize_training_payload_accepts_ednpro_annales_index_shape():
     assert rows[0]["years"] == [2022, 2023, 2024, 2025]
 
 
+def test_priority_without_an_explicit_value_uses_quartiles_on_a_large_batch():
+    """Sur données réelles, `session_count >= 3` classait 205 items sur 367
+    (56 %) en « indispensable » — un seuil fixe qui ne s'adapte pas au volume
+    du corpus. Sur un lot assez grand, seul le quartile supérieur de
+    `session_count × question_count` doit porter le badge maximal (Q3)."""
+    from backend.core.ednpro.frequency import normalize_training_payload
+
+    # 12 items : 8 avec un score identique et faible (2), 4 avec un score
+    # nettement plus élevé (score 132) — seuls ces 4 doivent ressortir
+    # « indispensable » ; sous l'ancien seuil fixe (session_count >= 3), les
+    # 4 items à score faible mais 3 sessions l'auraient aussi été.
+    rows_payload = [
+        {"item_number": i, "sessions": 1, "questions": 2} for i in range(1, 9)
+    ] + [
+        {"item_number": i, "sessions": 11, "questions": 12} for i in range(9, 13)
+    ]
+
+    rows = normalize_training_payload(
+        rows_payload, source_url="https://ednpro.app/x", collected_at="2026-08-20T00:00:00+00:00",
+    )
+
+    priorities = {row["item_number"]: row["priority"] for row in rows}
+    assert all(priorities[str(i)] == "indispensable" for i in range(9, 13))
+    assert all(priorities[str(i)] != "indispensable" for i in range(1, 9))
+
+
+def test_priority_falls_back_to_fixed_thresholds_below_the_quartile_minimum():
+    """Un lot trop petit pour un quartile statistiquement sensé retombe sur
+    les seuils historiques plutôt que de produire un classement arbitraire."""
+    from backend.core.ednpro.frequency import normalize_training_payload
+
+    rows = normalize_training_payload(
+        [{"item_number": 1, "sessions": 3, "questions": 1}],
+        source_url="https://ednpro.app/x", collected_at="2026-08-20T00:00:00+00:00",
+    )
+
+    assert rows[0]["priority"] == "indispensable"
+
+
 def test_gain_priority_uses_mastery_gap_and_imported_question_availability():
     from backend.core.ednpro.frequency import calculate_gain_priority
 

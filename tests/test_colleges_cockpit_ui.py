@@ -34,7 +34,7 @@ def test_college_item_rows_expose_item_signals_without_extra_queries():
     assert rows[0]["urgent"] is True
     assert rows[0]["next_task"] is tasks[0]
     assert rows[0]["qcm_score"] == 42
-    assert rows[1]["level"] == "non_commence"
+    assert rows[1]["status_key"] == "à préparer"
     assert rows[1]["next_task"] is None
     assert rows[1]["qcm_score"] is None
 
@@ -137,33 +137,88 @@ def test_college_header_names_learning_avancement_explicitly():
 
 
 def test_college_item_rows_separate_reading_from_mastery():
+    """Un item lu mais sans preuve encore recueillie est « non évalué » — un
+    état neutre, distinct d'une alerte (Q4 bis) — et non plus une clé de
+    statut propre à `_course_semantics`. Le score reste calculé (il rend
+    l'item planifiable par le moteur de révisions) ; seul le niveau affiché
+    change."""
     courses = [_course("c1", "12", "Lu sans preuve")]
-    rows = _college_item_rows(courses, [], mastery_by_course={})
+    rows = _college_item_rows(courses, [], mastery_by_course={"c1": (50, "non évalué")})
 
     assert rows[0]["lecture_label"] == "Lu"
     assert rows[0]["reading_pct"] == 100
-    assert rows[0]["mastery_score"] is None
-    assert rows[0]["status_text"] == "Lu · maîtrise non évaluée"
+    assert rows[0]["mastery_score"] == 50
+    assert rows[0]["status_text"] == "Non évalué"
 
 
-def test_validated_college_marks_every_item_read_without_mastery_score():
+def test_an_item_started_upstream_is_read_whatever_the_college_row():
+    """La validation d'un collège rendait l'item « lu » dans ce collège et
+    « À lire » dans ses autres collèges. La réponse est calculée une fois, en
+    amont (`is_item_started`), et transmise telle quelle à chaque ligne. Le
+    statut, lui, vient toujours de `level` — ici « à lire » parce que la
+    fiche elle-même n'a pas de date de première lecture, même si l'item est
+    déjà commencé au sens de l'item (started_ids)."""
     courses = [_course("c1", "12", "Non lu", started=False)]
-    rows = _college_item_rows(courses, [], mastery_by_course={}, college_validated=True)
+
+    rows = _college_item_rows(
+        courses, [], mastery_by_course={"c1": (None, "à lire")}, started_ids={"c1"}
+    )
 
     assert rows[0]["lecture_label"] == "Lu"
     assert rows[0]["reading_pct"] == 100
     assert rows[0]["mastery_score"] is None
-    assert rows[0]["status_key"] == "lu_sans_preuve"
+    assert rows[0]["status_key"] == "à lire"
 
 
 def test_unread_course_is_not_presented_as_mastered():
     courses = [_course("c1", "12", "A lire", started=False)]
-    rows = _college_item_rows(courses, [], mastery_by_course={})
+    rows = _college_item_rows(courses, [], mastery_by_course={"c1": (None, "à lire")})
 
     assert rows[0]["lecture_label"] == "Non lu"
     assert rows[0]["mastery_score"] is None
     assert rows[0]["status_text"] == "À lire"
-    assert rows[0]["status_key"] == "a_lire"
+    assert rows[0]["status_key"] == "à lire"
+
+
+def test_college_deplie_view_does_not_navigate_for_a_missing_fiche():
+    source = open("frontend/pages/colleges_cockpit.py", encoding="utf-8").read()
+
+    assert "missing_fiche_ids=_meta.get(\"missing_fiche_ids\")" in source
+    assert "Aucune fiche pour cet item" in source
+
+
+def test_college_item_rows_flag_items_without_a_fiche():
+    """Un item sans fiche (8, 10) menait à `/cours/{id}` → « Item introuvable »
+    depuis la vue dépliée d'un collège aussi, pas seulement `/items` (N07)."""
+    courses = [_course("item:8", "8", "Les discriminations")]
+
+    rows = _college_item_rows(courses, [], missing_fiche_ids={"item:8"})
+
+    assert rows[0]["missing_fiche"] is True
+
+
+def test_college_item_rows_default_to_not_missing_a_fiche():
+    courses = [_course("c1", "12", "Fragile")]
+
+    rows = _college_item_rows(courses, [])
+
+    assert rows[0]["missing_fiche"] is False
+
+
+def test_pilotage_summary_exposes_mastery_provenance():
+    """96 % des scores fragiles/critiques viennent d'une déclaration qui
+    décroît avec le temps, pas d'une mesure (N04) : la moyenne agrégée doit
+    dire d'où elle vient, pas seulement chaque ligne (N16)."""
+    rows = [{
+        "total": 2, "started": 2, "retard": 0, "fragile": 0, "no_pdf": 0,
+        "mastery_by_course": {"c1": (80, "maîtrisé", 0), "c2": (60, "à consolider", 3)},
+        "retention_by_course": {}, "status_counts": {},
+    }]
+
+    summary = _pilotage_summary(rows)
+
+    assert summary["mastery_declared"] == 1
+    assert summary["mastery_measured"] == 1
 
 
 def test_pilotage_summary_separates_mastery_and_retention():

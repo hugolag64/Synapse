@@ -25,6 +25,8 @@ from loguru import logger
 
 from backend.state.store import data_store
 from backend.core.reviews import local_store
+from backend.core.prep.service import anchor_first_read
+from backend.core.knowledge.item_progress import scheduled_course_ids
 from backend.core.reviews.mastery import (
     get_course_mastery,
     get_item_fiche_ids,
@@ -399,6 +401,20 @@ def render_item_cockpit(course_id: str, college: str | None = None) -> None:
             obs_path = None
     has_pdf = bool(getattr(pdf_course, "url_pdf", None))
     has_first_read = bool(getattr(course, "date_1ere_lecture", None))
+    # Le cycle J peut être ancré localement (`course_learning_schedule`) sans
+    # que Notion porte une date de première lecture.
+    is_planned = has_first_read or bool(
+        scheduled_course_ids().intersection({str(course.id), *item_fiche_ids})
+    )
+
+    def _anchor_cycle(course_id: str) -> None:
+        try:
+            anchor_first_read(course_id)
+        except Exception as exc:
+            ui.notify(f"Planification impossible : {exc}", type="negative")
+            return
+        ui.notify("Cycle planifié : J1 · J3 · J7 · J14 · J30", type="positive")
+        ui.navigate.reload()
 
     item_label = course.display_item_number or course.item_number or "—"
     # Rattachement stable : un item saisi une fois par collège dans Notion
@@ -494,11 +510,21 @@ def render_item_cockpit(course_id: str, college: str | None = None) -> None:
                 with _rev:
                     ui.label("Réviser maintenant")
                 _rev.on("click", _open_focus)
-            elif not has_first_read:
+            elif not is_planned:
+                # Ancrage local : le chemin Notion « Démarrer le suivi » exige un
+                # PDF lié et une resynchronisation, et ne posait donc de cycle
+                # sur presque aucun item. Il reste accessible en second rideau.
                 _start = ui.element("div").classes("ci-btn primary")
                 with _start:
                     ui.label("Commencer l'étude")
-                _start.on(
+                _start.tooltip(
+                    "Pose la première lecture aujourd'hui et planifie J1, J3, J7, J14 et J30"
+                )
+                _start.on("click", lambda cid=course.id: _anchor_cycle(cid))
+                _notion = ui.element("div").classes("ci-btn")
+                with _notion:
+                    ui.label("Programmer dans Notion")
+                _notion.on(
                     "click",
                     lambda c=course: open_start_tracking_dialog(
                         c, "college", lambda: ui.navigate.reload(), ui.context.client,
@@ -506,7 +532,7 @@ def render_item_cockpit(course_id: str, college: str | None = None) -> None:
                     ),
                 )
                 if not has_pdf:
-                    _start.tooltip("Liez d'abord un PDF pour démarrer le suivi")
+                    _notion.tooltip("Liez d'abord un PDF pour écrire le suivi dans Notion")
             elif has_pdf:
                 ui.link("↗ Ouvrir le cours", f"/pdf/{pdf_course.id}", new_tab=True).classes(
                     "ci-btn primary"

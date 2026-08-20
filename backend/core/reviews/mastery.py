@@ -57,6 +57,7 @@ class CourseProgressSnapshot:
 PROGRESSION_COLORS: dict[str, str] = {
     "à préparer": "gray",
     "à lire": "blue",
+    "non évalué": "violet",
     "en construction": "teal",
     "à consolider": "cyan",
     "à entraîner": "indigo",
@@ -280,10 +281,15 @@ def get_item_mastery(
     fiche_ids = tuple(str(c.id) for c in courses)
     sessions = get_item_sessions(item_id)
     qcm_done = any(local_store.get_qcm_sessions_by_course(fiche_id) for fiche_id in fiche_ids)
+    # Les reports sont enregistrés par fiche ; un item ne les voyait jamais
+    # pénaliser son score faute d'être agrégé et transmis (N12).
+    postpone_map = local_store.get_postpone_counts()
+    total_postpone = sum(postpone_map.get(fiche_id, 0) for fiche_id in fiche_ids)
     return get_course_mastery(
         course,
         context=context,
         sessions=sessions,
+        total_postpone=total_postpone,
         qcm_done_local=qcm_done,
         knowledge_id=str(course.id),
     )
@@ -313,6 +319,21 @@ def _oic_rows_for_item(course) -> list:
             seen.add(identifier)
             rows.append(row)
     return rows
+
+
+def _scheduled_first_read(course, fiche_ids: tuple[str, ...] = ()):
+    """Date de première lecture ancrée localement pour l'une des fiches de l'item."""
+    try:
+        from backend.core.knowledge.item_progress import scheduled_first_read_dates
+
+        dates = scheduled_first_read_dates("college")
+    except Exception:
+        return None
+    if not dates:
+        return None
+    candidates = [dates.get(str(course.id))] + [dates.get(str(fid)) for fid in fiche_ids]
+    known = [value for value in candidates if value]
+    return min(known) if known else None
 
 
 def get_course_mastery(
@@ -347,6 +368,22 @@ def get_course_mastery(
         (course.id, *fiche_ids),
         context,
     )
+    # Numéro d'item, nécessaire dès ce point pour compter les annales avant que
+    # le calcul de score plus bas n'en ait besoin à son tour.
+    item_number = str(getattr(course, "item_number", "") or "").strip()
+    # Preuve totale au niveau item, annales UNESS comprises : `seed.n_evidence`
+    # (compté par `count_evidence_for_courses`) ne voit pas les annales, ce qui
+    # empêchait une session d'annale de diluer une graine déclarée ou de faire
+    # sortir un item du court-circuit ci-dessous (N04). On ne passe pas par
+    # `get_item_evidence()` : elle résout ses fiches via `data_store.cours` sans
+    # repli, alors que `course` peut être un objet qui n'y figure pas (tests,
+    # cours de synthèse catalogue-only) — `seed.n_evidence` reste juste dans ce
+    # cas grâce au repli de `_evidence_scope`.
+    annales_evidence_count = (
+        len(local_store.get_ai_practice_sessions(item_number=item_number, limit=1000))
+        if item_number else 0
+    )
+    evidence_total = int(seed.n_evidence or 0) + annales_evidence_count
     # Couverture OIC calculée pour tout cours (plus seulement les items déclarés) :
     # sinon un cours réellement évalué sur ses OIC de Rang A voyait sa couverture
     # ignorée faute de "niveau déclaré" (ancien système collèges), et le verrou
@@ -364,7 +401,7 @@ def get_course_mastery(
         # d'une auto-déclaration qui s'efface avec le temps est visuellement
         # indiscernable d'un score mesuré : 96 % des cours affichés « fragile »
         # ou « critique » viennent de cette graine, pas d'un échec constaté.
-        "evidence_count":   int(seed.n_evidence or 0),
+        "evidence_count":   evidence_total,
         "oic_coverage_a":   _oic_coverage_a,
         "has_rang_a_badge": _has_rang_a_badge,
         "rang_a_referential": _has_rang_a_referential,
@@ -379,13 +416,16 @@ def get_course_mastery(
     # 1. Extraction des propriétés du cours selon le contexte
     has_pdf = bool(course.url_pdf if context == "college" else course.url_pdf_ue)
     has_first_read = bool(course.date_1ere_lecture if context == "college" else course.date_1ere_lecture_ue)
+    # Une première lecture déclarée depuis une vue est enregistrée localement
+    # (`course_learning_schedule`), pas dans Notion : sans cette lecture, l'item
+    # resterait « à préparer » et le moteur refuserait de planifier ses révisions.
+    if not has_first_read and context == "college":
+        has_first_read = bool(_scheduled_first_read(course, fiche_ids))
     nb_lectures = (course.nb_lectures if context == "college" else course.nb_lectures_ue) or 0
     anki_done = getattr(course, "anki", False)
     qcm_done = getattr(course, "qcm_done", False) or qcm_done_local
-    item_number = str(getattr(course, "item_number", "") or "").strip()
     anki_rows = []
     if item_number:
-        from backend.core.reviews import local_store
         get_anki_evidence = getattr(local_store, "get_anki_review_evidence", None)
         if callable(get_anki_evidence):
             anki_rows = get_anki_evidence(item_number)
@@ -394,7 +434,7 @@ def get_course_mastery(
 
     # 2. Règles strictes (non commencés)
     # Note: un cours sans PDF peut quand même avoir une première lecture et être révisable
-    if seed.seed_score is not None and seed.n_evidence == 0:
+    if seed.seed_score is not None and evidence_total == 0:
         return CourseProgressSnapshot(
             course_id=course.id, context=context,
             level=level_from_seed(seed.seed_score), mastery_score=seed.seed_score, retention_score=seed.seed_score,
@@ -424,6 +464,22 @@ def get_course_mastery(
                 **_extra, **_retention_defaults,
             )
         # Item déclaré ET porteur de preuves : on poursuit vers le calcul normal.
+
+    # Item fraîchement commencé (cycle ancré ou lecture faite) mais sans aucune
+    # preuve encore recueillie. Le score de base ci-dessous (50) le ferait
+    # classer « fragile » — une fausse alerte pour un item qui vient d'être
+    # ancré, pas révisé en échec (Q4 bis). Le score reste calculé normalement
+    # (il doit rester non nul : c'est lui qui rend l'item planifiable par le
+    # moteur de révisions, `generate_reviews` écartant tout score `None`) ;
+    # seul le niveau affiché est neutre le temps qu'une première échéance
+    # produise une vraie mesure.
+    fresh_no_evidence = (
+        seed.seed_score is None
+        and nb_lectures == 0
+        and not qcm_done
+        and not sessions
+        and evidence_total == 0
+    )
 
     # 3. Calcul du score (cours commencés)
     mastery_score = 50
@@ -477,7 +533,6 @@ def get_course_mastery(
     # Une performance fraîche est un signal diagnostique, pas une simple
     # exposition : un échec robuste doit immédiatement remonter dans le plan.
     try:
-        from backend.core.reviews import local_store
         today = datetime.date.today()
         recent_rows = _qcm_rows_for_item(course)
         for row in recent_rows:
@@ -498,7 +553,6 @@ def get_course_mastery(
     # Prise en compte prioritaire des sessions d'annales UNESS officielles
     if item_number:
         try:
-            from backend.core.reviews import local_store
             annale_sess = local_store.get_ai_practice_sessions(item_number=item_number, limit=5)
             scores_annales = [float(s["score_percent"]) for s in (annale_sess or []) if s.get("annale_id") and s.get("score_percent") is not None]
             if scores_annales:
@@ -516,7 +570,7 @@ def get_course_mastery(
 
     # Fusion graine / évidence : le poids de la graine décroît avec les preuves.
     if seed.seed_score is not None:
-        mastery_score = blend(seed.seed_score, mastery_score, seed.n_evidence)
+        mastery_score = blend(seed.seed_score, mastery_score, evidence_total)
         reasons.append(f"Niveau déclaré : {seed.declared_level}")
 
     if anki_knowledge_score is not None:
@@ -554,7 +608,9 @@ def get_course_mastery(
         score_rang_b = max(0, min(100, round(mastery_score * 0.9)))
 
     # 4. Détermination du niveau (avec Sécurité Rang A stricte)
-    if mastery_score < 40 or (
+    if fresh_no_evidence:
+        level = "non évalué"
+    elif mastery_score < 40 or (
         _has_rang_a_evaluated and score_rang_a is not None and score_rang_a < 40
     ):
         level = "critique"
@@ -577,7 +633,9 @@ def get_course_mastery(
 
     # Action suggérée
     next_action = "Réviser"
-    if recent_low_qcm:
+    if fresh_no_evidence:
+        next_action = "Attendre la 1ère échéance"
+    elif recent_low_qcm:
         next_action = "Corriger les erreurs"
     elif level == "en construction":
         next_action = "Ficher/Résumer"

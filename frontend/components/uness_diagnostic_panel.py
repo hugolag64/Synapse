@@ -68,6 +68,120 @@ def render(container: ui.element) -> None:
                     _render_pending(pending)
                 for visual in report.get("visual_validation", []):
                     _render_visual_validation(visual)
+                _render_catalog_integrity()
+                _render_college_hygiene()
+
+        def _render_college_hygiene() -> None:
+            """Collèges actifs sans aucun item lié.
+
+            Un acronyme mal résolu à l'import crée une ligne fantôme dans le
+            référentiel — invisible partout (`/colleges` et le sélecteur
+            `/items` l'excluent désormais), mais elle reste dans la base et
+            peut fausser une future intégration. Ex. « Rhumatologie 🤝 »,
+            doublon vide de « Rhumatologie 🤲 » (N05).
+            """
+            from backend.state.catalog_repository import CatalogRepository
+
+            try:
+                repo = CatalogRepository()
+                empty = repo.list_empty_colleges()
+                candidates = repo.list_colleges_with_items()
+            except Exception as exc:  # noqa: BLE001 — panneau de diagnostic
+                logger.exception("collèges : rapport d'hygiène indisponible")
+                ui.label(f"Hygiène des collèges indisponible : {exc}").classes(
+                    "se-diag-quiz-detail"
+                )
+                return
+
+            ui.label("COLLÈGES SANS ITEM").classes("se-label mt-4")
+            if not empty:
+                ui.label("Aucun collège fantôme.").classes("se-diag-quiz-detail")
+                return
+
+            ui.label(
+                f"{len(empty)} collège(s) actif(s) sans aucun item lié."
+            ).classes("text-sm text-slate-500")
+
+            for college_id, name in empty:
+                with ui.row().classes("items-center gap-2 mt-1"):
+                    ui.label(name).classes("se-diag-quiz-detail")
+                    target_select = ui.select(
+                        candidates, value=candidates[0] if candidates else None,
+                        label="Fusionner vers",
+                    ).props("dense outlined options-dense").classes("w-64")
+
+                    def _merge(college_id=college_id, name=name, target=target_select) -> None:
+                        target_name = target.value
+                        if not target_name:
+                            ui.notify("Choisis un collège cible.", type="warning")
+                            return
+                        target_id = repo.get_college_id(target_name)
+                        if not target_id:
+                            ui.notify("Collège cible introuvable.", type="negative")
+                            return
+                        repo.merge_colleges(
+                            target_id, college_id,
+                            f"Collège sans item fusionné vers {target_name} (diagnostic)",
+                        )
+                        ui.notify(f"✅ {name} fusionné dans {target_name}.", type="positive")
+                        _refresh()
+
+                    ui.button("Fusionner", icon="merge_type", on_click=_merge).props(
+                        "flat dense size=sm color=primary"
+                    )
+
+        def _render_catalog_integrity() -> None:
+            """Preuves rattachées à des fiches absentes du catalogue actif.
+
+            Invisible depuis Items et Collèges : une révision faite sur une
+            fiche disparue au réimport ne compte plus nulle part, sans que rien
+            ne le signale.
+            """
+            from backend.state.catalog_integrity import orphan_report, reattach_orphan_evidence
+
+            try:
+                integrity = orphan_report()
+            except Exception as exc:  # noqa: BLE001 — panneau de diagnostic
+                logger.exception("catalogue : rapport d'intégrité indisponible")
+                ui.label(f"Intégrité du catalogue indisponible : {exc}").classes(
+                    "se-diag-quiz-detail"
+                )
+                return
+
+            ui.label("INTÉGRITÉ DU CATALOGUE").classes("se-label mt-4")
+            ui.label(
+                f"{integrity.total_reattachable} preuve(s) à rendre à leur item · "
+                f"{integrity.total_duplicates} doublon(s) · "
+                f"{integrity.total_archived} trace(s) sur cours archivés (normal) · "
+                f"{integrity.total_unknown} reliquat(s) sans item"
+            ).classes("text-sm text-slate-500")
+            if integrity.unknown_ids:
+                ui.label(
+                    "Identifiants sans item : " + ", ".join(integrity.unknown_ids)
+                ).classes("se-diag-quiz-detail")
+
+            if integrity.total_reattachable:
+                def _repair() -> None:
+                    result = reattach_orphan_evidence(apply=True)
+                    ui.notify(
+                        f"✅ {result['total_moved']} preuve(s) rattachée(s) à leur item.",
+                        type="positive",
+                    )
+                    _refresh()
+
+                simulation = reattach_orphan_evidence(apply=False)
+                for detail in simulation["details"][:5]:
+                    ui.label(
+                        f"item {detail['item_number']} · {detail['title'] or detail['table']} "
+                        f"→ fiche active"
+                    ).classes("se-diag-quiz-detail")
+                ui.button("Rattacher les preuves", icon="link", on_click=_repair).props(
+                    "flat dense size=sm color=primary"
+                )
+            else:
+                ui.label("Aucune preuve orpheline à rattacher.").classes(
+                    "se-diag-quiz-detail"
+                )
 
         async def _retry(failure_id: int) -> None:
             local_store.reset_uness_correction_failure_attempts(failure_id)

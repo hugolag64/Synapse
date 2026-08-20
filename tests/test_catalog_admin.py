@@ -55,3 +55,50 @@ def test_fiche_archive_is_reversible(admin_repository):
     assert admin_repository.list_fiches("item:1") == []
     admin_repository.restore_fiche("fiche:1", "Fiche restaurée")
     assert [fiche.id for fiche in admin_repository.list_fiches("item:1")] == ["fiche:1"]
+
+
+# ── N05 : collège fantôme ──────────────────────────────────────────────────────
+
+def test_list_colleges_with_items_hides_a_college_with_no_relation(admin_repository):
+    """Cardiologie porte fiche:1 ; Pédiatrie n'est reliée à aucun item ni
+    fiche — c'est exactement le cas de « Rhumatologie 🤝 » sur la base réelle."""
+    assert admin_repository.list_colleges_with_items() == ["Cardiologie"]
+
+
+def test_merge_colleges_moves_relations_and_deactivates_the_duplicate(admin_repository):
+    admin_repository.link_fiche_college(fiche_id="fiche:1", college_name="Pédiatrie", source="test")
+    admin_repository.add_official_college(item_id="item:1", college_name="Pédiatrie", source_acronym="test")
+
+    admin_repository.merge_colleges("college:cardio", "college:pedia", "Doublon confirmé")
+
+    assert admin_repository.get_fiche_colleges("fiche:1") == ["Cardiologie"]
+    assert admin_repository.list_colleges() == ["Cardiologie"]
+    assert "Pédiatrie" in admin_repository.list_college_aliases("college:cardio")
+    assert any(
+        entry["operation"] == "merge" and entry["entity_id"] == "college:pedia"
+        for entry in admin_repository.list_audit_log()
+    )
+
+
+def test_merge_colleges_requires_justification(admin_repository):
+    with pytest.raises(ValueError, match="justification"):
+        admin_repository.merge_colleges("college:cardio", "college:pedia", "")
+
+
+def test_list_empty_colleges_reports_the_ghost_college_and_its_id(admin_repository):
+    assert admin_repository.list_empty_colleges() == [("college:pedia", "Pédiatrie")]
+
+
+def test_get_college_id_resolves_by_name(admin_repository):
+    assert admin_repository.get_college_id("Cardiologie") == "college:cardio"
+    assert admin_repository.get_college_id("Inconnu") is None
+
+
+def test_merge_colleges_does_not_lose_a_relation_already_on_the_master(admin_repository):
+    """Une fiche déjà rattachée aux deux collèges ne doit pas faire échouer
+    la fusion (PRIMARY KEY sur fiche_id+college_id)."""
+    admin_repository.link_fiche_college(fiche_id="fiche:1", college_name="Pédiatrie", source="test")
+
+    admin_repository.merge_colleges("college:cardio", "college:pedia", "Doublon confirmé")
+
+    assert admin_repository.get_fiche_colleges("fiche:1") == ["Cardiologie"]

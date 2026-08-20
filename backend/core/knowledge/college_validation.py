@@ -60,13 +60,21 @@ def assess_college_validation(
     history: Mapping[str, Mapping[str, object]],
     manual_status: str = "non_etudie",
     history_by_course: Mapping[str, set[str]] | None = None,
+    consolidation_counts: Mapping[str, int] | None = None,
 ) -> CollegeValidationReport:
-    """Assess item evidence and the complete J3/J7/J14/J30 cycle.
+    """Assess item evidence and consolidation.
 
     The function is intentionally read-only. A first-reading date or an
     existing item state is treated as evidence that the item has been seen,
-    including items recovered from historical data. Review history must still
-    contain all four completed college reviews for every item.
+    including items recovered from historical data.
+
+    Consolidation was required as the *literal* J3/J7/J14/J30 spaced-repetition
+    cycle marked done in review history — reachable by 0/44 colleges on real
+    usage data, because annales and AI practice sessions never write to that
+    cycle even though they are real consolidation. `consolidation_counts`
+    (evidence per item, annales included — the same count `mastery.py` already
+    uses for its score) is an alternative path to the same requirement: as
+    many real touches as the cycle has steps (Q2).
     """
 
     course_list = list(courses)
@@ -95,11 +103,15 @@ def assess_college_validation(
                     str(_field(row, "review_type"))
                 )
 
+    consolidation_counts = consolidation_counts or {}
+    consolidation_required = len(REQUIRED_J_CYCLE)
+
     completed_j_cycle_ids: list[str] = []
     missing_j_cycle_ids: list[str] = []
     for course_id in course_ids:
         completed_types = history_by_course.get(course_id, set())
-        if set(REQUIRED_J_CYCLE).issubset(completed_types):
+        touches = int(consolidation_counts.get(course_id, 0) or 0)
+        if set(REQUIRED_J_CYCLE).issubset(completed_types) or touches >= consolidation_required:
             completed_j_cycle_ids.append(course_id)
         else:
             missing_j_cycle_ids.append(course_id)

@@ -25,7 +25,7 @@ def test_college_item_rows_represente_les_items_non_commences():
         [],
     )
 
-    assert rows[0]["level"] == "non_commence"
+    assert rows[0]["status_key"] == "à préparer"
     assert rows[0]["pct"] == 0
     assert rows[0]["urgent"] is False
 
@@ -60,14 +60,17 @@ def test_pilotage_summary_agrege_les_cours_et_les_retards():
     assert summary["no_pdf"] == 1
 
 
-def test_pilotage_summary_expose_les_niveaux_et_la_charge():
+def test_pilotage_summary_expose_la_charge_estimee():
+    """`_pilotage_summary` ne fabrique plus un statut à partir de `pct` quand
+    une ligne n'a pas de `status_counts` réel (N05/3.2) : le repli legacy a
+    été supprimé, il n'est plus atteignable une fois les collèges vides
+    masqués en amont. Seule la charge estimée reste vérifiée ici."""
     summary = _pilotage_summary([
         {"total": 2, "started": 2, "retard": 0, "fragile": 0, "no_pdf": False, "pct": 1.0},
         {"total": 1, "started": 0, "retard": 0, "fragile": 1, "no_pdf": False, "pct": 0.0},
     ])
 
-    assert summary["level_counts"]["solide"] == 1
-    assert summary["level_counts"]["non_commence"] == 1
+    assert summary["level_counts"] == {}
     assert summary["estimated_minutes"] == 20
 
 

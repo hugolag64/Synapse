@@ -184,6 +184,147 @@ class CatalogRepository:
             ).fetchall()
         return [str(row[0]) for row in rows]
 
+    def list_colleges_with_items(self) -> list[str]:
+        """Collèges actifs portant au moins un item, référentiel ou fiche.
+
+        Un import qui crée un collège sans jamais le relier à un item (un
+        acronyme mal résolu, par exemple) laisse une ligne fantôme dans
+        `catalog_colleges` : elle apparaît dans `list_colleges()` mais ne sert
+        à rien nulle part (N05). Cette méthode est la source unique des deux
+        écrans qui énumèrent les collèges (`/colleges`, sélecteur `/items`).
+        """
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT DISTINCT c.name
+                FROM catalog_colleges c
+                WHERE c.active = 1
+                  AND (
+                    EXISTS (
+                        SELECT 1 FROM catalog_official_item_colleges oi
+                        JOIN catalog_items i ON i.id = oi.item_id
+                        WHERE oi.college_id = c.id AND i.archived_at IS NULL
+                    )
+                    OR EXISTS (
+                        SELECT 1 FROM catalog_fiche_colleges fc
+                        JOIN catalog_fiches f ON f.id = fc.fiche_id
+                        JOIN catalog_items i ON i.id = f.item_id
+                        WHERE fc.college_id = c.id
+                          AND f.archived_at IS NULL AND i.archived_at IS NULL
+                    )
+                  )
+                ORDER BY c.sort_order, c.name
+                """
+            ).fetchall()
+        return [str(row[0]) for row in rows]
+
+    def list_empty_colleges(self) -> list[tuple[str, str]]:
+        """(id, name) des collèges actifs sans aucune relation — candidats à
+        une fusion (N05)."""
+        with_items = set(self.list_colleges_with_items())
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT id, name FROM catalog_colleges WHERE active = 1 ORDER BY name"
+            ).fetchall()
+        return [(str(row["id"]), str(row["name"])) for row in rows if row["name"] not in with_items]
+
+    def get_college_id(self, name: str) -> str | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT id FROM catalog_colleges WHERE name = ?", (name,)
+            ).fetchone()
+        return str(row[0]) if row else None
+
+    def merge_colleges(self, master_id: str, duplicate_id: str, justification: str) -> None:
+        """Fusionne un collège en double dans son collège maître.
+
+        Repointe toutes les relations (référentiel, fiches, ressources) et
+        les alias du doublon vers le maître, puis désactive le doublon — il
+        reste dans la table pour l'historique, mais `list_colleges()` et
+        `list_colleges_with_items()` ne le renvoient plus.
+        """
+        if not str(justification or "").strip():
+            raise ValueError("justification obligatoire")
+        if master_id == duplicate_id:
+            raise ValueError("fusion impossible avec le même collège")
+        with self._connect() as connection:
+            master = connection.execute(
+                "SELECT id FROM catalog_colleges WHERE id = ?", (master_id,)
+            ).fetchone()
+            duplicate = connection.execute(
+                "SELECT id, name, active FROM catalog_colleges WHERE id = ?", (duplicate_id,)
+            ).fetchone()
+            if not master or not duplicate:
+                raise ValueError("collège introuvable")
+
+            relation_counts = {}
+
+            official = connection.execute(
+                "SELECT item_id FROM catalog_official_item_colleges WHERE college_id = ?",
+                (duplicate_id,),
+            ).fetchall()
+            relation_counts["catalog_official_item_colleges"] = len(official)
+            for row in official:
+                connection.execute(
+                    "INSERT OR IGNORE INTO catalog_official_item_colleges"
+                    "(item_id, college_id, source_acronym) VALUES (?, ?, 'college_merge')",
+                    (row["item_id"], master_id),
+                )
+            connection.execute(
+                "DELETE FROM catalog_official_item_colleges WHERE college_id = ?", (duplicate_id,)
+            )
+
+            fiches = connection.execute(
+                "SELECT fiche_id FROM catalog_fiche_colleges WHERE college_id = ?",
+                (duplicate_id,),
+            ).fetchall()
+            relation_counts["catalog_fiche_colleges"] = len(fiches)
+            for row in fiches:
+                connection.execute(
+                    "INSERT OR IGNORE INTO catalog_fiche_colleges"
+                    "(fiche_id, college_id, source) VALUES (?, ?, 'college_merge')",
+                    (row["fiche_id"], master_id),
+                )
+            connection.execute(
+                "DELETE FROM catalog_fiche_colleges WHERE college_id = ?", (duplicate_id,)
+            )
+
+            resources = connection.execute(
+                "SELECT resource_id FROM catalog_resource_colleges WHERE college_id = ?",
+                (duplicate_id,),
+            ).fetchall()
+            relation_counts["catalog_resource_colleges"] = len(resources)
+            for row in resources:
+                connection.execute(
+                    "INSERT OR IGNORE INTO catalog_resource_colleges"
+                    "(resource_id, college_id) VALUES (?, ?)",
+                    (row["resource_id"], master_id),
+                )
+            connection.execute(
+                "DELETE FROM catalog_resource_colleges WHERE college_id = ?", (duplicate_id,)
+            )
+
+            connection.execute(
+                "UPDATE catalog_college_aliases SET college_id = ? WHERE college_id = ?",
+                (master_id, duplicate_id),
+            )
+            # Le nom du doublon reste un alias recherchable vers le maître,
+            # même s'il ne portait encore aucun alias explicite.
+            connection.execute(
+                "INSERT OR IGNORE INTO catalog_college_aliases(college_id, alias, source) "
+                "VALUES (?, ?, 'college_merge')",
+                (master_id, duplicate["name"]),
+            )
+            connection.execute(
+                "UPDATE catalog_colleges SET active = 0, updated_at = ? WHERE id = ?",
+                (_now(), duplicate_id),
+            )
+            self._audit(
+                connection, "college", duplicate_id, "merge",
+                {"active": duplicate["active"], "relations": relation_counts},
+                {"master_id": master_id, "active": 0}, justification,
+            )
+
     def is_populated(self) -> bool:
         return self.count_items() > 0
 
@@ -206,6 +347,33 @@ class CatalogRepository:
                 (item_id, item_id),
             ).fetchall()
         return [str(row[0]) for row in rows]
+
+    def list_colleges_by_item(self) -> dict[str, list[str]]:
+        """Collèges de chaque item actif, en une seule requête.
+
+        `build_item_rows` appelait `list_colleges_for_item` une fois par item
+        (367 requêtes, chacune ouvrant sa propre connexion SQLite) — le même
+        calcul que `list_colleges_for_item`, mais agrégé en amont (N19).
+        """
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT oi.item_id AS item_id, c.name AS name
+                FROM catalog_official_item_colleges oi
+                JOIN catalog_colleges c ON c.id = oi.college_id
+                UNION
+                SELECT f.item_id AS item_id, c.name AS name
+                FROM catalog_fiche_colleges fc
+                JOIN catalog_colleges c ON c.id = fc.college_id
+                JOIN catalog_fiches f ON f.id = fc.fiche_id
+                WHERE f.archived_at IS NULL
+                ORDER BY item_id, name
+                """
+            ).fetchall()
+        result: dict[str, list[str]] = {}
+        for row in rows:
+            result.setdefault(str(row["item_id"]), []).append(str(row["name"]))
+        return result
 
     def list_item_ids_for_college(self, college_name: str) -> list[str]:
         """Return unique active item ids related to a college."""

@@ -15,9 +15,11 @@ def test_snapshot_exposes_the_number_of_real_evidences():
 
 
 def test_mastery_computation_fills_the_evidence_count():
+    """`evidence_count` doit être servi par une somme incluant les annales
+    (N04) — plus seulement `seed.n_evidence`, qui les ignore."""
     source = Path("backend/core/reviews/mastery.py").read_text(encoding="utf-8")
 
-    assert '"evidence_count":   int(seed.n_evidence or 0),' in source
+    assert '"evidence_count":   evidence_total,' in source
 
 
 def test_indicator_marks_a_score_without_any_evidence():

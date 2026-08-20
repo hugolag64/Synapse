@@ -264,6 +264,7 @@ def CourseCard(
             _mastery_labels = {
                 "gray":   "À préparer",
                 "blue":   "À lire",
+                "violet": "Non évalué",
                 "teal":   "En construction",
                 "cyan":   "À consolider",
                 "indigo": "À entraîner",

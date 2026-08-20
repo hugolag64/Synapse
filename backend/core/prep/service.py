@@ -165,6 +165,37 @@ def sync_fac_events(
     return report
 
 
+def anchor_first_read(
+    course_id: str,
+    first_read_date: dt.date | None = None,
+    context: str = "college",
+) -> Any:
+    """Ancre le cycle J1→J30 d'un item depuis une vue, sans passer par Notion.
+
+    Le moteur de révisions n'entre en jeu que si l'item porte une date de
+    référence. Elle n'existait que par deux chemins : l'écriture Notion
+    « Démarrer le suivi » (qui exige un PDF lié, absent sur 256 items, et
+    dépend d'une resynchronisation) et le calendrier FAC. Résultat mesuré :
+    1 seule fiche sur 582 franchissait ce filtre, donc 0 révision planifiée.
+
+    Cette fonction est le chemin local : elle pose les cinq échéances et
+    invalide le cache du moteur pour que la vue suivante les voie.
+    """
+    if not str(course_id or "").strip():
+        raise ValueError("course_id obligatoire")
+    day = first_read_date or dt.date.today()
+    schedule = save_learning_schedule(str(course_id), day, context=context)
+    try:
+        from backend.core.knowledge.item_progress import invalidate_schedule_cache
+        from backend.core.reviews.service import review_service
+
+        invalidate_schedule_cache()
+        review_service.invalidate_cache()
+    except Exception as exc:  # pragma: no cover - cache best effort
+        logger.warning(f"cache de révisions non invalidé pour {course_id}: {exc}")
+    return schedule
+
+
 def validate_prep_task(task_id: int) -> Any:
     """Valide manuellement une préparation et ancre le cycle si nécessaire."""
     task = get_prep_task(task_id)
@@ -174,5 +205,5 @@ def validate_prep_task(task_id: int) -> Any:
         raise ValueError("Une tâche annulée ne peut pas être validée")
 
     if task.task_type == "first_read":
-        save_learning_schedule(task.course_id, task.lecture_date, context="college")
+        anchor_first_read(task.course_id, task.lecture_date, context="college")
     return update_prep_task_status(task.id, "done")

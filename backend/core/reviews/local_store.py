@@ -6827,6 +6827,16 @@ def list_conferences(*, match_status: str = "") -> list[dict]:
     return [dict(row) for row in rows]
 
 
+def list_uness_annales_by_date(date: str) -> list[dict]:
+    """Dossiers UNESS (uness_annales) collectés un jour calendaire donné (YYYY-MM-DD)."""
+    with _conn() as con:
+        rows = con.execute(
+            "SELECT * FROM uness_annales WHERE DATE(collected_at) = ? ORDER BY collected_at",
+            (date,),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
 def set_conference_match(conference_id: int, *, match_status: str, college_name: str | None) -> dict:
     if match_status not in _CONFERENCE_MATCH_STATUSES:
         raise ValueError(f"Statut de correspondance invalide: {match_status}")
@@ -6868,6 +6878,22 @@ def set_conference_google_event_ids(
     params.append(int(conference_id))
     with _conn() as con:
         con.execute(f"UPDATE conferences SET {', '.join(updates)} WHERE id = ?", params)
+        row = con.execute(
+            "SELECT * FROM conferences WHERE id = ?", (int(conference_id),)
+        ).fetchone()
+    if row is None:
+        raise ValueError(f"Conférence introuvable: {conference_id}")
+    return dict(row)
+
+
+def set_conference_uness_session(conference_id: int, annale_id: int) -> dict:
+    """Relie une conférence au dossier UNESS (uness_annales.id) réellement réalisé."""
+    now = _now()
+    with _conn() as con:
+        con.execute(
+            "UPDATE conferences SET uness_session_id = ?, updated_at = ? WHERE id = ?",
+            (int(annale_id), now, int(conference_id)),
+        )
         row = con.execute(
             "SELECT * FROM conferences WHERE id = ?", (int(conference_id),)
         ).fetchone()

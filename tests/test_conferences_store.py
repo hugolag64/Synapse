@@ -107,3 +107,65 @@ def test_upsert_conference_rejects_invalid_match_status(isolated_local_store):
             date=datetime.date(2026, 9, 1), theme_raw="HGE", match_status="bogus",
             college_name=None, source_file="cal.xlsx",
         )
+
+
+def test_list_uness_annales_by_date_matches_calendar_day(isolated_local_store):
+    store = isolated_local_store
+    annale_id = store.create_uness_annale(
+        source_url="https://uness.example/dossier-1",
+        collected_at="2026-09-01T18:45:00+00:00",
+        faculte="Fac", niveau="DFASM1", annee=2026,
+        matiere="HGE", titre="Dossier HGE", type_annale="DP",
+    )
+
+    same_day = store.list_uness_annales_by_date("2026-09-01")
+    other_day = store.list_uness_annales_by_date("2026-09-02")
+
+    assert [row["id"] for row in same_day] == [annale_id]
+    assert other_day == []
+
+
+def test_list_uness_annales_by_date_orders_by_collection_time(isolated_local_store):
+    store = isolated_local_store
+    later_id = store.create_uness_annale(
+        source_url="https://uness.example/dossier-later",
+        collected_at="2026-09-01T20:00:00+00:00",
+        faculte="Fac", niveau="DFASM1", annee=2026,
+        matiere="HGE", titre="Dossier tardif", type_annale="DP",
+    )
+    earlier_id = store.create_uness_annale(
+        source_url="https://uness.example/dossier-earlier",
+        collected_at="2026-09-01T17:45:00+00:00",
+        faculte="Fac", niveau="DFASM1", annee=2026,
+        matiere="Cardio", titre="Dossier tôt", type_annale="DP",
+    )
+
+    rows = store.list_uness_annales_by_date("2026-09-01")
+
+    assert [row["id"] for row in rows] == [earlier_id, later_id]
+
+
+def test_set_conference_uness_session_writes_the_link(isolated_local_store):
+    store = isolated_local_store
+    _, conf = store.upsert_conference(
+        date=datetime.date(2026, 9, 1), theme_raw="HGE", match_status="matched",
+        college_name="Hépato-Gastro-entérologie 🧻", source_file="cal.xlsx",
+    )
+    annale_id = store.create_uness_annale(
+        source_url="https://uness.example/dossier-1",
+        collected_at="2026-09-01T18:45:00+00:00",
+        faculte="Fac", niveau="DFASM1", annee=2026,
+        matiere="HGE", titre="Dossier HGE", type_annale="DP",
+    )
+
+    updated = store.set_conference_uness_session(conf["id"], annale_id)
+
+    assert updated["uness_session_id"] == annale_id
+    reloaded = store.get_conference(conf["id"])
+    assert reloaded["uness_session_id"] == annale_id
+
+
+def test_set_conference_uness_session_raises_on_unknown_conference(isolated_local_store):
+    store = isolated_local_store
+    with pytest.raises(ValueError):
+        store.set_conference_uness_session(9999, 1)

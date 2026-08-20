@@ -42,3 +42,19 @@ def test_missing_state_selection_becomes_empty_after_second_plan():
     states = {course_id: SimpleNamespace(declared_level="correct") for course_id in first}
     second = reprise.get_missing_state_course_ids(courses, states, college_statuses=statuses)
     assert second == []
+
+
+def test_anchor_jitter_days_is_deterministic_for_the_same_course():
+    assert reprise.anchor_jitter_days("c1") == reprise.anchor_jitter_days("c1")
+
+
+def test_anchor_jitter_days_stays_within_the_requested_span():
+    for course_id in ("c1", "c2", "course-with-a-long-uness-style-id-42"):
+        jitter = reprise.anchor_jitter_days(course_id, span_days=14)
+        assert 0 <= jitter < 14
+
+
+def test_anchor_jitter_days_spreads_different_courses_across_the_span():
+    course_ids = [f"course-{n}" for n in range(30)]
+    jitters = {reprise.anchor_jitter_days(cid, span_days=14) for cid in course_ids}
+    assert len(jitters) > 1

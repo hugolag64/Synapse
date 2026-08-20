@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -35,6 +36,19 @@ TARGET_COLLEGES = frozenset({
 START_DATE = datetime.date(2026, 8, 20)
 DEFAULT_LEVEL = "correct"
 SOURCE = "reprise_historique"
+
+
+def anchor_jitter_days(course_id: str, span_days: int = 14) -> int:
+    """Décalage déterministe (0..span_days-1) pour étaler les ancrages en lot.
+
+    Sans ce bruit, chaque cours bootstrapé le même jour par ce script obtient
+    la même due_date (`START_DATE`), créant un pic de charge au lieu d'un
+    étalement — cf. audit du 20 août 2026. Basé sur un hash stable (pas
+    `hash()`, randomisé par process) pour rester reproductible d'un run à
+    l'autre.
+    """
+    digest = hashlib.sha256(course_id.encode("utf-8")).digest()
+    return int.from_bytes(digest[:4], "big") % span_days
 
 
 def get_target_courses(courses: Iterable) -> list:
@@ -154,7 +168,11 @@ def apply_reprise(
         initial_interval = INITIAL_INTERVAL_BY_LEVEL.get(
             mastery.level, DEFAULT_INITIAL_INTERVAL,
         )
-        anchor = START_DATE - datetime.timedelta(days=initial_interval)
+        # + jitter : sans lui, tous les cours bootstrapés dans ce même run
+        # tombent sur due_date == START_DATE (anchor + initial_interval),
+        # créant un pic au lieu d'un étalement sur ~2 semaines.
+        jitter = anchor_jitter_days(course.id)
+        anchor = START_DATE - datetime.timedelta(days=initial_interval) + datetime.timedelta(days=jitter)
         local_store.bootstrap_consolidation(
             course.id,
             "college",

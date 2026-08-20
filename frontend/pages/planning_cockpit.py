@@ -703,6 +703,11 @@ async def render_planning_cockpit(focus: str | None = None) -> None:
         manual_entries = get_manual_planning_entries(week[0], week[-1])
         for entry in manual_entries:
             _manual_entries_by_day.setdefault(entry["entry_date"], []).append(entry)
+        from backend.core.prep.store import list_prep_tasks
+        from itertools import groupby
+        from backend.core.planning.service import planning_service as _ps
+
+        durations = planning_service.get_durations()
         plans = []
         for d in week:
             urgent, due = tasks_for_day(all_tasks, d, today)
@@ -710,16 +715,25 @@ async def render_planning_cockpit(focus: str | None = None) -> None:
                 task for task in consolidation_tasks
                 if (d == today and task.due_date <= today) or task.due_date == d
             ]
-            due = due + consolidation_for_day
             lacunes_day = active_lacunes if d == today else []
             target_minutes = target_for_day(d, data_store.preferences)
             if target_minutes == 0 and is_vacation_day(d, vacation_for_preferences(data_store.preferences)):
-                urgent, due, lacunes_day = [], [], []
+                urgent, due, lacunes_day, consolidation_for_day = [], [], [], []
+
+            prep_tasks_today = sorted(list_prep_tasks(day=d, statuses=("todo",)), key=lambda t: t.course_id)
+            prep_slots = [
+                _ps._slot_from_prep_tasks(list(group), durations)
+                for _, group in groupby(prep_tasks_today, key=lambda t: t.course_id)
+            ]
+
             plan = planning_service.plan_day(
                 urgent,
                 due,
                 lacunes_day,
                 target_minutes=target_minutes,
+                prep_slots=prep_slots,
+                consolidation_tasks=consolidation_for_day,
+                consolidation_today=d,
             )
             plan.date = d
             plans.append(plan)

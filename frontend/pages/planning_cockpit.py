@@ -341,6 +341,42 @@ async def render_planning_cockpit(focus: str | None = None) -> None:
                     ui.button("Enregistrer", on_click=_save_capacity).props("unelevated color=indigo no-caps")
         dialog.open()
 
+    def _open_day_capacity_dialog(day: datetime.date) -> None:
+        targets = dict(data_store.preferences.get("planning_targets", {}))
+        current = targets.get(day.isoformat(), {})
+        current_hours = (
+            current["value"] // 60 if current.get("mode") == "minutes"
+            else capacity_from_preferences(data_store.preferences) // 60
+        )
+        with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm p-4 gap-0"):
+            ui.label(f"Capacité du {_month_day(day)}").classes("text-base font-semibold")
+            ui.label("Remplace la capacité par défaut pour ce jour seulement.").classes(
+                "text-xs text-slate-500 mt-1"
+            )
+            hours = ui.toggle(
+                {3: "3 h", 6: "6 h", 9: "9 h", 12: "12 h"}, value=current_hours
+            ).props("dense unelevated no-caps").classes("w-full mt-3")
+
+            with ui.row().classes("w-full justify-end gap-2 mt-5"):
+                def _reset() -> None:
+                    targets.pop(day.isoformat(), None)
+                    data_store.set_preference("planning_targets", targets)
+                    dialog.close()
+                    asyncio.create_task(_load_and_render())
+                    ui.notify("Capacité par défaut restaurée", type="positive")
+
+                ui.button("Réinitialiser", on_click=_reset).props("flat no-caps color=slate")
+
+                def _save() -> None:
+                    targets[day.isoformat()] = {"mode": "minutes", "value": capacity_hours_to_minutes(hours.value)}
+                    data_store.set_preference("planning_targets", targets)
+                    dialog.close()
+                    asyncio.create_task(_load_and_render())
+                    ui.notify("Capacité du jour enregistrée", type="positive")
+
+                ui.button("Enregistrer", on_click=_save).props("unelevated color=indigo no-caps")
+        dialog.open()
+
     def _draw_topbar(week: list[datetime.date], total_min: int | None, free_days: int | None) -> None:
         topbar.clear()
         with topbar:
@@ -561,6 +597,11 @@ async def render_planning_cockpit(focus: str | None = None) -> None:
                         "Créer un événement Google Calendar",
                         icon="event",
                         on_click=lambda: (_close_and_open(dialog, _open_calendar_event_form, day)),
+                    ).props("outline no-caps unelevated").classes("w-full justify-start")
+                    ui.button(
+                        "Ajuster la capacité de ce jour",
+                        icon="tune",
+                        on_click=lambda: (_close_and_open(dialog, _open_day_capacity_dialog, day)),
                     ).props("outline no-caps unelevated").classes("w-full justify-start")
                 ui.button("Annuler", on_click=dialog.close).props("flat no-caps color=slate").classes("mt-3")
         dialog.open()

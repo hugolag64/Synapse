@@ -1459,6 +1459,39 @@ def get_sessions_by_course() -> dict[str, list]:
     return result
 
 
+def get_study_sessions_since(start_date: datetime.date) -> list:
+    """Séances d'étude à partir de `start_date` incluse, les plus récentes d'abord.
+
+    Les durées de travail ne vivent que là : review_history n'a pas de colonne
+    duration_minutes.
+    """
+    with _conn() as con:
+        return con.execute(
+            "SELECT * FROM study_sessions WHERE substr(session_date, 1, 10) >= ? "
+            "ORDER BY session_date DESC",
+            (start_date.isoformat(),),
+        ).fetchall()
+
+
+def count_consolidation_dismissed_today(context: str, today: datetime.date) -> int:
+    """Tâches de consolidation reportées ou ignorées aujourd'hui, dans ce contexte.
+
+    Sert à rétrécir le plafond quotidien de select_daily : reporter une tâche
+    signale une charge trop lourde, pas une place à combler par une autre —
+    contrairement à une tâche terminée (`done`), qui fait légitimement place
+    à la suivante.
+    """
+    with _conn() as con:
+        row = con.execute(
+            "SELECT COUNT(*) AS n FROM review_history "
+            "WHERE review_type = 'consolidation' AND context = ? "
+            "AND status IN ('postponed', 'ignored') "
+            "AND substr(updated_at, 1, 10) = ?",
+            (context, today.isoformat()),
+        ).fetchone()
+    return int(row["n"] or 0)
+
+
 def get_postpone_counts() -> dict[str, int]:
     """Retourne {course_id: total_postponements} depuis review_history."""
     with _conn() as con:
@@ -3886,7 +3919,7 @@ def ensure_daily_flash_zero(entry_date: datetime.date, *, timezone_name: str) ->
     return create_manual_planning_entry(
         entry_date=entry_date,
         course_id=course_id,
-        course_title="Flash-Zero du matin",
+        course_title="Pièges éliminatoires",
         item_number="",
         activity_type="flash_zero",
         duration_minutes=5,

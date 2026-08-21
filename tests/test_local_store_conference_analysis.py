@@ -75,6 +75,28 @@ def test_list_uness_annale_questions_for_analysis(isolated_db):
     assert result == [{"question_id": 1, "prompt": "Enonce", "answer": "Reponse", "official_item": "", "official_rank": ""}]
 
 
+def test_retry_conference_analysis_job_creates_new_row_without_mutating_old(isolated_db):
+    _, conf = _make_conference(isolated_db)
+    now = isolated_db._now()
+    with isolated_db._conn() as con:
+        con.execute(
+            "INSERT INTO uness_annales (id, source_url, collected_at, faculte, niveau, titre, type_annale, created_at) "
+            "VALUES (55, 'https://uness.example/55', ?, 'F', 'DFASM1', 'Titre', 'annale', ?)", (now, now),
+        )
+    job = isolated_db.create_conference_analysis_job(
+        conference_id=conf["id"], uness_session_id=55, model_id="gemini-flash",
+        idempotency_key="hash-x:key", prompt_version="v1",
+    )
+    isolated_db.fail_conference_analysis_job(job["id"], error="quota")
+
+    retried = isolated_db.retry_conference_analysis_job(job["id"])
+
+    assert retried["id"] != job["id"]
+    assert retried["status"] == "pending"
+    old = isolated_db.get_conference_analysis_job(job["id"])
+    assert old["status"] == "failed"  # jamais muté
+
+
 def test_list_linked_conferences_with_analysis_status(isolated_db):
     _, conf = _make_conference(isolated_db)
     isolated_db.set_conference_uness_session(conf["id"], 77)

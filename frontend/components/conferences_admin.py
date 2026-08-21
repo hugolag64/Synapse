@@ -5,11 +5,35 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
+from loguru import logger
 from nicegui import ui
 
-from backend.core.conferences import service
+from backend.core.conferences import audio_service, service
 from backend.core.qcm.items_mapping import all_college_names
 from backend.core.reviews import local_store
+
+_STATUS_LABELS = {
+    None: "Pas d'analyse",
+    "pending": "En attente",
+    "submitted": "Soumis",
+    "running": "En cours",
+    "succeeded": "Terminé",
+    "partial": "Partiel",
+    "needs_admin": "À valider",
+    "failed": "Échec",
+}
+
+
+def _handle_audio_upload(*, conference_id: int, event) -> None:
+    try:
+        content = event.content.read()
+        audio_service.save_conference_audio(conference_id, filename=event.name, content=content)
+        ui.notify("Audio enregistré, l'analyse démarrera automatiquement.", type="positive")
+    except ValueError as exc:
+        ui.notify(str(exc), type="negative")
+    except Exception as exc:  # noqa: BLE001 - retour utilisateur, ne doit jamais planter la page
+        logger.error(f"Upload audio conférence échoué : {exc}")
+        ui.notify("Erreur lors de l'enregistrement de l'audio.", type="negative")
 
 
 def render_conferences_admin(container=None) -> None:
@@ -33,6 +57,7 @@ def render_conferences_admin(container=None) -> None:
             body.clear()
             pending = local_store.list_conferences(match_status="needs_validation")
             pending_links = service.list_pending_uness_links()
+            linked = local_store.list_linked_conferences_with_analysis_status()
             with body:
                 if not pending:
                     ui.label("Aucune conférence à valider.").classes("text-sm text-slate-500")
@@ -42,6 +67,27 @@ def render_conferences_admin(container=None) -> None:
                     ui.label("Dossier UNESS à confirmer").classes("se-label mt-4")
                     for entry in pending_links:
                         _render_pending_uness_link(entry)
+                if linked:
+                    ui.label("Analyse audio des dossiers UNESS").classes("se-label mt-4")
+                    for row in linked:
+                        _render_linked_conference(row)
+
+        def _render_linked_conference(row: dict) -> None:
+            with ui.row().classes("w-full items-center gap-2"):
+                ui.label(f"{row['date']} — {row['theme_raw']}").classes("text-sm flex-1")
+                ui.badge(_STATUS_LABELS.get(row["analysis_status"], row["analysis_status"])).classes("text-xs")
+                if not row["audio_path"]:
+                    ui.upload(
+                        on_upload=lambda e, conf_id=row["id"]: _handle_audio_upload(conference_id=conf_id, event=e),
+                        max_files=1, auto_upload=True,
+                    ).props("accept='audio/*' flat bordered dense").classes("w-56")
+                if row["analysis_status"] in {"failed", "needs_admin"}:
+                    def _retry(job_id=row["analysis_job_id"]) -> None:
+                        local_store.retry_conference_analysis_job(job_id)
+                        ui.notify("Nouvelle analyse mise en file.", type="positive")
+                        _render_body()
+
+                    ui.button("Relancer l'analyse", on_click=_retry).props("outline color=orange size=sm")
 
         def _render_pending(conf: dict) -> None:
             with ui.row().classes("w-full items-center gap-2"):

@@ -7050,6 +7050,20 @@ def get_conference_analysis_job(job_id: int) -> dict | None:
     return dict(row) if row is not None else None
 
 
+def retry_conference_analysis_job(job_id: int) -> dict:
+    """Relance un job failed/needs_admin : crée une nouvelle ligne, ne mute jamais l'ancienne."""
+    old = get_conference_analysis_job(job_id)
+    if old is None:
+        raise ValueError(f"Job d'analyse conférence introuvable: {job_id}")
+    if old["status"] not in {"failed", "needs_admin"}:
+        raise ValueError("Seul un job en échec ou à valider peut être relancé")
+    new_key = f"{old['idempotency_key']}:retry-{_now()}"
+    return create_conference_analysis_job(
+        conference_id=old["conference_id"], uness_session_id=old["uness_session_id"],
+        model_id=old["model_id"], idempotency_key=new_key, prompt_version=old["prompt_version"],
+    )
+
+
 def claim_pending_conference_analysis_jobs(
     *, limit: int = 5, worker_id: str = "conference-analysis-worker", lease_seconds: int = 900,
 ) -> list[dict]:

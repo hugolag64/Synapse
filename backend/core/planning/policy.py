@@ -81,12 +81,15 @@ def effective_capacity_minutes(base_minutes: int, vacation: object) -> int:
 
 
 def capacity_from_preferences(preferences: dict, day_iso: str | None = None) -> int:
-    raw = preferences.get("planning_capacity_minutes")
-    if raw is None and day_iso:
+    if day_iso:
         targets = preferences.get("planning_targets", {})
         target = targets.get(day_iso, {}) if isinstance(targets, dict) else {}
         if isinstance(target, dict) and target.get("mode") == "minutes":
-            raw = target.get("value")
+            try:
+                return max(0, min(MAX_CAPACITY_HOURS * 60, int(target["value"])))
+            except (TypeError, ValueError):
+                pass
+    raw = preferences.get("planning_capacity_minutes")
     try:
         minutes = int(raw) if raw is not None else DEFAULT_CAPACITY_HOURS * 60
     except (TypeError, ValueError):

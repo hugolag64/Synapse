@@ -58,6 +58,39 @@ def test_invalid_or_missing_capacity_defaults_to_six_hours():
     assert capacity_from_preferences({"planning_capacity_minutes": 60}, "2026-07-28") == 180
 
 
+def test_day_override_takes_precedence_over_the_global_default():
+    from backend.core.planning.policy import capacity_from_preferences
+
+    prefs = {
+        "planning_capacity_minutes": 480,
+        "planning_targets": {"2026-08-21": {"mode": "minutes", "value": 90}},
+    }
+    assert capacity_from_preferences(prefs, "2026-08-21") == 90
+
+
+def test_day_override_can_go_down_to_zero():
+    from backend.core.planning.policy import capacity_from_preferences
+
+    prefs = {
+        "planning_capacity_minutes": 480,
+        "planning_targets": {"2026-08-21": {"mode": "minutes", "value": 0}},
+    }
+    assert capacity_from_preferences(prefs, "2026-08-21") == 0
+
+
+def test_day_override_is_still_capped_at_twelve_hours():
+    from backend.core.planning.policy import capacity_from_preferences
+
+    prefs = {"planning_targets": {"2026-08-21": {"mode": "minutes", "value": 900}}}
+    assert capacity_from_preferences(prefs, "2026-08-21") == 720
+
+
+def test_global_default_still_floors_at_three_hours_when_no_day_override():
+    from backend.core.planning.policy import capacity_from_preferences
+
+    assert capacity_from_preferences({"planning_capacity_minutes": 10}, "2026-08-21") == 180
+
+
 def test_shortcut_payload_for_one_three_and_five_days():
     from backend.core.planning.policy import vacation_payload
 

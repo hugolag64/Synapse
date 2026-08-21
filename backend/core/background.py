@@ -150,6 +150,7 @@ async def run_background_tasks():
             # ── 8. Retry des corrections UNESS en échec (borné, silencieux) ───────
             await _retry_pending_uness_corrections()
             await _run_pending_uness_rank_jobs()
+            await _run_pending_conference_analysis()
             _refresh_edn_recommendations()
 
             # ── 9. Retry des écritures Notion persistées après échec ───────────────
@@ -454,6 +455,22 @@ async def _run_pending_uness_rank_jobs() -> None:
             )
     except Exception as exc:
         logger.warning(f"Inférence de rangs UNESS ignorée : {exc}")
+
+
+async def _run_pending_conference_analysis() -> None:
+    """Run the conference audio-analysis Batch cycle without blocking the sync loop."""
+    try:
+        from backend.core.conferences.analysis_job_runner import run_conference_analysis_cycle
+
+        result = await asyncio.to_thread(run_conference_analysis_cycle)
+        if result.get("created") or result.get("submit_submitted") or result.get("poll_succeeded"):
+            logger.info(
+                "Analyse conférence : {} créées, {} soumises, {} réussies, {} en échec",
+                result.get("created", 0), result.get("submit_submitted", 0),
+                result.get("poll_succeeded", 0), result.get("submit_failed", 0) + result.get("poll_failed", 0),
+            )
+    except Exception as exc:
+        logger.warning(f"Analyse conférence ignorée : {exc}")
 
 
 async def _retry_pending_uness_corrections() -> None:

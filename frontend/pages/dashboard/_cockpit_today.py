@@ -40,12 +40,14 @@ from frontend.components.responsive_drawer import (
     responsive_drawer, close_drawer, open_drawer, ensure_styles as _drawer_styles,
 )
 from frontend.pages.dashboard._dialogs import open_session_feedback_dialog
-from frontend.components.flash_zero_cockpit import render_flash_zero_card, open_flash_zero_quiz
+from frontend.components.flash_zero_cockpit import open_flash_zero_quiz
+from frontend.components.daily_training import render_daily_training_block
 from frontend.components.course_prep_task_row import course_prep_task_row
 from frontend.components.edn_insights_panel import render_edn_insights_panel
 from backend.config.settings import business_today
 from backend.core.edn.trajectory import build_progress_snapshot, project_to_exam, rank_gain_potential
 from backend.core.practice.daily_queue import build_daily_question_queue, create_daily_queue_session
+from backend.core.reviews.consolidation import postpone_days_for_task
 from backend.core.reviews.reentry import filter_post_resume_signals, get_study_resume_date
 from backend.core.planning.sprint_countdown import SprintCountdownService
 
@@ -338,7 +340,7 @@ async def render_today_cockpit() -> None:
             ui.notify("Aucune question existante disponible aujourd'hui.", type="info")
             return
         from frontend.components.ai_practice_panel import _open_answer_dialog
-        ui.notify("Les 5 questions du jour sont prêtes.", type="positive")
+        ui.notify("Tes questions en attente sont prêtes.", type="positive")
         _open_answer_dialog(session_id, _full_rebuild)
 
     # ── Callbacks validation (copie fidèle de __init__.py) ────────────────────
@@ -382,7 +384,11 @@ async def render_today_cockpit() -> None:
         card.set_visibility(False)
         open_session_feedback_dialog(task, card, validate_fn=_on_done)
 
-    async def _on_postpone(task, card=None, days: int = 1) -> None:
+    async def _on_postpone(task, card=None, days: int | None = 1) -> None:
+        # days=None : laisser l'algorithme décider (items à consolider).
+        algorithmic = days is None
+        if algorithmic:
+            days = postpone_days_for_task(task)
         new_date = next_postpone_date(task.due_date, datetime.date.today(), days)
         local_store.postpone(
             task_id=task.id, course_id=task.course_id, context=task.context,
@@ -393,7 +399,14 @@ async def render_today_cockpit() -> None:
         if sel["task"] and sel["task"].id == task.id:
             sel["task"] = None
         _full_rebuild()
-        ui.notify(f"Reporté au {new_date.strftime('%d/%m')} : {task.course_title}", type="info")
+        if algorithmic:
+            ui.notify(
+                f"Reporté au {new_date.strftime('%d/%m')} (+{days} j · maîtrise "
+                f"{task.mastery_level or 'inconnue'}) : {task.course_title}",
+                type="info",
+            )
+        else:
+            ui.notify(f"Reporté au {new_date.strftime('%d/%m')} : {task.course_title}", type="info")
 
     async def _on_ignore(task, card=None) -> None:
         local_store.ignore(
@@ -534,21 +547,29 @@ async def render_today_cockpit() -> None:
                     on_hide=_hide_sprint,
                 )
 
-            daily_queue = _data.get("daily_queue") or []
-            if daily_queue:
-                with ui.card().classes("w-full p-4 mb-4 border border-indigo-200 bg-indigo-50/40"):
-                    with ui.row().classes("w-full items-center justify-between gap-3"):
-                        with ui.column().classes("gap-1"):
-                            ui.label("Les 5 du jour").classes("text-base font-semibold text-indigo-900")
-                            items = ", ".join(
-                                f"ITEM {row['item_number']}" for row in daily_queue
-                            )
-                            ui.label(
-                                f"Questions déjà disponibles · {items or 'items non classés'}"
-                            ).classes("text-xs text-indigo-700")
-                        ui.button(
-                            "Ouvrir la file", icon="school", on_click=_open_daily_queue
-                        ).props("unelevated color=indigo")
+            def _finish_flash_zero() -> None:
+                timezone_name = data_store.preferences.get("timezone", "Europe/Paris")
+                local_store.complete_daily_flash_zero(business_today(), timezone_name=timezone_name)
+                _full_rebuild()
+                ui.notify("Pièges éliminatoires terminés", type="positive")
+
+            def _dismiss_flash_zero() -> None:
+                timezone_name = data_store.preferences.get("timezone", "Europe/Paris")
+                local_store.dismiss_daily_flash_zero(business_today(), timezone_name=timezone_name)
+                _full_rebuild()
+                ui.notify("Pièges éliminatoires ignorés pour aujourd'hui", type="info")
+
+            _flash_zero_entry = _data.get("flash_zero")
+            if _data.get("flash_zero_dismissed"):
+                _flash_zero_entry = None
+            render_daily_training_block(
+                flash_zero=_flash_zero_entry,
+                flash_zero_completed=bool(_data.get("flash_zero_complete")),
+                on_open_flash_zero=lambda: open_flash_zero_quiz(on_complete=_finish_flash_zero),
+                on_dismiss_flash_zero=_dismiss_flash_zero,
+                daily_queue=_data.get("daily_queue") or [],
+                on_open_daily_queue=_open_daily_queue,
+            )
 
             prep_tasks = _data.get("prep_tasks") or []
             if prep_tasks:
@@ -567,26 +588,6 @@ async def render_today_cockpit() -> None:
                                 on_open=_open_prep_action,
                                 on_validate=_validate_prep,
                             )
-
-            def _finish_flash_zero() -> None:
-                timezone_name = data_store.preferences.get("timezone", "Europe/Paris")
-                local_store.complete_daily_flash_zero(business_today(), timezone_name=timezone_name)
-                _full_rebuild()
-                ui.notify("Flash-Zero terminé", type="positive")
-
-            def _dismiss_flash_zero() -> None:
-                timezone_name = data_store.preferences.get("timezone", "Europe/Paris")
-                local_store.dismiss_daily_flash_zero(business_today(), timezone_name=timezone_name)
-                _full_rebuild()
-                ui.notify("Flash-Zero ignoré pour aujourd'hui", type="info")
-
-            if _data.get("flash_zero") and not _data.get("flash_zero_dismissed"):
-                render_flash_zero_card(
-                    _data["flash_zero"],
-                    completed=_data["flash_zero_complete"],
-                    on_open=lambda: open_flash_zero_quiz(on_complete=_finish_flash_zero),
-                    on_dismiss=_dismiss_flash_zero,
-                )
 
             if tasks:
                 _render_recommended(tasks[0])
@@ -621,7 +622,9 @@ async def render_today_cockpit() -> None:
                     context_panel(
                         sel["task"],
                         on_done=_open_feedback,
-                        on_postpone=lambda t: _open_focus(t),
+                        on_postpone=lambda t, d=1: asyncio.create_task(
+                            _on_postpone(t, days=d)
+                        ),
                         on_focus=lambda t: _open_focus(t),
                         on_close=_close_context,
                     )

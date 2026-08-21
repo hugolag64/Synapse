@@ -90,5 +90,5 @@ def test_create_daily_queue_session_reuses_the_same_local_session(queue_db):
     assert first is not None
     assert first == second
     summary = local_store.get_ai_practice_session_summary(first)
-    assert summary["course_title"] == "Les 5 du jour"
+    assert summary["course_title"] == "Tes questions en attente"
     assert summary["total_questions"] == 2

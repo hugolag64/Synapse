@@ -17,10 +17,18 @@ from frontend.components.mastery_indicator import mastery_indicator
 from frontend.components.relation_graph import neighbors_of
 from frontend.components.study_task_row import _ring_glyph
 from backend.state.store import data_store
+from backend.core.reviews.consolidation import (
+    is_algorithmic_postpone, postpone_days_for_task,
+)
 from frontend.components.course_quick_actions import open_pdf_wizard
 
 NOTE_EXCERPT_CHARS = 220
 MAX_RELATED = 4
+POSTPONE_CHOICES: tuple[tuple[int, str], ...] = (
+    (1, "+1 jour"),
+    (3, "+3 jours"),
+    (7, "+1 semaine"),
+)
 
 _CSS = """
 .cp { display:flex; flex-direction:column; gap:0; height:100%; }
@@ -46,7 +54,7 @@ _CSS = """
 .cp-res { display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--accent); cursor:pointer; padding:3px 0; text-decoration:none; }
 .cp-res:hover { text-decoration:underline; }
 .cp-foot { margin-top:auto; padding-top:14px; display:flex; gap:8px; }
-.cp-btn { flex:1; height:32px; border-radius:6px; font-size:12.5px; font-weight:500; cursor:pointer;
+.cp-btn { position:relative; flex:1; height:32px; border-radius:6px; font-size:12.5px; font-weight:500; cursor:pointer;
   display:flex; align-items:center; justify-content:center; border:1px solid var(--border);
   background:var(--bg); color:var(--text); transition: background var(--duration-fast) var(--ease-standard); }
 .cp-btn:hover { background:var(--surface); }
@@ -191,11 +199,29 @@ def context_panel(task, *, on_done=None, on_postpone=None, on_focus=None,
             if on_done is not None:
                 _term.on("click", lambda t=task: on_done(t))
 
+            # « Reporter » doit décaler l'échéance, pas ouvrir le focus. Le
+            # cycle de lecture J1→J30 se décale à la main ; un item à consolider
+            # est replanifié par l'algorithme, selon sa maîtrise.
+            _algorithmic = is_algorithmic_postpone(task)
             _post = ui.element("div").classes("cp-btn")
             with _post:
                 ui.label("Reporter")
+                if on_postpone is not None and not _algorithmic:
+                    with ui.menu() as _post_menu:
+                        for _days, _lbl in POSTPONE_CHOICES:
+                            ui.menu_item(
+                                _lbl,
+                                on_click=lambda t=task, d=_days: on_postpone(t, d),
+                            ).classes("text-xs")
             if on_postpone is not None:
-                _post.on("click", lambda t=task: on_postpone(t))
+                if _algorithmic:
+                    _post.on("click", lambda t=task: on_postpone(t, None))
+                    _post.tooltip(
+                        f"Replanifié dans {postpone_days_for_task(task)} j "
+                        f"— maîtrise {task.mastery_level or 'inconnue'}"
+                    )
+                else:
+                    _post.on("click", _post_menu.open)
 
             _foc = ui.element("div").classes("cp-btn")
             with _foc:

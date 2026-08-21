@@ -169,7 +169,7 @@ def create_daily_queue_session(*, limit: int = 5) -> int | None:
         practice_kind=PracticeKind.QCM, total_questions=len(questions),
         open_questions=open_count, closed_questions=len(questions) - open_count,
         item_number=item_numbers[0] if item_numbers else "", item_numbers=item_numbers,
-        course_title="Les 5 du jour", difficulty=PracticeDifficulty.EDN,
+        course_title="Tes questions en attente", difficulty=PracticeDifficulty.EDN,
     )
     return local_store.create_ai_practice_session(
         spec=spec, questions=questions, model=DAILY_QUEUE_MODEL

@@ -37,6 +37,7 @@ from backend.core.planning.policy import (
     vacation_for_preferences,
     vacation_is_expired,
     vacation_payload,
+    MAX_CAPACITY_HOURS,
 )
 from backend.core.planning.focus import build_focus_rows, focus_row_label
 from backend.core.planning.calendar_actions import event_duration_minutes
@@ -171,6 +172,13 @@ def _load_label(total_min: int) -> str:
     if total_min <= 0:
         return "—"
     h, m = divmod(total_min, 60)
+    return f"{h}h{m:02d}" if h else f"{m} min"
+
+
+def _duration_label(minutes: int) -> str:
+    if minutes <= 0:
+        return "0 min"
+    h, m = divmod(int(minutes), 60)
     return f"{h}h{m:02d}" if h else f"{m} min"
 
 
@@ -344,33 +352,57 @@ async def render_planning_cockpit(focus: str | None = None) -> None:
     def _open_day_capacity_dialog(day: datetime.date) -> None:
         targets = dict(data_store.preferences.get("planning_targets", {}))
         current = targets.get(day.isoformat(), {})
-        current_hours = (
-            current["value"] // 60 if current.get("mode") == "minutes"
-            else capacity_from_preferences(data_store.preferences) // 60
+        current_minutes = (
+            int(current["value"]) if current.get("mode") == "minutes"
+            else capacity_from_preferences(data_store.preferences)
         )
+        state = {"minutes": max(0, min(MAX_CAPACITY_HOURS * 60, current_minutes))}
         with ui.dialog() as dialog, ui.card().classes("w-full max-w-sm p-4 gap-0"):
             ui.label(f"Capacité du {_month_day(day)}").classes("text-base font-semibold")
             ui.label("Remplace la capacité par défaut pour ce jour seulement.").classes(
                 "text-xs text-slate-500 mt-1"
             )
+            with ui.row().classes("w-full items-center justify-center gap-3 mt-3"):
+                minus_btn = ui.button("-30min").props("outline dense no-caps")
+                value_label = ui.label(_duration_label(state["minutes"])).classes(
+                    "text-sm font-semibold w-16 text-center"
+                )
+                plus_btn = ui.button("+30min").props("outline dense no-caps")
+
+            def _adjust(delta: int) -> None:
+                state["minutes"] = max(0, min(MAX_CAPACITY_HOURS * 60, state["minutes"] + delta))
+                value_label.set_text(_duration_label(state["minutes"]))
+
+            minus_btn.on_click(lambda: _adjust(-30))
+            plus_btn.on_click(lambda: _adjust(30))
+
             hours = ui.toggle(
-                {3: "3 h", 6: "6 h", 9: "9 h", 12: "12 h"}, value=current_hours
+                {3: "3 h", 6: "6 h", 9: "9 h", 12: "12 h"}, value=None
             ).props("dense unelevated no-caps").classes("w-full mt-3")
+
+            def _apply_preset(event) -> None:
+                if event.value is not None:
+                    state["minutes"] = capacity_hours_to_minutes(event.value)
+                    value_label.set_text(_duration_label(state["minutes"]))
+
+            hours.on_value_change(_apply_preset)
 
             with ui.row().classes("w-full justify-end gap-2 mt-5"):
                 def _reset() -> None:
                     targets.pop(day.isoformat(), None)
                     data_store.set_preference("planning_targets", targets)
                     dialog.close()
+                    consolidation.reschedule_from("college", day)
                     asyncio.create_task(_load_and_render())
                     ui.notify("Capacité par défaut restaurée", type="positive")
 
                 ui.button("Réinitialiser", on_click=_reset).props("flat no-caps color=slate")
 
                 def _save() -> None:
-                    targets[day.isoformat()] = {"mode": "minutes", "value": capacity_hours_to_minutes(hours.value)}
+                    targets[day.isoformat()] = {"mode": "minutes", "value": state["minutes"]}
                     data_store.set_preference("planning_targets", targets)
                     dialog.close()
+                    consolidation.reschedule_from("college", day)
                     asyncio.create_task(_load_and_render())
                     ui.notify("Capacité du jour enregistrée", type="positive")
 
@@ -483,7 +515,8 @@ async def render_planning_cockpit(focus: str | None = None) -> None:
                     body = ui.column().classes("pl-day-body gap-1.5 w-full")
                     with body:
                         ui.label("Chargement…").classes("pl-day-empty")
-                    foot = ui.element("div").classes("pl-day-foot")
+                    foot = ui.element("div").classes("pl-day-foot cursor-pointer")
+                    foot.on("click", lambda day=d: _open_day_capacity_dialog(day))
                 day_refs.append({"body": body, "foot": foot})
 
     def _open_prep_dialog(slot) -> None:

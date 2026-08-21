@@ -17,3 +17,25 @@ def test_day_capacity_dialog_writes_planning_targets():
 
 def test_day_capacity_dialog_can_reset_to_the_global_default():
     assert "targets.pop(day.isoformat(), None)" in _source()
+
+
+def test_day_footer_is_clickable_and_opens_the_capacity_dialog():
+    source = _source()
+    assert '"pl-day-foot cursor-pointer"' in source
+    assert 'foot.on("click", lambda day=d: _open_day_capacity_dialog(day))' in source
+
+
+def test_day_capacity_dialog_has_fine_grained_minute_buttons():
+    source = _source()
+    assert "-30min" in source
+    assert "+30min" in source
+
+
+def test_day_capacity_dialog_allows_zero():
+    source = _source()
+    assert "max(0, min(MAX_CAPACITY_HOURS * 60" in source
+
+
+def test_day_capacity_save_and_reset_trigger_the_cascade():
+    source = _source()
+    assert 'consolidation.reschedule_from("college", day)' in source

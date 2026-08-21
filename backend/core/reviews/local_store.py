@@ -657,6 +657,7 @@ def init_db() -> None:
     _migrate_uness_rank_jobs()
     _migrate_flash_zero_ai_questions()
     _migrate_conferences_table()
+    _migrate_conference_analysis()
     from backend.state.catalog_migrations import run_catalog_migrations
     run_catalog_migrations(DB_PATH)
     logger.info(f"SQLite initialisé : {DB_PATH}")
@@ -6900,6 +6901,335 @@ def set_conference_uness_session(conference_id: int, annale_id: int) -> dict:
     if row is None:
         raise ValueError(f"Conférence introuvable: {conference_id}")
     return dict(row)
+
+
+def _migrate_conference_analysis() -> None:
+    """Audio de conférence + jobs/résultats de l'analyse Batch audio-informée."""
+    with _conn() as con:
+        columns = {row[1] for row in con.execute("PRAGMA table_info(conferences)").fetchall()}
+        for name, ddl in [
+            ("audio_path", "ALTER TABLE conferences ADD COLUMN audio_path TEXT NOT NULL DEFAULT ''"),
+            ("audio_uploaded_at", "ALTER TABLE conferences ADD COLUMN audio_uploaded_at TEXT NOT NULL DEFAULT ''"),
+            ("audio_hash", "ALTER TABLE conferences ADD COLUMN audio_hash TEXT NOT NULL DEFAULT ''"),
+        ]:
+            if name not in columns:
+                con.execute(ddl)
+
+        con.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS conference_analysis_jobs (
+                id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                conference_id       INTEGER NOT NULL REFERENCES conferences(id) ON DELETE CASCADE,
+                uness_session_id    INTEGER NOT NULL REFERENCES uness_annales(id) ON DELETE CASCADE,
+                status              TEXT NOT NULL DEFAULT 'pending',
+                model_id            TEXT NOT NULL DEFAULT '',
+                provider_job_name   TEXT NOT NULL DEFAULT '',
+                idempotency_key     TEXT NOT NULL UNIQUE,
+                prompt_version      TEXT NOT NULL DEFAULT '',
+                audio_file_uri      TEXT NOT NULL DEFAULT '',
+                attempts            INTEGER NOT NULL DEFAULT 0,
+                locked_at           TEXT,
+                worker_id           TEXT,
+                submitted_at        TEXT,
+                completed_at        TEXT,
+                last_polled_at      TEXT,
+                next_poll_at        TEXT NOT NULL,
+                result_path         TEXT NOT NULL DEFAULT '',
+                last_error          TEXT NOT NULL DEFAULT '',
+                created_at          TEXT NOT NULL,
+                updated_at          TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_conference_analysis_jobs_status
+                ON conference_analysis_jobs(status, next_poll_at);
+            CREATE INDEX IF NOT EXISTS idx_conference_analysis_jobs_conf
+                ON conference_analysis_jobs(conference_id);
+
+            CREATE TABLE IF NOT EXISTS conference_analyses (
+                id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                conference_id       INTEGER NOT NULL REFERENCES conferences(id) ON DELETE CASCADE,
+                uness_session_id    INTEGER NOT NULL REFERENCES uness_annales(id) ON DELETE CASCADE,
+                batch_job_id        INTEGER NOT NULL REFERENCES conference_analysis_jobs(id) ON DELETE CASCADE,
+                model_id            TEXT NOT NULL DEFAULT '',
+                prompt_version      TEXT NOT NULL DEFAULT '',
+                summary_text        TEXT NOT NULL DEFAULT '',
+                created_at          TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_conference_analyses_conf
+                ON conference_analyses(conference_id, created_at DESC);
+
+            CREATE TABLE IF NOT EXISTS conference_question_analysis (
+                id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+                conference_analysis_id  INTEGER NOT NULL REFERENCES conference_analyses(id) ON DELETE CASCADE,
+                question_id             INTEGER NOT NULL REFERENCES ai_practice_questions(id) ON DELETE CASCADE,
+                verdict                 TEXT NOT NULL,
+                confidence              REAL,
+                rationale               TEXT NOT NULL DEFAULT '',
+                transcript_excerpt      TEXT NOT NULL DEFAULT '',
+                created_at              TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_conference_question_analysis_question
+                ON conference_question_analysis(question_id);
+            CREATE INDEX IF NOT EXISTS idx_conference_question_analysis_analysis
+                ON conference_question_analysis(conference_analysis_id);
+            """
+        )
+
+
+def set_conference_audio(conference_id: int, *, audio_path: str, audio_hash: str) -> dict:
+    """Enregistre l'audio uploadé pour une conférence déjà liée à un dossier UNESS."""
+    now = _now()
+    with _conn() as con:
+        con.execute(
+            """UPDATE conferences
+               SET audio_path = ?, audio_hash = ?, audio_uploaded_at = ?, updated_at = ?
+               WHERE id = ?""",
+            (str(audio_path), str(audio_hash), now, now, int(conference_id)),
+        )
+        row = con.execute("SELECT * FROM conferences WHERE id = ?", (int(conference_id),)).fetchone()
+    if row is None:
+        raise ValueError(f"Conférence introuvable: {conference_id}")
+    return dict(row)
+
+
+def list_conferences_eligible_for_analysis() -> list[dict]:
+    """Conférences avec audio + dossier liés, sans job actif pour le hash audio courant."""
+    with _conn() as con:
+        rows = con.execute(
+            """SELECT c.* FROM conferences c
+               WHERE c.uness_session_id IS NOT NULL AND c.audio_hash != ''
+                 AND NOT EXISTS (
+                     SELECT 1 FROM conference_analysis_jobs j
+                     WHERE j.conference_id = c.id
+                       AND j.status IN ('pending', 'submitted', 'running', 'succeeded')
+                       AND j.idempotency_key LIKE c.audio_hash || ':%'
+                 )"""
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+
+def list_linked_conferences_with_analysis_status() -> list[dict]:
+    """Conférences déjà liées à un dossier UNESS, avec le statut du dernier job d'analyse."""
+    with _conn() as con:
+        rows = con.execute(
+            """SELECT c.*,
+                      (SELECT j.status FROM conference_analysis_jobs j
+                       WHERE j.conference_id = c.id ORDER BY j.created_at DESC LIMIT 1) AS analysis_status,
+                      (SELECT j.id FROM conference_analysis_jobs j
+                       WHERE j.conference_id = c.id ORDER BY j.created_at DESC LIMIT 1) AS analysis_job_id
+               FROM conferences c
+               WHERE c.uness_session_id IS NOT NULL
+               ORDER BY c.date DESC"""
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def create_conference_analysis_job(
+    *, conference_id: int, uness_session_id: int, model_id: str, idempotency_key: str, prompt_version: str,
+) -> dict:
+    now = _now()
+    with _conn() as con:
+        con.execute(
+            """INSERT OR IGNORE INTO conference_analysis_jobs
+               (conference_id, uness_session_id, model_id, idempotency_key, prompt_version,
+                next_poll_at, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (int(conference_id), int(uness_session_id), str(model_id), str(idempotency_key),
+             str(prompt_version), now, now, now),
+        )
+        row = con.execute(
+            "SELECT * FROM conference_analysis_jobs WHERE idempotency_key = ?", (str(idempotency_key),)
+        ).fetchone()
+    return dict(row)
+
+
+def get_conference_analysis_job(job_id: int) -> dict | None:
+    with _conn() as con:
+        row = con.execute(
+            "SELECT * FROM conference_analysis_jobs WHERE id = ?", (int(job_id),)
+        ).fetchone()
+    return dict(row) if row is not None else None
+
+
+def claim_pending_conference_analysis_jobs(
+    *, limit: int = 5, worker_id: str = "conference-analysis-worker", lease_seconds: int = 900,
+) -> list[dict]:
+    now = _now()
+    expired = (
+        datetime.datetime.now().astimezone() - datetime.timedelta(seconds=max(1, lease_seconds))
+    ).isoformat(timespec="seconds")
+    with _conn() as con:
+        rows = con.execute(
+            """SELECT * FROM conference_analysis_jobs
+               WHERE status = 'pending' AND (locked_at IS NULL OR locked_at <= ?)
+               ORDER BY created_at ASC LIMIT ?""",
+            (expired, max(1, int(limit))),
+        ).fetchall()
+        claimed_ids = [int(row["id"]) for row in rows]
+        for job_id in claimed_ids:
+            con.execute(
+                "UPDATE conference_analysis_jobs SET locked_at = ?, worker_id = ?, updated_at = ? WHERE id = ?",
+                (now, worker_id, now, job_id),
+            )
+    return [get_conference_analysis_job(job_id) for job_id in claimed_ids]
+
+
+def mark_conference_analysis_job_submitted(job_id: int, *, provider_job_name: str, next_poll_at: str) -> dict:
+    now = _now()
+    with _conn() as con:
+        con.execute(
+            """UPDATE conference_analysis_jobs
+               SET status = 'submitted', provider_job_name = ?, submitted_at = ?,
+                   next_poll_at = ?, locked_at = NULL, worker_id = NULL, updated_at = ?
+               WHERE id = ?""",
+            (str(provider_job_name), now, str(next_poll_at), now, int(job_id)),
+        )
+    return get_conference_analysis_job(job_id)
+
+
+def list_conference_analysis_jobs_due_for_poll(*, limit: int = 10) -> list[dict]:
+    now = _now()
+    with _conn() as con:
+        rows = con.execute(
+            """SELECT * FROM conference_analysis_jobs
+               WHERE status IN ('submitted', 'running') AND next_poll_at <= ?
+               ORDER BY next_poll_at ASC LIMIT ?""",
+            (now, max(1, int(limit))),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def mark_conference_analysis_job_polled(job_id: int, *, next_poll_at: str) -> dict:
+    now = _now()
+    with _conn() as con:
+        con.execute(
+            """UPDATE conference_analysis_jobs
+               SET status = 'running', last_polled_at = ?, next_poll_at = ?, updated_at = ?
+               WHERE id = ?""",
+            (now, str(next_poll_at), now, int(job_id)),
+        )
+    return get_conference_analysis_job(job_id)
+
+
+def complete_conference_analysis_job(job_id: int, *, status: str, result_path: str) -> dict:
+    if status not in {"succeeded", "partial", "needs_admin"}:
+        raise ValueError("Statut de complétion invalide")
+    now = _now()
+    with _conn() as con:
+        con.execute(
+            """UPDATE conference_analysis_jobs
+               SET status = ?, result_path = ?, completed_at = ?, updated_at = ?
+               WHERE id = ?""",
+            (status, str(result_path), now, now, int(job_id)),
+        )
+    return get_conference_analysis_job(job_id)
+
+
+def fail_conference_analysis_job(job_id: int, *, error: str) -> dict:
+    now = _now()
+    with _conn() as con:
+        con.execute(
+            """UPDATE conference_analysis_jobs
+               SET status = 'failed', last_error = ?, completed_at = ?, updated_at = ?
+               WHERE id = ?""",
+            (str(error or "")[:500], now, now, int(job_id)),
+        )
+    return get_conference_analysis_job(job_id)
+
+
+def record_conference_analysis(
+    *, conference_id: int, uness_session_id: int, batch_job_id: int,
+    model_id: str, prompt_version: str, summary_text: str,
+) -> dict:
+    now = _now()
+    with _conn() as con:
+        cur = con.execute(
+            """INSERT INTO conference_analyses
+               (conference_id, uness_session_id, batch_job_id, model_id, prompt_version, summary_text, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (int(conference_id), int(uness_session_id), int(batch_job_id),
+             str(model_id), str(prompt_version), str(summary_text), now),
+        )
+        row = con.execute(
+            "SELECT * FROM conference_analyses WHERE id = ?", (int(cur.lastrowid),)
+        ).fetchone()
+    return dict(row)
+
+
+def record_conference_question_analysis(
+    *, conference_analysis_id: int, question_id: int, verdict: str,
+    confidence: float | None, rationale: str, transcript_excerpt: str,
+) -> None:
+    if verdict not in {"concordant", "desaccord", "incertain"}:
+        raise ValueError(f"Verdict de conférence inconnu: {verdict}")
+    with _conn() as con:
+        con.execute(
+            """INSERT INTO conference_question_analysis
+               (conference_analysis_id, question_id, verdict, confidence, rationale, transcript_excerpt, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (int(conference_analysis_id), int(question_id), verdict, confidence,
+             str(rationale or "")[:500], str(transcript_excerpt or "")[:1000], _now()),
+        )
+
+
+def apply_conference_item_classification(
+    question_id: int, item_number: str, *, confidence: float, rationale: str,
+) -> bool:
+    """N'ajoute l'item que si la question n'en a aucun (officiel ou déjà classifié)."""
+    existing = get_ai_practice_question_items(question_id)
+    if existing:
+        return False
+    with _conn() as con:
+        con.execute(
+            """INSERT OR IGNORE INTO ai_practice_question_items
+               (question_id, item_number, confidence, source, classifier_version)
+               VALUES (?, ?, ?, 'gemini_conference', 'conference-analysis-v1')""",
+            (int(question_id), str(item_number).strip(), float(confidence)),
+        )
+    return True
+
+
+def apply_conference_rank_result(
+    question_id: int, *, rank: str, confidence: float, evidence: list[str], rationale: str,
+) -> bool:
+    """Réutilise _apply_rank_metadata : lève déjà si un rang officiel existe."""
+    with _conn() as con:
+        try:
+            _apply_rank_metadata(
+                con, question_id=question_id, rank=rank, source="gemini_conference",
+                confidence=confidence, evidence=evidence, rationale=rationale,
+            )
+        except ValueError:
+            return False
+    return True
+
+
+def list_uness_annale_questions_for_analysis(annale_id: int) -> list[dict]:
+    """Questions d'un dossier UNESS avec leur snapshot officiel, pour l'analyse conférence."""
+    with _conn() as con:
+        rows = con.execute(
+            """SELECT q.id AS question_id, q.prompt, q.answer, q.item_number,
+                      q.import_metadata_json
+               FROM ai_practice_questions q
+               JOIN ai_practice_session_questions sq ON sq.question_id = q.id
+               JOIN ai_practice_sessions s ON s.id = sq.session_id
+               WHERE s.annale_id = ?""",
+            (int(annale_id),),
+        ).fetchall()
+    results = []
+    for row in rows:
+        try:
+            metadata = json.loads(row["import_metadata_json"] or "{}")
+        except (TypeError, json.JSONDecodeError):
+            metadata = {}
+        question_meta = (metadata.get("uness") or {}).get("question") or {}
+        results.append({
+            "question_id": row["question_id"],
+            "prompt": row["prompt"],
+            "answer": row["answer"],
+            "official_item": row["item_number"] or "",
+            "official_rank": str(question_meta.get("rank") or ""),
+        })
+    return results
 
 
 # ── Auto-init à l'import ──────────────────────────────────────────────────────

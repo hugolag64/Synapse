@@ -41,6 +41,7 @@ from nicegui import ui
 from backend.config.settings import settings
 from backend.core.lisa import item_service
 from backend.core.planning.policy import capacity_from_preferences, capacity_hours_to_minutes
+from backend.core.reviews import consolidation
 from backend.core.uness import import_service
 from backend.state.store import data_store
 from frontend.components.calendar_sources_panel import render as render_calendar_sources
@@ -282,6 +283,7 @@ def render_settings_cockpit() -> None:
                     def _toggle_weekend_light(sw=weekend_switch):
                         new_val = not bool(data_store.preferences.get("weekend_light_consolidation", False))
                         data_store.set_preference("weekend_light_consolidation", new_val)
+                        consolidation.reschedule_from("college", date.today())
                         if new_val:
                             sw.classes(add="on")
                         else:

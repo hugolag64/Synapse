@@ -42,7 +42,7 @@ que la section de validation collège déjà en place.
   (même format que `conferences.date`). Renvoie les lignes `uness_annales` dont
   `DATE(collected_at)` correspond, triées par `collected_at` croissant.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_conferences_store.py — ajouter en bas du fichier
@@ -83,13 +83,13 @@ def test_list_uness_annales_by_date_orders_by_collection_time(isolated_local_sto
     assert [row["id"] for row in rows] == [earlier_id, later_id]
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_conferences_store.py -k list_uness_annales_by_date -v`
 Expected: FAIL with `AttributeError: module 'backend.core.reviews.local_store' has no attribute
 'list_uness_annales_by_date'`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 # backend/core/reviews/local_store.py — juste après list_conferences (ligne ~6827)
@@ -104,12 +104,12 @@ def list_uness_annales_by_date(date: str) -> list[dict]:
     return [dict(row) for row in rows]
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_conferences_store.py -k list_uness_annales_by_date -v`
 Expected: PASS (2 tests)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/core/reviews/local_store.py tests/test_conferences_store.py
@@ -131,7 +131,7 @@ git commit -m "feat(conferences): list UNESS dossiers collected on a given calen
   `uness_session_id` et `updated_at`, lève `ValueError` si la conférence est introuvable (même
   contrat que `set_conference_match`).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_conferences_store.py — ajouter en bas du fichier
@@ -162,13 +162,13 @@ def test_set_conference_uness_session_raises_on_unknown_conference(isolated_loca
         store.set_conference_uness_session(9999, 1)
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_conferences_store.py -k set_conference_uness_session -v`
 Expected: FAIL with `AttributeError: module 'backend.core.reviews.local_store' has no attribute
 'set_conference_uness_session'`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 # backend/core/reviews/local_store.py — juste après set_conference_google_event_ids
@@ -189,12 +189,12 @@ def set_conference_uness_session(conference_id: int, annale_id: int) -> dict:
     return dict(row)
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_conferences_store.py -k set_conference_uness_session -v`
 Expected: PASS (2 tests)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/core/reviews/local_store.py tests/test_conferences_store.py
@@ -216,7 +216,7 @@ git commit -m "feat(conferences): write the conference -> UNESS dossier link"
   `{"conference": dict, "candidates": list[dict]}`. Ne renvoie que les conférences `matched` sans
   `uness_session_id` et avec au moins un candidat.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_conferences_service.py — ajouter en bas du fichier
@@ -321,13 +321,13 @@ utile ici : ces tests écrivent directement en base via `upsert_conference`/`cre
 sans passer par `import_conferences_from_xlsx` ni `validate_conference` — aucune synchronisation
 Calendar n'est déclenchée.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_conferences_service.py -k list_pending_uness_links -v`
 Expected: FAIL with `AttributeError: module 'backend.core.conferences.service' has no attribute
 'list_pending_uness_links'`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 # backend/core/conferences/service.py — ajouter à la fin du fichier
@@ -344,12 +344,12 @@ def list_pending_uness_links() -> list[dict]:
     return pending
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_conferences_service.py -k list_pending_uness_links -v`
 Expected: PASS (5 tests)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/core/conferences/service.py tests/test_conferences_service.py
@@ -371,7 +371,7 @@ git commit -m "feat(conferences): assemble matched conferences with their UNESS 
   `ValueError` si le dossier n'existe pas, sinon délègue à
   `local_store.set_conference_uness_session` et renvoie son résultat.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_conferences_service.py — ajouter en bas du fichier
@@ -414,13 +414,13 @@ def test_link_conference_to_uness_session_raises_on_unknown_dossier(isolated_loc
 `tests/test_conferences_service.py` importe déjà `pytest` en tête de fichier — vérifier que c'est
 bien le cas avant d'ajouter ces tests (c'est le cas, ligne 3).
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_conferences_service.py -k link_conference_to_uness_session -v`
 Expected: FAIL with `AttributeError: module 'backend.core.conferences.service' has no attribute
 'link_conference_to_uness_session'`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 # backend/core/conferences/service.py — ajouter à la fin du fichier, après list_pending_uness_links
@@ -432,17 +432,17 @@ def link_conference_to_uness_session(conference_id: int, annale_id: int) -> dict
     return local_store.set_conference_uness_session(conference_id, annale_id)
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_conferences_service.py -k link_conference_to_uness_session -v`
 Expected: PASS (2 tests)
 
-- [ ] **Step 5: Run the full conferences test suite**
+- [x] **Step 5: Run the full conferences test suite**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_conferences_store.py tests/test_conferences_service.py -v`
 Expected: all tests PASS (existing + new)
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add backend/core/conferences/service.py tests/test_conferences_service.py
@@ -467,7 +467,7 @@ composant NiceGUI ; il lit le fichier source et vérifie la présence de libell�
 (cf. `test_conferences_admin_component_contains_import_and_validation_actions`). On garde ce
 patron pour rester cohérent avec le reste du fichier.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # tests/test_conferences_admin_ui.py — ajouter à la fin du fichier
@@ -481,12 +481,12 @@ def test_conferences_admin_component_renders_the_uness_link_section():
     assert "Lier" in source
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_conferences_admin_ui.py -k uness_link_section -v`
 Expected: FAIL — assertion `"Dossier UNESS à confirmer" in source` is False
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Insérer une nouvelle sous-fonction `_render_pending_uness_link` et l'appeler depuis `_render_body`,
 juste après la boucle sur les conférences à valider côté collège :
@@ -614,18 +614,18 @@ correspondante dans `_render_body`, et l'ajout de la fonction `_render_pending_u
 reste (`_render_pending`, `_run_import`, le bouton d'import) est inchangé — recopié tel quel pour
 que le fichier reste cohérent d'un bloc.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `.venv/Scripts/python.exe -m pytest tests/test_conferences_admin_ui.py -v`
 Expected: all tests PASS (existing 2 + new 1)
 
-- [ ] **Step 5: Manual smoke check — import du module**
+- [x] **Step 5: Manual smoke check — import du module**
 
 Run: `.venv/Scripts/python.exe -c "import ast; ast.parse(open('frontend/components/conferences_admin.py', encoding='utf-8').read())"`
 Expected: no output, exit code 0 (confirme l'absence d'erreur de syntaxe avant de compter sur le
 serveur NiceGUI pour le détecter)
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add frontend/components/conferences_admin.py tests/test_conferences_admin_ui.py
@@ -644,7 +644,7 @@ git commit -m "feat(conferences): confirm a conference's UNESS dossier from the 
 - Consumes: rien de nouveau.
 - Produces: rien consommé par une tâche ultérieure — tâche de clôture.
 
-- [ ] **Step 1: Run the full test suite**
+- [x] **Step 1: Run the full test suite**
 
 Run: `.venv/Scripts/python.exe -m pytest -q`
 Expected: tous les tests passent, y compris les nouveaux ; le seul échec attendu au global est
@@ -652,7 +652,7 @@ l'échec préexistant et sans rapport
 `test_uness_rank_jobs_store::test_claim_recovers_expired_lease` (documenté dans
 `docs/AUDIT_ITEMS_COLLEGES_2026-08-19.md`) — aucun autre échec ne doit apparaître.
 
-- [ ] **Step 2: Mettre à jour la note métier**
+- [x] **Step 2: Mettre à jour la note métier**
 
 ```markdown
 <!-- docs/NOTE_CONFÉRENCES_DFASM_UNESS.md, remplacer les lignes 75-77 -->
@@ -662,7 +662,7 @@ l'échec préexistant et sans rapport
       confirmation manuelle obligatoire. `uness_session_id` référence `uness_annales.id`.
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add docs/NOTE_CONFÉRENCES_DFASM_UNESS.md

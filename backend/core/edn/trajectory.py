@@ -13,7 +13,7 @@ class ProgressSnapshot:
     average_mastery: float | None
     overdue_reviews: int
     remaining_reviews: int
-    recent_items_per_week: float
+    new_items_per_week: float
     recent_minutes_per_day: float
 
 
@@ -27,8 +27,20 @@ class ProjectionScenario:
 
 
 def _row_value(row, key: str, default=None):
+    """Lit une valeur sur un dict, une `sqlite3.Row` ou un objet.
+
+    `get_all_history()` renvoie des `sqlite3.Row` : elles s'indexent par clé
+    mais n'exposent pas leurs colonnes en attributs, si bien qu'un `getattr`
+    y renvoyait silencieusement le défaut pour chaque ligne.
+    """
     if isinstance(row, dict):
         return row.get(key, default)
+    keys = getattr(row, "keys", None)
+    if callable(keys):
+        try:
+            return row[key] if key in keys() else default
+        except (TypeError, IndexError, KeyError):
+            pass
     return getattr(row, key, default)
 
 
@@ -42,23 +54,73 @@ def _completed_date(row) -> datetime.date | None:
         return None
 
 
-def build_progress_snapshot(*, courses: list, tasks: list, history: dict, as_of: datetime.date) -> ProgressSnapshot:
-    total_items = len(courses)
-    covered_items = sum(1 for course in courses if _row_value(course, "date_1ere_lecture"))
+def _item_key(row) -> str:
+    """Numéro d'item normalisé : « ITEM 147 », « 147 » et « 147 » ne font qu'un."""
+    raw = str(_row_value(row, "item_number", "") or "").strip()
+    return raw.removeprefix("ITEM").removeprefix("item").strip()
+
+
+def _session_date(row) -> datetime.date | None:
+    raw = str(_row_value(row, "session_date", "") or "").strip()
+    if not raw:
+        return None
+    try:
+        return datetime.date.fromisoformat(raw[:10])
+    except ValueError:
+        return None
+
+
+def _total_edn_items() -> int:
+    from backend.core.qcm.items_mapping import all_items
+
+    return len(all_items())
+
+
+def build_progress_snapshot(
+    *,
+    tasks: list,
+    history: dict,
+    as_of: datetime.date,
+    study_sessions: list | None = None,
+    total_edn_items: int | None = None,
+) -> ProgressSnapshot:
+    """Photographie de la progression EDN, en items du programme.
+
+    La couverture compte les items EDN dont au moins une révision a été
+    validée. Elle se lisait auparavant sur `date_1ere_lecture`, renseigné sur
+    8 fiches quand l'historique local en comptait 163 travaillés : la
+    progression paraissait nulle et la projection à l'examen sans valeur.
+
+    La cadence récente est comptée dans la même unité — des items, pas des
+    fiches — pour que la projection reste homogène. Les durées viennent de
+    `study_sessions` : `review_history` n'a pas de colonne `duration_minutes`.
+    """
+    done_rows = [row for row in history.values() if _row_value(row, "status") == "done"]
+    covered_items = len({_item_key(row) for row in done_rows if _item_key(row)})
+    total_items = total_edn_items if total_edn_items is not None else _total_edn_items()
+
     scores = [_row_value(task, "mastery_score") for task in tasks if _row_value(task, "mastery_score") is not None]
     average_mastery = round(sum(scores) / len(scores), 1) if scores else None
     overdue = sum(1 for task in tasks if (_row_value(task, "days_overdue", 0) or 0) > 0)
+
+    # Cadence de découverte : un item compte le jour de sa PREMIÈRE validation.
+    # Le compter à chaque révision revenait à projeter la couverture avec un
+    # taux qui inclut le réexamen de l'acquis — 25 items/semaine au lieu de 7,
+    # et une projection saturée à 100 % pour quiconque révise régulièrement.
     cutoff = as_of - datetime.timedelta(days=27)
-    recent_rows = [
-        row for row in history.values()
-        if _row_value(row, "status") == "done"
-        and (_completed_date(row) is not None)
-        and _completed_date(row) >= cutoff
-    ]
-    recent_items = {str(_row_value(row, "course_id", "")) for row in recent_rows}
+    first_done: dict[str, datetime.date] = {}
+    for row in done_rows:
+        item = _item_key(row)
+        completed = _completed_date(row)
+        if not item or completed is None:
+            continue
+        if item not in first_done or completed < first_done[item]:
+            first_done[item] = completed
+    new_items = sum(1 for day in first_done.values() if day >= cutoff)
     recent_minutes = sum(
         float(_row_value(row, "duration_minutes", 0) or 0)
-        for row in recent_rows
+        for row in (study_sessions or [])
+        if (session_day := _session_date(row)) is not None and session_day >= cutoff
     )
     return ProgressSnapshot(
         covered_items=covered_items,
@@ -66,7 +128,7 @@ def build_progress_snapshot(*, courses: list, tasks: list, history: dict, as_of:
         average_mastery=average_mastery,
         overdue_reviews=overdue,
         remaining_reviews=len(tasks),
-        recent_items_per_week=round(len(recent_items) / 4, 2),
+        new_items_per_week=round(new_items / 4, 2),
         recent_minutes_per_day=round(recent_minutes / 28, 2),
     )
 
@@ -75,13 +137,21 @@ def project_to_exam(
     snapshot: ProgressSnapshot,
     *,
     target_date: datetime.date,
-    daily_capacity_minutes: int,
     today: datetime.date | None = None,
 ) -> tuple[ProjectionScenario, ...]:
+    """Projette la couverture EDN à `target_date` selon trois hypothèses de rythme.
+
+    Part de `new_items_per_week`, la cadence de découverte réellement observée
+    sur les 28 derniers jours — qui reflète déjà, de fait, la capacité
+    quotidienne dont l'utilisateur a disposé pour l'atteindre. Un ancien
+    `capacity_factor` (capacité/60 min) la multipliait une seconde fois ; comme
+    `capacity_from_preferences` est borné à 180-720 min et que ce facteur sature
+    à 1.5 dès 90 min, il valait 1.5 pour TOUT réglage possible — une inflation
+    constante de 50 %, jamais un vrai signal.
+    """
     today = today or datetime.date.today()
     weeks = max(0.0, (target_date - today).days / 7)
-    capacity_factor = max(0.0, min(1.5, daily_capacity_minutes / 60))
-    baseline = snapshot.recent_items_per_week or 0.0
+    baseline = snapshot.new_items_per_week or 0.0
     rates = (0.75, 1.0, 1.25)
     names = ("prudent", "central", "ambitieux")
     confidence = ("faible", "indicative", "haute")
@@ -89,7 +159,7 @@ def project_to_exam(
     for name, factor, confidence_label in zip(names, rates, confidence, strict=True):
         projected_items = min(
             snapshot.total_items,
-            snapshot.covered_items + baseline * factor * capacity_factor * weeks,
+            snapshot.covered_items + baseline * factor * weeks,
         )
         coverage = round(projected_items / snapshot.total_items * 100, 1) if snapshot.total_items else 0.0
         mastery = None if snapshot.average_mastery is None else round(

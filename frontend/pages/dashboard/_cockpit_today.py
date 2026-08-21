@@ -21,7 +21,6 @@ from backend.core.reviews import local_store
 from backend.core.reviews.service import review_service, next_postpone_date
 from backend.core.reviews.models import ReviewTask
 from backend.core.reviews.validation import complete_review
-from backend.core.planning.policy import capacity_from_preferences
 from backend.core.reviews.recommendation_service import (
     compute_daily_load, apply_daily_budget, get_next_action,
 )
@@ -286,18 +285,24 @@ async def render_today_cockpit() -> None:
         flash_zero = local_store.ensure_daily_flash_zero(business_today(), timezone_name=timezone_name)
         flash_zero_dismissed = local_store.is_daily_flash_zero_dismissed(business_today(), timezone_name=timezone_name)
         flash_zero_complete = local_store.is_daily_flash_zero_complete(business_today(), timezone_name=timezone_name)
+        try:
+            recent_sessions = local_store.get_study_sessions_since(
+                business_today() - datetime.timedelta(days=27)
+            )
+        except Exception:
+            logger.exception("Lecture des séances d'étude récentes impossible")
+            recent_sessions = []
         progress = build_progress_snapshot(
-            courses=list(getattr(data_store, "cours", []) or []),
             tasks=all_tasks,
             history=history,
             as_of=business_today(),
+            study_sessions=recent_sessions,
         )
         countdown = SprintCountdownService(data_store.preferences.get("edn_target_date", "2026-10-15"))
         edn_status = countdown.get_sprint_status(today=business_today(), progress=progress)
         edn_projections = project_to_exam(
             progress,
             target_date=edn_status.target_date,
-            daily_capacity_minutes=capacity_from_preferences(data_store.preferences),
             today=business_today(),
         )
         try:
@@ -573,7 +578,7 @@ async def render_today_cockpit() -> None:
                 timezone_name = data_store.preferences.get("timezone", "Europe/Paris")
                 local_store.dismiss_daily_flash_zero(business_today(), timezone_name=timezone_name)
                 _full_rebuild()
-                ui.notify("Flash-Zero ignorÃ© pour aujourd'hui", type="info")
+                ui.notify("Flash-Zero ignoré pour aujourd'hui", type="info")
 
             if _data.get("flash_zero") and not _data.get("flash_zero_dismissed"):
                 render_flash_zero_card(

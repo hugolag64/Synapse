@@ -2,28 +2,30 @@ import datetime
 from types import SimpleNamespace
 
 
-def test_progress_snapshot_uses_started_items_and_recent_throughput():
+def test_progress_snapshot_uses_worked_items_and_recent_throughput():
+    """La couverture compte les items EDN dont une révision a été validée
+    (auparavant : les fiches portant une date_1ere_lecture)."""
     from backend.core.edn.trajectory import build_progress_snapshot
 
     as_of = datetime.date(2026, 8, 3)
-    courses = [
-        SimpleNamespace(id="1", date_1ere_lecture="2026-08-01"),
-        SimpleNamespace(id="2", date_1ere_lecture=None),
-        SimpleNamespace(id="3", date_1ere_lecture="2026-07-01"),
-    ]
     tasks = [SimpleNamespace(mastery_score=60, days_overdue=2), SimpleNamespace(mastery_score=80, days_overdue=0)]
     history = {
-        "a": {"status": "done", "course_id": "1", "completed_at": "2026-08-02T10:00:00", "duration_minutes": 30},
-        "b": {"status": "done", "course_id": "3", "completed_at": "2026-07-01T10:00:00", "duration_minutes": 20},
+        "a": {"status": "done", "item_number": "1", "completed_at": "2026-08-02T10:00:00"},
+        "b": {"status": "done", "item_number": "3", "completed_at": "2026-07-01T10:00:00"},
     }
+    sessions = [{"session_date": "2026-08-02", "duration_minutes": 30}]
 
-    snapshot = build_progress_snapshot(courses=courses, tasks=tasks, history=history, as_of=as_of)
+    snapshot = build_progress_snapshot(
+        tasks=tasks, history=history, as_of=as_of,
+        study_sessions=sessions, total_edn_items=367,
+    )
 
     assert snapshot.covered_items == 2
-    assert snapshot.total_items == 3
+    assert snapshot.total_items == 367
     assert snapshot.average_mastery == 70
     assert snapshot.overdue_reviews == 1
-    assert snapshot.recent_items_per_week == 0.25
+    assert snapshot.new_items_per_week == 0.25
+    assert snapshot.recent_minutes_per_day == round(30 / 28, 2)
 
 
 def test_projection_returns_prudent_central_and_ambitious_scenarios():
@@ -33,7 +35,6 @@ def test_projection_returns_prudent_central_and_ambitious_scenarios():
     result = project_to_exam(
         snapshot,
         target_date=datetime.date(2026, 9, 2),
-        daily_capacity_minutes=60,
     )
 
     assert [scenario.name for scenario in result] == ["prudent", "central", "ambitieux"]

@@ -418,6 +418,25 @@ def ensure_schedule(
     return valid
 
 
+def reschedule_from(
+    context: str,
+    day: datetime.date,
+    today: Optional[datetime.date] = None,
+) -> dict[str, datetime.date]:
+    """
+    Efface les assignations à partir de `day` (incluse) puis relance
+    l'allocateur : les items qui ne rentrent plus avec la nouvelle capacité de
+    `day` glissent vers les jours suivants. Les jours avant `day` ne sont pas
+    touchés. À appeler après toute écriture qui change la capacité d'un jour
+    (planning_targets, planning_capacity_minutes, planning_vacation,
+    weekend_light_consolidation).
+    """
+    from backend.core.reviews import local_store
+
+    local_store.clear_consolidation_schedule_from(context, day)
+    return ensure_schedule(context, today or datetime.date.today())
+
+
 def get_or_bootstrap_task(course_id: str, context: str = "college") -> Optional[ReviewTask]:
     """
     Retourne la ReviewTask 'consolidation' d'un cours choisi manuellement

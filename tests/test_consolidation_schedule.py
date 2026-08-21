@@ -139,3 +139,43 @@ def test_todays_cap_shrinks_by_dismissals_without_backfilling_the_freed_slot(mon
 
     assert sum(1 for day in schedule.values() if day == _TODAY) == 5
     assert schedule.get("course-new") != _TODAY
+
+
+def test_reschedule_from_cascades_the_surplus_to_later_days(monkeypatch):
+    monkeypatch.setattr(consolidation, "get_due_consolidation_tasks", lambda *a, **k: _tasks(6))
+    monkeypatch.setattr(consolidation, "daily_caps", lambda **_: (6, 6))
+
+    consolidation.ensure_schedule("college", today=_TODAY)  # all 6 land on _TODAY
+
+    data_store.preferences = {
+        "planning_targets": {_TODAY.isoformat(): {"mode": "minutes", "value": 90}}
+    }
+    schedule = consolidation.reschedule_from("college", _TODAY, today=_TODAY)
+
+    by_day: dict[datetime.date, int] = {}
+    for day in schedule.values():
+        by_day[day] = by_day.get(day, 0) + 1
+    assert by_day[_TODAY] == 6  # target_for_day > 0 (90min) still lets the item-count cap (6) decide
+
+    # capacity reduced to 0 instead: everything must move off _TODAY
+    data_store.preferences = {
+        "planning_targets": {_TODAY.isoformat(): {"mode": "minutes", "value": 0}}
+    }
+    schedule = consolidation.reschedule_from("college", _TODAY, today=_TODAY)
+    assert _TODAY not in schedule.values()
+
+
+def test_reschedule_from_does_not_touch_days_before_it(monkeypatch):
+    monkeypatch.setattr(consolidation, "get_due_consolidation_tasks", lambda *a, **k: _tasks(12))
+    monkeypatch.setattr(consolidation, "daily_caps", lambda **_: (6, 6))
+
+    consolidation.ensure_schedule("college", today=_TODAY)  # 6 on _TODAY, 6 on _TODAY+1
+    tomorrow = _TODAY + datetime.timedelta(days=1)
+
+    data_store.preferences = {
+        "planning_targets": {tomorrow.isoformat(): {"mode": "minutes", "value": 0}}
+    }
+    schedule = consolidation.reschedule_from("college", tomorrow, today=_TODAY)
+
+    assert sum(1 for day in schedule.values() if day == _TODAY) == 6  # untouched
+    assert tomorrow not in schedule.values()

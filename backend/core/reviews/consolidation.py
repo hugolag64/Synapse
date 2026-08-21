@@ -47,6 +47,21 @@ MASTERY_WEIGHT: dict[str, float] = {
     "maîtrisé":         1.0,
 }
 
+# Report d'une occurrence de consolidation : contrairement au cycle J1→J30, dont
+# les échéances sont fixes et se décalent à la main, c'est la maîtrise qui décide
+# ici de la date de retour. Échelle volontairement plus courte que les plafonds
+# SM-2 (CONSOLIDATION_INTERVAL_CAP_BY_LEVEL) : un report n'est pas une
+# validation, il ne doit pas faire disparaître l'item le temps d'un cycle entier.
+POSTPONE_DAYS_BY_LEVEL: dict[str, int] = {
+    "critique":          2,
+    "fragile":           3,
+    "en construction":   4,
+    "à consolider":      7,
+    "à entraîner":      10,
+    "maîtrisé":         14,
+}
+DEFAULT_POSTPONE_DAYS = 7
+
 MAX_PER_COLLEGE_PER_DAY = 2
 MAX_ITEMS_PER_DAY = 6
 
@@ -55,6 +70,23 @@ WEEKEND_MAX_PER_COLLEGE_PER_DAY = 1
 WEEKEND_MAX_ITEMS_PER_DAY = 2
 
 _HIDDEN_STATUSES = {"done", "ignored", "cancelled"}
+
+
+def is_algorithmic_postpone(task) -> bool:
+    """Vrai si le report de cette tâche est calculé plutôt que choisi à la main."""
+    return getattr(task, "review_type", None) == "consolidation"
+
+
+def postpone_days_for_task(task) -> int:
+    """Délai de report, en jours.
+
+    Consolidation : dérivé du niveau de maîtrise. Cycle de lecture J1→J30 :
+    1 jour, valeur que le menu de délais de l'interface remplace de toute façon.
+    """
+    if not is_algorithmic_postpone(task):
+        return 1
+    level = str(getattr(task, "mastery_level", "") or "").strip()
+    return POSTPONE_DAYS_BY_LEVEL.get(level, DEFAULT_POSTPONE_DAYS)
 
 
 def _due_consolidation_task_for_course(

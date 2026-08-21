@@ -680,9 +680,7 @@ def test_plan_consolidation_retourne_selection_et_surplus(mock_data_store):
     c = _mock_cours("course-9", "Cours plan", ["Cardiovasculaire ❤️"])
     mock_data_store.cours = [c]
 
-    selected, skipped = planning_service.plan_consolidation(
-        max_items=6, max_per_college=2,
-    )
+    selected, skipped = planning_service.plan_consolidation()
     assert len(selected) == 1
     assert skipped == []
 

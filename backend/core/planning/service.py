@@ -323,47 +323,30 @@ class PlanningService:
 
     def plan_consolidation(
         self,
-        max_items: int | None = None,
-        max_per_college: int | None = None,
         today: datetime.date | None = None,
     ):
         """
-        Sélection du jour pour le flux de consolidation long terme (items
-        ayant fini leur cycle J3-J30, ou déclarés flou/correct/solide sans
-        avoir jamais été suivis dans l'app). Retourne (selected, skipped).
-
-        Sans max_items/max_per_college explicites, les plafonds sont dérivés
-        de consolidation.daily_caps() + la préférence "weekend_light_consolidation"
-        — réduits le week-end si activée, inchangés sinon (défaut désactivé).
+        Sélection du jour pour le flux de consolidation long terme, lue depuis
+        l'allocation persistée (`consolidation.ensure_schedule`) : les tâches
+        dont le jour assigné est aujourd'hui sont "selected", celles assignées
+        à un jour futur sont "skipped" (le badge "+N en attente" les compte).
         """
         import datetime as _dt
 
-        from backend.core.reviews import consolidation, local_store
-        from backend.state.store import data_store
+        from backend.core.reviews import consolidation
 
-        if max_items is None or max_per_college is None:
-            weekend_light = bool(data_store.preferences.get("weekend_light_consolidation", False))
-            default_items, default_per_college = consolidation.daily_caps(
-                today=today, weekend_light=weekend_light,
+        today = today or _dt.date.today()
+        schedule = consolidation.ensure_schedule("college", today)
+        tasks_by_id = {
+            t.course_id: t
+            for t in consolidation.get_due_consolidation_tasks(
+                "college", today, horizon_days=consolidation.SCHEDULE_HORIZON_DAYS,
             )
-            max_items = max_items if max_items is not None else default_items
-            max_per_college = max_per_college if max_per_college is not None else default_per_college
+        }
 
-        # Reporter ou ignorer une tâche de consolidation aujourd'hui rétrécit
-        # le plafond du jour plutôt que d'ouvrir une place que select_daily
-        # comble aussitôt avec une autre tâche du backlog (souvent bien plus
-        # profond que le plafond) : la charge affichée ne baissait jamais.
-        # `done` n'est PAS compté ici — terminer une tâche fait légitimement
-        # place à la suivante.
-        dismissed_today = local_store.count_consolidation_dismissed_today(
-            "college", today or _dt.date.today(),
-        )
-        max_items = max(0, max_items - dismissed_today)
-
-        tasks = consolidation.get_due_consolidation_tasks()
-        return consolidation.select_daily(
-            tasks, max_items=max_items, max_per_college=max_per_college,
-        )
+        selected = [tasks_by_id[cid] for cid, day in schedule.items() if day == today and cid in tasks_by_id]
+        skipped = [tasks_by_id[cid] for cid, day in schedule.items() if day > today and cid in tasks_by_id]
+        return selected, skipped
 
 
 # ── Singleton ─────────────────────────────────────────────────────────────────

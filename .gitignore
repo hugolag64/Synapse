@@ -32,6 +32,7 @@ data_cache.json
 
 # Dossiers de test temporaires
 synapse_edn_test/
+ScreenTest/
 
 # Node QCM frontend
 qcm_app/node_modules/

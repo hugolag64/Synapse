@@ -790,11 +790,13 @@ async def render_planning_cockpit(focus: str | None = None) -> None:
         # lacunes uniquement sur la vraie date du jour, jamais sur les autres
         # colonnes, y compris quand "aujourd'hui" n'est pas la 1re colonne).
         today = datetime.date.today()
+        schedule_horizon = max(consolidation.SCHEDULE_HORIZON_DAYS, future_horizon_days(week[-1], today))
         consolidation_tasks = consolidation.get_due_consolidation_tasks(
             context="college",
             today=today,
-            horizon_days=future_horizon_days(week[-1], today),
+            horizon_days=schedule_horizon,
         )
+        schedule_map = consolidation.ensure_schedule("college", today)
         _manual_entries_by_day = {}
         manual_entries = get_manual_planning_entries(week[0], week[-1])
         for entry in manual_entries:
@@ -809,7 +811,7 @@ async def render_planning_cockpit(focus: str | None = None) -> None:
             urgent, due = tasks_for_day(all_tasks, d, today)
             consolidation_for_day = [
                 task for task in consolidation_tasks
-                if (d == today and task.due_date <= today) or task.due_date == d
+                if schedule_map.get(task.course_id) == d
             ]
             lacunes_day = active_lacunes if d == today else []
             target_minutes = target_for_day(d, data_store.preferences)

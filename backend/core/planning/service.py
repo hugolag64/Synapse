@@ -336,7 +336,9 @@ class PlanningService:
         de consolidation.daily_caps() + la préférence "weekend_light_consolidation"
         — réduits le week-end si activée, inchangés sinon (défaut désactivé).
         """
-        from backend.core.reviews import consolidation
+        import datetime as _dt
+
+        from backend.core.reviews import consolidation, local_store
         from backend.state.store import data_store
 
         if max_items is None or max_per_college is None:
@@ -346,6 +348,17 @@ class PlanningService:
             )
             max_items = max_items if max_items is not None else default_items
             max_per_college = max_per_college if max_per_college is not None else default_per_college
+
+        # Reporter ou ignorer une tâche de consolidation aujourd'hui rétrécit
+        # le plafond du jour plutôt que d'ouvrir une place que select_daily
+        # comble aussitôt avec une autre tâche du backlog (souvent bien plus
+        # profond que le plafond) : la charge affichée ne baissait jamais.
+        # `done` n'est PAS compté ici — terminer une tâche fait légitimement
+        # place à la suivante.
+        dismissed_today = local_store.count_consolidation_dismissed_today(
+            "college", today or _dt.date.today(),
+        )
+        max_items = max(0, max_items - dismissed_today)
 
         tasks = consolidation.get_due_consolidation_tasks()
         return consolidation.select_daily(

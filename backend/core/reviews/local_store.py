@@ -633,6 +633,16 @@ def init_db() -> None:
             updated_at  TEXT NOT NULL,
             PRIMARY KEY (course_id, context)
         );
+
+        CREATE TABLE IF NOT EXISTS consolidation_schedule (
+            course_id      TEXT NOT NULL,
+            context        TEXT NOT NULL,
+            scheduled_date TEXT NOT NULL,
+            updated_at     TEXT NOT NULL,
+            PRIMARY KEY (course_id, context)
+        );
+        CREATE INDEX IF NOT EXISTS idx_consolidation_schedule_date
+            ON consolidation_schedule(context, scheduled_date);
         """)
     migrate_study_sessions_v2()
     _migrate_qcm_sessions_v2()
@@ -1726,6 +1736,50 @@ def get_consolidation_not_before_map(
             (context,),
         ).fetchall()
     return {row["course_id"]: datetime.date.fromisoformat(row["not_before"]) for row in rows}
+
+
+def get_consolidation_schedule_map(context: str) -> dict[str, datetime.date]:
+    with _conn() as con:
+        rows = con.execute(
+            "SELECT course_id, scheduled_date FROM consolidation_schedule WHERE context = ?",
+            (context,),
+        ).fetchall()
+    return {row["course_id"]: datetime.date.fromisoformat(row["scheduled_date"]) for row in rows}
+
+
+def set_consolidation_schedule_batch(context: str, mapping: dict[str, datetime.date]) -> None:
+    if not mapping:
+        return
+    now = _now()
+    with _conn() as con:
+        con.executemany(
+            """
+            INSERT INTO consolidation_schedule (course_id, context, scheduled_date, updated_at)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(course_id, context) DO UPDATE SET
+                scheduled_date = excluded.scheduled_date,
+                updated_at     = excluded.updated_at
+            """,
+            [(course_id, context, day.isoformat(), now) for course_id, day in mapping.items()],
+        )
+
+
+def delete_consolidation_schedule(course_ids: list[str], context: str) -> None:
+    if not course_ids:
+        return
+    with _conn() as con:
+        con.executemany(
+            "DELETE FROM consolidation_schedule WHERE course_id = ? AND context = ?",
+            [(course_id, context) for course_id in course_ids],
+        )
+
+
+def clear_consolidation_schedule_from(context: str, from_date: datetime.date) -> None:
+    with _conn() as con:
+        con.execute(
+            "DELETE FROM consolidation_schedule WHERE context = ? AND scheduled_date >= ?",
+            (context, from_date.isoformat()),
+        )
 
 
 def is_j_cycle_complete(course_id: str, context: str) -> bool:

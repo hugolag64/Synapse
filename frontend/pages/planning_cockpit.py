@@ -342,6 +342,7 @@ async def render_planning_cockpit(focus: str | None = None) -> None:
                             }
                         data_store.set_preference("planning_capacity_minutes", capacity_hours_to_minutes(hours))
                         data_store.set_preference("planning_vacation", vacation)
+                        consolidation.reschedule_from("college", datetime.date.today())
                         dialog.close()
                         asyncio.create_task(_load_and_render())
                         ui.notify("Ma charge a été enregistrée", type="positive")

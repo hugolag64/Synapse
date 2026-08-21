@@ -39,3 +39,8 @@ def test_day_capacity_dialog_allows_zero():
 def test_day_capacity_save_and_reset_trigger_the_cascade():
     source = _source()
     assert 'consolidation.reschedule_from("college", day)' in source
+
+
+def test_global_capacity_save_triggers_the_cascade_from_today():
+    source = _source()
+    assert 'consolidation.reschedule_from("college", datetime.date.today())' in source

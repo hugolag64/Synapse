@@ -69,6 +69,11 @@ MAX_ITEMS_PER_DAY = 6
 WEEKEND_MAX_PER_COLLEGE_PER_DAY = 1
 WEEKEND_MAX_ITEMS_PER_DAY = 2
 
+# Étalement persisté du backlog (Planning + Dashboard) : horizon de récupération
+# des tâches à étaler, et garde-fou de sécurité sur la marche en avant.
+SCHEDULE_HORIZON_DAYS = 60
+MAX_SCHEDULE_LOOKAHEAD_DAYS = 200
+
 _HIDDEN_STATUSES = {"done", "ignored", "cancelled"}
 
 
@@ -322,6 +327,95 @@ def daily_caps(
     if weekend_light and today.weekday() >= 5:  # samedi=5, dimanche=6
         return WEEKEND_MAX_ITEMS_PER_DAY, WEEKEND_MAX_PER_COLLEGE_PER_DAY
     return MAX_ITEMS_PER_DAY, MAX_PER_COLLEGE_PER_DAY
+
+
+def ensure_schedule(
+    context: str = "college",
+    today: Optional[datetime.date] = None,
+) -> dict[str, datetime.date]:
+    """
+    Étale le backlog de consolidation sur les jours à venir, de façon stable :
+    une assignation déjà persistée n'est jamais retouchée tant que son cours
+    est toujours dû, que sa date n'est pas passée, et qu'un report manuel n'a
+    pas repoussé l'échéance réelle au-delà.
+
+    Le Dashboard et Planning lisent tous les deux cette même table — un item
+    apparaît donc au même jour dans les deux vues.
+    """
+    from backend.core.planning.policy import target_for_day
+    from backend.core.reviews import local_store
+    from backend.state.store import data_store
+
+    today = today or datetime.date.today()
+    tasks = get_due_consolidation_tasks(context, today, horizon_days=SCHEDULE_HORIZON_DAYS)
+    tasks_by_id = {t.course_id: t for t in tasks}
+    existing = local_store.get_consolidation_schedule_map(context)
+
+    valid: dict[str, datetime.date] = {}
+    stale_ids: list[str] = []
+    occupied: dict[datetime.date, list] = {}
+    for course_id, scheduled_date in existing.items():
+        task = tasks_by_id.get(course_id)
+        if task is None or scheduled_date < today or scheduled_date < task.due_date:
+            stale_ids.append(course_id)
+        else:
+            valid[course_id] = scheduled_date
+            occupied.setdefault(scheduled_date, []).append(task)
+
+    needs_assignment = sorted(
+        (t for t in tasks if t.course_id not in valid),
+        key=lambda t: (-_priority_score(t), t.course_id),
+    )
+
+    preferences = data_store.preferences
+    weekend_light = bool(preferences.get("weekend_light_consolidation", False))
+
+    new_assignments: dict[str, datetime.date] = {}
+    queue = needs_assignment
+    day = today
+    lookahead = 0
+    while queue and lookahead < MAX_SCHEDULE_LOOKAHEAD_DAYS:
+        if target_for_day(day, preferences) == 0:
+            day += datetime.timedelta(days=1)
+            lookahead += 1
+            continue
+
+        max_items, max_per_college = daily_caps(today=day, weekend_light=weekend_light)
+        if day == today:
+            dismissed = local_store.count_consolidation_dismissed_today(context, today)
+            max_items = max(0, max_items - dismissed)
+
+        day_tasks = occupied.get(day, [])
+        college_count: dict[str, int] = {}
+        for t in day_tasks:
+            primary = t.college[0] if t.college else "?"
+            college_count[primary] = college_count.get(primary, 0) + 1
+
+        remaining_queue = []
+        for t in queue:
+            primary = t.college[0] if t.college else "?"
+            if (
+                day >= t.due_date
+                and len(day_tasks) < max_items
+                and college_count.get(primary, 0) < max_per_college
+            ):
+                day_tasks.append(t)
+                college_count[primary] = college_count.get(primary, 0) + 1
+                new_assignments[t.course_id] = day
+            else:
+                remaining_queue.append(t)
+        queue = remaining_queue
+        occupied[day] = day_tasks
+        day += datetime.timedelta(days=1)
+        lookahead += 1
+
+    if stale_ids:
+        local_store.delete_consolidation_schedule(stale_ids, context)
+    if new_assignments:
+        local_store.set_consolidation_schedule_batch(context, new_assignments)
+
+    valid.update(new_assignments)
+    return valid
 
 
 def get_or_bootstrap_task(course_id: str, context: str = "college") -> Optional[ReviewTask]:

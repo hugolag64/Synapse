@@ -115,9 +115,10 @@ def ensure_schedule(context: str = "college", today: datetime.date | None = None
    au même jour.
 7. Retourne la carte fusionnée `{course_id: date}`.
 
-**Limite assumée** : un item reporté manuellement à une date proche pourrait en théorie être
-replacé un peu avant sa nouvelle échéance si sa priorité recalculée reste élevée — cas marginal,
-pas de garde-fou dédié au-delà de la règle de l'étape 3.
+**Renforcement fait à l'implémentation** : l'allocateur ne place jamais une tâche avant sa propre
+`due_date` (contrainte `day >= t.due_date` ajoutée à l'étape 5, en plus du plafond) — la limite
+initialement envisagée ici (un item reporté pourrait être replacé un peu avant sa nouvelle
+échéance) n'existe donc pas en pratique.
 
 ## 5. Intégration Dashboard + Planning
 
